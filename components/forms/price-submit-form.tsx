@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import type { FuelType, Station } from "@/lib/types";
 import { fuelLabels } from "@/lib/format/labels";
 import { submitPriceReportAction } from "@/app/enviar/actions";
+import { trackProductEvent } from "@/lib/telemetry/client";
 
 const fuelOptions: FuelType[] = ["gasolina_comum", "gasolina_aditivada", "etanol", "diesel_s10", "diesel_comum", "gnv"];
 
@@ -41,6 +42,7 @@ export function PriceSubmitForm({ stations, initialStationId, returnToHref }: Pr
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [submittedStationId, setSubmittedStationId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const hasStartedRef = useRef(false);
 
   useEffect(() => {
     if (initialStationId && stations.some((station) => station.id === initialStationId)) {
@@ -74,6 +76,24 @@ export function PriceSubmitForm({ stations, initialStationId, returnToHref }: Pr
     };
   }, [previewUrl]);
 
+  function markStarted(reason: string) {
+    if (hasStartedRef.current) {
+      return;
+    }
+
+    hasStartedRef.current = true;
+    void trackProductEvent({
+      eventType: "submission_started",
+      pagePath: "/enviar",
+      pageTitle: "Enviar preço",
+      stationId: stationId || null,
+      fuelType,
+      scopeType: "submission",
+      scopeId: stationId || null,
+      payload: { reason }
+    });
+  }
+
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const nextFile = event.target.files?.[0] ?? null;
 
@@ -91,6 +111,7 @@ export function PriceSubmitForm({ stations, initialStationId, returnToHref }: Pr
       return;
     }
 
+    markStarted("photo");
     setPreviewUrl(URL.createObjectURL(nextFile));
   }
 
@@ -161,7 +182,10 @@ export function PriceSubmitForm({ stations, initialStationId, returnToHref }: Pr
           id="stationId"
           name="stationId"
           value={stationId}
-          onChange={(event) => setStationId(event.target.value)}
+          onChange={(event) => {
+            setStationId(event.target.value);
+            markStarted("station");
+          }}
           className="w-full rounded-[18px] border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none ring-0"
         >
           {stations.map((station) => (
@@ -182,7 +206,10 @@ export function PriceSubmitForm({ stations, initialStationId, returnToHref }: Pr
             id="fuelType"
             name="fuelType"
             value={fuelType}
-            onChange={(event) => setFuelType(event.target.value as FuelType)}
+            onChange={(event) => {
+              setFuelType(event.target.value as FuelType);
+              markStarted("fuel");
+            }}
             className="w-full rounded-[18px] border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none ring-0"
           >
             {fuelOptions.map((option) => (
@@ -202,7 +229,10 @@ export function PriceSubmitForm({ stations, initialStationId, returnToHref }: Pr
             name="price"
             inputMode="decimal"
             value={price}
-            onChange={(event) => setPrice(event.target.value)}
+            onChange={(event) => {
+              setPrice(event.target.value);
+              markStarted("price");
+            }}
             placeholder="Ex.: 6,29"
             className="w-full rounded-[18px] border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none ring-0"
           />
@@ -217,7 +247,10 @@ export function PriceSubmitForm({ stations, initialStationId, returnToHref }: Pr
           id="nickname"
           name="nickname"
           value={nickname}
-          onChange={(event) => setNickname(event.target.value)}
+          onChange={(event) => {
+            setNickname(event.target.value);
+            markStarted("nickname");
+          }}
           placeholder="Ex.: Morador VR"
           className="w-full rounded-[18px] border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none ring-0"
         />

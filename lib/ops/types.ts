@@ -82,6 +82,20 @@ export interface AdminActionLogItem {
   createdAt: string;
 }
 
+export interface ProductFunnelSummary {
+  homeOpened: number;
+  searchUsed: number;
+  stationClicked: number;
+  submitOpened: number;
+  submissionStarted: number;
+  submissionAccepted: number;
+  submissionFailed: number;
+  auditOpened: number;
+  feedbackOpened: number;
+  feedbackReceived: number;
+  dropoffBetweenSteps: Array<{ from: string; to: string; lost: number; rate: number }>;
+}
+
 export interface OperationalTelemetry {
   summary: {
     submissions: number;
@@ -97,6 +111,8 @@ export interface OperationalTelemetry {
   };
   byCity: Array<{ city: string; count: number; approved: number; pending: number; rejected: number }>;
   byFuel: Array<{ fuelType: string; count: number; approved: number; pending: number; rejected: number }>;
+  topScreens: Array<{ screen: string; count: number; lastAt: string }>;
+  funnel: ProductFunnelSummary;
   recentEvents: OperationalEventItem[];
   recentAdminActions: AdminActionLogItem[];
 }

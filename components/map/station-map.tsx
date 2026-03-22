@@ -14,6 +14,7 @@ import { canShowStationOnMap, getStationMarketPresence } from "@/lib/quality/sta
 import { formatCurrencyBRL } from "@/lib/format/currency";
 import { formatRecencyLabel, getRecencyTone, recencyToneToBadgeVariant } from "@/lib/format/time";
 import { cn } from "@/lib/utils";
+import { trackProductEvent } from "@/lib/telemetry/client";
 
 interface StationMapProps {
   stations: StationWithReports[];
@@ -96,7 +97,10 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref }: 
               key={station.id}
               position={[station.lat, station.lng]}
               icon={createPinIcon(pinStatus)}
-              eventHandlers={{ click: () => setSelectedStationId(station.id) }}
+              eventHandlers={{ click: () => {
+                setSelectedStationId(station.id);
+                void trackProductEvent({ eventType: "station_clicked", pagePath: returnToHref ?? "/", pageTitle: station.name, stationId: station.id, city: station.city, fuelType: latest?.fuelType ?? null, scopeType: "station", scopeId: station.id, payload: { source: "map-pin" } });
+              } }}
             >
               <Popup>
                 <div className="space-y-2">
@@ -156,10 +160,10 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref }: 
                 {selectedStation.geoReviewStatus === "manual_review" ? <Badge variant="warning">Localização em revisão</Badge> : null}
               </div>
               <div className="flex gap-2">
-                <ButtonLink href={getStationHref(selectedStation.id, returnToHref)} variant="secondary" className="flex-1">
+                <ButtonLink href={getStationHref(selectedStation.id, returnToHref)} variant="secondary" className="flex-1" onClick={() => void trackProductEvent({ eventType: "station_clicked", pagePath: getStationHref(selectedStation.id, returnToHref), pageTitle: selectedStation.name, stationId: selectedStation.id, city: selectedStation.city, fuelType: selectedStation.latestReports[0]?.fuelType ?? null, scopeType: "station", scopeId: selectedStation.id, payload: { source: "map-card-open" } })}>
                   Abrir posto
                 </ButtonLink>
-                <ButtonLink href={getSendHref(selectedStation.id, returnToHref)} className="flex-1">
+                <ButtonLink href={getSendHref(selectedStation.id, returnToHref)} className="flex-1" onClick={() => void trackProductEvent({ eventType: "submit_opened", pagePath: getSendHref(selectedStation.id, returnToHref), pageTitle: selectedStation.name, stationId: selectedStation.id, city: selectedStation.city, fuelType: selectedStation.latestReports[0]?.fuelType ?? null, scopeType: "submission", scopeId: selectedStation.id, payload: { source: "map-card-send" } })}>
                   Enviar preço
                 </ButtonLink>
               </div>
@@ -177,3 +181,6 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref }: 
     </div>
   );
 }
+
+
+

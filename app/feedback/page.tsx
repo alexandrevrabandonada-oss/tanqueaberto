@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/layout/app-shell";
+import { ProductEvent } from "@/components/telemetry/product-event";
 import { BetaFeedbackForm } from "@/components/feedback/beta-feedback-form";
 import { SectionCard } from "@/components/ui/section-card";
 
@@ -23,6 +24,7 @@ export default async function FeedbackPage({ searchParams }: FeedbackPageProps) 
 
   return (
     <AppShell>
+      <ProductEvent eventType="feedback_opened" pagePath="/feedback" pageTitle="Enviar feedback" />
       <div className="space-y-4 pb-10 pt-1">
         <SectionCard className="space-y-3">
           <p className="text-xs uppercase tracking-[0.2em] text-white/42">Beta fechado</p>
@@ -40,3 +42,7 @@ export default async function FeedbackPage({ searchParams }: FeedbackPageProps) 
     </AppShell>
   );
 }
+
+
+
+

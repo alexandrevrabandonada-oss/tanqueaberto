@@ -3,6 +3,7 @@ import type { Route } from "next";
 import { ArrowRight, BarChart3, Download, MapPinned, TriangleAlert } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { ProductEvent } from "@/components/telemetry/product-event";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
@@ -42,6 +43,7 @@ export default async function AuditOverviewPage({ searchParams }: AuditOverviewP
 
   return (
     <AppShell>
+      <ProductEvent eventType="audit_opened" pagePath="/auditoria" pageTitle="Auditoria pública" />
       <SectionCard className="space-y-5">
         <div className="space-y-2">
           <Badge>Observatório público</Badge>
@@ -251,4 +253,9 @@ export default async function AuditOverviewPage({ searchParams }: AuditOverviewP
     </AppShell>
   );
 }
+
+
+
+
+
 

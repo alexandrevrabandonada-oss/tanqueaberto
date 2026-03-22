@@ -7,6 +7,7 @@ import { recordOperationalEvent } from "@/lib/ops/logs";
 import { getSafeBetaNextPath, isBetaClosed } from "@/lib/beta/gate";
 import { hasBetaAccessFromCookies } from "@/lib/beta/session";
 import { createSupabaseServiceClient } from "@/lib/supabase/admin";
+import { deriveFeedbackScreen, deriveFeedbackStatus, deriveFeedbackTags, deriveFeedbackTopic } from "@/lib/beta/triage";
 
 export interface BetaFeedbackState {
   error: string | null;
@@ -40,6 +41,11 @@ export async function submitBetaFeedbackAction(_prevState: BetaFeedbackState, fo
     return { error: "Escreva um feedback um pouco mais completo.", success: false };
   }
 
+  const screenGroup = deriveFeedbackScreen(pagePath, pageTitle);
+  const triageTags = deriveFeedbackTags(feedbackType, message, context, pagePath);
+  const triageStatus = deriveFeedbackStatus(feedbackType, message);
+  const topic = deriveFeedbackTopic(feedbackType, message, context);
+
   const supabase = createSupabaseServiceClient();
   const { error } = await supabase.from("beta_feedback_submissions").insert({
     feedback_type: feedbackType,
@@ -51,7 +57,10 @@ export async function submitBetaFeedbackAction(_prevState: BetaFeedbackState, fo
     station_id: stationId || null,
     city: city || null,
     fuel_type: fuelType || null,
-    status: "new"
+    status: "new",
+    screen_group: screenGroup,
+    triage_tags: triageTags,
+    triage_status: triageStatus
   });
 
   if (error) {
@@ -65,7 +74,10 @@ export async function submitBetaFeedbackAction(_prevState: BetaFeedbackState, fo
         pagePath,
         city,
         fuelType,
-        stationId
+        stationId,
+        screenGroup,
+        topic,
+        triageTags
       }
     });
     return { error: "Não foi possível salvar seu feedback agora.", success: false };
@@ -84,7 +96,11 @@ export async function submitBetaFeedbackAction(_prevState: BetaFeedbackState, fo
       pageTitle,
       testerNickname,
       context,
-      message
+      message,
+      screenGroup,
+      topic,
+      triageStatus,
+      triageTags
     }
   });
 
@@ -92,3 +108,4 @@ export async function submitBetaFeedbackAction(_prevState: BetaFeedbackState, fo
   revalidatePath("/admin");
   return { error: null, success: true };
 }
+

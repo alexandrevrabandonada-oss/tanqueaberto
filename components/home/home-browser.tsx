@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Camera, Clock3, Search, X } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
 import { EmptyStateCard } from "@/components/state/empty-state-card";
+import { trackProductEvent } from "@/lib/telemetry/client";
 import { formatCurrencyBRL } from "@/lib/format/currency";
 import { formatDateTimeBR } from "@/lib/format/time";
 import { formatRecencyLabel, getRecencyTone, recencyToneToBadgeVariant } from "@/lib/format/time";
@@ -56,7 +57,12 @@ export function HomeBrowser({
   const [fuelFilter, setFuelFilter] = useState<FuelFilter>(initialFuelFilter);
   const [recencyFilter, setRecencyFilter] = useState<RecencyFilter>(initialRecencyFilter);
   const [presenceFilter, setPresenceFilter] = useState<StationPresenceFilter>(initialPresenceFilter);
+  const lastTrackedSearchRef = useRef(initialQuery);
   const deferredQuery = useDeferredValue(query);
+
+  useEffect(() => {
+    void trackProductEvent({ eventType: "home_opened", pagePath: "/", pageTitle: "Mapa vivo", scopeType: "page", scopeId: "/" });
+  }, []);
 
   const filteredStations = useMemo(
     () => filterStations(stations, deferredQuery, fuelFilter, recencyFilter, presenceFilter),
@@ -117,7 +123,21 @@ export function HomeBrowser({
           <Search className="h-4 w-4 text-[color:var(--color-accent)]" />
           <input
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              const nextValue = event.target.value;
+              setQuery(nextValue);
+              if (nextValue.length >= 2 && nextValue !== lastTrackedSearchRef.current) {
+                lastTrackedSearchRef.current = nextValue;
+                void trackProductEvent({
+                  eventType: "home_search_used",
+                  pagePath: "/",
+                  pageTitle: "Mapa vivo",
+                  scopeType: "page",
+                  scopeId: "/",
+                  payload: { queryLength: nextValue.length, query: nextValue }
+                });
+              }
+            }}
             placeholder="Buscar posto, bairro ou cidade"
             className="w-full bg-transparent outline-none placeholder:text-white/38"
           />
@@ -228,7 +248,7 @@ export function HomeBrowser({
               const latest = station.latestReports[0];
               const stationHref = `/postos/${station.id}?returnTo=${encodeURIComponent(contextHref)}` as Route;
               return (
-                <Link key={station.id} href={stationHref} className="flex items-center justify-between rounded-[20px] border border-white/8 bg-black/30 px-4 py-3 transition hover:border-[color:var(--color-accent)]/40">
+                <Link key={station.id} href={stationHref} onClick={() => void trackProductEvent({ eventType: "station_clicked", pagePath: contextHref, pageTitle: "Mapa vivo", stationId: station.id, city: station.city, fuelType: latest?.fuelType ?? null, scopeType: "station", scopeId: station.id, payload: { source: "recorte-lista" } })} className="flex items-center justify-between rounded-[20px] border border-white/8 bg-black/30 px-4 py-3 transition hover:border-[color:var(--color-accent)]/40">
                   <div className="min-w-0">
                     <p className="truncate font-medium text-white">{station.name}</p>
                     <p className="truncate text-sm text-white/50">
@@ -420,6 +440,9 @@ export function HomeBrowser({
     </>
   );
 }
+
+
+
 
 
 

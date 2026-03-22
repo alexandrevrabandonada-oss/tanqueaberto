@@ -2,6 +2,7 @@ import type { Route } from "next";
 import { Camera, ShieldCheck } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { ProductEvent } from "@/components/telemetry/product-event";
 import { PriceSubmitForm } from "@/components/forms/price-submit-form";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
@@ -32,6 +33,7 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
 
   return (
     <AppShell>
+      <ProductEvent eventType="submit_opened" pagePath="/enviar" pageTitle="Enviar preço" />
       <SectionCard className="space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -85,3 +87,8 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
     </AppShell>
   );
 }
+
+
+
+
+

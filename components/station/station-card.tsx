@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Clock3, MapPin } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { trackProductEvent } from "@/lib/telemetry/client";
 import { ButtonLink } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
 import { fuelLabels } from "@/lib/format/labels";
@@ -10,7 +11,7 @@ import { formatCurrencyBRL } from "@/lib/format/currency";
 import { formatRecencyLabel, getRecencyTone, recencyToneToBadgeVariant } from "@/lib/format/time";
 import { getSelectedStationReport } from "@/lib/filters/public";
 import { getStationMarketPresence, getStationMarketPresenceLabel, getStationPublicName, hasPendingStationLocationReview } from "@/lib/quality/stations";
-import type { FuelType, StationWithReports } from "@/lib/types";
+import type { FuelType, PriceReport, StationWithReports } from "@/lib/types";
 
 interface StationCardProps {
   station: StationWithReports;
@@ -27,11 +28,12 @@ function getSendHref(stationId: string, returnToHref?: string) {
 }
 
 export function StationCard({ station, fuelFilter = "all", returnToHref }: StationCardProps) {
-  const latest = getSelectedStationReport(station, fuelFilter);
+  const latest: PriceReport | null = getSelectedStationReport(station, fuelFilter);
   const stationHref = getStationHref(station.id, returnToHref);
   const sendHref = getSendHref(station.id, returnToHref);
   const marketPresence = getStationMarketPresence(station);
   const marketLabel = getStationMarketPresenceLabel(station);
+  const latestFuelType = latest ? latest.fuelType : null;
 
   return (
     <SectionCard className="space-y-4">
@@ -71,7 +73,7 @@ export function StationCard({ station, fuelFilter = "all", returnToHref }: Stati
       ) : (
         <div className="space-y-3 rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/58">
           <p>Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.</p>
-          <ButtonLink href={sendHref} className="w-full">
+          <ButtonLink href={sendHref} className="w-full" onClick={() => void trackProductEvent({ eventType: "submit_opened", pagePath: sendHref, pageTitle: getStationPublicName(station), stationId: station.id, city: station.city, fuelType: latestFuelType, scopeType: "submission", scopeId: station.id, payload: { source: "station-card-send" } })}>
             Enviar o primeiro preço
           </ButtonLink>
         </div>
@@ -79,6 +81,7 @@ export function StationCard({ station, fuelFilter = "all", returnToHref }: Stati
 
       <Link
         href={stationHref}
+        onClick={() => void trackProductEvent({ eventType: "station_clicked", pagePath: stationHref, pageTitle: getStationPublicName(station), stationId: station.id, city: station.city, fuelType: latestFuelType, scopeType: "station", scopeId: station.id, payload: { source: "station-card-open" } })}
         className="inline-flex items-center justify-center rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-white transition hover:border-[color:var(--color-accent)] hover:text-[color:var(--color-accent)]"
       >
         Abrir posto
@@ -86,3 +89,6 @@ export function StationCard({ station, fuelFilter = "all", returnToHref }: Stati
     </SectionCard>
   );
 }
+
+
+

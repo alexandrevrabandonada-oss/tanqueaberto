@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, CalendarSync, RadioTower, RefreshCcw, Sparkles } from "lucide-react";
+import { AlertTriangle, CalendarSync, Download, RadioTower, RefreshCcw, Sparkles } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { Badge } from "@/components/ui/badge";
@@ -51,7 +51,19 @@ export default async function AdminOpsPage({ searchParams }: AdminOpsPageProps) 
                 Rotina diária, dossiês recorrentes, cobertura, prioridades de coleta e sinais de abuso ou erro. Este é o lado do produto que organiza o ritmo da base.
               </p>
             </div>
-            <Badge variant="warning">Ritmo em execução</Badge>
+            <div className="flex flex-col items-end gap-2">
+              <Badge variant="warning">Ritmo em execução</Badge>
+              <div className="flex flex-wrap justify-end gap-2 text-sm">
+                <Link href="/admin/ops/export?kind=feedback" className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-white/72 hover:border-[color:var(--color-accent)] hover:text-white">
+                  <Download className="h-3.5 w-3.5" />
+                  CSV feedback
+                </Link>
+                <Link href="/admin/ops/export?kind=events" className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-white/72 hover:border-[color:var(--color-accent)] hover:text-white">
+                  <Download className="h-3.5 w-3.5" />
+                  CSV eventos
+                </Link>
+              </div>
+            </div>
           </div>
 
           {banner ? <div className="rounded-[18px] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/74">{banner}</div> : null}
@@ -113,6 +125,53 @@ export default async function AdminOpsPage({ searchParams }: AdminOpsPageProps) 
               <p>Postos sem leitura recente: {dashboard.summary.staleStations}</p>
               <p>Observação recente total: {dashboard.summary.recentObservations}</p>
               <p>Grupos ativos com cobertura: {dashboard.groups.filter((group) => group.members > 0).length}</p>
+            </div>
+          </div>
+        </SectionCard>
+
+        <SectionCard className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Funil do beta</p>
+              <h2 className="mt-1 text-xl font-semibold text-white">Entrada, busca, posto e envio</h2>
+            </div>
+            <Badge variant="warning">7 dias</Badge>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <OpsMetricCard label="Abriu home" value={dashboard.observability.funnel.homeOpened} note="Primeira entrada" tone="accent" />
+            <OpsMetricCard label="Usou busca" value={dashboard.observability.funnel.searchUsed} note="Busca por posto, bairro ou cidade" />
+            <OpsMetricCard label="Clicou em posto" value={dashboard.observability.funnel.stationClicked} note="Mapa, lista ou card" />
+            <OpsMetricCard label="Abriu envio" value={dashboard.observability.funnel.submitOpened} note="A tela de envio foi aberta" />
+            <OpsMetricCard label="Iniciou envio" value={dashboard.observability.funnel.submissionStarted} note="Primeiro gesto do formulário" />
+            <OpsMetricCard label="Envio concluído" value={dashboard.observability.funnel.submissionAccepted} note="Entrou na moderação" tone="accent" />
+          </div>
+          <div className="grid gap-3 lg:grid-cols-2">
+            <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Abandono entre etapas</p>
+              <div className="mt-4 space-y-2 text-sm text-white/62">
+                {dashboard.observability.funnel.dropoffBetweenSteps.map((step) => (
+                  <div key={`${step.from}-${step.to}`} className="rounded-[18px] border border-white/8 bg-black/20 px-4 py-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-white">{step.from} → {step.to}</span>
+                      <span>{Math.round(step.rate * 100)}% · {step.lost} perdidos</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Telas mais acionadas</p>
+              <div className="mt-4 space-y-2 text-sm text-white/62">
+                {dashboard.observability.topScreens.slice(0, 6).map((item) => (
+                  <div key={item.screen} className="rounded-[18px] border border-white/8 bg-black/20 px-4 py-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-white">{item.screen}</span>
+                      <span>{item.count}</span>
+                    </div>
+                    <p className="mt-1 text-xs text-white/42">Último sinal {formatDateTimeBR(item.lastAt)}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </SectionCard>
@@ -225,7 +284,9 @@ export default async function AdminOpsPage({ searchParams }: AdminOpsPageProps) 
               ))}
             </div>
           </div>
-        </SectionCard>        <SectionCard className="space-y-4">
+        </SectionCard>
+
+        <SectionCard className="space-y-4">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-white/42">Feedback beta</p>
@@ -233,13 +294,51 @@ export default async function AdminOpsPage({ searchParams }: AdminOpsPageProps) 
             </div>
             <Badge variant="warning">{feedback.total} retornos</Badge>
           </div>
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-4">
             {feedback.byType.map((item) => (
               <div key={item.feedbackType} className="rounded-[18px] border border-white/8 bg-black/20 px-4 py-3 text-sm text-white/66">
                 <p className="font-medium text-white">{item.feedbackType}</p>
                 <p className="mt-1 text-xs text-white/44">{item.count} ocorrências</p>
               </div>
             ))}
+          </div>
+          <div className="grid gap-3 lg:grid-cols-3">
+            <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Por tela</p>
+              <div className="mt-4 space-y-2">
+                {feedback.byScreen.map((item) => (
+                  <div key={item.screenGroup} className="rounded-[18px] border border-white/8 bg-black/20 px-4 py-3 text-sm text-white/66">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-white">{item.screenGroup}</span>
+                      <span>{item.count}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Por status</p>
+              <div className="mt-4 space-y-2">
+                {feedback.byStatus.map((item) => (
+                  <div key={item.triageStatus} className="rounded-[18px] border border-white/8 bg-black/20 px-4 py-3 text-sm text-white/66">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-white">{item.triageStatus}</span>
+                      <span>{item.count}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Tags automáticas</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {feedback.byTag.map((item) => (
+                  <Badge key={item.tag} variant="outline">
+                    {item.tag} · {item.count}
+                  </Badge>
+                ))}
+              </div>
+            </div>
           </div>
           <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
             <p className="text-xs uppercase tracking-[0.2em] text-white/42">Top páginas com feedback</p>
@@ -270,7 +369,6 @@ export default async function AdminOpsPage({ searchParams }: AdminOpsPageProps) 
             </div>
           </div>
         </SectionCard>
-
 
         <SectionCard className="space-y-4">
           <div className="flex items-center justify-between gap-3">
@@ -323,6 +421,3 @@ export default async function AdminOpsPage({ searchParams }: AdminOpsPageProps) 
     </AppShell>
   );
 }
-
-
-

@@ -30,6 +30,20 @@ export interface AdminActionLogItem {
   createdAt: string;
 }
 
+export interface ProductFunnelSummary {
+  homeOpened: number;
+  searchUsed: number;
+  stationClicked: number;
+  submitOpened: number;
+  submissionStarted: number;
+  submissionAccepted: number;
+  submissionFailed: number;
+  auditOpened: number;
+  feedbackOpened: number;
+  feedbackReceived: number;
+  dropoffBetweenSteps: Array<{ from: string; to: string; lost: number; rate: number }>;
+}
+
 export interface OperationalTelemetry {
   summary: {
     submissions: number;
@@ -45,6 +59,8 @@ export interface OperationalTelemetry {
   };
   byCity: Array<{ city: string; count: number; approved: number; pending: number; rejected: number }>;
   byFuel: Array<{ fuelType: FuelType; count: number; approved: number; pending: number; rejected: number }>;
+  topScreens: Array<{ screen: string; count: number; lastAt: string }>;
+  funnel: ProductFunnelSummary;
   recentEvents: OperationalEventItem[];
   recentAdminActions: AdminActionLogItem[];
 }
@@ -81,6 +97,70 @@ function toAdminActionItem(row: Record<string, unknown>): AdminActionLogItem {
   };
 }
 
+function buildFunnel(events: OperationalEventItem[]): ProductFunnelSummary {
+  const count = (eventType: string) => events.filter((event) => event.eventType === eventType).length;
+  const homeOpened = count("home_opened");
+  const searchUsed = count("home_search_used");
+  const stationClicked = count("station_clicked");
+  const submitOpened = count("submit_opened");
+  const submissionStarted = count("submission_started");
+  const submissionAccepted = count("submission_accepted");
+  const submissionFailed = count("submission_failed");
+  const auditOpened = count("audit_opened");
+  const feedbackOpened = count("feedback_opened");
+  const feedbackReceived = count("beta_feedback_received");
+
+  const steps = [
+    { label: "home_opened", value: homeOpened },
+    { label: "home_search_used", value: searchUsed },
+    { label: "station_clicked", value: stationClicked },
+    { label: "submit_opened", value: submitOpened },
+    { label: "submission_started", value: submissionStarted },
+    { label: "submission_accepted", value: submissionAccepted }
+  ];
+
+  const dropoffBetweenSteps = steps.slice(1).map((step, index) => {
+    const previous = steps[index];
+    const lost = Math.max(0, previous.value - step.value);
+    const rate = previous.value > 0 ? lost / previous.value : 0;
+    return { from: previous.label, to: step.label, lost, rate };
+  });
+
+  return {
+    homeOpened,
+    searchUsed,
+    stationClicked,
+    submitOpened,
+    submissionStarted,
+    submissionAccepted,
+    submissionFailed,
+    auditOpened,
+    feedbackOpened,
+    feedbackReceived,
+    dropoffBetweenSteps
+  };
+}
+
+function buildTopScreens(events: OperationalEventItem[]) {
+  const map = new Map<string, { screen: string; count: number; lastAt: string }>();
+
+  for (const event of events) {
+    const payload = event.payload as Record<string, unknown>;
+    const raw = typeof payload.pagePath === "string" ? payload.pagePath : typeof event.scopeId === "string" ? event.scopeId : event.scopeType ?? "outros";
+    const screen = raw || "outros";
+    const current = map.get(screen) ?? { screen, count: 0, lastAt: event.createdAt };
+    current.count += 1;
+    if (event.createdAt > current.lastAt) {
+      current.lastAt = event.createdAt;
+    }
+    map.set(screen, current);
+  }
+
+  return Array.from(map.values())
+    .sort((left, right) => right.count - left.count || right.lastAt.localeCompare(left.lastAt))
+    .slice(0, 10);
+}
+
 export async function getOperationalTelemetry(days = 7): Promise<OperationalTelemetry> {
   const supabase = createSupabaseServiceClient();
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
@@ -89,13 +169,13 @@ export async function getOperationalTelemetry(days = 7): Promise<OperationalTele
 
   const [submissionsResult, operationalResult, adminResult, jobsResult] = await Promise.all([
     supabase.from("price_reports").select("id,status,station_id,fuel_type,created_at").gte("created_at", since),
-    supabase.from("operational_events").select("id,event_type,severity,scope_type,scope_id,actor_email,station_id,report_id,city,fuel_type,reason,payload,created_at").gte("created_at", since).order("created_at", { ascending: false }).limit(30),
+    supabase.from("operational_events").select("id,event_type,severity,scope_type,scope_id,actor_email,station_id,report_id,city,fuel_type,reason,payload,created_at").gte("created_at", since).order("created_at", { ascending: false }),
     supabase.from("admin_action_logs").select("id,action_kind,actor_id,actor_email,target_type,target_id,note,payload,created_at").gte("created_at", since).order("created_at", { ascending: false }).limit(20),
     supabase.from("ops_job_runs").select("status,cadence").gte("started_at", since)
   ]);
 
   const submissions = submissionsResult.data ?? [];
-  const events = operationalResult.data ?? [];
+  const events = (operationalResult.data ?? []).map((row) => toEventItem(row as Record<string, unknown>));
   const adminLogs = adminResult.data ?? [];
   const jobRuns = jobsResult.data ?? [];
 
@@ -125,9 +205,9 @@ export async function getOperationalTelemetry(days = 7): Promise<OperationalTele
       submissions: submissions.length,
       approvals: submissions.filter((item) => item.status === "approved").length,
       rejections: submissions.filter((item) => item.status === "rejected").length,
-      blockedSubmissions: events.filter((event) => event.event_type === "submission_blocked").length,
-      uploadErrors: events.filter((event) => String(event.event_type).startsWith("upload_")).length,
-      authErrors: events.filter((event) => String(event.event_type).startsWith("auth_")).length,
+      blockedSubmissions: events.filter((event) => event.eventType === "submission_blocked").length,
+      uploadErrors: events.filter((event) => String(event.eventType).startsWith("upload_")).length,
+      authErrors: events.filter((event) => String(event.eventType).startsWith("auth_")).length,
       cronErrors: jobRuns.filter((job) => job.status === "failed").length,
       manualRuns: jobRuns.filter((job) => job.cadence === "manual").length,
       cityVolume: byCityMap.size,
@@ -135,8 +215,9 @@ export async function getOperationalTelemetry(days = 7): Promise<OperationalTele
     },
     byCity: Array.from(byCityMap.values()).sort((left, right) => right.count - left.count || left.city.localeCompare(right.city)),
     byFuel: Array.from(byFuelMap.values()).sort((left, right) => right.count - left.count || left.fuelType.localeCompare(right.fuelType)),
-    recentEvents: events.map((row) => toEventItem(row as Record<string, unknown>)),
+    topScreens: buildTopScreens(events),
+    funnel: buildFunnel(events),
+    recentEvents: events.slice(0, 30),
     recentAdminActions: adminLogs.map((row) => toAdminActionItem(row as Record<string, unknown>))
   };
 }
-

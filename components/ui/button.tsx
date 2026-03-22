@@ -9,11 +9,10 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
 }
 
-interface ButtonLinkProps {
+interface ButtonLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
   href: Route;
   children: React.ReactNode;
   variant?: ButtonVariant;
-  className?: string;
 }
 
 const base =
@@ -29,10 +28,11 @@ export function Button({ className, variant = "primary", ...props }: ButtonProps
   return <button className={cn(base, variants[variant], className)} {...props} />;
 }
 
-export function ButtonLink({ href, children, variant = "primary", className }: ButtonLinkProps) {
+export function ButtonLink({ href, children, variant = "primary", className, ...props }: ButtonLinkProps) {
   return (
-    <Link href={href} className={cn(base, variants[variant], className)}>
+    <Link href={href} className={cn(base, variants[variant], className)} {...props}>
       {children}
     </Link>
   );
 }
+
