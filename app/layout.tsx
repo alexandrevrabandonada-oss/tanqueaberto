@@ -7,8 +7,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://bomba-aberta.vercel.app"),
-  title: brand.name,
-  description: "Mapa popular de precos de combustiveis no Sul Fluminense.",
+  title: {
+    default: brand.name,
+    template: `%s | ${brand.name}`
+  },
+  description: "Mapa popular de preços de combustíveis no Sul Fluminense.",
   manifest: "/manifest.webmanifest",
   applicationName: brand.name,
   appleWebApp: {
@@ -17,8 +20,32 @@ export const metadata: Metadata = {
     title: brand.name
   },
   icons: {
-    icon: "/icons/icon.svg",
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/icons/icon.svg", type: "image/svg+xml" }
+    ],
+    shortcut: "/favicon.svg",
     apple: "/icons/apple-touch-icon.svg"
+  },
+  openGraph: {
+    title: `${brand.name} | ${brand.tagline}`,
+    description: "Mapa popular de preços de combustíveis no Sul Fluminense.",
+    url: "/",
+    siteName: brand.name,
+    images: [
+      {
+        url: "/brand/og-preview.svg",
+        width: 1200,
+        height: 630,
+        alt: brand.name
+      }
+    ]
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${brand.name} | ${brand.tagline}`,
+    description: "Mapa popular de preços de combustíveis no Sul Fluminense.",
+    images: ["/brand/og-preview.svg"]
   }
 };
 

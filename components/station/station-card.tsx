@@ -6,15 +6,17 @@ import { Badge } from "@/components/ui/badge";
 import { SectionCard } from "@/components/ui/section-card";
 import { fuelLabels } from "@/lib/format/labels";
 import { formatCurrencyBRL } from "@/lib/format/currency";
-import { formatRecencyLabel } from "@/lib/format/time";
-import type { StationWithReports } from "@/lib/types";
+import { formatRecencyLabel, getRecencyTone, recencyToneToBadgeVariant } from "@/lib/format/time";
+import { getSelectedStationReport } from "@/lib/filters/public";
+import type { FuelType, StationWithReports } from "@/lib/types";
 
 interface StationCardProps {
   station: StationWithReports;
+  fuelFilter?: "all" | FuelType;
 }
 
-export function StationCard({ station }: StationCardProps) {
-  const latest = station.latestReports[0];
+export function StationCard({ station, fuelFilter = "all" }: StationCardProps) {
+  const latest = getSelectedStationReport(station, fuelFilter);
   const stationHref = `/postos/${station.id}` as Route;
 
   return (
@@ -24,7 +26,11 @@ export function StationCard({ station }: StationCardProps) {
           <p className="text-xs uppercase tracking-[0.2em] text-white/40">{station.brand}</p>
           <h3 className="text-lg font-semibold text-white">{station.name}</h3>
         </div>
-        <Badge variant={latest ? "default" : "outline"}>{latest ? formatRecencyLabel(latest.reportedAt) : "sem atualização"}</Badge>
+        {latest ? (
+          <Badge variant={recencyToneToBadgeVariant(getRecencyTone(latest.reportedAt))}>{formatRecencyLabel(latest.reportedAt)}</Badge>
+        ) : (
+          <Badge variant="outline">Sem atualização</Badge>
+        )}
       </div>
       <div className="flex items-center gap-2 text-sm text-white/64">
         <MapPin className="h-4 w-4 text-[color:var(--color-accent)]" />
@@ -44,7 +50,7 @@ export function StationCard({ station }: StationCardProps) {
           </div>
         </div>
       ) : (
-        <div className="rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/52">Sem atualização recente.</div>
+        <div className="rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/52">Sem atualização recente para esse filtro.</div>
       )}
       <Link
         href={stationHref}

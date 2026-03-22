@@ -1,5 +1,16 @@
-const CACHE_NAME = "tanque-aberto-v1";
-const APP_SHELL = ["/", "/offline", "/manifest.webmanifest", "/icons/icon.svg"];
+const CACHE_NAME = "bomba-aberta-v2";
+const APP_SHELL = [
+  "/",
+  "/offline",
+  "/manifest.webmanifest",
+  "/favicon.svg",
+  "/icons/icon.svg",
+  "/icons/icon-maskable.svg",
+  "/icons/apple-touch-icon.svg",
+  "/brand/mark-symbol.svg",
+  "/brand/mark-horizontal.svg",
+  "/brand/og-preview.svg"
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));

@@ -1,7 +1,7 @@
 {
   "name": "Bomba Aberta",
   "short_name": "Bomba",
-  "description": "Mapa popular dos combustiveis no Sul Fluminense.",
+  "description": "Mapa popular dos combustíveis no Sul Fluminense.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#090909",
@@ -10,13 +10,13 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/icons/icon.svg",
+      "src": "/brand/mark-symbol.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-maskable.svg",
+      "src": "/brand/mark-symbol.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "maskable"

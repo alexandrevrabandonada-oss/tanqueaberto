@@ -1,15 +1,18 @@
 /* eslint-disable @next/next/no-img-element */
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import type { FuelType, Station } from "@/lib/types";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { fuelLabels } from "@/lib/format/labels";
+import { submitPriceReportAction } from "@/app/enviar/actions";
 
 const fuelOptions: FuelType[] = ["gasolina_comum", "gasolina_aditivada", "etanol", "diesel_s10", "diesel_comum", "gnv"];
+
+const initialState = { error: null, success: false };
 
 interface PriceSubmitFormProps {
   stations: Station[];
@@ -17,15 +20,24 @@ interface PriceSubmitFormProps {
 
 export function PriceSubmitForm({ stations }: PriceSubmitFormProps) {
   const router = useRouter();
+  const [state, formAction, pending] = useActionState(submitPriceReportAction, initialState);
   const [stationId, setStationId] = useState(stations[0]?.id ?? "");
   const [fuelType, setFuelType] = useState<FuelType>("gasolina_comum");
   const [price, setPrice] = useState("");
   const [nickname, setNickname] = useState("");
-  const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (state.success) {
+      setPrice("");
+      setNickname("");
+      setPreviewUrl(null);
+      if (stations[0]) {
+        setStationId(stations[0].id);
+      }
+      router.refresh();
+    }
+  }, [router, stations, state.success]);
 
   useEffect(() => {
     return () => {
@@ -37,110 +49,35 @@ export function PriceSubmitForm({ stations }: PriceSubmitFormProps) {
 
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const nextFile = event.target.files?.[0] ?? null;
-    setError(null);
-    setSuccess(null);
+
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
 
     if (!nextFile) {
-      setFile(null);
       setPreviewUrl(null);
       return;
     }
 
     if (!nextFile.type.startsWith("image/")) {
-      setError("Envie uma imagem válida.");
+      setPreviewUrl(null);
       return;
     }
 
-    if (nextFile.size > 5 * 1024 * 1024) {
-      setError("A foto precisa ter no máximo 5 MB.");
-      return;
-    }
-
-    setFile(nextFile);
     setPreviewUrl(URL.createObjectURL(nextFile));
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
-    setSuccess(null);
-
-    const normalizedPrice = Number(price.replace(",", "."));
-
-    if (!stationId) {
-      setError("Selecione um posto.");
-      return;
-    }
-
-    if (!price || Number.isNaN(normalizedPrice) || normalizedPrice <= 0) {
-      setError("Informe um preço válido.");
-      return;
-    }
-
-    if (!file) {
-      setError("Anexe uma foto do painel ou bomba.");
-      return;
-    }
-
-    setSubmitting(true);
-
-    try {
-      const supabase = createSupabaseBrowserClient();
-      const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const filePath = `reports/${stationId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extension}`;
-
-      const { error: uploadError } = await supabase.storage.from("price-report-photos").upload(filePath, file, {
-        contentType: file.type,
-        upsert: false
-      });
-
-      if (uploadError) {
-        throw uploadError;
-      }
-
-      const { data: publicUrl } = supabase.storage.from("price-report-photos").getPublicUrl(filePath);
-      const timestamp = new Date().toISOString();
-
-      const { error: insertError } = await supabase.from("price_reports").insert({
-        station_id: stationId,
-        fuel_type: fuelType,
-        price: normalizedPrice,
-        photo_url: publicUrl.publicUrl,
-        photo_taken_at: timestamp,
-        reported_at: timestamp,
-        reporter_nickname: nickname.trim() || null,
-        status: "pending"
-      });
-
-      if (insertError) {
-        throw insertError;
-      }
-
-      setSuccess("Preço enviado com sucesso e aguardando moderação.");
-      setPrice("");
-      setNickname("");
-      setFile(null);
-      setPreviewUrl(null);
-      if (stations[0]) {
-        setStationId(stations[0].id);
-      }
-      router.refresh();
-    } catch (submitError) {
-      console.error(submitError);
-      setError("Não foi possível enviar agora. Tente novamente.");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form action={formAction} className="space-y-4">
+      <input type="hidden" name="website" value="" />
+
       <div className="space-y-2">
         <label className="text-sm font-medium text-white" htmlFor="stationId">
           Posto
         </label>
         <select
           id="stationId"
+          name="stationId"
           value={stationId}
           onChange={(event) => setStationId(event.target.value)}
           className="w-full rounded-[18px] border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none ring-0"
@@ -160,6 +97,7 @@ export function PriceSubmitForm({ stations }: PriceSubmitFormProps) {
           </label>
           <select
             id="fuelType"
+            name="fuelType"
             value={fuelType}
             onChange={(event) => setFuelType(event.target.value as FuelType)}
             className="w-full rounded-[18px] border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none ring-0"
@@ -178,6 +116,7 @@ export function PriceSubmitForm({ stations }: PriceSubmitFormProps) {
           </label>
           <input
             id="price"
+            name="price"
             inputMode="decimal"
             value={price}
             onChange={(event) => setPrice(event.target.value)}
@@ -193,6 +132,7 @@ export function PriceSubmitForm({ stations }: PriceSubmitFormProps) {
         </label>
         <input
           id="nickname"
+          name="nickname"
           value={nickname}
           onChange={(event) => setNickname(event.target.value)}
           placeholder="Ex.: Morador VR"
@@ -206,13 +146,14 @@ export function PriceSubmitForm({ stations }: PriceSubmitFormProps) {
         </label>
         <input
           id="photo"
+          name="photo"
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/png,image/webp"
           capture="environment"
           onChange={handleFileChange}
           className="w-full rounded-[18px] border border-dashed border-white/14 bg-black/30 px-4 py-3 text-sm text-white file:mr-4 file:rounded-full file:border-0 file:bg-[color:var(--color-accent)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-black"
         />
-        <p className="text-xs text-white/46">Tamanho máximo de 5 MB. Fotos melhores ajudam na validação.</p>
+        <p className="text-xs text-white/46">JPG, PNG ou WEBP. Tamanho máximo de 5 MB.</p>
       </div>
 
       {previewUrl ? (
@@ -221,11 +162,11 @@ export function PriceSubmitForm({ stations }: PriceSubmitFormProps) {
         </div>
       ) : null}
 
-      {error ? <div className="rounded-[18px] border border-[color:var(--color-danger)]/30 bg-[color:var(--color-danger)]/10 px-4 py-3 text-sm text-[color:var(--color-danger)]">{error}</div> : null}
-      {success ? <div className="rounded-[18px] border border-[color:var(--color-accent)]/20 bg-[color:var(--color-accent)]/10 px-4 py-3 text-sm text-white">{success}</div> : null}
+      {state.error ? <div className="rounded-[18px] border border-[color:var(--color-danger)]/30 bg-[color:var(--color-danger)]/10 px-4 py-3 text-sm text-[color:var(--color-danger)]">{state.error}</div> : null}
+      {state.success ? <div className="rounded-[18px] border border-[color:var(--color-accent)]/20 bg-[color:var(--color-accent)]/10 px-4 py-3 text-sm text-white">Preço enviado com sucesso e aguardando moderação.</div> : null}
 
-      <Button type="submit" className="w-full" disabled={submitting}>
-        {submitting ? "Enviando..." : "Enviar preço"}
+      <Button type="submit" className="w-full" disabled={pending}>
+        {pending ? "Enviando..." : "Enviar preço"}
       </Button>
     </form>
   );

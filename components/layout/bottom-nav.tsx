@@ -3,15 +3,15 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Clock3, Map, Send, ShieldCheck } from "lucide-react";
+import { Clock3, Map, Send, Info } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
 const items: Array<{ href: Route; label: string; icon: React.ComponentType<{ className?: string }> }> = [
   { href: "/", label: "Mapa", icon: Map },
-  { href: "/atualizacoes", label: "Atualizacoes", icon: Clock3 },
+  { href: "/atualizacoes", label: "Atualizações", icon: Clock3 },
   { href: "/enviar", label: "Enviar", icon: Send },
-  { href: "/admin", label: "Admin", icon: ShieldCheck }
+  { href: "/sobre", label: "Sobre", icon: Info }
 ];
 
 export function BottomNav() {

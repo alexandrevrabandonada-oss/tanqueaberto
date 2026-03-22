@@ -1,7 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { createSupabaseServiceClient } from "@/lib/supabase/admin";
 import { assembleStationWithReports, groupReportsByStation, mapReportRow, mapReportsWithStations, mapStationRow } from "@/lib/data/mappers";
-import type { Station, StationWithReports, ReportWithStation, PriceReport } from "@/lib/types";
+import type { Station, StationWithReports, ReportWithStation, PriceReport, ReportStatus } from "@/lib/types";
 import type { PriceReportRow, StationRow } from "@/types/supabase";
 
 function sortDesc(left: { reportedAt: string }, right: { reportedAt: string }) {
@@ -103,30 +102,50 @@ export async function getStationOptions(): Promise<Station[]> {
   return getActiveStations();
 }
 
-export async function getPendingReports(): Promise<ReportWithStation[]> {
-  const supabase = createSupabaseServiceClient();
-  const [{ data: reportsData, error: reportsError }, { data: stationsData, error: stationsError }] = await Promise.all([
-    supabase
-      .from("price_reports")
-      .select("id,station_id,fuel_type,price,photo_url,photo_taken_at,reported_at,created_at,reporter_nickname,status,moderation_note")
-      .eq("status", "pending")
-      .order("reported_at", { ascending: false }),
-    supabase.from("stations").select("id,name,brand,address,city,neighborhood,lat,lng,is_active,created_at").eq("is_active", true)
-  ]);
+async function getAdminStations() {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.from("stations").select("id,name,brand,address,city,neighborhood,lat,lng,is_active,created_at").order("created_at", { ascending: false });
 
-  if (reportsError || stationsError || !reportsData || !stationsData) {
-    console.error("Failed to load moderation queue", reportsError ?? stationsError);
+  if (error || !data) {
+    console.error("Failed to load admin stations", error);
+    return [] as Station[];
+  }
+
+  return (data as StationRow[]).map(mapStationRow);
+}
+
+export async function getModerationReports(status: ReportStatus | "all" = "pending", limit = 24): Promise<ReportWithStation[]> {
+  const supabase = await createSupabaseServerClient();
+  let query = supabase
+    .from("price_reports")
+    .select("id,station_id,fuel_type,price,photo_url,photo_taken_at,reported_at,created_at,reporter_nickname,status,moderation_note")
+    .order("reported_at", { ascending: false })
+    .limit(limit);
+
+  if (status !== "all") {
+    query = query.eq("status", status);
+  }
+
+  const [{ data: reportsData, error: reportsError }, stations] = await Promise.all([query, getAdminStations()]);
+
+  if (reportsError || !reportsData) {
+    console.error("Failed to load moderation reports", reportsError);
     return [];
   }
 
-  return mapReportsWithStations(
-    (reportsData as PriceReportRow[]).map(mapReportRow),
-    (stationsData as StationRow[]).map(mapStationRow)
-  );
+  return mapReportsWithStations((reportsData as PriceReportRow[]).map(mapReportRow), stations);
+}
+
+export async function getRecentModeratedReports(limit = 6): Promise<ReportWithStation[]> {
+  return getModerationReports("all", limit).then((reports) => reports.filter((report) => report.status !== "pending"));
+}
+
+export async function getPendingReports(): Promise<ReportWithStation[]> {
+  return getModerationReports("pending", 24);
 }
 
 export async function getModerationCounts() {
-  const supabase = createSupabaseServiceClient();
+  const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.from("price_reports").select("status").order("created_at", { ascending: false });
 
   if (error || !data) {

@@ -1,10 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" fill="none">
-  <rect width="180" height="180" rx="40" fill="#090909"/>
-  <g transform="translate(36 24) scale(0.27)">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <rect width="512" height="512" rx="128" fill="#090909"/>
+  <g transform="translate(108 74)">
     <path d="M142 10c-26 0-48 21-48 47v33c0 26-11 50-30 67l-30 28c-11 10-18 24-18 40v14c0 14 11 25 25 25h10v28c0 16 13 29 29 29h126c16 0 29-13 29-29v-28h10c14 0 25-11 25-25v-14c0-16-7-30-18-40l-30-28c-19-17-30-41-30-67V57c0-26-22-47-48-47Z" fill="#FFC700"/>
     <rect x="118" y="54" width="48" height="70" rx="14" fill="#090909"/>
     <rect x="126" y="64" width="32" height="28" rx="8" fill="#FFC700"/>
     <path d="M103 174h78v20c0 10-8 18-18 18h-42c-10 0-18-8-18-18v-20Z" fill="#090909"/>
     <path d="M188 45c21 6 36 24 36 46v18c0 12 10 22 22 22h12v24h-14c-28 0-50-22-50-50V91c0-14-6-26-16-33V45Z" fill="#FFC700"/>
+    <path d="M0 278h282v20c0 16-13 30-30 30H30c-17 0-30-14-30-30v-20Z" fill="#FFC700"/>
+    <path d="M54 362h174c18 0 32 14 32 32v10H22v-10c0-18 14-32 32-32Z" fill="#FFC700"/>
+    <path d="M278 32l12 28 30 8-24 20 2 32-26-16-28 16 6-31-22-21 31-6 19-30Z" fill="#FFF6B0"/>
   </g>
 </svg>
