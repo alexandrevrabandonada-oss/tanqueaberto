@@ -1,10 +1,11 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import type { FuelType, Station } from "@/lib/types";
 import { fuelLabels } from "@/lib/format/labels";
 import { submitPriceReportAction } from "@/app/enviar/actions";
@@ -15,28 +16,48 @@ const initialState = { error: null, success: false };
 
 interface PriceSubmitFormProps {
   stations: Station[];
+  initialStationId?: string;
 }
 
-export function PriceSubmitForm({ stations }: PriceSubmitFormProps) {
+export function PriceSubmitForm({ stations, initialStationId }: PriceSubmitFormProps) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(submitPriceReportAction, initialState);
-  const [stationId, setStationId] = useState(stations[0]?.id ?? "");
+  const defaultStationId = useMemo(() => {
+    const candidate = stations.find((station) => station.id === initialStationId);
+    return candidate?.id ?? stations[0]?.id ?? "";
+  }, [initialStationId, stations]);
+
+  const [stationId, setStationId] = useState(defaultStationId);
   const [fuelType, setFuelType] = useState<FuelType>("gasolina_comum");
   const [price, setPrice] = useState("");
   const [nickname, setNickname] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [submittedStationId, setSubmittedStationId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (initialStationId && stations.some((station) => station.id === initialStationId)) {
+      setStationId(initialStationId);
+      return;
+    }
+
+    if (!stationId && stations[0]) {
+      setStationId(stations[0].id);
+    }
+  }, [initialStationId, stations, stationId]);
 
   useEffect(() => {
     if (state.success) {
+      setSubmittedStationId(stationId);
       setPrice("");
       setNickname("");
       setPreviewUrl(null);
-      if (stations[0]) {
-        setStationId(stations[0].id);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
       }
       router.refresh();
     }
-  }, [router, stations, state.success]);
+  }, [router, state.success, stationId]);
 
   useEffect(() => {
     return () => {
@@ -66,9 +87,60 @@ export function PriceSubmitForm({ stations }: PriceSubmitFormProps) {
     setPreviewUrl(URL.createObjectURL(nextFile));
   }
 
+  const selectedStation = stations.find((station) => station.id === stationId) ?? stations[0] ?? null;
+  const stepTone = previewUrl ? "foto pronta" : stationId ? "posto escolhido" : "comece pela foto";
+
   return (
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="website" value="" />
+
+      <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/52">
+        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">{previewUrl ? "1. Foto" : "1. Foto cedo"}</span>
+        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">2. Posto</span>
+        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">3. Combustível</span>
+        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">4. Preço</span>
+        <Badge variant={state.success ? "default" : "outline"}>{state.success ? "Enviado" : stepTone}</Badge>
+      </div>
+
+      {state.success ? (
+        <div className="rounded-[22px] border border-[color:var(--color-accent)]/20 bg-[color:var(--color-accent)]/12 p-4 text-sm text-white">
+          <p className="text-base font-semibold">Enviado e agora em moderação.</p>
+          <p className="mt-1 text-white/70">Seu preço entrou na fila e vai aparecer quando for aprovado.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button type="button" variant="secondary" onClick={() => setPrice("")}>Enviar outro preço</Button>
+            {submittedStationId ? (
+              <Button type="button" variant="secondary" onClick={() => router.push(`/postos/${submittedStationId}`)}>
+                Ver o posto
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      {state.error ? <div className="rounded-[18px] border border-[color:var(--color-danger)]/30 bg-[color:var(--color-danger)]/10 px-4 py-3 text-sm text-[color:var(--color-danger)]">{state.error}</div> : null}
+
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-white" htmlFor="photo">
+          Foto
+        </label>
+        <input
+          id="photo"
+          name="photo"
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          capture="environment"
+          onChange={handleFileChange}
+          className="w-full rounded-[18px] border border-dashed border-white/14 bg-black/30 px-4 py-3 text-sm text-white file:mr-4 file:rounded-full file:border-0 file:bg-[color:var(--color-accent)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-black"
+        />
+        <p className="text-xs text-white/46">JPG, PNG ou WEBP. Até 5 MB.</p>
+      </div>
+
+      {previewUrl ? (
+        <div className="overflow-hidden rounded-[22px] border border-white/8 bg-black/30">
+          <img src={previewUrl} alt="Pré-visualização da foto enviada" className="h-52 w-full object-cover" />
+        </div>
+      ) : null}
 
       <div className="space-y-2">
         <label className="text-sm font-medium text-white" htmlFor="stationId">
@@ -87,6 +159,7 @@ export function PriceSubmitForm({ stations }: PriceSubmitFormProps) {
             </option>
           ))}
         </select>
+        {selectedStation ? <p className="text-xs text-white/46">{selectedStation.address}</p> : null}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -139,30 +212,9 @@ export function PriceSubmitForm({ stations }: PriceSubmitFormProps) {
         />
       </div>
 
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-white" htmlFor="photo">
-          Foto
-        </label>
-        <input
-          id="photo"
-          name="photo"
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          capture="environment"
-          onChange={handleFileChange}
-          className="w-full rounded-[18px] border border-dashed border-white/14 bg-black/30 px-4 py-3 text-sm text-white file:mr-4 file:rounded-full file:border-0 file:bg-[color:var(--color-accent)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-black"
-        />
-        <p className="text-xs text-white/46">JPG, PNG ou WEBP. Tamanho máximo de 5 MB.</p>
+      <div className="rounded-[18px] border border-white/8 bg-white/5 px-4 py-3 text-xs leading-relaxed text-white/56">
+        Se a conexão cair, basta voltar e reenviar. Os campos ficam prontos para completar de novo, sem perder a lógica do fluxo.
       </div>
-
-      {previewUrl ? (
-        <div className="overflow-hidden rounded-[22px] border border-white/8 bg-black/30">
-          <img src={previewUrl} alt="Pré-visualização da foto enviada" className="h-52 w-full object-cover" />
-        </div>
-      ) : null}
-
-      {state.error ? <div className="rounded-[18px] border border-[color:var(--color-danger)]/30 bg-[color:var(--color-danger)]/10 px-4 py-3 text-sm text-[color:var(--color-danger)]">{state.error}</div> : null}
-      {state.success ? <div className="rounded-[18px] border border-[color:var(--color-accent)]/20 bg-[color:var(--color-accent)]/10 px-4 py-3 text-sm text-white">Preço enviado com sucesso e aguardando moderação.</div> : null}
 
       <Button type="submit" className="w-full" disabled={pending}>
         {pending ? "Enviando..." : "Enviar preço"}
@@ -170,5 +222,3 @@ export function PriceSubmitForm({ stations }: PriceSubmitFormProps) {
     </form>
   );
 }
-
-

@@ -61,7 +61,7 @@ export function StationCard({ station, fuelFilter = "all" }: StationCardProps) {
       ) : (
         <div className="space-y-3 rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/58">
           <p>Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.</p>
-          <ButtonLink href="/enviar" className="w-full">
+          <ButtonLink href={(`/enviar?stationId=${station.id}`) as Route} className="w-full">
             Enviar o primeiro preço
           </ButtonLink>
         </div>

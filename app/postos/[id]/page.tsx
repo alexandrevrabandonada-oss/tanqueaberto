@@ -60,6 +60,7 @@ export default async function StationPage({ params, searchParams }: StationPageP
   const latest = station.latestReports[0];
   const marketPresence = getStationMarketPresence(station);
   const stationAuditHref = (`/auditoria/posto/${id}?fuel=${selectedFuel}&days=${selectedDays}` as Route);
+  const sendPriceHref = (`/enviar?stationId=${id}#photo` as Route);
 
   return (
     <AppShell>
@@ -98,7 +99,7 @@ export default async function StationPage({ params, searchParams }: StationPageP
           )}
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          <ButtonLink href="/enviar" className="w-full">
+          <ButtonLink href={sendPriceHref} className="w-full">
             Enviar novo preço
             <ArrowRight className="h-4 w-4" />
           </ButtonLink>

@@ -1,75 +1,70 @@
-import { Camera, Clock3, Fuel, MapPinned, ShieldCheck } from "lucide-react";
+import { Camera, ShieldCheck } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { PriceSubmitForm } from "@/components/forms/price-submit-form";
+import { Badge } from "@/components/ui/badge";
 import { SectionCard } from "@/components/ui/section-card";
 import { getStationOptions } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
-export default async function SubmitPage() {
+interface SubmitPageProps {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}
+
+function firstValue(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value ?? "";
+}
+
+export default async function SubmitPage({ searchParams }: SubmitPageProps) {
+  const params = (await searchParams) ?? {};
   const stations = await getStationOptions();
+  const initialStationId = firstValue(params.stationId);
+  const initialStation = initialStationId ? stations.find((station) => station.id === initialStationId) ?? null : null;
 
   return (
     <AppShell>
       <SectionCard className="space-y-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-white/42">Fluxo colaborativo</p>
-          <h2 className="mt-1 text-[1.8rem] font-semibold leading-none text-white">Enviar preço</h2>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Envio rápido</p>
+            <h2 className="mt-1 text-[1.8rem] font-semibold leading-none text-white">Enviar preço</h2>
+          </div>
+          <Badge variant="warning">Foto + preço + horário</Badge>
         </div>
         <p className="text-sm text-white/62">
-          Envie uma foto, o combustível e o preço. O registro entra como aguardando moderação.
+          Fluxo direto para rua: foto cedo, posto certo, combustível, preço e envio. O report entra como aguardando moderação.
         </p>
-        <div className="rounded-[18px] border border-white/8 bg-white/5 px-4 py-3 text-sm text-white/60">
-          Leva poucos segundos: escolha o posto, anexe a foto e confirme o preço que você viu na hora.
-        </div>
+        {initialStation ? (
+          <div className="rounded-[18px] border border-[color:var(--color-accent)]/18 bg-[color:var(--color-accent)]/8 px-4 py-3 text-sm text-white/72">
+            <span className="font-medium text-white/88">Posto pré-selecionado:</span> {initialStation.name} · {initialStation.neighborhood}, {initialStation.city}
+          </div>
+        ) : null}
       </SectionCard>
 
-      <SectionCard className="space-y-4">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-[22px] border border-dashed border-white/14 bg-black/30 p-4">
-            <div className="flex items-center gap-3 text-white">
-              <MapPinned className="h-5 w-5 text-[color:var(--color-accent)]" />
-              1. Selecionar posto
+      <SectionCard className="space-y-3">
+        <div className="flex items-center justify-between gap-3 rounded-[22px] border border-white/8 bg-black/30 p-4">
+          <div className="flex items-center gap-3">
+            <Camera className="h-5 w-5 text-[color:var(--color-accent)]" />
+            <div>
+              <p className="text-sm font-semibold text-white">Comece pela foto</p>
+              <p className="text-sm text-white/56">Na rua, é mais rápido fotografar primeiro e preencher o resto em seguida.</p>
             </div>
-            <p className="mt-3 text-sm text-white/56">Escolha o posto certo antes de enviar o preço. Se estiver em dúvida, abra o mapa e confirme o nome da rua ou do bairro.</p>
           </div>
-          <div className="rounded-[22px] border border-dashed border-white/14 bg-black/30 p-4">
-            <div className="flex items-center gap-3 text-white">
-              <Camera className="h-5 w-5 text-[color:var(--color-accent)]" />
-              2. Foto como evidência
-            </div>
-            <p className="mt-3 text-sm text-white/56">A foto vai junto com a atualização para dar contexto ao registro.</p>
-          </div>
-          <div className="rounded-[22px] border border-dashed border-white/14 bg-black/30 p-4">
-            <div className="flex items-center gap-3 text-white">
-              <Fuel className="h-5 w-5 text-[color:var(--color-accent)]" />
-              3. Combustível e preço
-            </div>
-            <p className="mt-3 text-sm text-white/56">Escolha o combustível certo. Isso ajuda a comparar sem confundir as faixas.</p>
-          </div>
-          <div className="rounded-[22px] border border-dashed border-white/14 bg-black/30 p-4">
-            <div className="flex items-center gap-3 text-white">
-              <Clock3 className="h-5 w-5 text-[color:var(--color-accent)]" />
-              4. Horário automático
-            </div>
-            <p className="mt-3 text-sm text-white/56">O horário do envio é salvo automaticamente e vira parte da trilha de prova.</p>
-          </div>
+          <a
+            href="#photo"
+            className="rounded-full border border-white/10 px-3 py-2 text-xs font-medium text-white/72 transition hover:border-[color:var(--color-accent)] hover:text-[color:var(--color-accent)]"
+          >
+            Tirar foto agora
+          </a>
         </div>
-      </SectionCard>
-
-      <SectionCard className="space-y-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-white/42">Formulário</p>
-          <h3 className="mt-1 text-xl font-semibold text-white">Dados do envio</h3>
-        </div>
-        <PriceSubmitForm stations={stations} />
+        <PriceSubmitForm stations={stations} initialStationId={initialStation?.id} />
         <div className="rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/58">
           <div className="flex items-center gap-2 text-white/80">
             <ShieldCheck className="h-4 w-4 text-[color:var(--color-accent)]" />
             Vai para moderação
           </div>
-          <p className="mt-2">Depois do envio, o report entra com status de aguardando moderação.</p>
+          <p className="mt-2">Depois do envio, o report fica em aguardando moderação e entra na fila de aprovação.</p>
         </div>
       </SectionCard>
     </AppShell>
