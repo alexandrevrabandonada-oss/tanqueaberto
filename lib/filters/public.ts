@@ -1,7 +1,9 @@
 import type { FuelType, PriceReport, StationWithReports, ReportWithStation } from "@/lib/types";
+import { getRecencyTone } from "@/lib/format/time";
 
 export type FuelFilter = "all" | FuelType;
 export type RecencyFilter = "all" | "24h" | "48h";
+export type StationPresenceFilter = "all" | "recent";
 
 export interface SearchableStation {
   name: string;
@@ -51,15 +53,38 @@ export function getSelectedStationReport(station: StationWithReports, fuelFilter
   return station.recentReports.find((report) => report.fuelType === fuelFilter) ?? null;
 }
 
-export function filterStations(stations: StationWithReports[], query: string, fuelFilter: FuelFilter, recencyFilter: RecencyFilter) {
+export function hasRecentStationPrice(station: StationWithReports, referenceDate = new Date()) {
+  const latest = station.latestReports[0];
+  if (!latest) {
+    return false;
+  }
+
+  return getRecencyTone(latest.reportedAt, referenceDate) !== "stale";
+}
+
+export function filterStations(
+  stations: StationWithReports[],
+  query: string,
+  fuelFilter: FuelFilter,
+  recencyFilter: RecencyFilter,
+  presenceFilter: StationPresenceFilter = "all"
+) {
   return stations.filter((station) => {
     if (!matchesSearchTerm(station, query)) {
       return false;
     }
 
-    const report = getSelectedStationReport(station, fuelFilter);
-    if (!report) {
+    if (presenceFilter === "recent" && !hasRecentStationPrice(station)) {
       return false;
+    }
+
+    const report = getSelectedStationReport(station, fuelFilter);
+    if (!report && fuelFilter !== "all") {
+      return false;
+    }
+
+    if (!report) {
+      return true;
     }
 
     return matchesRecencyFilter(report.reportedAt, recencyFilter);

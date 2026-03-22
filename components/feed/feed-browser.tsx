@@ -88,6 +88,15 @@ export function FeedBrowser({ feed }: FeedBrowserProps) {
           </div>
         </div>
 
+        <div className="rounded-[22px] border border-white/8 bg-white/5 px-4 py-3 text-sm text-white/62">
+          O feed mostra envios aprovados. Para ver postos cadastrados sem preço recente, abra a lista de lacunas do mapa.
+          <div className="mt-3">
+            <ButtonLink href="/postos/sem-atualizacao" variant="secondary">
+              Ver lacunas do mapa
+            </ButtonLink>
+          </div>
+        </div>
+
         <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-white/44">
           <span>{filteredFeed.length} atualizações</span>
           <button

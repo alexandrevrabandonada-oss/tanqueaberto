@@ -3,12 +3,13 @@ import Link from "next/link";
 import { Clock3, MapPin } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { ButtonLink } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
 import { fuelLabels } from "@/lib/format/labels";
 import { formatCurrencyBRL } from "@/lib/format/currency";
 import { formatRecencyLabel, getRecencyTone, recencyToneToBadgeVariant } from "@/lib/format/time";
 import { getSelectedStationReport } from "@/lib/filters/public";
-import { getStationPublicName, hasPendingStationLocationReview } from "@/lib/quality/stations";
+import { getStationMarketPresence, getStationMarketPresenceLabel, getStationPublicName, hasPendingStationLocationReview } from "@/lib/quality/stations";
 import type { FuelType, StationWithReports } from "@/lib/types";
 
 interface StationCardProps {
@@ -19,6 +20,8 @@ interface StationCardProps {
 export function StationCard({ station, fuelFilter = "all" }: StationCardProps) {
   const latest = getSelectedStationReport(station, fuelFilter);
   const stationHref = `/postos/${station.id}` as Route;
+  const marketPresence = getStationMarketPresence(station);
+  const marketLabel = getStationMarketPresenceLabel(station);
 
   return (
     <SectionCard className="space-y-4">
@@ -27,23 +30,23 @@ export function StationCard({ station, fuelFilter = "all" }: StationCardProps) {
           <p className="text-xs uppercase tracking-[0.2em] text-white/40">{station.brand}</p>
           <h3 className="text-lg font-semibold text-white">{getStationPublicName(station)}</h3>
         </div>
-        {latest ? (
-          <Badge variant={recencyToneToBadgeVariant(getRecencyTone(latest.reportedAt))}>{formatRecencyLabel(latest.reportedAt)}</Badge>
-        ) : (
-          <Badge variant="outline">Sem atualização</Badge>
-        )}
+        <Badge variant={marketPresence === "recent" ? recencyToneToBadgeVariant(getRecencyTone(latest?.reportedAt ?? new Date().toISOString())) : "outline"}>
+          {marketLabel}
+        </Badge>
       </div>
-      {hasPendingStationLocationReview(station) ? (
-        <div className="rounded-[18px] border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs text-amber-200">
-          Localização em revisão
-        </div>
-      ) : null}
+
+      <div className="flex flex-wrap gap-2">
+        <Badge variant="outline">Posto cadastrado</Badge>
+        {hasPendingStationLocationReview(station) ? <Badge variant="warning">Localização em revisão</Badge> : null}
+      </div>
+
       <div className="flex items-center gap-2 text-sm text-white/64">
         <MapPin className="h-4 w-4 text-[color:var(--color-accent)]" />
         <span>
           {station.neighborhood}, {station.city}
         </span>
       </div>
+
       {latest ? (
         <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
           <div className="flex items-center justify-between text-sm">
@@ -52,12 +55,18 @@ export function StationCard({ station, fuelFilter = "all" }: StationCardProps) {
           </div>
           <div className="mt-3 flex items-center gap-2 text-xs text-white/48">
             <Clock3 className="h-3.5 w-3.5" />
-            Atualizado {formatRecencyLabel(latest.reportedAt)}
+            {marketPresence === "recent" ? `Atualizado ${formatRecencyLabel(latest.reportedAt)}` : "Sem atualização recente"}
           </div>
         </div>
       ) : (
-        <div className="rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/52">Sem atualização recente para esse filtro.</div>
+        <div className="space-y-3 rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/58">
+          <p>Este posto está cadastrado, mas ainda não recebeu preço recente aprovado.</p>
+          <ButtonLink href="/enviar" className="w-full">
+            Enviar o primeiro preço
+          </ButtonLink>
+        </div>
       )}
+
       <Link
         href={stationHref}
         className="inline-flex items-center justify-center rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-white transition hover:border-[color:var(--color-accent)] hover:text-[color:var(--color-accent)]"
@@ -67,8 +76,3 @@ export function StationCard({ station, fuelFilter = "all" }: StationCardProps) {
     </SectionCard>
   );
 }
-
-
-
-
-

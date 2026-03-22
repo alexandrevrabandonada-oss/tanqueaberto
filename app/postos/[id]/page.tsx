@@ -1,4 +1,4 @@
-import Image from "next/image";
+﻿import Image from "next/image";
 import { notFound } from "next/navigation";
 import type { Route } from "next";
 import { ArrowRight, Camera, Clock3, MapPinned } from "lucide-react";
@@ -11,7 +11,7 @@ import { SectionCard } from "@/components/ui/section-card";
 import { HistoryChart } from "@/components/audit/history-chart";
 import { getStationDetail } from "@/lib/data";
 import { getStationAuditDetail } from "@/lib/audit/queries";
-import { getStationPublicName, hasPendingStationLocationReview } from "@/lib/quality/stations";
+import { getStationMarketPresence, getStationMarketPresenceLabel, getStationPublicName, hasPendingStationLocationReview } from "@/lib/quality/stations";
 import { fuelLabels } from "@/lib/format/labels";
 import { formatDateTimeBR, formatRecencyLabel, getRecencyTone, recencyToneToBadgeVariant } from "@/lib/format/time";
 import { formatCurrencyBRL } from "@/lib/format/currency";
@@ -58,6 +58,7 @@ export default async function StationPage({ params, searchParams }: StationPageP
   }
 
   const latest = station.latestReports[0];
+  const marketPresence = getStationMarketPresence(station);
   const stationAuditHref = (`/auditoria/posto/${id}?fuel=${selectedFuel}&days=${selectedDays}` as Route);
 
   return (
@@ -67,11 +68,17 @@ export default async function StationPage({ params, searchParams }: StationPageP
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-white/42">{station.brand}</p>
             <h2 className="mt-2 text-[1.9rem] font-semibold leading-none text-white">{getStationPublicName(station)}</h2>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Badge variant="outline">Posto cadastrado</Badge>
+              <Badge variant={marketPresence === "recent" ? "default" : "outline"}>{getStationMarketPresenceLabel(station)}</Badge>
+              {hasPendingStationLocationReview(station) ? <Badge variant="warning">Localização em revisão</Badge> : null}
+            </div>
           </div>
           <div className="text-right">
-            {hasPendingStationLocationReview(station) ? <Badge variant="warning">Localização em revisão</Badge> : null}
             {latest ? <Badge variant={recencyToneToBadgeVariant(getRecencyTone(latest.reportedAt))}>{formatRecencyLabel(latest.reportedAt)}</Badge> : <Badge variant="outline">Sem atualização recente</Badge>}
-            <p className="mt-2 text-xs uppercase tracking-[0.18em] text-white/42">{station.neighborhood}, {station.city}</p>
+            <p className="mt-2 text-xs uppercase tracking-[0.18em] text-white/42">
+              {station.neighborhood}, {station.city}
+            </p>
           </div>
         </div>
         <div className="space-y-3 text-sm text-white/62">
@@ -85,13 +92,20 @@ export default async function StationPage({ params, searchParams }: StationPageP
               Última atualização em {formatDateTimeBR(latest.reportedAt)}
             </div>
           ) : (
-            <div className="rounded-[18px] border border-white/8 bg-black/25 px-4 py-3 text-sm text-white/58">Ainda não há preço recente aprovado para este posto.</div>
+            <div className="rounded-[18px] border border-white/8 bg-black/25 px-4 py-3 text-sm text-white/58">
+              Este posto está cadastrado no território, mas ainda não tem preço recente aprovado.
+            </div>
           )}
         </div>
-        <ButtonLink href="/enviar" className="w-full">
-          Enviar novo preço
-          <ArrowRight className="h-4 w-4" />
-        </ButtonLink>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <ButtonLink href="/enviar" className="w-full">
+            Enviar novo preço
+            <ArrowRight className="h-4 w-4" />
+          </ButtonLink>
+          <ButtonLink href="/postos/sem-atualizacao" variant="secondary" className="w-full">
+            Ver lacunas do mapa
+          </ButtonLink>
+        </div>
         {latest ? <div className="overflow-hidden rounded-[24px] border border-white/8 bg-black/30"><Image src={latest.photoUrl} alt={`Foto recente de ${getStationPublicName(station)}`} width={1280} height={720} className="h-56 w-full object-cover" /></div> : null}
       </SectionCard>
 
@@ -104,7 +118,9 @@ export default async function StationPage({ params, searchParams }: StationPageP
           <Badge variant="warning">{station.latestReports.length} faixas ativas</Badge>
         </div>
         {station.latestReports.length === 0 ? (
-          <div className="rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/58">Sem preços recentes aprovados para este posto.</div>
+          <div className="rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/58">
+            Sem preços recentes aprovados para este posto. O cadastro existe, mas a série ainda está em formação.
+          </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {station.latestReports.map((report) => {
@@ -134,9 +150,13 @@ export default async function StationPage({ params, searchParams }: StationPageP
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-white/42">Histórico longo</p>
-            <h3 className="mt-1 text-xl font-semibold text-white">{fuelLabels[selectedFuel]} · {selectedDays} dias</h3>
+            <h3 className="mt-1 text-xl font-semibold text-white">
+              {fuelLabels[selectedFuel]} · {selectedDays} dias
+            </h3>
           </div>
-          <ButtonLink href={stationAuditHref} variant="secondary">Abrir auditoria</ButtonLink>
+          <ButtonLink href={stationAuditHref} variant="secondary">
+            Abrir auditoria
+          </ButtonLink>
         </div>
         <HistoryChart series={audit.series} />
       </SectionCard>
@@ -182,7 +202,7 @@ export default async function StationPage({ params, searchParams }: StationPageP
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-medium text-white">{fuelLabels[report.fuelType]}</p>
-                    <p className="text-sm text-white/50">{report.reporterNickname ?? "anônimo"}</p>
+                    <p className="text-sm text-white/50">{report.reporterNickname ?? "anônimo"} · {formatRecencyLabel(report.reportedAt)}</p>
                   </div>
                   <Badge variant={recencyToneToBadgeVariant(getRecencyTone(report.reportedAt))}>{formatRecencyLabel(report.reportedAt)}</Badge>
                 </div>

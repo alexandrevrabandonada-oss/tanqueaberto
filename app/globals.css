@@ -68,7 +68,21 @@ a {
   width: 18px;
   height: 18px;
   border-radius: 9999px;
-  background: var(--color-accent);
   border: 3px solid rgba(0, 0, 0, 0.84);
   box-shadow: 0 0 0 6px rgba(255, 199, 0, 0.16);
 }
+
+.map-pin-dot--recent {
+  background: #ffc700;
+}
+
+.map-pin-dot--stale {
+  background: rgba(255, 255, 255, 0.48);
+}
+
+.map-pin-dot--review {
+  background: #ffb703;
+  box-shadow: 0 0 0 6px rgba(255, 183, 3, 0.18);
+}
+
+

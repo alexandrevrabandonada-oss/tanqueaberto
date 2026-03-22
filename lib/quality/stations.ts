@@ -1,4 +1,4 @@
-import type { Station } from "@/lib/types";
+import type { Station, StationWithReports } from "@/lib/types";
 
 export function isValidStationCoordinate(lat: number | null | undefined, lng: number | null | undefined) {
   if (lat === null || lat === undefined || lng === null || lng === undefined) {
@@ -77,6 +77,35 @@ export function canShowStationOnMap(station: Pick<Station, "lat" | "lng" | "geoC
   return station.geoConfidence === "high" || station.geoConfidence === "medium";
 }
 
+export function getStationMarketPresence(station: Pick<StationWithReports, "latestReports">) {
+  const latest = station.latestReports[0];
+
+  if (!latest) {
+    return "none" as const;
+  }
+
+  const age = Date.now() - new Date(latest.reportedAt).getTime();
+  if (age <= 48 * 60 * 60 * 1000) {
+    return "recent" as const;
+  }
+
+  return "stale" as const;
+}
+
+export function hasRecentStationPrice(station: Pick<StationWithReports, "latestReports">, referenceDate = new Date()) {
+  return getStationMarketPresence(station) === "recent";
+}
+
+export function getStationMarketPresenceLabel(station: Pick<StationWithReports, "latestReports">) {
+  const presence = getStationMarketPresence(station);
+
+  if (presence === "recent") {
+    return "Preço recente";
+  }
+
+  return "Sem atualização recente";
+}
+
 export function computeStationPriorityScore(input: {
   city: string;
   geoConfidence?: string | null;
@@ -111,4 +140,3 @@ export function computeStationPriorityScore(input: {
 
   return Math.min(100, score);
 }
-

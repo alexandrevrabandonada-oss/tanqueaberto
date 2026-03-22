@@ -233,3 +233,8 @@ Leitura rápida:
 - `pending`: coordenada válida, mas ainda em revisão leve.
 - `manual_review`: coordenada fraca ou ausente, fora do mapa público.
 - O mapa público continua conservador e não exibe casos frágeis.
+
+## Beta fechado e preview
+- Para testar cenários com e sem preço recente, use `NEXT_PUBLIC_BOMBA_ABERTA_USE_FIXTURES=1` apenas em preview/dev.
+- A lista pública de lacunas fica em `/postos/sem-atualizacao`.
+- O checklist mínimo de beta está em [`docs/beta-launch-gate.md`](./docs/beta-launch-gate.md).
