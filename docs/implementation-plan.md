@@ -7,24 +7,22 @@
 - Mock data regional.
 - Schema e seed iniciais.
 
-## Etapa 2. Dados reais
-- Ler `stations` e `price_reports` do Supabase.
-- Montar a view de ultimo preco por posto e combustivel.
-- Trocar mocks por server components e queries.
+## Etapa 2. Núcleo funcional
+- Leitura real de `stations` e `price_reports`.
+- Mapa com markers reais.
+- Tela de posto com histórico e recência.
+- Feed de atualizações reais.
+- Upload de foto e criação de report `pending`.
+- Admin mínimo para aprovar/rejeitar.
 
-## Etapa 3. Envio de preco
-- Formulario com foto.
-- Upload para Supabase Storage.
-- Status `pending` para moderacao.
-- Feedback claro de envio.
-
-## Etapa 4. Moderacao
-- Auth simples para admin.
-- Aprovar, rejeitar e sinalizar registros.
-- Notas de moderacao.
-
-## Etapa 5. Produto vivo
+## Etapa 3. Produto confiável
 - Busca por cidade, bairro e posto.
-- Historico mais rico por posto.
-- Alertas de recencia.
-- Feed em tempo real.
+- Estados vazios, loading e erro.
+- Autenticação do admin.
+- Regras de moderação mais claras.
+
+## Etapa 4. Escala
+- Tendências e métricas por combustível.
+- Clustering e otimizações do mapa.
+- Comentários de moderação e trilha de auditoria.
+- Melhorias de performance mobile.

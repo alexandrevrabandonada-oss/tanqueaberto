@@ -1,43 +1,46 @@
-# Bomba Aberta - Estado da Nacao
+# Bomba Aberta - Estado da Nação
 
 Data: 2026-03-22
 
-## O que foi criado
-- Scaffold inicial do app em Next.js com App Router.
-- Estrutura mobile-first com mapa, feed, detalhe de posto, envio, sobre e admin placeholder.
-- Design system base com tokens, botao, FAB, badge e card.
-- PWA instalavel com manifest, service worker e icones placeholder.
-- Integracao inicial com Supabase para client browser e server.
-- Schema inicial com `stations`, `price_reports`, `admin_users`, policies e bucket de fotos.
-- Seed e mocks regionais com Volta Redonda, Barra Mansa e Resende.
-- View auxiliar para leitura de ultimos precos aprovados.
+## O que foi ligado de verdade
+- Leitura real de postos ativos no Supabase.
+- Leitura real de preços aprovados no Supabase.
+- Mapa Leaflet com markers reais e clique levando ao posto.
+- Home com cards reais e recência calculada.
+- Feed de atualizações reais.
+- Tela de posto com dados reais, foto recente e histórico.
+- Envio funcional com foto, preço, apelido opcional e status `pending`.
+- Admin mínimo funcional com fila de pendências e aprovação/rejeição.
+- Upload real para o bucket `price-report-photos`.
+- Helpers de formatação e acesso a dados separados em camadas simples.
+
+## O que ainda está mockado ou simplificado
+- Não existe autenticação robusta no admin ainda.
+- Não há OCR, clustering de markers ou agregações avançadas.
+- A busca por posto, bairro e cidade ainda não foi implementada.
+- O fallback offline é básico.
+- A moderação segue simples, sem trilha de auditoria e sem notas avançadas.
 
 ## Estrutura de pastas
-- `app/`: rotas e layouts do produto.
-- `components/`: shell, mapa, posto e UI base.
-- `lib/`: tipos, utilitarios, mocks e Supabase.
-- `styles/`: tokens de design.
-- `public/`: manifest, icones e service worker.
-- `supabase/`: migration e seed.
-- `docs/`: plano de implementacao.
-- `reports/`: relatorios executivos.
-
-## Pendencias
-- Conectar as rotas aos dados reais do Supabase.
-- Implementar upload de fotos no fluxo de envio.
-- Criar autenticacao para o admin.
-- Adicionar busca real por posto, bairro e cidade.
-- Melhorar estados vazios, loading e erro.
+- `app/`: rotas e fluxos do produto.
+- `components/`: shell, mapa, formulário, posto e UI base.
+- `lib/data`: consultas e montagem das visões do app.
+- `lib/format`: moeda, tempo e rótulos em PT-BR.
+- `lib/supabase`: clientes para browser, server e serviço.
+- `types`: tipos de linhas do Supabase.
+- `styles`: tokens do design system.
+- `supabase`: migration e seed.
+- `reports`: relatórios executivos.
 
 ## Riscos
-- Dependencia forte de recencia e qualidade de dado enviado pelo usuario.
-- Moderacao fraca pode gerar ruido ou fraude se entrar em producao cedo demais.
-- Mapa mobile pode ficar pesado se muitos pontos forem renderizados sem clusterizacao.
-- Upload de foto exige cuidado com tamanho, latencia e confianca na conexao.
+- A qualidade dos dados depende do uso real e da foto enviada.
+- O admin sem auth é suficiente para desenvolvimento, mas não para produção.
+- O mapa pode precisar de clusterização quando a base crescer.
+- Upload de imagem precisa ser monitorado em custo e desempenho.
 
-## Proximos passos recomendados
-- Ligar leitura de postos e reports ao Supabase.
-- Construir o formulario real de envio com foto e timestamp.
-- Proteger `/admin` com auth simples.
-- Criar filtros por combustivel e destaque de recencia.
-- Preparar deploy na Vercel com variaveis de ambiente.
+## Próximos passos recomendados
+- Implementar busca e filtros por cidade, bairro e combustível.
+- Adicionar autenticação ao admin e ligar RLS de forma estrita.
+- Criar estados de erro e loading mais robustos.
+- Melhorar a tela do posto com resumo por combustível e tendência.
+- Preparar observabilidade e métricas mínimas de uso.

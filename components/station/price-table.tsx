@@ -1,12 +1,17 @@
-import { fuelLabels } from "@/lib/mock-data";
-import { PriceReport } from "@/lib/types";
-import { formatCurrency, formatDateTime } from "@/lib/utils";
+import { fuelLabels } from "@/lib/format/labels";
+import { formatCurrencyBRL } from "@/lib/format/currency";
+import { formatDateTimeBR } from "@/lib/format/time";
+import type { PriceReport } from "@/lib/types";
 
 interface PriceTableProps {
   reports: PriceReport[];
 }
 
 export function PriceTable({ reports }: PriceTableProps) {
+  if (reports.length === 0) {
+    return <div className="rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/52">Sem preços recentes aprovados.</div>;
+  }
+
   return (
     <div className="space-y-3">
       {reports.map((report) => (
@@ -16,9 +21,9 @@ export function PriceTable({ reports }: PriceTableProps) {
         >
           <div>
             <p className="text-sm font-medium text-white">{fuelLabels[report.fuelType]}</p>
-            <p className="text-xs text-white/44">{formatDateTime(report.reportedAt)}</p>
+            <p className="text-xs text-white/44">{formatDateTimeBR(report.reportedAt)}</p>
           </div>
-          <span className="text-lg font-semibold text-white">{formatCurrency(report.price)}</span>
+          <span className="text-lg font-semibold text-white">{formatCurrencyBRL(report.price)}</span>
         </div>
       ))}
     </div>

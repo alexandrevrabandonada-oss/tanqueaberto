@@ -1,0 +1,154 @@
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServiceClient } from "@/lib/supabase/admin";
+import { assembleStationWithReports, groupReportsByStation, mapReportRow, mapReportsWithStations, mapStationRow } from "@/lib/data/mappers";
+import type { Station, StationWithReports, ReportWithStation, PriceReport } from "@/lib/types";
+import type { PriceReportRow, StationRow } from "@/types/supabase";
+
+function sortDesc(left: { reportedAt: string }, right: { reportedAt: string }) {
+  return new Date(right.reportedAt).getTime() - new Date(left.reportedAt).getTime();
+}
+
+export async function getActiveStations(): Promise<Station[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("stations")
+    .select("id,name,brand,address,city,neighborhood,lat,lng,is_active,created_at")
+    .eq("is_active", true)
+    .order("name", { ascending: true });
+
+  if (error || !data) {
+    console.error("Failed to load stations", error);
+    return [];
+  }
+
+  return (data as StationRow[]).map(mapStationRow);
+}
+
+export async function getStationById(id: string): Promise<Station | null> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("stations")
+    .select("id,name,brand,address,city,neighborhood,lat,lng,is_active,created_at")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error || !data) {
+    if (error) {
+      console.error(`Failed to load station ${id}`, error);
+    }
+    return null;
+  }
+
+  return mapStationRow(data as StationRow);
+}
+
+export async function getApprovedReports(limit = 200): Promise<PriceReport[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("price_reports")
+    .select("id,station_id,fuel_type,price,photo_url,photo_taken_at,reported_at,created_at,reporter_nickname,status,moderation_note")
+    .eq("status", "approved")
+    .order("reported_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) {
+    console.error("Failed to load approved reports", error);
+    return [];
+  }
+
+  return (data as PriceReportRow[]).map(mapReportRow);
+}
+
+export async function getRecentApprovedCount(): Promise<number> {
+  const supabase = await createSupabaseServerClient();
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { count, error } = await supabase
+    .from("price_reports")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "approved")
+    .gte("reported_at", since);
+
+  if (error) {
+    console.error("Failed to count recent reports", error);
+    return 0;
+  }
+
+  return count ?? 0;
+}
+
+export async function getHomeStations(): Promise<StationWithReports[]> {
+  const [stations, reports] = await Promise.all([getActiveStations(), getApprovedReports()]);
+  return groupReportsByStation(stations, reports);
+}
+
+export async function getStationDetail(id: string): Promise<StationWithReports | null> {
+  const [station, reports] = await Promise.all([getStationById(id), getApprovedReports(200)]);
+
+  if (!station) {
+    return null;
+  }
+
+  return assembleStationWithReports(
+    station,
+    reports.filter((report) => report.stationId === station.id)
+  );
+}
+
+export async function getRecentFeed(): Promise<ReportWithStation[]> {
+  const [stations, reports] = await Promise.all([getActiveStations(), getApprovedReports(50)]);
+  return mapReportsWithStations(reports.sort(sortDesc), stations);
+}
+
+export async function getStationOptions(): Promise<Station[]> {
+  return getActiveStations();
+}
+
+export async function getPendingReports(): Promise<ReportWithStation[]> {
+  const supabase = createSupabaseServiceClient();
+  const [{ data: reportsData, error: reportsError }, { data: stationsData, error: stationsError }] = await Promise.all([
+    supabase
+      .from("price_reports")
+      .select("id,station_id,fuel_type,price,photo_url,photo_taken_at,reported_at,created_at,reporter_nickname,status,moderation_note")
+      .eq("status", "pending")
+      .order("reported_at", { ascending: false }),
+    supabase.from("stations").select("id,name,brand,address,city,neighborhood,lat,lng,is_active,created_at").eq("is_active", true)
+  ]);
+
+  if (reportsError || stationsError || !reportsData || !stationsData) {
+    console.error("Failed to load moderation queue", reportsError ?? stationsError);
+    return [];
+  }
+
+  return mapReportsWithStations(
+    (reportsData as PriceReportRow[]).map(mapReportRow),
+    (stationsData as StationRow[]).map(mapStationRow)
+  );
+}
+
+export async function getModerationCounts() {
+  const supabase = createSupabaseServiceClient();
+  const { data, error } = await supabase.from("price_reports").select("status").order("created_at", { ascending: false });
+
+  if (error || !data) {
+    console.error("Failed to load moderation counts", error);
+    return {
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+      flagged: 0
+    };
+  }
+
+  return data.reduce(
+    (acc, item) => {
+      acc[item.status as keyof typeof acc] += 1;
+      return acc;
+    },
+    {
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+      flagged: 0
+    }
+  );
+}

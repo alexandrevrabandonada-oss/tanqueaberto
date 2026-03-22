@@ -34,3 +34,7 @@ export interface StationWithReports extends Station {
   recentReports: PriceReport[];
   photoGallery: string[];
 }
+
+export interface ReportWithStation extends PriceReport {
+  station: Pick<Station, "id" | "name" | "brand" | "city" | "neighborhood">;
+}
