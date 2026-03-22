@@ -59,7 +59,7 @@ export default async function AuditOverviewPage({ searchParams }: AuditOverviewP
 
         <div className="flex items-center gap-3 rounded-[22px] border border-white/8 bg-black/30 px-4 py-3 text-sm text-white/50">
           <BarChart3 className="h-4 w-4 text-[color:var(--color-accent)]" />
-          <span>Panorama do período e do combustível selecionado</span>
+          <span>Panorama do período e do combustível selecionado. Use os filtros para entender cobertura e confiança antes de comparar cidades.</span>
         </div>
 
         <div className="space-y-3">

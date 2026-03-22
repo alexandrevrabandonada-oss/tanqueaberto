@@ -93,7 +93,7 @@ export default async function StationPage({ params, searchParams }: StationPageP
             </div>
           ) : (
             <div className="rounded-[18px] border border-white/8 bg-black/25 px-4 py-3 text-sm text-white/58">
-              Este posto está cadastrado no território, mas ainda não tem preço recente aprovado.
+              Este posto já está cadastrado no território, mas ainda não tem preço recente aprovado.
             </div>
           )}
         </div>
@@ -119,7 +119,7 @@ export default async function StationPage({ params, searchParams }: StationPageP
         </div>
         {station.latestReports.length === 0 ? (
           <div className="rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/58">
-            Sem preços recentes aprovados para este posto. O cadastro existe, mas a série ainda está em formação.
+            Sem preços recentes aprovados para este posto. O cadastro existe, mas a série ainda está em formação. Se puder, envie a primeira foto.
           </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
@@ -185,7 +185,7 @@ export default async function StationPage({ params, searchParams }: StationPageP
           <p className="text-xs uppercase tracking-[0.2em] text-white/42">Recente validado</p>
           <h3 className="mt-1 text-xl font-semibold text-white">Linha do tempo</h3>
         </div>
-        {station.recentReports.length === 0 ? <div className="rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/58">Sem atualização recente para este posto.</div> : <PriceTable reports={station.recentReports} />}
+        {station.recentReports.length === 0 ? <div className="rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/58">Sem atualização recente para este posto. O cadastro continua visível no mapa.</div> : <PriceTable reports={station.recentReports} />}
       </SectionCard>
 
       <SectionCard className="space-y-4">

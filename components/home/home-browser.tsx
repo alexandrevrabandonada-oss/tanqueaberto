@@ -5,6 +5,7 @@ import { ArrowRight, Camera, Clock3, Search, X } from "lucide-react";
 import Link from "next/link";
 
 import { StationMapShell } from "@/components/map/station-map-shell";
+import { FirstVisitGuide } from "@/components/onboarding/first-visit-guide";
 import { StationCard } from "@/components/station/station-card";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
@@ -63,11 +64,12 @@ export function HomeBrowser({ stations, feed, recentCount, betaClosed = false }:
 
   return (
     <>
+      <FirstVisitGuide />
       {betaClosed ? (
         <SectionCard className="space-y-3 border-[color:var(--color-accent)]/20 bg-[color:var(--color-accent)]/8">
           <Badge variant="warning">Beta fechado</Badge>
           <h2 className="text-[1.45rem] font-semibold leading-tight text-white">Convite controlado, cobertura em expansão.</h2>
-          <p className="text-sm text-white/58">A base real já está no ar. Se algo estiver confuso ou faltando, use o feedback para apontar lacunas.</p>
+          <p className="text-sm text-white/58">A base real já está no ar. Se algo estiver confuso, use o feedback. Se faltar posto ou preço, use as lacunas do mapa.</p>
           <div className="flex flex-wrap gap-2">
             <ButtonLink href="/feedback" className="inline-flex">
               Enviar feedback
@@ -81,8 +83,8 @@ export function HomeBrowser({ stations, feed, recentCount, betaClosed = false }:
       <SectionCard className="space-y-4">
         <div className="space-y-2">
           <Badge>Mapa vivo</Badge>
-          <h2 className="text-[1.6rem] font-semibold leading-tight text-white">Postos cadastrados no território, com ou sem preço recente.</h2>
-          <p className="text-sm text-white/58">Busque, filtre e veja com clareza o que está cadastrado, o que já tem preço recente e onde ainda falta atualização.</p>
+          <h2 className="text-[1.6rem] font-semibold leading-tight text-white">Veja o cadastro territorial e o preço recente sem misturar as duas coisas.</h2>
+          <p className="text-sm text-white/58">Busque, filtre e entenda em poucos segundos o que já está no mapa, o que já foi atualizado e o que ainda precisa de colaboração.</p>
         </div>
 
         <div className="flex items-center gap-3 rounded-[22px] border border-white/8 bg-black/30 px-4 py-3 text-sm text-white/50">
@@ -222,7 +224,7 @@ export function HomeBrowser({ stations, feed, recentCount, betaClosed = false }:
         {cheapestNow.length === 0 ? (
           <EmptyStateCard
             title={mapStations.length > 0 ? "Há postos cadastrados, mas ainda sem preço recente neste recorte." : "Nenhum preço disponível para este recorte."}
-            description={mapStations.length > 0 ? "Abra a lista dos postos sem atualização e envie a primeira foto onde puder." : "Tente outro bairro, cidade, combustível ou recência."}
+            description={mapStations.length > 0 ? "Abra a lista dos postos sem atualização e envie a primeira foto onde puder." : "Tente outro bairro, cidade, combustível ou remova os filtros para voltar ao mapa completo."}
             actionHref="/postos/sem-atualizacao"
             actionLabel="Ver postos sem atualização"
             className="text-left"
@@ -281,7 +283,7 @@ export function HomeBrowser({ stations, feed, recentCount, betaClosed = false }:
           {filteredStations.length === 0 ? (
             <EmptyStateCard
               title="Nenhum posto encontrado para essa busca."
-              description="Tente outro bairro, cidade ou combustível."
+              description="Tente outro bairro, cidade, combustível ou remova os filtros para voltar ao mapa completo."
               actionHref="/postos/sem-atualizacao"
               actionLabel="Ver postos sem atualização"
               className="text-left"
@@ -304,7 +306,7 @@ export function HomeBrowser({ stations, feed, recentCount, betaClosed = false }:
           {filteredFeed.slice(0, 3).length === 0 ? (
             <EmptyStateCard
               title="Nenhuma atualização recente neste filtro."
-              description="Ajuste o combustível, a cidade ou a janela de recência para ver novos registros."
+              description="Ajuste o combustível, a cidade ou a janela de recência. Se quiser colaborar, envie o primeiro preço."
               actionHref="/postos/sem-atualizacao"
               actionLabel="Ver postos sem atualização"
               className="text-left"
@@ -348,11 +350,11 @@ export function HomeBrowser({ stations, feed, recentCount, betaClosed = false }:
         <div className="grid gap-3 md:grid-cols-2">
           <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
             <p className="text-sm font-semibold text-white">Há postos cadastrados sem preço recente ({reviewStations.length} em revisão territorial).</p>
-            <p className="mt-1 text-sm text-white/58">Se você passou por algum deles, envie a primeira foto e ajude a preencher o mapa.</p>
+            <p className="mt-1 text-sm text-white/58">Se você passou por algum deles, envie a primeira foto. Isso transforma lacuna em dado útil.</p>
           </div>
           <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
             <p className="text-sm font-semibold text-white">O mapa não fica vazio quando o cadastro existe.</p>
-            <p className="mt-1 text-sm text-white/58">A distinção entre cadastro territorial e preço recente deixa a leitura mais honesta.</p>
+            <p className="mt-1 text-sm text-white/58">Cadastro territorial e preço recente são coisas diferentes. O app mostra isso sem confundir o usuário.</p>
           </div>
         </div>
         <ButtonLink href="/enviar" className="w-full">
@@ -363,6 +365,8 @@ export function HomeBrowser({ stations, feed, recentCount, betaClosed = false }:
     </>
   );
 }
+
+
 
 
 

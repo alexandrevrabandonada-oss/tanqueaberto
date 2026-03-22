@@ -35,7 +35,7 @@ export function FeedBrowser({ feed }: FeedBrowserProps) {
         <div className="space-y-2">
           <p className="text-xs uppercase tracking-[0.2em] text-white/42">Feed</p>
           <h2 className="text-[1.8rem] font-semibold leading-none text-white">Atualizações recentes</h2>
-          <p className="text-sm text-white/58">Linha do tempo com foco em preço, recência e evidência.</p>
+          <p className="text-sm text-white/58">Linha do tempo com foco em preço, recência e evidência. Só entra o que já foi aprovado.</p>
         </div>
 
         <div className="flex items-center gap-3 rounded-[22px] border border-white/8 bg-black/30 px-4 py-3 text-sm text-white/50">
@@ -89,7 +89,7 @@ export function FeedBrowser({ feed }: FeedBrowserProps) {
         </div>
 
         <div className="rounded-[22px] border border-white/8 bg-white/5 px-4 py-3 text-sm text-white/62">
-          O feed mostra envios aprovados. Para ver postos cadastrados sem preço recente, abra a lista de lacunas do mapa.
+          O feed mostra envios aprovados. Se você quer ajudar a completar o mapa, abra a lista de lacunas ou envie um novo preço.
           <div className="mt-3">
             <ButtonLink href="/postos/sem-atualizacao" variant="secondary">
               Ver lacunas do mapa
@@ -124,7 +124,7 @@ export function FeedBrowser({ feed }: FeedBrowserProps) {
         {filteredFeed.length === 0 ? (
           <EmptyStateCard
             title="Nenhuma atualização recente neste filtro."
-            description="Tente outro bairro, cidade, combustível ou recência."
+            description="Tente outro bairro, cidade, combustível ou recência. Se quiser contribuir, envie o primeiro preço."
             actionHref="/enviar"
             actionLabel="Enviar primeiro preço"
             className="text-left"

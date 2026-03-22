@@ -45,7 +45,7 @@ export function StationMap({ stations, className = "h-[360px]" }: StationMapProp
 
   return (
     <div className={cn("relative overflow-hidden rounded-[28px] border border-white/8", className)}>
-      <div className="absolute left-3 top-3 z-[401] flex flex-wrap gap-2 rounded-[18px] border border-white/8 bg-black/72 px-3 py-2 text-[11px] text-white/72 backdrop-blur-sm">
+      <div className="absolute left-3 top-3 z-[401] flex max-w-[calc(100%-1.5rem)] flex-wrap gap-2 rounded-[18px] border border-white/8 bg-black/72 px-3 py-2 text-[11px] text-white/72 backdrop-blur-sm">
         <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1">
           <span className="h-2 w-2 rounded-full bg-emerald-400" />
           Com preço recente
@@ -58,6 +58,7 @@ export function StationMap({ stations, className = "h-[360px]" }: StationMapProp
           <span className="h-2 w-2 rounded-full bg-amber-400" />
           Em revisão territorial
         </span>
+        <p className="w-full text-[10px] leading-relaxed text-white/48">Todos os postos mostram o cadastro visível. Só com preço recente mostra apenas o que já foi aprovado.</p>
       </div>
       <MapContainer center={[-22.53, -44.12]} zoom={11} scrollWheelZoom={false} className={cn("w-full", className)}>
         <TileLayer

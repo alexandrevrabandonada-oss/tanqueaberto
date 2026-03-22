@@ -20,6 +20,9 @@ export default async function SubmitPage() {
         <p className="text-sm text-white/62">
           Envie uma foto, o combustível e o preço. O registro entra como aguardando moderação.
         </p>
+        <div className="rounded-[18px] border border-white/8 bg-white/5 px-4 py-3 text-sm text-white/60">
+          Leva poucos segundos: escolha o posto, anexe a foto e confirme o preço que você viu na hora.
+        </div>
       </SectionCard>
 
       <SectionCard className="space-y-4">
@@ -29,28 +32,28 @@ export default async function SubmitPage() {
               <MapPinned className="h-5 w-5 text-[color:var(--color-accent)]" />
               1. Selecionar posto
             </div>
-            <p className="mt-3 text-sm text-white/56">Escolha o posto certo antes de enviar o preço.</p>
+            <p className="mt-3 text-sm text-white/56">Escolha o posto certo antes de enviar o preço. Se estiver em dúvida, abra o mapa e confirme o nome da rua ou do bairro.</p>
           </div>
           <div className="rounded-[22px] border border-dashed border-white/14 bg-black/30 p-4">
             <div className="flex items-center gap-3 text-white">
               <Camera className="h-5 w-5 text-[color:var(--color-accent)]" />
               2. Foto como evidência
             </div>
-            <p className="mt-3 text-sm text-white/56">A foto vai junto com a atualização para validar o envio.</p>
+            <p className="mt-3 text-sm text-white/56">A foto vai junto com a atualização para dar contexto ao registro.</p>
           </div>
           <div className="rounded-[22px] border border-dashed border-white/14 bg-black/30 p-4">
             <div className="flex items-center gap-3 text-white">
               <Fuel className="h-5 w-5 text-[color:var(--color-accent)]" />
               3. Combustível e preço
             </div>
-            <p className="mt-3 text-sm text-white/56">Gasolina, etanol, diesel ou GNV.</p>
+            <p className="mt-3 text-sm text-white/56">Escolha o combustível certo. Isso ajuda a comparar sem confundir as faixas.</p>
           </div>
           <div className="rounded-[22px] border border-dashed border-white/14 bg-black/30 p-4">
             <div className="flex items-center gap-3 text-white">
               <Clock3 className="h-5 w-5 text-[color:var(--color-accent)]" />
               4. Horário automático
             </div>
-            <p className="mt-3 text-sm text-white/56">O horário do envio é salvo automaticamente.</p>
+            <p className="mt-3 text-sm text-white/56">O horário do envio é salvo automaticamente e vira parte da trilha de prova.</p>
           </div>
         </div>
       </SectionCard>

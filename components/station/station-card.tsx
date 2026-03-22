@@ -60,7 +60,7 @@ export function StationCard({ station, fuelFilter = "all" }: StationCardProps) {
         </div>
       ) : (
         <div className="space-y-3 rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/58">
-          <p>Este posto está cadastrado, mas ainda não recebeu preço recente aprovado.</p>
+          <p>Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.</p>
           <ButtonLink href="/enviar" className="w-full">
             Enviar o primeiro preço
           </ButtonLink>
