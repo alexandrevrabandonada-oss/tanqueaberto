@@ -4,7 +4,7 @@ import type { PriceReportRow, StationRow } from "@/types/supabase";
 function mapStationRow(row: StationRow): Station {
   return {
     id: row.id,
-    name: row.name,
+    name: row.name_public ?? row.name,
     brand: row.brand,
     address: row.address,
     city: row.city,
@@ -12,7 +12,26 @@ function mapStationRow(row: StationRow): Station {
     lat: row.lat,
     lng: row.lng,
     isActive: row.is_active,
-    createdAt: row.created_at
+    createdAt: row.created_at,
+    cnpj: row.cnpj,
+    source: row.source as Station["source"],
+    sourceId: row.source_id,
+    officialStatus: row.official_status,
+    sigafStatus: row.sigaf_status,
+    products: row.products,
+    distributorName: row.distributor_name,
+    lastSyncedAt: row.last_synced_at,
+    importNotes: row.import_notes,
+    geoSource: row.geo_source as Station["geoSource"],
+    geoConfidence: row.geo_confidence as Station["geoConfidence"],
+    geoReviewStatus: row.geo_review_status as Station["geoReviewStatus"],
+    nameOfficial: row.name_official,
+    namePublic: row.name_public,
+    priorityScore: row.priority_score,
+    visibilityStatus: row.visibility_status as Station["visibilityStatus"],
+    curationNote: row.curation_note,
+    coordinateReviewedAt: row.coordinate_reviewed_at,
+    updatedAt: row.updated_at
   };
 }
 
@@ -24,11 +43,20 @@ function mapReportRow(row: PriceReportRow): PriceReport {
     price: row.price,
     photoUrl: row.photo_url,
     photoTakenAt: row.photo_taken_at,
+    observedAt: row.observed_at ?? row.reported_at,
+    submittedAt: row.submitted_at ?? row.created_at,
     reportedAt: row.reported_at,
+    approvedAt: row.approved_at ?? null,
+    rejectedAt: row.rejected_at ?? null,
     createdAt: row.created_at,
     reporterNickname: row.reporter_nickname,
     status: row.status,
-    moderationNote: row.moderation_note
+    moderationNote: row.moderation_note,
+    moderationReason: row.moderation_reason ?? null,
+    moderatedBy: row.moderated_by ?? null,
+    sourceKind: (row.source_kind as PriceReport["sourceKind"]) ?? "community",
+    photoHash: row.photo_hash ?? null,
+    version: row.version ?? 1
   };
 }
 

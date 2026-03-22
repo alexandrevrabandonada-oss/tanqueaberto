@@ -293,5 +293,170 @@
     "lat": -22.521856,
     "lng": -44.1040128,
     "confidence": "medium"
+  },
+  "|rua cincinato braga, 220|volta redonda|aterrado": {
+    "lat": -22.5113511,
+    "lng": -44.0916995,
+    "confidence": "low"
+  },
+  "|rua nossa senhora da conceicao, 87|volta redonda|conforto": {
+    "lat": -22.5202889,
+    "lng": -44.1130661,
+    "confidence": "low"
+  },
+  "|rodovia dos metalurgicos, 941|volta redonda|jardim belvedere": {
+    "lat": -22.5480911,
+    "lng": -44.0714184,
+    "confidence": "low"
+  },
+  "|avenida savio cota de almeida gama, 633|volta redonda|retiro": {
+    "lat": -22.521856,
+    "lng": -44.1040128,
+    "confidence": "medium"
+  },
+  "|rodovia dos metalurgicos, 8300|volta redonda|casa de pedra": {
+    "lat": -22.5480911,
+    "lng": -44.0714184,
+    "confidence": "low"
+  },
+  "|avenida nossa senhora do amparo, 2|volta redonda|niteroi": {
+    "lat": -22.5113816,
+    "lng": -44.092503,
+    "confidence": "low"
+  },
+  "|avenida almirante adalberto de barros nunes, 1954|volta redonda|vila mury": {
+    "lat": -22.5113816,
+    "lng": -44.092503,
+    "confidence": "low"
+  },
+  "|avenida almirante adalberto de barros nunes, 2720|volta redonda|retiro": {
+    "lat": -22.5057578,
+    "lng": -44.1174078,
+    "confidence": "low"
+  },
+  "|avenida amaral peixoto, 957|volta redonda|sao joao": {
+    "lat": -22.512686,
+    "lng": -44.0876416,
+    "confidence": "low"
+  },
+  "|avenida dauro peixoto aragao, 8600|volta redonda|tres pocos": {
+    "lat": -22.521856,
+    "lng": -44.1040128,
+    "confidence": "medium"
+  },
+  "|rodovia rjt-153 (caetano arcuri spineli), 3501|volta redonda|santa cruz": {
+    "lat": -22.521856,
+    "lng": -44.1040128,
+    "confidence": "medium"
+  },
+  "|rodovia lucio meira, 299|volta redonda|sao luiz": {
+    "lat": -22.5595471,
+    "lng": -44.1577492,
+    "confidence": "low"
+  },
+  "|rodovia presidente dutra km 257, 15|volta redonda|rio das flores": {
+    "lat": -22.5922055,
+    "lng": -44.0725987,
+    "confidence": "low"
+  },
+  "|avenida lucas evangelista de oliveira franco, 90|volta redonda|aterrado": {
+    "lat": -22.5113816,
+    "lng": -44.092503,
+    "confidence": "low"
+  },
+  "|avenida carlos chagas, 615|volta redonda|sao lucas": {
+    "lat": -22.5254965,
+    "lng": -44.1153247,
+    "confidence": "low"
+  },
+  "|rua 4, 149|volta redonda|conforto": {
+    "lat": -22.5202889,
+    "lng": -44.1130661,
+    "confidence": "low"
+  },
+  "|rua 719, 150|volta redonda|casa de pedra": {
+    "lat": -22.5375471,
+    "lng": -44.0768837,
+    "confidence": "low"
+  },
+  "|avenida nilton penna botelho, 1151|pinheiral|pinheiral": {
+    "lat": -22.5031232,
+    "lng": -44.0138906,
+    "confidence": "low"
+  },
+  "|avenida geraldo ribas, 1765|porto real|centro": {
+    "lat": -21.1212328,
+    "lng": -44.2330014,
+    "confidence": "low"
+  },
+  "|rodovia presidente dutra, s/n|porto real|trevo de acesso ao polo urbo agro industrial": {
+    "lat": -22.4195607,
+    "lng": -44.2896491,
+    "confidence": "medium"
+  },
+  "|avenida roberto silveira, 180|quatis|barrinha": {
+    "lat": -22.3625932,
+    "lng": -44.2495086,
+    "confidence": "low"
+  },
+  "|avenida euclides alves guimaraes cotia, s/n|quatis|centro": {
+    "lat": -22.3625932,
+    "lng": -44.2495086,
+    "confidence": "low"
+  },
+  "|avenida prefeito arthur costa, 550|barra do pirai|muqueca": {
+    "lat": -22.4242692,
+    "lng": -43.8935244,
+    "confidence": "medium"
+  },
+  "|rua franklin de moraes, s/n|barra do pirai|centro": {
+    "lat": -22.4242692,
+    "lng": -43.8935244,
+    "confidence": "medium"
+  },
+  "|rodovia lucio meira - br 393, sn|barra do pirai|belvedere da taquara": {
+    "lat": -22.4242692,
+    "lng": -43.8935244,
+    "confidence": "medium"
+  },
+  "|rua joao batista, 5|barra do pirai|nossa senhora de santana": {
+    "lat": -22.4242692,
+    "lng": -43.8935244,
+    "confidence": "medium"
+  },
+  "|rodovia lucio meira, s/n|barra do pirai|arthur cataldi": {
+    "lat": -22.4242692,
+    "lng": -43.8935244,
+    "confidence": "medium"
+  },
+  "|rodovia br 393, s/n|barra do pirai|california": {
+    "lat": -22.4731348,
+    "lng": -44.0604106,
+    "confidence": "low"
+  },
+  "|avenida prefeito arthur costa, 988|barra do pirai|muqueca": {
+    "lat": -22.4242692,
+    "lng": -43.8935244,
+    "confidence": "medium"
+  },
+  "|rua luiz barbosa, 411|barra do pirai|matadouro": {
+    "lat": -22.4242692,
+    "lng": -43.8935244,
+    "confidence": "medium"
+  },
+  "|rua jose alves pimenta, 1616|barra do pirai|matadouro": {
+    "lat": -22.4242692,
+    "lng": -43.8935244,
+    "confidence": "medium"
+  },
+  "|rua joao batista, 170|barra do pirai|oficinas velhas": {
+    "lat": -22.4242692,
+    "lng": -43.8935244,
+    "confidence": "medium"
+  },
+  "|rua paulo fernandes, 224|barra do pirai|maracana": {
+    "lat": -22.4242692,
+    "lng": -43.8935244,
+    "confidence": "medium"
   }
 }

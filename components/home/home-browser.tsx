@@ -14,6 +14,7 @@ import { formatCurrencyBRL } from "@/lib/format/currency";
 import { formatRecencyLabel, getRecencyTone, recencyToneToBadgeVariant } from "@/lib/format/time";
 import { fuelLabels, publicFuelFilters, recencyFilters } from "@/lib/format/labels";
 import { filterReports, filterStations, getSelectedStationReport } from "@/lib/filters/public";
+import { canShowStationOnMap, hasPendingStationLocationReview } from "@/lib/quality/stations";
 import type { FuelFilter, RecencyFilter } from "@/lib/filters/public";
 import type { ReportWithStation, StationWithReports } from "@/lib/types";
 
@@ -49,6 +50,8 @@ export function HomeBrowser({ stations, feed, recentCount }: HomeBrowserProps) {
   }, [filteredStations, fuelFilter]);
 
   const hasFilters = Boolean(query || fuelFilter !== "all" || recencyFilter !== "all");
+  const mapStations = filteredStations.filter((station) => canShowStationOnMap(station));
+  const reviewStations = filteredStations.filter((station) => hasPendingStationLocationReview(station));
 
   return (
     <>
@@ -139,13 +142,17 @@ export function HomeBrowser({ stations, feed, recentCount }: HomeBrowserProps) {
             </Link>
           </div>
         </div>
-        <StationMapShell stations={filteredStations} className="h-[440px]" />
+        <StationMapShell stations={mapStations} className="h-[440px]" />
       </SectionCard>
 
-      <SectionCard className="grid gap-3 sm:grid-cols-3">
+      <SectionCard className="grid gap-3 sm:grid-cols-4">
         <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
           <p className="text-xs uppercase tracking-[0.2em] text-white/42">Postos visíveis</p>
-          <p className="mt-3 text-3xl font-semibold text-white">{filteredStations.length}</p>
+          <p className="mt-3 text-3xl font-semibold text-white">{mapStations.length}</p>
+        </div>
+        <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
+          <p className="text-xs uppercase tracking-[0.2em] text-white/42">Em revisão</p>
+          <p className="mt-3 text-3xl font-semibold text-white">{reviewStations.length}</p>
         </div>
         <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
           <p className="text-xs uppercase tracking-[0.2em] text-white/42">Atualizações 24h</p>
@@ -267,3 +274,4 @@ export function HomeBrowser({ stations, feed, recentCount }: HomeBrowserProps) {
     </>
   );
 }
+

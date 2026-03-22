@@ -1,6 +1,9 @@
+import type { Route } from "next";
+
 import { AppShell } from "@/components/layout/app-shell";
 import { BrandMark } from "@/components/brand/brand-mark";
 import { SectionCard } from "@/components/ui/section-card";
+import { ButtonLink } from "@/components/ui/button";
 import { brand } from "@/styles/design-tokens";
 
 const points = [
@@ -54,6 +57,16 @@ export default function SobrePage() {
             </div>
           ))}
         </div>
+      </SectionCard>
+
+      <SectionCard className="space-y-3">
+        <p className="text-xs uppercase tracking-[0.2em] text-white/42">Observatório</p>
+        <p className="text-sm text-white/62">
+          A camada de auditoria pública organiza série histórica, alertas e exportações para uso cívico e técnico.
+        </p>
+        <ButtonLink href={"/auditoria" as Route} variant="secondary">
+          Abrir auditoria pública
+        </ButtonLink>
       </SectionCard>
 
       <SectionCard className="space-y-3">

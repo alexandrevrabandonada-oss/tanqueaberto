@@ -28,6 +28,13 @@ export interface Station {
   importNotes?: string | null;
   geoSource?: GeoSource;
   geoConfidence?: GeoConfidence;
+  geoReviewStatus?: "ok" | "pending" | "manual_review";
+  nameOfficial?: string | null;
+  namePublic?: string | null;
+  priorityScore?: number;
+  visibilityStatus?: "public" | "review" | "hidden";
+  curationNote?: string | null;
+  coordinateReviewedAt?: string | null;
   updatedAt?: string | null;
 }
 
@@ -38,11 +45,20 @@ export interface PriceReport {
   price: number;
   photoUrl: string;
   photoTakenAt: string | null;
+  observedAt: string;
+  submittedAt: string;
   reportedAt: string;
+  approvedAt: string | null;
+  rejectedAt: string | null;
   createdAt: string;
   reporterNickname: string | null;
   status: ReportStatus;
   moderationNote: string | null;
+  moderationReason: string | null;
+  moderatedBy: string | null;
+  sourceKind: "community" | "seed" | "official_reference" | "import" | "admin";
+  photoHash: string | null;
+  version: number;
 }
 
 export interface StationWithReports extends Station {

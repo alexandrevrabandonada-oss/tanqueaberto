@@ -1,5 +1,6 @@
 import type { FuelType, ReportStatus } from "@/lib/types";
 import type { RecencyFilter } from "@/lib/filters/public";
+import type { AuditWindowDays } from "@/lib/audit/types";
 
 export const fuelLabels: Record<FuelType, string> = {
   gasolina_comum: "Gasolina comum",
@@ -31,4 +32,10 @@ export const recencyFilters: Array<{ value: RecencyFilter; label: string }> = [
   { value: "all", label: "Todos" },
   { value: "24h", label: "24h" },
   { value: "48h", label: "48h" }
+];
+
+export const auditWindowFilters: Array<{ value: AuditWindowDays; label: string }> = [
+  { value: 7, label: "7 dias" },
+  { value: 30, label: "30 dias" },
+  { value: 90, label: "90 dias" }
 ];

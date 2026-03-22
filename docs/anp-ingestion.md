@@ -44,3 +44,34 @@ Opções:
 - Não publique dados comunitários como se fossem cadastro oficial.
 - A base da comunidade continua em `price_reports`.
 - O mapa Leaflet já exibe atribuição do OpenStreetMap; mantenha isso visível.
+
+## Curadoria territorial
+Depois da importação, rode a auditoria territorial para separar postos aptos de postos em revisão.
+
+```bash
+npm run audit:stations -- --report reports/2026-03-22-estado-da-nacao-curadoria-territorial-da-base.md
+npm run curate:stations -- --apply --report reports/2026-03-22-estado-da-nacao-curadoria-territorial-da-base.md
+```
+
+Leitura do resultado:
+- `validCoordinates`: postos que podem aparecer no mapa.
+- `invalidCoordinates`: postos escondidos da camada pública.
+- `geo_review_status = ok`: coordenada e confiança aceitas.
+- `geo_review_status = pending`: coordenada existe, mas ainda pede revisão.
+- `geo_review_status = manual_review`: sem coordenada confiável.
+
+A curadoria não altera preços comunitários, fotos ou histórico. Ela só melhora cadastro, visibilidade e prioridade operacional.
+
+## Segunda passada geográfica
+Depois da primeira importação, rode a segunda passada para melhorar cobertura territorial sem expor coordenadas fracas no mapa.
+
+```bash
+npm run regeo:stations -- --apply --report reports/territorial-geo-recheck.md
+```
+
+Leitura do resultado:
+- `resolved`: casos com coordenada recuperada em qualidade suficiente para revisão leve.
+- `pending`: coordenadas válidas, mas ainda em revisão.
+- `manualReview`: casos que continuam frágeis e fora do mapa público.
+
+O mapa público pode exibir coordenadas validadas e de confiança alta ou media, mas sempre oculta casos em `manual_review`.

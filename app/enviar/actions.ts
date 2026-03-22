@@ -1,7 +1,9 @@
 "use server";
 
+import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 
+import { recordPriceReportAuditEvent } from "@/lib/audit/events";
 import { buildReportPhotoPath, validateReportPhoto, REPORT_PHOTO_BUCKET } from "@/lib/upload/report-photo";
 import { createSupabaseServiceClient } from "@/lib/supabase/admin";
 import type { FuelType } from "@/lib/types";
@@ -66,8 +68,10 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
   const extension = photo.name.split(".").pop()?.toLowerCase() || "jpg";
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${extension}`;
   const filePath = buildReportPhotoPath(stationId, suffix);
+  const fileBuffer = Buffer.from(await photo.arrayBuffer());
+  const photoHash = createHash("sha256").update(fileBuffer).digest("hex");
 
-  const { error: uploadError } = await supabase.storage.from(REPORT_PHOTO_BUCKET).upload(filePath, photo, {
+  const { error: uploadError } = await supabase.storage.from(REPORT_PHOTO_BUCKET).upload(filePath, fileBuffer, {
     contentType: photo.type,
     upsert: false
   });
@@ -79,25 +83,47 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
   const { data: publicUrl } = supabase.storage.from(REPORT_PHOTO_BUCKET).getPublicUrl(filePath);
   const timestamp = new Date().toISOString();
 
-  const { error: insertError } = await supabase.from("price_reports").insert({
-    station_id: stationId,
-    fuel_type: fuelType,
-    price,
-    photo_url: publicUrl.publicUrl,
-    photo_taken_at: timestamp,
-    reported_at: timestamp,
-    reporter_nickname: nickname || null,
-    status: "pending"
-  });
+  const { data: report, error: insertError } = await supabase
+    .from("price_reports")
+    .insert({
+      station_id: stationId,
+      fuel_type: fuelType,
+      price,
+      photo_url: publicUrl.publicUrl,
+      photo_taken_at: timestamp,
+      observed_at: timestamp,
+      submitted_at: timestamp,
+      reported_at: timestamp,
+      reporter_nickname: nickname || null,
+      status: "pending",
+      source_kind: "community",
+      photo_hash: photoHash,
+      version: 1
+    })
+    .select("id")
+    .single();
 
-  if (insertError) {
+  if (insertError || !report) {
     return { error: "Não foi possível salvar o envio agora.", success: false };
   }
+
+  await recordPriceReportAuditEvent({
+    reportId: report.id,
+    eventType: "created",
+    payload: {
+      stationId,
+      fuelType,
+      sourceKind: "community",
+      photoHash,
+      reportedAt: timestamp
+    }
+  });
 
   revalidatePath("/");
   revalidatePath("/atualizacoes");
   revalidatePath(`/postos/${stationId}`);
   revalidatePath("/admin");
+  revalidatePath("/auditoria");
 
   return { error: null, success: true };
 }

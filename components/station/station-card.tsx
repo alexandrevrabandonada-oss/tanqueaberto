@@ -8,6 +8,7 @@ import { fuelLabels } from "@/lib/format/labels";
 import { formatCurrencyBRL } from "@/lib/format/currency";
 import { formatRecencyLabel, getRecencyTone, recencyToneToBadgeVariant } from "@/lib/format/time";
 import { getSelectedStationReport } from "@/lib/filters/public";
+import { getStationPublicName, hasPendingStationLocationReview } from "@/lib/quality/stations";
 import type { FuelType, StationWithReports } from "@/lib/types";
 
 interface StationCardProps {
@@ -24,7 +25,7 @@ export function StationCard({ station, fuelFilter = "all" }: StationCardProps) {
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-white/40">{station.brand}</p>
-          <h3 className="text-lg font-semibold text-white">{station.name}</h3>
+          <h3 className="text-lg font-semibold text-white">{getStationPublicName(station)}</h3>
         </div>
         {latest ? (
           <Badge variant={recencyToneToBadgeVariant(getRecencyTone(latest.reportedAt))}>{formatRecencyLabel(latest.reportedAt)}</Badge>
@@ -32,6 +33,11 @@ export function StationCard({ station, fuelFilter = "all" }: StationCardProps) {
           <Badge variant="outline">Sem atualização</Badge>
         )}
       </div>
+      {hasPendingStationLocationReview(station) ? (
+        <div className="rounded-[18px] border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs text-amber-200">
+          Localização em revisão
+        </div>
+      ) : null}
       <div className="flex items-center gap-2 text-sm text-white/64">
         <MapPin className="h-4 w-4 text-[color:var(--color-accent)]" />
         <span>
@@ -61,3 +67,8 @@ export function StationCard({ station, fuelFilter = "all" }: StationCardProps) {
     </SectionCard>
   );
 }
+
+
+
+
+

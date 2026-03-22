@@ -8,6 +8,7 @@ import L from "leaflet";
 import { Badge } from "@/components/ui/badge";
 import type { StationWithReports } from "@/lib/types";
 import { fuelLabels } from "@/lib/format/labels";
+import { canShowStationOnMap } from "@/lib/quality/stations";
 import { formatCurrencyBRL } from "@/lib/format/currency";
 import { formatRecencyLabel, getRecencyTone, recencyToneToBadgeVariant } from "@/lib/format/time";
 import { cn } from "@/lib/utils";
@@ -25,12 +26,14 @@ interface StationMapProps {
 }
 
 export function StationMap({ stations, className = "h-[360px]" }: StationMapProps) {
-  if (stations.length === 0) {
+  const mapStations = stations.filter((station) => canShowStationOnMap(station));
+
+  if (mapStations.length === 0) {
     return (
       <div className={cn("grid place-items-center rounded-[28px] border border-white/8 bg-black/30 px-6 text-center text-sm text-white/58", className)}>
         <div className="space-y-2">
-          <p className="text-base font-semibold text-white">Ainda não há postos ativos para mostrar.</p>
-          <p>Tente outro bairro, cidade ou aguarde novos dados entrarem.</p>
+          <p className="text-base font-semibold text-white">Ainda não há coordenadas confiáveis para mostrar no mapa.</p>
+          <p>Tente outro bairro, cidade ou aguarde a curadoria concluir a localização.</p>
         </div>
       </div>
     );
@@ -43,7 +46,7 @@ export function StationMap({ stations, className = "h-[360px]" }: StationMapProp
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {stations.map((station) => {
+        {mapStations.map((station) => {
           const latest = station.latestReports[0];
           const stationHref = `/postos/${station.id}` as Route;
           const recencyTone = latest ? getRecencyTone(latest.reportedAt) : "stale";

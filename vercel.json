@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/audit/refresh",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/audit/dossiers/weekly",
+      "schedule": "30 4 * * 1"
+    },
+    {
+      "path": "/api/cron/audit/dossiers/monthly",
+      "schedule": "0 5 1 * *"
+    }
+  ]
+}

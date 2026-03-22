@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import type { Route } from "next";
 import { ArrowRight, Camera, Clock3, MapPinned } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
@@ -7,15 +8,31 @@ import { PriceTable } from "@/components/station/price-table";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
+import { HistoryChart } from "@/components/audit/history-chart";
 import { getStationDetail } from "@/lib/data";
+import { getStationAuditDetail } from "@/lib/audit/queries";
+import { getStationPublicName, hasPendingStationLocationReview } from "@/lib/quality/stations";
 import { fuelLabels } from "@/lib/format/labels";
 import { formatDateTimeBR, formatRecencyLabel, getRecencyTone, recencyToneToBadgeVariant } from "@/lib/format/time";
 import { formatCurrencyBRL } from "@/lib/format/currency";
+import type { FuelType } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 interface StationPageProps {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}
+
+function parseFuel(value: string | string[] | undefined): FuelType {
+  const allowed: FuelType[] = ["gasolina_comum", "gasolina_aditivada", "etanol", "diesel_s10", "diesel_comum", "gnv"];
+  const candidate = Array.isArray(value) ? value[0] : value;
+  return allowed.includes(candidate as FuelType) ? (candidate as FuelType) : "gasolina_comum";
+}
+
+function parseDays(value: string | string[] | undefined) {
+  const parsed = Number(Array.isArray(value) ? value[0] : value ?? "30");
+  return parsed === 7 || parsed === 30 || parsed === 90 ? parsed : 30;
 }
 
 function formatTrend(previous: number, current: number) {
@@ -29,15 +46,19 @@ function formatTrend(previous: number, current: number) {
   return delta > 0 ? `Subiu ${absolute}` : `Caiu ${absolute}`;
 }
 
-export default async function StationPage({ params }: StationPageProps) {
+export default async function StationPage({ params, searchParams }: StationPageProps) {
   const { id } = await params;
-  const station = await getStationDetail(id);
+  const query = (await searchParams) ?? {};
+  const selectedFuel = parseFuel(query.fuel);
+  const selectedDays = parseDays(query.days);
+  const [station, audit] = await Promise.all([getStationDetail(id), getStationAuditDetail(id, selectedFuel, selectedDays)]);
 
-  if (!station) {
+  if (!station || !audit) {
     notFound();
   }
 
   const latest = station.latestReports[0];
+  const stationAuditHref = (`/auditoria/posto/${id}?fuel=${selectedFuel}&days=${selectedDays}` as Route);
 
   return (
     <AppShell>
@@ -45,14 +66,11 @@ export default async function StationPage({ params }: StationPageProps) {
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-white/42">{station.brand}</p>
-            <h2 className="mt-2 text-[1.9rem] font-semibold leading-none text-white">{station.name}</h2>
+            <h2 className="mt-2 text-[1.9rem] font-semibold leading-none text-white">{getStationPublicName(station)}</h2>
           </div>
           <div className="text-right">
-            {latest ? (
-              <Badge variant={recencyToneToBadgeVariant(getRecencyTone(latest.reportedAt))}>{formatRecencyLabel(latest.reportedAt)}</Badge>
-            ) : (
-              <Badge variant="outline">Sem atualização recente</Badge>
-            )}
+            {hasPendingStationLocationReview(station) ? <Badge variant="warning">Localização em revisão</Badge> : null}
+            {latest ? <Badge variant={recencyToneToBadgeVariant(getRecencyTone(latest.reportedAt))}>{formatRecencyLabel(latest.reportedAt)}</Badge> : <Badge variant="outline">Sem atualização recente</Badge>}
             <p className="mt-2 text-xs uppercase tracking-[0.18em] text-white/42">{station.neighborhood}, {station.city}</p>
           </div>
         </div>
@@ -67,20 +85,14 @@ export default async function StationPage({ params }: StationPageProps) {
               Última atualização em {formatDateTimeBR(latest.reportedAt)}
             </div>
           ) : (
-            <div className="rounded-[18px] border border-white/8 bg-black/25 px-4 py-3 text-sm text-white/58">
-              Ainda não há preço recente aprovado para este posto.
-            </div>
+            <div className="rounded-[18px] border border-white/8 bg-black/25 px-4 py-3 text-sm text-white/58">Ainda não há preço recente aprovado para este posto.</div>
           )}
         </div>
         <ButtonLink href="/enviar" className="w-full">
           Enviar novo preço
           <ArrowRight className="h-4 w-4" />
         </ButtonLink>
-        {latest ? (
-          <div className="overflow-hidden rounded-[24px] border border-white/8 bg-black/30">
-            <Image src={latest.photoUrl} alt={`Foto recente de ${station.name}`} width={1280} height={720} className="h-56 w-full object-cover" />
-          </div>
-        ) : null}
+        {latest ? <div className="overflow-hidden rounded-[24px] border border-white/8 bg-black/30"><Image src={latest.photoUrl} alt={`Foto recente de ${getStationPublicName(station)}`} width={1280} height={720} className="h-56 w-full object-cover" /></div> : null}
       </SectionCard>
 
       <SectionCard className="space-y-4">
@@ -92,9 +104,7 @@ export default async function StationPage({ params }: StationPageProps) {
           <Badge variant="warning">{station.latestReports.length} faixas ativas</Badge>
         </div>
         {station.latestReports.length === 0 ? (
-          <div className="rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/58">
-            Sem preços recentes aprovados para este posto.
-          </div>
+          <div className="rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/58">Sem preços recentes aprovados para este posto.</div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {station.latestReports.map((report) => {
@@ -121,16 +131,65 @@ export default async function StationPage({ params }: StationPageProps) {
       </SectionCard>
 
       <SectionCard className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Histórico longo</p>
+            <h3 className="mt-1 text-xl font-semibold text-white">{fuelLabels[selectedFuel]} · {selectedDays} dias</h3>
+          </div>
+          <ButtonLink href={stationAuditHref} variant="secondary">Abrir auditoria</ButtonLink>
+        </div>
+        <HistoryChart series={audit.series} />
+      </SectionCard>
+
+      <SectionCard className="space-y-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-white/42">Histórico recente</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-white/42">Indicadores públicos</p>
+          <h3 className="mt-1 text-xl font-semibold text-white">Padrões e indícios</h3>
+        </div>
+        {audit.alerts.length === 0 ? (
+          <div className="rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/58">Sem alertas relevantes neste recorte.</div>
+        ) : (
+          <div className="space-y-3">
+            {audit.alerts.map((alert) => (
+              <div key={`${alert.kind}-${alert.stationId ?? alert.city ?? alert.title}`} className="rounded-[22px] border border-white/8 bg-black/30 p-4">
+                <p className="text-base font-semibold text-white">{alert.title}</p>
+                <p className="mt-1 text-sm text-white/58">{alert.description}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </SectionCard>
+
+      <SectionCard className="space-y-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.2em] text-white/42">Recente validado</p>
           <h3 className="mt-1 text-xl font-semibold text-white">Linha do tempo</h3>
         </div>
-        {station.recentReports.length === 0 ? (
-          <div className="rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/58">
-            Sem atualização recente para este posto.
-          </div>
+        {station.recentReports.length === 0 ? <div className="rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/58">Sem atualização recente para este posto.</div> : <PriceTable reports={station.recentReports} />}
+      </SectionCard>
+
+      <SectionCard className="space-y-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.2em] text-white/42">Fotos recentes</p>
+          <h3 className="mt-1 text-xl font-semibold text-white">Evidências do envio</h3>
+        </div>
+        {audit.recentReports.length === 0 ? (
+          <div className="rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/58">Ainda não há histórico longo suficiente.</div>
         ) : (
-          <PriceTable reports={station.recentReports} />
+          <div className="space-y-3">
+            {audit.recentReports.map((report) => (
+              <div key={report.id} className="rounded-[22px] border border-white/8 bg-black/30 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-medium text-white">{fuelLabels[report.fuelType]}</p>
+                    <p className="text-sm text-white/50">{report.reporterNickname ?? "anônimo"}</p>
+                  </div>
+                  <Badge variant={recencyToneToBadgeVariant(getRecencyTone(report.reportedAt))}>{formatRecencyLabel(report.reportedAt)}</Badge>
+                </div>
+                <div className="mt-3 text-xs text-white/46">{formatDateTimeBR(report.reportedAt)} · {report.sourceKind}</div>
+              </div>
+            ))}
+          </div>
         )}
       </SectionCard>
 

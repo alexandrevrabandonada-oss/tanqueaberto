@@ -3,12 +3,12 @@ import Link from "next/link";
 import type { Route } from "next";
 import { Check, LogOut, MessageSquareText, SlidersHorizontal, X } from "lucide-react";
 
-import { moderateReportAction, signOutAdminAction } from "@/app/admin/actions";
+import { moderateReportAction, signOutAdminAction, updateStationCurationAction } from "@/app/admin/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
 import { requireAdminUser } from "@/lib/auth/admin";
-import { getModerationCounts, getModerationReports, getRecentModeratedReports } from "@/lib/data";
+import { getModerationCounts, getModerationReports, getRecentModeratedReports, getStationReviewQueue } from "@/lib/data";
 import { formatCurrencyBRL } from "@/lib/format/currency";
 import { formatDateTimeBR, formatRecencyLabel } from "@/lib/format/time";
 import { fuelLabels, reportStatusLabels } from "@/lib/format/labels";
@@ -30,6 +30,7 @@ function resolveNotice(searchParams?: Record<string, string | string[] | undefin
 
   if (notice === "approved") return "Report aprovado.";
   if (notice === "rejected") return "Report rejeitado.";
+  if (notice === "station_saved") return "Curadoria territorial salva.";
   if (error === "moderation_failed") return "Não foi possível salvar a moderação.";
   if (error === "report_not_found") return "Report não encontrado.";
   if (error === "invalid_request") return "Pedido inválido.";
@@ -50,10 +51,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       ? resolvedSearchParams.status
       : "pending";
 
-  const [counts, reports, recentModerated] = await Promise.all([
+  const [counts, reports, recentModerated, reviewQueue] = await Promise.all([
     getModerationCounts(),
     getModerationReports(selectedStatus as "all" | "pending" | "approved" | "rejected" | "flagged"),
-    getRecentModeratedReports()
+    getRecentModeratedReports(),
+    getStationReviewQueue()
   ]);
 
   const banner = resolveNotice(resolvedSearchParams);
@@ -79,6 +81,32 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         {banner ? <div className="rounded-[18px] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/74">{banner}</div> : null}
       </SectionCard>
 
+      <SectionCard className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Operação</p>
+            <h2 className="mt-1 text-xl font-semibold text-white">Rotina e cobertura</h2>
+          </div>
+          <Link href="/admin/ops" className="text-sm text-[color:var(--color-accent)]">
+            Abrir painel operacional
+          </Link>
+        </div>
+        <div className="grid gap-3 md:grid-cols-3">
+          <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
+            <p className="text-base font-semibold text-white">Refresh e dossiês</p>
+            <p className="mt-1 text-sm text-white/54">Executa a rotina analítica e gera a memória recorrente.</p>
+          </div>
+          <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
+            <p className="text-base font-semibold text-white">Cobertura da base</p>
+            <p className="mt-1 text-sm text-white/54">Mostra onde faltam leituras, histórico e densidade.</p>
+          </div>
+          <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
+            <p className="text-base font-semibold text-white">Prioridade de coleta</p>
+            <p className="mt-1 text-sm text-white/54">Lista os postos e corredores que pedem ativação.</p>
+          </div>
+        </div>
+      </SectionCard>
+
       <SectionCard className="grid gap-3 sm:grid-cols-4">
         {[
           { label: "Pendentes", value: counts.pending },
@@ -91,6 +119,140 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             <p className="mt-3 text-3xl font-semibold text-white">{item.value}</p>
           </div>
         ))}
+      </SectionCard>
+
+      <SectionCard className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Base</p>
+            <h2 className="mt-1 text-xl font-semibold text-white">Postos em revisão territorial</h2>
+          </div>
+          <Badge variant="warning">{reviewQueue.length} itens</Badge>
+        </div>
+
+        {reviewQueue.length === 0 ? (
+          <div className="rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/58">Nenhum posto pendente de revisão agora.</div>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2">
+            {reviewQueue.map((station) => (
+              <div key={station.id} className="space-y-4 rounded-[22px] border border-white/8 bg-black/20 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-base font-semibold text-white">{station.name}</p>
+                    <p className="text-sm text-white/50">
+                      {station.neighborhood}, {station.city}
+                    </p>
+                  </div>
+                  <Badge variant={station.geoReviewStatus === "manual_review" ? "danger" : "warning"}>
+                    {station.geoReviewStatus === "manual_review" ? "Revisão manual" : "Pendente"}
+                  </Badge>
+                </div>
+                <div className="space-y-2 text-sm text-white/58">
+                  <p>{station.address}</p>
+                  <p>
+                    Prioridade {station.priorityScore ?? 0} · Coordenada {station.geoConfidence ?? "desconhecida"}
+                  </p>
+                  <p>
+                    Nome público: <span className="text-white/74">{station.namePublic ?? station.name}</span>
+                  </p>
+                  <p>
+                    Nome oficial: <span className="text-white/52">{station.nameOfficial ?? station.name}</span>
+                  </p>
+                  {station.curationNote ? <p className="text-white/46">{station.curationNote}</p> : null}
+                </div>
+
+                <form action={updateStationCurationAction} className="space-y-3 rounded-[20px] border border-white/8 bg-black/20 p-4">
+                  <input type="hidden" name="stationId" value={station.id} />
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="space-y-2 text-xs uppercase tracking-[0.2em] text-white/42">
+                      <span>Nome público</span>
+                      <input
+                        name="namePublic"
+                        defaultValue={station.namePublic ?? station.name}
+                        className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/30"
+                      />
+                    </label>
+                    <label className="space-y-2 text-xs uppercase tracking-[0.2em] text-white/42">
+                      <span>Fonte geo</span>
+                      <select
+                        name="geoSource"
+                        defaultValue={station.geoSource ?? "manual"}
+                        className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none"
+                      >
+                        <option value="manual">Manual</option>
+                        <option value="osm">OSM</option>
+                        <option value="anp">ANP</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="space-y-2 text-xs uppercase tracking-[0.2em] text-white/42">
+                      <span>Latitude</span>
+                      <input
+                        name="lat"
+                        defaultValue={station.lat ?? ""}
+                        inputMode="decimal"
+                        className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/30"
+                      />
+                    </label>
+                    <label className="space-y-2 text-xs uppercase tracking-[0.2em] text-white/42">
+                      <span>Longitude</span>
+                      <input
+                        name="lng"
+                        defaultValue={station.lng ?? ""}
+                        inputMode="decimal"
+                        className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/30"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="space-y-2 text-xs uppercase tracking-[0.2em] text-white/42">
+                      <span>Confianca</span>
+                      <select
+                        name="geoConfidence"
+                        defaultValue={station.geoConfidence ?? "low"}
+                        className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none"
+                      >
+                        <option value="high">Alta</option>
+                        <option value="medium">Média</option>
+                        <option value="low">Baixa</option>
+                      </select>
+                    </label>
+                    <label className="space-y-2 text-xs uppercase tracking-[0.2em] text-white/42">
+                      <span>Status</span>
+                      <select
+                        name="geoReviewStatus"
+                        defaultValue={station.geoReviewStatus ?? "pending"}
+                        className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none"
+                      >
+                        <option value="ok">Ok</option>
+                        <option value="pending">Pendente</option>
+                        <option value="manual_review">Revisão manual</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <label className="space-y-2 text-xs uppercase tracking-[0.2em] text-white/42">
+                    <span>Observação</span>
+                    <textarea
+                      name="curationNote"
+                      rows={2}
+                      defaultValue={station.curationNote ?? ""}
+                      placeholder="Ex.: coordenada confirmada por logradouro"
+                      className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/30"
+                    />
+                  </label>
+
+                  <Button type="submit" className="w-full">
+                    Salvar revisão territorial
+                  </Button>
+                </form>
+              </div>
+            ))}
+          </div>
+        )}
       </SectionCard>
 
       <SectionCard className="space-y-4">

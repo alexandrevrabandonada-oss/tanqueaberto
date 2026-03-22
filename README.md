@@ -21,6 +21,7 @@ O app funciona como um "Waze popular" dos combustíveis: as pessoas consultam po
 - Feed de atualizações recentes com filtros públicos.
 - Fluxo real de envio com validação no servidor, upload de foto para o Supabase Storage e insert como `pending`.
 - Admin com login real via Supabase Auth, allowlist por e-mail e fila de moderação protegida.
+- Painel operacional interno com rotina, cobertura, prioridades e gatilhos manuais.
 - RLS base para leitura pública, envio controlado e moderação restrita.
 - PWA com manifest, service worker e ícones do sistema de marca.
 - Base oficial de postos preparada para ingestão ANP + enriquecimento geográfico via OSM.
@@ -116,10 +117,6 @@ values ('admin@exemplo.com');
 ```
 
 ## Base oficial de postos
-- A importação real do Sul Fluminense já entrou no banco com 133 postos ANP.
-- Parte dos registros ainda depende de enriquecimento geográfico ou revisão manual.
-- Registros sem coordenada confiável devem ser tratados como pendência operacional, não como ponto exato.
-## Base oficial de postos
 - A fonte principal dos postos é a ANP.
 - O OpenStreetMap entra só como apoio cartográfico/geográfico.
 - A importação aceita CSV ou JSON exportado da ANP.
@@ -167,6 +164,41 @@ Opções úteis:
 4. Valide a instalação PWA em mobile.
 5. Ajuste o domínio público quando o nome final estiver fechado.
 
+## Auditoria Pública e Histórico Longo
+
+O app possui a camada pública de observatório em `/auditoria`, com páginas por cidade, posto, comparação entre cidades, relatórios recorrentes e metodologia.
+
+### Rotas
+- `/auditoria` - panorama regional
+- `/auditoria/comparar` - comparação entre cidades
+- `/auditoria/relatorios` - dossiês recorrentes e alertas persistidos
+- `/auditoria/cidade/[slug]` - histórico municipal
+- `/auditoria/posto/[id]` - histórico longo por posto
+- `/auditoria/metodologia` - explicação pública da leitura
+- `/auditoria/export?scope=overview|city|station&format=csv|pdf` - exportação básica
+
+### Camada analítica
+- Séries diárias e resumos 7/30/90 são calculados a partir de materialized views em `supabase/migrations/20260322_006_audit_analytics.sql`.
+- A base recorrente cria `audit_station_groups`, `audit_report_runs` e `audit_alert_history` em `supabase/migrations/20260322_007_civic_dossiers.sql`.
+- O refresh operacional das views é feito com `npm run audit:refresh` usando `DATABASE_URL` ou `SUPABASE_DB_URL`.
+- A geração recorrente usa `npm run audit:dossiers` e pode gravar um relatório operacional em `reports/`.
+- Os relatórios públicos mostram cobertura, confiança, tendência e alertas como padrões e indícios.
+
+### Dados usados
+- Apenas `price_reports` aprovados entram na série histórica.
+- O cadastro territorial continua vindo de `stations`.
+- Alertas públicos são apresentados como padrões e indícios, não como conclusão jurídica.
+
+### Exportação
+- CSV por posto, cidade ou panorama.
+- PDF institucional com cabeçalho, cobertura, confiança, tendência, série, alertas, metodologia e observações recentes.
+
+### Observação operacional
+- Se você quiser expandir o histórico, o próximo passo é agendar o refresh das materialized views em um job diário ou semanal.
+- O painel interno fica em `/admin/ops`.
+- A rotina recorrente pode ser disparada manualmente com `npm run audit:refresh` e `npm run audit:dossiers`.
+- Para preencher os grupos territoriais iniciais, rode `npm run ops:seed-groups -- --report reports/2026-03-22-estado-da-nacao-grupos-territoriais.md`.
+
 ## Próximos passos sugeridos
 - Trocar o admin allowlist por um fluxo de convite simples, se necessário.
 - Adicionar rate limit no envio quando o beta crescer.
@@ -174,14 +206,30 @@ Opções úteis:
 - Adicionar tendência e comparação por combustível na tela do posto.
 - Preparar clustering de markers quando a base crescer.
 - Criar métricas mínimas e monitoramento do fluxo de envio.
+- Consolidar a rotina em cron real com alertas de falha.
+- Curar os grupos territoriais com mais densidade editorial.
 
 ## Próximos prompts
-- "Aplique uma estratégia de rate limit simples no envio público."
-- "Adicione filtros por combustível também na tela de atualizações."
-- "Crie uma visão de tendência por combustível na tela do posto."
-- "Implemente clustering de markers no mapa quando houver mais postos."
-- "Melhore os estados de loading e empty state com mais contexto e ação."
-- "Conecte a importação ANP a um botão interno no admin."
+- "Conecte o painel operacional a um cron real na Vercel."
+- "Mostre falhas e duração das execuções no painel admin."
+- "Adicione um recorte de cobertura por combustível em /admin/ops."
+- "Inclua uma visão de lacunas do mapa com prioridade por coleta."
+- "Melhore os PDFs recorrentes com um cabeçalho mais institucional."
+- "Automatize o seed dos grupos territoriais após a importação ANP."
 
+## Curadoria territorial
 
+Depois da importação ANP, use estes comandos para operar a base:
 
+```bash
+npm run audit:stations -- --report reports/2026-03-22-estado-da-nacao-curadoria-territorial-da-base.md
+npm run curate:stations -- --apply --report reports/2026-03-22-estado-da-nacao-curadoria-territorial-da-base.md
+npm run regeo:stations -- --apply --report reports/2026-03-22-estado-da-nacao-segunda-curadoria-geografica.md
+npm run audit:dossiers -- --report reports/2026-03-22-estado-da-nacao-dossies-civicos-recorrentes.md
+```
+
+Leitura rápida:
+- `ok`: coordenada e revisão aceitáveis.
+- `pending`: coordenada válida, mas ainda em revisão leve.
+- `manual_review`: coordenada fraca ou ausente, fora do mapa público.
+- O mapa público continua conservador e não exibe casos frágeis.
