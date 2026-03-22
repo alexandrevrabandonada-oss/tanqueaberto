@@ -1,0 +1,54 @@
+import type { Route } from "next";
+import Link from "next/link";
+import { Clock3, MapPin } from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
+import { SectionCard } from "@/components/ui/section-card";
+import { fuelLabels } from "@/lib/mock-data";
+import { StationWithReports } from "@/lib/types";
+import { formatCurrency, formatRelativeTime } from "@/lib/utils";
+
+interface StationCardProps {
+  station: StationWithReports;
+}
+
+export function StationCard({ station }: StationCardProps) {
+  const latest = station.latestReports[0];
+  const stationHref = `/postos/${station.id}` as Route;
+
+  return (
+    <SectionCard className="space-y-4">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.2em] text-white/40">{station.brand}</p>
+          <h3 className="text-lg font-semibold text-white">{station.name}</h3>
+        </div>
+        <Badge variant={latest ? "default" : "outline"}>{latest ? "recente" : "sem envio"}</Badge>
+      </div>
+      <div className="flex items-center gap-2 text-sm text-white/64">
+        <MapPin className="h-4 w-4 text-[color:var(--color-accent)]" />
+        <span>
+          {station.neighborhood}, {station.city}
+        </span>
+      </div>
+      {latest ? (
+        <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-white/64">{fuelLabels[latest.fuelType]}</span>
+            <span className="text-xl font-semibold text-white">{formatCurrency(latest.price)}</span>
+          </div>
+          <div className="mt-3 flex items-center gap-2 text-xs text-white/48">
+            <Clock3 className="h-3.5 w-3.5" />
+            Atualizado {formatRelativeTime(latest.reportedAt)}
+          </div>
+        </div>
+      ) : null}
+      <Link
+        href={stationHref}
+        className="inline-flex items-center justify-center rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-white transition hover:border-[color:var(--color-accent)] hover:text-[color:var(--color-accent)]"
+      >
+        Abrir posto
+      </Link>
+    </SectionCard>
+  );
+}
