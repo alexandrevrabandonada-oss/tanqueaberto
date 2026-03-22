@@ -23,9 +23,10 @@ interface HomeBrowserProps {
   stations: StationWithReports[];
   feed: ReportWithStation[];
   recentCount: number;
+  betaClosed?: boolean;
 }
 
-export function HomeBrowser({ stations, feed, recentCount }: HomeBrowserProps) {
+export function HomeBrowser({ stations, feed, recentCount, betaClosed = false }: HomeBrowserProps) {
   const [query, setQuery] = useState("");
   const [fuelFilter, setFuelFilter] = useState<FuelFilter>("all");
   const [recencyFilter, setRecencyFilter] = useState<RecencyFilter>("all");
@@ -62,6 +63,21 @@ export function HomeBrowser({ stations, feed, recentCount }: HomeBrowserProps) {
 
   return (
     <>
+      {betaClosed ? (
+        <SectionCard className="space-y-3 border-[color:var(--color-accent)]/20 bg-[color:var(--color-accent)]/8">
+          <Badge variant="warning">Beta fechado</Badge>
+          <h2 className="text-[1.45rem] font-semibold leading-tight text-white">Convite controlado, cobertura em expansão.</h2>
+          <p className="text-sm text-white/58">A base real já está no ar. Se algo estiver confuso ou faltando, use o feedback para apontar lacunas.</p>
+          <div className="flex flex-wrap gap-2">
+            <ButtonLink href="/feedback" className="inline-flex">
+              Enviar feedback
+            </ButtonLink>
+            <ButtonLink href="/postos/sem-atualizacao" variant="secondary" className="inline-flex">
+              Ver lacunas do mapa
+            </ButtonLink>
+          </div>
+        </SectionCard>
+      ) : null}
       <SectionCard className="space-y-4">
         <div className="space-y-2">
           <Badge>Mapa vivo</Badge>
@@ -347,6 +363,8 @@ export function HomeBrowser({ stations, feed, recentCount }: HomeBrowserProps) {
     </>
   );
 }
+
+
 
 
 

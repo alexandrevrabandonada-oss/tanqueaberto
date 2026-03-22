@@ -243,3 +243,20 @@ Leitura rápida:
 
 Para beta fechado, consulte [docs/security-operational.md](/C:/Projetos/Tanque%20Aberto/docs/security-operational.md).
 Esse documento explica rate limit do envio, logs administrativos, observabilidade mínima e leitura rápida de erros comuns.
+
+## Beta fechado em domínio real
+
+Quando `NEXT_PUBLIC_BETA_CLOSED=1`, o app passa por uma gate simples de convite.
+
+Env vars principais:
+- `NEXT_PUBLIC_SITE_URL`: URL pública final do domínio
+- `NEXT_PUBLIC_BETA_CLOSED`: `1` para ativar a gate
+- `BETA_INVITE_CODE`: código curto compartilhado com testers
+- `BETA_COOKIE_SECRET`: opcional, reservado para futuras variações de assinatura
+
+Rotas úteis:
+- `/beta`: entrada controlada por convite
+- `/feedback`: canal simples para testers
+- `/postos/sem-atualizacao`: visão pública das lacunas
+
+Para operação, consulte também [docs/security-operational.md](/C:/Projetos/Tanque%20Aberto/docs/security-operational.md) e [docs/beta-launch-gate.md](/C:/Projetos/Tanque%20Aberto/docs/beta-launch-gate.md).

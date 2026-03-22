@@ -1,5 +1,4 @@
 import Link from "next/link";
-import type { Route } from "next";
 import { AlertTriangle, CalendarSync, RadioTower, RefreshCcw, Sparkles } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
@@ -10,6 +9,7 @@ import { OpsMetricCard } from "@/components/admin/ops/ops-metric-card";
 import { runAuditDossiersAction, runAuditRefreshAction, seedAuditGroupsAction } from "./actions";
 import { requireAdminUser } from "@/lib/auth/admin";
 import { getOperationalDashboard } from "@/lib/ops/reports";
+import { getBetaFeedbackSummary } from "@/lib/beta/feedback";
 import { fuelLabels } from "@/lib/format/labels";
 import { formatDateTimeBR, formatRecencyLabel } from "@/lib/format/time";
 
@@ -36,6 +36,7 @@ export default async function AdminOpsPage({ searchParams }: AdminOpsPageProps) 
   await requireAdminUser();
   const params = (await searchParams) ?? {};
   const dashboard = await getOperationalDashboard(30);
+  const feedback = await getBetaFeedbackSummary(14);
   const banner = resolveNotice(params);
 
   return (
@@ -224,7 +225,52 @@ export default async function AdminOpsPage({ searchParams }: AdminOpsPageProps) 
               ))}
             </div>
           </div>
+        </SectionCard>        <SectionCard className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Feedback beta</p>
+              <h2 className="mt-1 text-xl font-semibold text-white">O que testers estão apontando</h2>
+            </div>
+            <Badge variant="warning">{feedback.total} retornos</Badge>
+          </div>
+          <div className="grid gap-3 md:grid-cols-3">
+            {feedback.byType.map((item) => (
+              <div key={item.feedbackType} className="rounded-[18px] border border-white/8 bg-black/20 px-4 py-3 text-sm text-white/66">
+                <p className="font-medium text-white">{item.feedbackType}</p>
+                <p className="mt-1 text-xs text-white/44">{item.count} ocorrências</p>
+              </div>
+            ))}
+          </div>
+          <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
+            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Top páginas com feedback</p>
+            <div className="mt-4 space-y-3">
+              {feedback.byPage.slice(0, 5).map((item) => (
+                <div key={item.pagePath} className="rounded-[18px] border border-white/8 bg-black/20 px-4 py-3 text-sm text-white/66">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium text-white">{item.pagePath}</span>
+                    <span>{item.count}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
+            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Feedback recente</p>
+            <div className="mt-4 space-y-3">
+              {feedback.recent.slice(0, 6).map((item) => (
+                <div key={item.id} className="rounded-[18px] border border-white/8 bg-black/20 px-4 py-3 text-sm text-white/66">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium text-white">{item.feedbackType}</span>
+                    <span className="text-xs text-white/42">{formatDateTimeBR(item.createdAt)}</span>
+                  </div>
+                  <p className="mt-1 text-xs text-white/44">{item.pagePath} · {item.city ?? "sem cidade"}</p>
+                  <p className="mt-2 text-sm text-white/58 line-clamp-3">{item.message}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </SectionCard>
+
 
         <SectionCard className="space-y-4">
           <div className="flex items-center justify-between gap-3">
@@ -277,4 +323,6 @@ export default async function AdminOpsPage({ searchParams }: AdminOpsPageProps) 
     </AppShell>
   );
 }
+
+
 

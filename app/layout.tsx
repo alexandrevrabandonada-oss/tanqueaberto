@@ -1,12 +1,15 @@
 import type { Metadata, Viewport } from "next";
 
 import { PwaRegister } from "@/components/pwa-register";
+import { isBetaClosed } from "@/lib/beta/gate";
 import { brand } from "@/styles/design-tokens";
 
 import "./globals.css";
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://bomba-aberta.vercel.app");
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://bomba-aberta.vercel.app"),
+  metadataBase: new URL(siteUrl),
   title: {
     default: brand.name,
     template: `%s | ${brand.name}`
@@ -19,6 +22,16 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: brand.name
   },
+  robots: isBetaClosed()
+    ? {
+        index: false,
+        follow: false,
+        nocache: true
+      }
+    : {
+        index: true,
+        follow: true
+      },
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
@@ -30,7 +43,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: `${brand.name} | ${brand.tagline}`,
     description: "Mapa popular de preços de combustíveis no Sul Fluminense.",
-    url: "/",
+    url: siteUrl,
     siteName: brand.name,
     images: [
       {

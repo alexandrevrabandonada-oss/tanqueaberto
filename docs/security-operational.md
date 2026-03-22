@@ -52,3 +52,32 @@ O painel em `/admin/ops` mostra:
 Se a taxa de bloqueio subir, o problema tende a ser abuso, repetição de envio ou janela curta demais.
 Se os erros de upload subirem, o primeiro ponto de revisão é bucket, tipo de arquivo e limite de tamanho.
 Se os erros de auth subirem, revisar allowlist, credenciais e expiração de sessão.
+
+## Beta fechado
+
+- O acesso público pode ser bloqueado com `NEXT_PUBLIC_BETA_CLOSED=1`.
+- O convite é simples e usa o código em `BETA_INVITE_CODE`.
+- O cookie de acesso do beta libera as rotas públicas enquanto o beta estiver fechado.
+- O feedback dos testers entra em `beta_feedback_submissions` e aparece no painel `/admin/ops`.
+- A home mostra claramente que o produto está em beta fechado e aponta para feedback e lacunas.
+
+## Como convidar testers
+
+1. Gere o código de convite e distribua apenas para o grupo pequeno de testes.
+2. Envie a URL do domínio real.
+3. O tester abre `/beta`, insere o código e ganha acesso.
+4. O acesso expira depois de 14 dias, ou quando o cookie for apagado.
+
+## Como acompanhar lacunas
+
+- Use o painel `/admin/ops` para ver cidades frágeis, postos sem preço recente e combustíveis com baixa massa.
+- Use o bloco de feedback beta para ver os temas mais recorrentes.
+- Priorize Volta Redonda, Barra Mansa e Barra do Piraí antes de ampliar o grupo.
+
+## Quando sair do beta fechado
+
+Considere abrir o domínio quando houver:
+- cobertura mínima nas cidades prioritárias
+- feedback estável sem falhas recorrentes de upload/auth
+- cron e jobs rodando sem erro
+- taxa de bloqueio baixa e previsível
