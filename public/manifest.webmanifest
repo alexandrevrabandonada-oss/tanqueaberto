@@ -1,6 +1,6 @@
 {
-  "name": "Tanque Aberto",
-  "short_name": "Tanque",
+  "name": "Bomba Aberta",
+  "short_name": "Bomba",
   "description": "Mapa popular dos combustiveis no Sul Fluminense.",
   "start_url": "/",
   "display": "standalone",

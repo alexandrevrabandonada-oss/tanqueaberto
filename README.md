@@ -1,24 +1,31 @@
-# Tanque Aberto
+# Bomba Aberta
 
-PWA mobile-first para mapear e validar precos de combustiveis no Sul Fluminense com evidencia fotografica, recencia explicita e moderacao simples.
+PWA mobile-first do VR Abandonada para mapear preços de combustíveis no Sul Fluminense com foco em mapa, recência, foto como evidência e consulta rápida.
+
+## Visao do produto
+O app funciona como um "Waze popular" dos combustiveis: pessoas consultam postos no mapa, veem o ultimo preco validado por combustivel, acessam historico recente e enviam novos registros com foto, data e hora.
 
 ## Stack
-- Next.js + App Router
+- Next.js com App Router
 - TypeScript
-- Tailwind CSS v4
+- Tailwind CSS
+- Supabase
 - Leaflet + OpenStreetMap
-- Supabase (database, auth e storage)
-- Vercel
+- PWA instalavel
+- Vercel-ready e Github-ready
 
-## O que esta pronto neste scaffold
-- Base visual mobile-first alinhada ao conceito VR Abandonada.
-- Rotas iniciais para mapa, detalhe do posto, envio, feed e admin.
-- Service worker, manifest e icones-base do PWA.
-- Camada mockada pronta para troca por Supabase.
-- Schema SQL inicial com tabelas, enums, storage bucket e policies.
-- Seed com postos de Volta Redonda e Barra Mansa.
+## O que esta pronto nesta fundacao
+- Estrutura inicial limpa e escalavel.
+- Design system base com tokens, botao, FAB, badge e card.
+- Header mobile-first e bottom navigation.
+- Home com mapa funcional e mocks regionais.
+- Pagina de posto, envio, feed, sobre/metodologia e admin placeholder.
+- PWA com manifest, service worker e icones placeholder.
+- Camada inicial de Supabase para client e server.
+- Schema inicial e seed com postos de Volta Redonda, Barra Mansa e Resende.
+- View auxiliar para ler o ultimo preco aprovado por posto/combustivel.
 
-## Estrutura
+## Estrutura principal
 ```text
 app/
   admin/
@@ -26,6 +33,7 @@ app/
   enviar/
   offline/
   postos/[id]/
+  sobre/
 components/
   layout/
   map/
@@ -36,59 +44,61 @@ lib/
   types.ts
   utils.ts
   supabase/
+styles/
+  design-tokens.ts
 public/
   icons/
 supabase/
   migrations/
   seed/
 docs/
+reports/
 ```
 
-## Setup local
-1. Instale dependencias:
+## Rodar local
+1. Instale dependencias.
    ```bash
    npm install
    ```
-2. Copie o arquivo de ambiente:
+2. Crie o arquivo de ambiente.
    ```bash
    cp .env.example .env.local
    ```
-3. Preencha:
+3. Preencha as variaveis.
    ```env
    NEXT_PUBLIC_SUPABASE_URL=...
    NEXT_PUBLIC_SUPABASE_ANON_KEY=...
    SUPABASE_SERVICE_ROLE_KEY=...
    ```
-4. Rode o app:
+4. Rode o app.
    ```bash
    npm run dev
    ```
 
-## Setup Supabase
+## Conectar Supabase
 1. Crie um projeto no Supabase.
-2. Rode a migration em `supabase/migrations/20260322_001_init.sql`.
-3. Rode o seed em `supabase/seed/seed.sql`.
-4. Crie um usuario admin e insira o `auth.users.id` em `public.admin_users`.
-5. Configure o bucket `price-report-photos` caso nao aplique via SQL.
+2. Execute `supabase/migrations/20260322_001_init.sql`.
+3. Execute `supabase/seed/seed.sql`.
+4. Configure o bucket `price-report-photos` se necessario.
+5. Cadastre futuros admins em `public.admin_users`.
 
-## Integracao inicial sugerida
-- Home: buscar `stations` ativos e o preco aprovado mais recente por combustivel.
-- Detalhe do posto: buscar historico aprovado ordenado por `reported_at desc`.
-- Envio: upload da foto no bucket e insert em `price_reports` com status `pending`.
-- Admin: listar `pending` e permitir update de status.
+## Preparar Vercel
+1. Suba o repositorio no GitHub.
+2. Importe o repo na Vercel.
+3. Configure `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+4. Valide instalacao PWA em mobile.
+5. Ajuste o dominio publico quando o nome final estiver fechado.
 
-## Checklist GitHub + Vercel + Supabase
-- Criar repositorio GitHub para o projeto.
-- Subir este scaffold para a branch principal.
-- Importar o repo na Vercel.
-- Adicionar variaveis `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` na Vercel.
-- Configurar dominio quando o nome final do produto fechar.
-- Validar instalacao PWA em iPhone e Android.
-- Validar permissao de camera e upload mobile.
+## Proximos passos sugeridos
+- Ligar a home a consultas reais do Supabase.
+- Criar formulario real de envio com upload para Storage.
+- Proteger o admin com auth simples.
+- Adicionar busca por posto, bairro e cidade.
+- Criar agregacoes por combustivel e alertas de recencia.
 
-## Proximos prompts objetivos
-- "Implemente a busca por posto, bairro e cidade na home usando dados mockados primeiro."
-- "Troque os mocks por consultas reais ao Supabase com server components."
-- "Implemente o formulario real de envio com upload de foto para o Supabase Storage."
-- "Crie autenticacao admin no Supabase e proteja a rota `/admin`."
-- "Adicione filtros por combustivel e destaque visual para preco atualizado nas ultimas 2 horas."
+## Proximos prompts
+- "Troque os mocks por consultas reais ao Supabase mantendo o layout atual."
+- "Implemente o fluxo real de envio com upload de foto e insert em `price_reports`."
+- "Adicione busca por posto, cidade e bairro na home."
+- "Proteja `/admin` com autenticacao simples do Supabase."
+- "Crie a camada de estados vazios e erro para o mapa e o feed."

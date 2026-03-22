@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Flame, Fuel, MapPinned } from "lucide-react";
 
 import { BottomNav } from "@/components/layout/bottom-nav";
+import { Fab } from "@/components/ui/fab";
+import { brand } from "@/styles/design-tokens";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -17,8 +19,8 @@ export function AppShell({ children }: AppShellProps) {
             <Fuel className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-xs uppercase tracking-[0.24em] text-white/48">VR Abandonada</p>
-            <h1 className="font-display text-lg leading-none text-white">Tanque Aberto</h1>
+            <p className="text-xs uppercase tracking-[0.24em] text-white/48">{brand.initiative}</p>
+            <h1 className="font-display text-lg leading-none text-white">{brand.name}</h1>
           </div>
         </Link>
         <div className="flex items-center gap-2 rounded-full border border-white/8 bg-white/6 px-3 py-2 text-xs text-white/70">
@@ -28,6 +30,7 @@ export function AppShell({ children }: AppShellProps) {
         </div>
       </header>
       <main className="relative z-10 flex-1 space-y-5">{children}</main>
+      <Fab />
       <BottomNav />
     </div>
   );

@@ -54,6 +54,23 @@ create index if not exists stations_geo_idx on public.stations(lat, lng);
 create index if not exists price_reports_station_reported_idx on public.price_reports(station_id, reported_at desc);
 create index if not exists price_reports_status_idx on public.price_reports(status);
 
+create or replace view public.latest_station_prices as
+select distinct on (station_id, fuel_type)
+  id,
+  station_id,
+  fuel_type,
+  price,
+  photo_url,
+  photo_taken_at,
+  reported_at,
+  created_at,
+  reporter_nickname,
+  status,
+  moderation_note
+from public.price_reports
+where status = 'approved'
+order by station_id, fuel_type, reported_at desc;
+
 alter table public.stations enable row level security;
 alter table public.price_reports enable row level security;
 alter table public.admin_users enable row level security;

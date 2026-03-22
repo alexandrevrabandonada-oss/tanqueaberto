@@ -2,7 +2,8 @@ insert into public.stations (id, name, brand, address, city, neighborhood, lat, 
 values
   ('6df5a17a-9d2e-4d75-9295-5ee4c32dbbc1', 'Posto Retiro Popular', 'BR', 'Avenida Savio Gama, 1120', 'Volta Redonda', 'Retiro', -22.5233, -44.1041),
   ('8df5f2cb-d3ec-4f92-8ff3-63768040cfd5', 'Posto Vila Santa Cecilia', 'Ipiranga', 'Rua Quatorze, 45', 'Volta Redonda', 'Vila Santa Cecilia', -22.5194, -44.0956),
-  ('87dccbdc-69ef-409b-b68e-41d0ea5486d2', 'Posto Centro BM', 'Shell', 'Avenida Domingos Mariano, 301', 'Barra Mansa', 'Centro', -22.5442, -44.1719)
+  ('87dccbdc-69ef-409b-b68e-41d0ea5486d2', 'Posto Centro BM', 'Shell', 'Avenida Domingos Mariano, 301', 'Barra Mansa', 'Centro', -22.5442, -44.1719),
+  ('4b1a1fe0-8c9e-4f9f-8bf5-20a9d4d7c4bb', 'Posto Campos Elisseos', 'Shell', 'Avenida das Mangueiras, 85', 'Resende', 'Campos Elisseos', -22.4687, -44.4498)
 on conflict (id) do nothing;
 
 insert into public.price_reports (
@@ -45,4 +46,14 @@ values
     timezone('utc', now()) - interval '200 minutes',
     'Leitor BM',
     'pending'
+  ),
+  (
+    '4b1a1fe0-8c9e-4f9f-8bf5-20a9d4d7c4bb',
+    'gasolina_comum',
+    6.329,
+    'https://example.supabase.co/storage/v1/object/public/price-report-photos/resende-1.jpg',
+    timezone('utc', now()) - interval '145 minutes',
+    timezone('utc', now()) - interval '122 minutes',
+    'Resende Centro',
+    'approved'
   );

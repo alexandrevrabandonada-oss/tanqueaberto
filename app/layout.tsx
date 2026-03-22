@@ -1,19 +1,20 @@
 import type { Metadata, Viewport } from "next";
 
 import { PwaRegister } from "@/components/pwa-register";
+import { brand } from "@/styles/design-tokens";
 
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://tanque-aberto.vercel.app"),
-  title: "Tanque Aberto",
+  metadataBase: new URL("https://bomba-aberta.vercel.app"),
+  title: brand.name,
   description: "Mapa popular de precos de combustiveis no Sul Fluminense.",
   manifest: "/manifest.webmanifest",
-  applicationName: "Tanque Aberto",
+  applicationName: brand.name,
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Tanque Aberto"
+    title: brand.name
   },
   icons: {
     icon: "/icons/icon.svg",

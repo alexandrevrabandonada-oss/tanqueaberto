@@ -67,6 +67,19 @@ const reports: PriceReport[] = [
     reporterNickname: "Leitor BM",
     status: "pending",
     moderationNote: null
+  },
+  {
+    id: "rep-6",
+    stationId: "st-4",
+    fuelType: "gasolina_comum",
+    price: 6.33,
+    photoUrl: "/icons/icon.svg",
+    photoTakenAt: new Date(now - 1000 * 60 * 140).toISOString(),
+    reportedAt: new Date(now - 1000 * 60 * 122).toISOString(),
+    createdAt: new Date(now - 1000 * 60 * 122).toISOString(),
+    reporterNickname: "Resende Centro",
+    status: "approved",
+    moderationNote: null
   }
 ];
 
@@ -114,6 +127,21 @@ export const stations: StationWithReports[] = [
     createdAt: new Date(now - 1000 * 60 * 60 * 24 * 4).toISOString(),
     latestReports: reports.filter((report) => report.stationId === "st-3"),
     recentReports: reports.filter((report) => report.stationId === "st-3"),
+    photoGallery: ["/icons/icon.svg"]
+  },
+  {
+    id: "st-4",
+    name: "Posto Campos Elisseos",
+    brand: "Shell",
+    address: "Avenida das Mangueiras, 85",
+    city: "Resende",
+    neighborhood: "Campos Elisseos",
+    lat: -22.4687,
+    lng: -44.4498,
+    isActive: true,
+    createdAt: new Date(now - 1000 * 60 * 60 * 24 * 2).toISOString(),
+    latestReports: reports.filter((report) => report.stationId === "st-4"),
+    recentReports: reports.filter((report) => report.stationId === "st-4"),
     photoGallery: ["/icons/icon.svg"]
   }
 ];

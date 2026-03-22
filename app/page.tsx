@@ -5,6 +5,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { StationMapShell } from "@/components/map/station-map-shell";
 import { StationCard } from "@/components/station/station-card";
 import { Badge } from "@/components/ui/badge";
+import { ButtonLink } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
 import { recentUpdates, stations } from "@/lib/mock-data";
 import { formatCurrency, formatRelativeTime } from "@/lib/utils";
@@ -25,6 +26,11 @@ export default function HomePage() {
           <div className="mt-5 flex items-center gap-3 rounded-[22px] border border-white/8 bg-black/30 px-4 py-3 text-sm text-white/50">
             <Search className="h-4 w-4 text-[color:var(--color-accent)]" />
             Buscar posto, bairro ou cidade
+          </div>
+          <div className="mt-3">
+            <ButtonLink href="/sobre" variant="ghost" className="px-0 py-0 text-xs uppercase tracking-[0.18em] text-white/52">
+              Ver metodologia
+            </ButtonLink>
           </div>
         </div>
         <StationMapShell />
@@ -94,13 +100,10 @@ export default function HomePage() {
             );
           })}
         </div>
-        <Link
-          href="/enviar"
-          className="inline-flex items-center gap-2 rounded-full bg-[color:var(--color-accent)] px-5 py-3 text-sm font-semibold text-black"
-        >
+        <ButtonLink href="/enviar" className="px-5 py-3">
           Enviar novo preco
           <ArrowRight className="h-4 w-4" />
-        </Link>
+        </ButtonLink>
       </SectionCard>
     </AppShell>
   );

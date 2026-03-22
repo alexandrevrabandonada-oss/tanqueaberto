@@ -1,26 +1,30 @@
-# Plano de implementacao do Tanque Aberto
+# Plano de implementacao - Bomba Aberta
 
-## Etapa 1. Base do produto
-- Fechar identidade visual, tipografia e componentes-base.
-- Ligar deploy automatico entre GitHub e Vercel.
-- Criar projeto Supabase e aplicar schema inicial.
+## Etapa 1. Fundacao
+- Estrutura do app.
+- PWA instalavel.
+- Design system base.
+- Mock data regional.
+- Schema e seed iniciais.
 
 ## Etapa 2. Dados reais
-- Implementar consultas reais para `stations` e `price_reports`.
-- Substituir mocks por server components + Supabase.
-- Criar busca por posto, cidade e bairro.
+- Ler `stations` e `price_reports` do Supabase.
+- Montar a view de ultimo preco por posto e combustivel.
+- Trocar mocks por server components e queries.
 
 ## Etapa 3. Envio de preco
-- Formulario completo com camera/upload.
-- Extrair EXIF quando existir e preencher `photo_taken_at`.
-- Criar feedback de envio e fila `pending`.
+- Formulario com foto.
+- Upload para Supabase Storage.
+- Status `pending` para moderacao.
+- Feedback claro de envio.
 
 ## Etapa 4. Moderacao
-- Proteger `/admin` com auth.
-- Aprovar, rejeitar e marcar como `flagged`.
-- Registrar nota de moderacao.
+- Auth simples para admin.
+- Aprovar, rejeitar e sinalizar registros.
+- Notas de moderacao.
 
-## Etapa 5. Observatorio vivo
+## Etapa 5. Produto vivo
+- Busca por cidade, bairro e posto.
+- Historico mais rico por posto.
+- Alertas de recencia.
 - Feed em tempo real.
-- Destaques por cidade/bairro.
-- Estatisticas por combustivel e historico visual.
