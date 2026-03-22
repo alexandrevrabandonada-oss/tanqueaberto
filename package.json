@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "import:anp": "tsx scripts/import-anp-stations.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
@@ -16,6 +17,7 @@
     "leaflet": "^1.9.4",
     "lucide-react": "^0.542.0",
     "next": "^15.3.0",
+    "pg": "^8.20.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-leaflet": "^5.0.0",
@@ -32,6 +34,7 @@
     "eslint-config-next": "^15.5.14",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.12",
+    "tsx": "^4.21.0",
     "typescript": "^5.8.3"
   }
 }

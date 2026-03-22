@@ -29,6 +29,21 @@ export default function SobrePage() {
 
       <SectionCard className="space-y-4">
         <div>
+          <p className="text-xs uppercase tracking-[0.2em] text-white/42">Fonte dos postos</p>
+          <h3 className="mt-1 text-xl font-semibold text-white">Cadastro oficial + mapa aberto</h3>
+        </div>
+        <div className="space-y-3 text-sm text-white/70">
+          <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
+            A base cadastral dos postos vem da ANP. O OpenStreetMap entra como apoio cartográfico e geográfico quando a coordenada precisa ser enriquecida.
+          </div>
+          <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
+            Preços, fotos, recência e histórico são dados próprios do Bomba Aberta, enviados pela comunidade e moderados pelo painel interno.
+          </div>
+        </div>
+      </SectionCard>
+
+      <SectionCard className="space-y-4">
+        <div>
           <p className="text-xs uppercase tracking-[0.2em] text-white/42">Metodologia</p>
           <h3 className="mt-1 text-xl font-semibold text-white">Como o app organiza a confiança</h3>
         </div>

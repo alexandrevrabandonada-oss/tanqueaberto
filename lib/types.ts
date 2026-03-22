@@ -2,6 +2,10 @@ export type FuelType = "gasolina_comum" | "gasolina_aditivada" | "etanol" | "die
 
 export type ReportStatus = "pending" | "approved" | "rejected" | "flagged";
 
+export type StationSource = "anp" | "manual" | "osm_enriched";
+export type GeoSource = "anp" | "osm" | "manual";
+export type GeoConfidence = "high" | "medium" | "low";
+
 export interface Station {
   id: string;
   name: string;
@@ -13,6 +17,18 @@ export interface Station {
   lng: number;
   isActive: boolean;
   createdAt: string;
+  cnpj?: string | null;
+  source?: StationSource;
+  sourceId?: string | null;
+  officialStatus?: string;
+  sigafStatus?: string | null;
+  products?: string[] | null;
+  distributorName?: string | null;
+  lastSyncedAt?: string | null;
+  importNotes?: string | null;
+  geoSource?: GeoSource;
+  geoConfidence?: GeoConfidence;
+  updatedAt?: string | null;
 }
 
 export interface PriceReport {
