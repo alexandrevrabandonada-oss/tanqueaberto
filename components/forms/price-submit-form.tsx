@@ -2,6 +2,7 @@
 "use client";
 
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -17,11 +18,17 @@ const initialState = { error: null, success: false };
 interface PriceSubmitFormProps {
   stations: Station[];
   initialStationId?: string;
+  returnToHref?: string;
 }
 
-export function PriceSubmitForm({ stations, initialStationId }: PriceSubmitFormProps) {
+function safeRoute(value?: string): Route | null {
+  return value && value.startsWith("/") ? (value as Route) : null;
+}
+
+export function PriceSubmitForm({ stations, initialStationId, returnToHref }: PriceSubmitFormProps) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(submitPriceReportAction, initialState);
+  const safeReturnToHref = useMemo(() => safeRoute(returnToHref), [returnToHref]);
   const defaultStationId = useMemo(() => {
     const candidate = stations.find((station) => station.id === initialStationId);
     return candidate?.id ?? stations[0]?.id ?? "";
@@ -109,8 +116,12 @@ export function PriceSubmitForm({ stations, initialStationId }: PriceSubmitFormP
           <div className="mt-3 flex flex-wrap gap-2">
             <Button type="button" variant="secondary" onClick={() => setPrice("")}>Enviar outro preço</Button>
             {submittedStationId ? (
-              <Button type="button" variant="secondary" onClick={() => router.push(`/postos/${submittedStationId}`)}>
-                Ver o posto
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => router.push(safeReturnToHref ?? (`/postos/${submittedStationId}` as Route))}
+              >
+                Voltar ao mapa
               </Button>
             ) : null}
           </div>
@@ -119,12 +130,12 @@ export function PriceSubmitForm({ stations, initialStationId }: PriceSubmitFormP
 
       {state.error ? <div className="rounded-[18px] border border-[color:var(--color-danger)]/30 bg-[color:var(--color-danger)]/10 px-4 py-3 text-sm text-[color:var(--color-danger)]">{state.error}</div> : null}
 
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-white" htmlFor="photo">
+      <div className="space-y-2" id="photo">
+        <label className="text-sm font-medium text-white" htmlFor="photo-input">
           Foto
         </label>
         <input
-          id="photo"
+          id="photo-input"
           name="photo"
           ref={fileInputRef}
           type="file"

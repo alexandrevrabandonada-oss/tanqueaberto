@@ -1,8 +1,10 @@
+import type { Route } from "next";
 import { Camera, ShieldCheck } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { PriceSubmitForm } from "@/components/forms/price-submit-form";
 import { Badge } from "@/components/ui/badge";
+import { ButtonLink } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
 import { getStationOptions } from "@/lib/data";
 
@@ -16,10 +18,16 @@ function firstValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value ?? "";
 }
 
+function safeReturnTo(value: string | string[] | undefined) {
+  const candidate = firstValue(value);
+  return candidate.startsWith("/") ? candidate : "";
+}
+
 export default async function SubmitPage({ searchParams }: SubmitPageProps) {
   const params = (await searchParams) ?? {};
   const stations = await getStationOptions();
   const initialStationId = firstValue(params.stationId);
+  const returnToHref = safeReturnTo(params.returnTo);
   const initialStation = initialStationId ? stations.find((station) => station.id === initialStationId) ?? null : null;
 
   return (
@@ -58,13 +66,20 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
             Tirar foto agora
           </a>
         </div>
-        <PriceSubmitForm stations={stations} initialStationId={initialStation?.id} />
+        <PriceSubmitForm stations={stations} initialStationId={initialStation?.id} returnToHref={returnToHref || undefined} />
         <div className="rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/58">
           <div className="flex items-center gap-2 text-white/80">
             <ShieldCheck className="h-4 w-4 text-[color:var(--color-accent)]" />
             Vai para moderação
           </div>
           <p className="mt-2">Depois do envio, o report fica em aguardando moderação e entra na fila de aprovação.</p>
+          {returnToHref ? (
+            <div className="mt-3 flex gap-2">
+              <ButtonLink href={returnToHref as Route} variant="secondary">
+                Voltar ao mapa
+              </ButtonLink>
+            </div>
+          ) : null}
         </div>
       </SectionCard>
     </AppShell>

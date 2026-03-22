@@ -15,11 +15,21 @@ import type { FuelType, StationWithReports } from "@/lib/types";
 interface StationCardProps {
   station: StationWithReports;
   fuelFilter?: "all" | FuelType;
+  returnToHref?: string;
 }
 
-export function StationCard({ station, fuelFilter = "all" }: StationCardProps) {
+function getStationHref(stationId: string, returnToHref?: string) {
+  return returnToHref ? (`/postos/${stationId}?returnTo=${encodeURIComponent(returnToHref)}` as Route) : (`/postos/${stationId}` as Route);
+}
+
+function getSendHref(stationId: string, returnToHref?: string) {
+  return returnToHref ? (`/enviar?stationId=${stationId}&returnTo=${encodeURIComponent(returnToHref)}#photo` as Route) : ((`/enviar?stationId=${stationId}#photo`) as Route);
+}
+
+export function StationCard({ station, fuelFilter = "all", returnToHref }: StationCardProps) {
   const latest = getSelectedStationReport(station, fuelFilter);
-  const stationHref = `/postos/${station.id}` as Route;
+  const stationHref = getStationHref(station.id, returnToHref);
+  const sendHref = getSendHref(station.id, returnToHref);
   const marketPresence = getStationMarketPresence(station);
   const marketLabel = getStationMarketPresenceLabel(station);
 
@@ -61,7 +71,7 @@ export function StationCard({ station, fuelFilter = "all" }: StationCardProps) {
       ) : (
         <div className="space-y-3 rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/58">
           <p>Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.</p>
-          <ButtonLink href={(`/enviar?stationId=${station.id}`) as Route} className="w-full">
+          <ButtonLink href={sendHref} className="w-full">
             Enviar o primeiro preço
           </ButtonLink>
         </div>

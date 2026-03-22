@@ -12,12 +12,13 @@ const StationMap = dynamic(() => import("@/components/map/station-map").then((mo
 interface StationMapShellProps {
   stations: StationWithReports[];
   className?: string;
+  returnToHref?: string;
 }
 
-export function StationMapShell({ stations, className }: StationMapShellProps) {
+export function StationMapShell({ stations, className, returnToHref }: StationMapShellProps) {
   return (
     <div className={cn("w-full", className)}>
-      <StationMap stations={stations} className={className} />
+      <StationMap stations={stations} className={className} returnToHref={returnToHref} />
     </div>
   );
 }

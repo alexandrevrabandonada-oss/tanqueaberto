@@ -1,7 +1,7 @@
-﻿import Image from "next/image";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import type { Route } from "next";
-import { ArrowRight, Camera, Clock3, MapPinned } from "lucide-react";
+import { ArrowLeft, ArrowRight, Camera, Clock3, MapPinned } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { PriceTable } from "@/components/station/price-table";
@@ -35,6 +35,11 @@ function parseDays(value: string | string[] | undefined) {
   return parsed === 7 || parsed === 30 || parsed === 90 ? parsed : 30;
 }
 
+function safeReturnTo(value: string | string[] | undefined) {
+  const candidate = Array.isArray(value) ? value[0] : value ?? "";
+  return candidate.startsWith("/") ? candidate : "/";
+}
+
 function formatTrend(previous: number, current: number) {
   const delta = current - previous;
   const absolute = formatCurrencyBRL(Math.abs(delta));
@@ -51,6 +56,7 @@ export default async function StationPage({ params, searchParams }: StationPageP
   const query = (await searchParams) ?? {};
   const selectedFuel = parseFuel(query.fuel);
   const selectedDays = parseDays(query.days);
+  const returnToHref = safeReturnTo(query.returnTo);
   const [station, audit] = await Promise.all([getStationDetail(id), getStationAuditDetail(id, selectedFuel, selectedDays)]);
 
   if (!station || !audit) {
@@ -60,14 +66,20 @@ export default async function StationPage({ params, searchParams }: StationPageP
   const latest = station.latestReports[0];
   const marketPresence = getStationMarketPresence(station);
   const stationAuditHref = (`/auditoria/posto/${id}?fuel=${selectedFuel}&days=${selectedDays}` as Route);
-  const sendPriceHref = (`/enviar?stationId=${id}#photo` as Route);
+  const sendPriceHref = (`/enviar?stationId=${id}&returnTo=${encodeURIComponent(returnToHref)}#photo` as Route);
+  const backHref = returnToHref as Route;
 
   return (
     <AppShell>
       <SectionCard className="space-y-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-white/42">{station.brand}</p>
+            <div className="flex flex-wrap gap-2">
+              <ButtonLink href={backHref} variant="secondary">
+                <ArrowLeft className="h-4 w-4" /> Voltar ao mapa
+              </ButtonLink>
+            </div>
+            <p className="mt-4 text-xs uppercase tracking-[0.2em] text-white/42">{station.brand}</p>
             <h2 className="mt-2 text-[1.9rem] font-semibold leading-none text-white">{getStationPublicName(station)}</h2>
             <div className="mt-3 flex flex-wrap gap-2">
               <Badge variant="outline">Posto cadastrado</Badge>
@@ -214,10 +226,15 @@ export default async function StationPage({ params, searchParams }: StationPageP
         )}
       </SectionCard>
 
-      <ButtonLink href="/enviar" className="w-full justify-center py-4">
-        Enviar novo preço para este posto
-        <ArrowRight className="h-4 w-4" />
-      </ButtonLink>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <ButtonLink href={sendPriceHref} className="w-full justify-center py-4">
+          Enviar novo preço para este posto
+          <ArrowRight className="h-4 w-4" />
+        </ButtonLink>
+        <ButtonLink href={backHref} variant="secondary" className="w-full justify-center py-4">
+          Voltar ao mapa
+        </ButtonLink>
+      </div>
     </AppShell>
   );
 }

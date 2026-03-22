@@ -3,6 +3,7 @@
 import { useDeferredValue, useMemo, useState } from "react";
 import { ArrowRight, Camera, Clock3, Search, X } from "lucide-react";
 import Link from "next/link";
+import type { Route } from "next";
 
 import { StationMapShell } from "@/components/map/station-map-shell";
 import { FirstVisitGuide } from "@/components/onboarding/first-visit-guide";
@@ -25,13 +26,36 @@ interface HomeBrowserProps {
   feed: ReportWithStation[];
   recentCount: number;
   betaClosed?: boolean;
+  initialQuery?: string;
+  initialFuelFilter?: FuelFilter;
+  initialRecencyFilter?: RecencyFilter;
+  initialPresenceFilter?: StationPresenceFilter;
 }
 
-export function HomeBrowser({ stations, feed, recentCount, betaClosed = false }: HomeBrowserProps) {
-  const [query, setQuery] = useState("");
-  const [fuelFilter, setFuelFilter] = useState<FuelFilter>("all");
-  const [recencyFilter, setRecencyFilter] = useState<RecencyFilter>("all");
-  const [presenceFilter, setPresenceFilter] = useState<StationPresenceFilter>("all");
+function buildContextHref(query: string, fuelFilter: FuelFilter, recencyFilter: RecencyFilter, presenceFilter: StationPresenceFilter) {
+  const params = new URLSearchParams();
+  if (query) params.set("q", query);
+  if (fuelFilter !== "all") params.set("fuel", fuelFilter);
+  if (recencyFilter !== "all") params.set("recency", recencyFilter);
+  if (presenceFilter !== "all") params.set("presence", presenceFilter);
+  const suffix = params.toString();
+  return suffix ? `/?${suffix}` : "/";
+}
+
+export function HomeBrowser({
+  stations,
+  feed,
+  recentCount,
+  betaClosed = false,
+  initialQuery = "",
+  initialFuelFilter = "all",
+  initialRecencyFilter = "all",
+  initialPresenceFilter = "all"
+}: HomeBrowserProps) {
+  const [query, setQuery] = useState(initialQuery);
+  const [fuelFilter, setFuelFilter] = useState<FuelFilter>(initialFuelFilter);
+  const [recencyFilter, setRecencyFilter] = useState<RecencyFilter>(initialRecencyFilter);
+  const [presenceFilter, setPresenceFilter] = useState<StationPresenceFilter>(initialPresenceFilter);
   const deferredQuery = useDeferredValue(query);
 
   const filteredStations = useMemo(
@@ -47,6 +71,7 @@ export function HomeBrowser({ stations, feed, recentCount, betaClosed = false }:
   const stationsWithoutRecentPrice = visibleStations.length - stationsWithRecentPrice.length;
   const reviewStations = useMemo(() => filteredStations.filter((station) => hasPendingStationLocationReview(station)), [filteredStations]);
   const noRecentStations = useMemo(() => visibleStations.filter((station) => !hasRecentStationPrice(station)).slice(0, 4), [visibleStations]);
+  const contextHref = useMemo(() => buildContextHref(query, fuelFilter, recencyFilter, presenceFilter), [query, fuelFilter, recencyFilter, presenceFilter]);
 
   const cheapestNow = useMemo(() => {
     return filteredStations
@@ -61,6 +86,7 @@ export function HomeBrowser({ stations, feed, recentCount, betaClosed = false }:
 
   const hasFilters = Boolean(query || fuelFilter !== "all" || recencyFilter !== "all" || presenceFilter !== "all");
   const mapStations = visibleStations;
+  const summaryStations = filteredStations.slice(0, 6);
 
   return (
     <>
@@ -110,9 +136,7 @@ export function HomeBrowser({ stations, feed, recentCount, betaClosed = false }:
                 type="button"
                 onClick={() => setFuelFilter(item.value)}
                 className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${
-                  fuelFilter === item.value
-                    ? "bg-[color:var(--color-accent)] text-black"
-                    : "border border-white/10 bg-white/5 text-white/66"
+                  fuelFilter === item.value ? "bg-[color:var(--color-accent)] text-black" : "border border-white/10 bg-white/5 text-white/66"
                 }`}
               >
                 {item.label}
@@ -126,9 +150,7 @@ export function HomeBrowser({ stations, feed, recentCount, betaClosed = false }:
                 type="button"
                 onClick={() => setRecencyFilter(item.value)}
                 className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${
-                  recencyFilter === item.value
-                    ? "bg-white text-black"
-                    : "border border-white/10 bg-white/5 text-white/66"
+                  recencyFilter === item.value ? "bg-white text-black" : "border border-white/10 bg-white/5 text-white/66"
                 }`}
               >
                 {item.label}
@@ -145,14 +167,16 @@ export function HomeBrowser({ stations, feed, recentCount, betaClosed = false }:
                 type="button"
                 onClick={() => setPresenceFilter(item.value)}
                 className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${
-                  presenceFilter === item.value
-                    ? "bg-white text-black"
-                    : "border border-white/10 bg-white/5 text-white/66"
+                  presenceFilter === item.value ? "bg-white text-black" : "border border-white/10 bg-white/5 text-white/66"
                 }`}
               >
                 {item.label}
               </button>
             ))}
+          </div>
+          <div className="rounded-[18px] border border-white/8 bg-white/5 px-4 py-3 text-xs leading-relaxed text-white/58">
+            <span className="font-medium text-white/72">Como ler este filtro:</span>{" "}
+            <span className="text-white/54">“Todos os postos” mostra o cadastro visível. “Só com preço recente” esconde o que ainda não foi aprovado.</span>
           </div>
         </div>
 
@@ -187,8 +211,39 @@ export function HomeBrowser({ stations, feed, recentCount, betaClosed = false }:
             </Link>
           </div>
         </div>
-        <StationMapShell stations={mapStations} className="h-[440px]" />
+        <StationMapShell stations={mapStations} className="h-[440px]" returnToHref={contextHref} />
       </SectionCard>
+
+      {summaryStations.length > 0 ? (
+        <SectionCard className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Lista do recorte</p>
+              <h2 className="mt-1 text-xl font-semibold text-white">Exploração sincronizada com o mapa</h2>
+            </div>
+            <Badge variant="outline">{summaryStations.length} visíveis agora</Badge>
+          </div>
+          <div className="space-y-2">
+            {summaryStations.map((station) => {
+              const latest = station.latestReports[0];
+              const stationHref = `/postos/${station.id}?returnTo=${encodeURIComponent(contextHref)}` as Route;
+              return (
+                <Link key={station.id} href={stationHref} className="flex items-center justify-between rounded-[20px] border border-white/8 bg-black/30 px-4 py-3 transition hover:border-[color:var(--color-accent)]/40">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-white">{station.name}</p>
+                    <p className="truncate text-sm text-white/50">
+                      {station.neighborhood}, {station.city}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Badge variant={latest ? recencyToneToBadgeVariant(getRecencyTone(latest.reportedAt)) : "outline"}>{latest ? formatRecencyLabel(latest.reportedAt) : "Sem preço"}</Badge>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </SectionCard>
+      ) : null}
 
       <SectionCard className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
@@ -265,7 +320,7 @@ export function HomeBrowser({ stations, feed, recentCount, betaClosed = false }:
           </div>
           <div className="space-y-3">
             {noRecentStations.map((station) => (
-              <StationCard key={station.id} station={station} fuelFilter={fuelFilter} />
+              <StationCard key={station.id} station={station} fuelFilter={fuelFilter} returnToHref={contextHref} />
             ))}
           </div>
         </SectionCard>
@@ -289,7 +344,7 @@ export function HomeBrowser({ stations, feed, recentCount, betaClosed = false }:
               className="text-left"
             />
           ) : (
-            filteredStations.map((station) => <StationCard key={station.id} station={station} fuelFilter={fuelFilter} />)
+            filteredStations.map((station) => <StationCard key={station.id} station={station} fuelFilter={fuelFilter} returnToHref={contextHref} />)
           )}
         </div>
       </SectionCard>
@@ -365,13 +420,6 @@ export function HomeBrowser({ stations, feed, recentCount, betaClosed = false }:
     </>
   );
 }
-
-
-
-
-
-
-
 
 
 
