@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { Route } from "next";
 
-import { recordPriceReportAuditEvent } from "@/lib/audit/events";
+import { recordAdminActionLog, recordOperationalEvent } from "@/lib/ops/logs";
 import { requireAdminUser } from "@/lib/auth/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -38,6 +38,13 @@ export async function signInAdminAction(_prevState: AdminLoginState, formData: F
   const password = String(formData.get("password") ?? "");
 
   if (!email || !password) {
+    await recordOperationalEvent({
+      eventType: "auth_failed",
+      severity: "warning",
+      scopeType: "auth",
+      actorEmail: email || null,
+      reason: "missing_credentials"
+    });
     return { error: "Informe e-mail e senha.", success: false };
   }
 
@@ -48,25 +55,73 @@ export async function signInAdminAction(_prevState: AdminLoginState, formData: F
   });
 
   if (signInError) {
+    await recordOperationalEvent({
+      eventType: "auth_failed",
+      severity: "warning",
+      scopeType: "auth",
+      actorEmail: email,
+      reason: signInError.message
+    });
     return { error: "Não foi possível entrar com essas credenciais.", success: false };
   }
 
   const { data: adminRow, error: adminError } = await supabase.from("admin_users").select("email").eq("email", email).maybeSingle();
 
   if (adminError) {
+    await recordOperationalEvent({
+      eventType: "auth_failed",
+      severity: "error",
+      scopeType: "auth",
+      actorEmail: email,
+      reason: adminError.message
+    });
     return { error: "Falha ao validar acesso administrativo.", success: false };
   }
 
   if (!adminRow?.email) {
     await supabase.auth.signOut();
+    await recordOperationalEvent({
+      eventType: "auth_failed",
+      severity: "warning",
+      scopeType: "auth",
+      actorEmail: email,
+      reason: "email_not_allowlisted"
+    });
     return { error: "Seu e-mail não está liberado para o admin.", success: false };
   }
+
+  await recordOperationalEvent({
+    eventType: "auth_success",
+    severity: "info",
+    scopeType: "auth",
+    actorEmail: email,
+    reason: "admin_login"
+  });
 
   return { error: null, success: true };
 }
 
 export async function signOutAdminAction() {
+  const admin = await requireAdminUser();
   const supabase = await createSupabaseServerClient();
+
+  await recordAdminActionLog({
+    actionKind: "logout",
+    actorId: admin.id,
+    actorEmail: admin.email,
+    targetType: "session",
+    note: "Admin saiu da sessão."
+  });
+
+  await recordOperationalEvent({
+    eventType: "auth_logout",
+    severity: "info",
+    scopeType: "auth",
+    actorId: admin.id,
+    actorEmail: admin.email,
+    reason: "admin_logout"
+  });
+
   await supabase.auth.signOut();
   redirect(ADMIN_LOGIN_ROUTE);
 }
@@ -75,7 +130,7 @@ async function moderateReport(reportId: string, decision: "approved" | "rejected
   const admin = await requireAdminUser();
   const supabase = await createSupabaseServerClient();
 
-  const { data: report, error: reportError } = await supabase.from("price_reports").select("id,station_id,version").eq("id", reportId).maybeSingle();
+  const { data: report, error: reportError } = await supabase.from("price_reports").select("id,station_id,version,fuel_type,price,reported_at").eq("id", reportId).maybeSingle();
 
   if (reportError || !report) {
     redirect(ADMIN_ROUTE);
@@ -111,18 +166,54 @@ async function moderateReport(reportId: string, decision: "approved" | "rejected
     .eq("id", reportId);
 
   if (error) {
+    await recordOperationalEvent({
+      eventType: "moderation_failed",
+      severity: "error",
+      scopeType: "report",
+      scopeId: reportId,
+      actorId: admin.id,
+      actorEmail: admin.email,
+      stationId: report.station_id,
+      fuelType: report.fuel_type,
+      reason: error.message,
+      payload: {
+        decision,
+        moderationNote: note
+      }
+    });
     redirect(ADMIN_ROUTE);
   }
 
-  await recordPriceReportAuditEvent({
-    reportId,
-    eventType: "moderated",
+  await recordAdminActionLog({
+    actionKind: decision === "approved" ? "moderation_approved" : "moderation_rejected",
     actorId: admin.id,
+    actorEmail: admin.email,
+    targetType: "report",
+    targetId: reportId,
+    note,
     payload: {
-      decision,
-      moderationNote: note,
       stationId: report.station_id,
+      fuelType: report.fuel_type,
+      price: report.price,
+      reportedAt: report.reported_at,
       version: nextVersion
+    }
+  });
+
+  await recordOperationalEvent({
+    eventType: decision === "approved" ? "moderation_approved" : "moderation_rejected",
+    severity: decision === "approved" ? "info" : "warning",
+    scopeType: "report",
+    scopeId: reportId,
+    actorId: admin.id,
+    actorEmail: admin.email,
+    stationId: report.station_id,
+    fuelType: report.fuel_type,
+    reason: note,
+    payload: {
+      version: nextVersion,
+      decision,
+      moderationNote: note
     }
   });
 
@@ -147,7 +238,7 @@ export async function moderateReportAction(formData: FormData) {
 }
 
 export async function updateStationCurationAction(formData: FormData) {
-  await requireAdminUser();
+  const admin = await requireAdminUser();
 
   const stationId = String(formData.get("stationId") ?? "");
   if (!stationId) {
@@ -191,8 +282,54 @@ export async function updateStationCurationAction(formData: FormData) {
   const { error } = await supabase.from("stations").update(updatePayload).eq("id", stationId);
 
   if (error) {
+    await recordOperationalEvent({
+      eventType: "station_curation_failed",
+      severity: "error",
+      scopeType: "station",
+      scopeId: stationId,
+      actorId: admin.id,
+      actorEmail: admin.email,
+      reason: error.message,
+      payload: updatePayload
+    });
     redirect(`${ADMIN_ROUTE}?error=moderation_failed` as Route);
   }
+
+  await recordAdminActionLog({
+    actionKind: "station_curation_updated",
+    actorId: admin.id,
+    actorEmail: admin.email,
+    targetType: "station",
+    targetId: stationId,
+    note: curationNote,
+    payload: {
+      namePublic,
+      geoReviewStatus,
+      geoConfidence,
+      geoSource,
+      lat,
+      lng
+    }
+  });
+
+  await recordOperationalEvent({
+    eventType: "station_curation_updated",
+    severity: "info",
+    scopeType: "station",
+    scopeId: stationId,
+    actorId: admin.id,
+    actorEmail: admin.email,
+    reason: "curadoria territorial salva",
+    payload: {
+      namePublic,
+      geoReviewStatus,
+      geoConfidence,
+      geoSource,
+      lat,
+      lng,
+      curationNote
+    }
+  });
 
   revalidatePath("/");
   revalidatePath("/atualizacoes");

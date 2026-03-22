@@ -28,7 +28,11 @@ function resolveNotice(searchParams?: Record<string, string | string[] | undefin
   return null;
 }
 
-export default async function AdminOpsPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
+interface AdminOpsPageProps {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}
+
+export default async function AdminOpsPage({ searchParams }: AdminOpsPageProps) {
   await requireAdminUser();
   const params = (await searchParams) ?? {};
   const dashboard = await getOperationalDashboard(30);
@@ -43,7 +47,7 @@ export default async function AdminOpsPage({ searchParams }: { searchParams?: Pr
               <p className="text-xs uppercase tracking-[0.2em] text-white/42">Operação</p>
               <h1 className="text-[2rem] font-semibold leading-none text-white">Painel operacional</h1>
               <p className="max-w-2xl text-sm text-white/58">
-                Rotina diária, dossiês recorrentes, cobertura e prioridades de coleta. Este é o lado do produto que organiza o ritmo da base.
+                Rotina diária, dossiês recorrentes, cobertura, prioridades de coleta e sinais de abuso ou erro. Este é o lado do produto que organiza o ritmo da base.
               </p>
             </div>
             <Badge variant="warning">Ritmo em execução</Badge>
@@ -73,7 +77,16 @@ export default async function AdminOpsPage({ searchParams }: { searchParams?: Pr
           </div>
         </SectionCard>
 
-        <SectionCard className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <SectionCard className="grid gap-3 sm:grid-cols-3 xl:grid-cols-6">
+          <OpsMetricCard label="Envios" value={dashboard.observability.summary.submissions} note="Últimos 7 dias" tone="accent" />
+          <OpsMetricCard label="Aprovações" value={dashboard.observability.summary.approvals} note="Últimos 7 dias" />
+          <OpsMetricCard label="Rejeições" value={dashboard.observability.summary.rejections} note="Últimos 7 dias" />
+          <OpsMetricCard label="Bloqueios" value={dashboard.observability.summary.blockedSubmissions} note="Rate limit e validação" tone="warning" />
+          <OpsMetricCard label="Erros de upload" value={dashboard.observability.summary.uploadErrors} note="Últimos 7 dias" tone="danger" />
+          <OpsMetricCard label="Erros de auth" value={dashboard.observability.summary.authErrors} note="Últimos 7 dias" tone="danger" />
+        </SectionCard>
+
+        <SectionCard className="grid gap-3 sm:grid-cols-4">
           <OpsMetricCard label="Cidades cobertas" value={dashboard.summary.citiesCovered} note="Recorte operacional atual" tone="accent" />
           <OpsMetricCard label="Observações recentes" value={dashboard.summary.recentObservations} note="Última janela de 30 dias" />
           <OpsMetricCard label="Cidades fracas" value={dashboard.summary.lowCoverageCities} note="Cobertura abaixo do mínimo desejado" tone="warning" />
@@ -152,6 +165,70 @@ export default async function AdminOpsPage({ searchParams }: { searchParams?: Pr
         <SectionCard className="space-y-4">
           <div className="flex items-center justify-between gap-3">
             <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Observabilidade mínima</p>
+              <h2 className="mt-1 text-xl font-semibold text-white">Erros, bloqueios e volume</h2>
+            </div>
+            <Badge variant="warning">7 dias</Badge>
+          </div>
+          <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
+            <OpsMetricCard label="Jobs com erro" value={dashboard.observability.summary.cronErrors} note="Refresh e dossiês falhos" tone="danger" />
+            <OpsMetricCard label="Execuções manuais" value={dashboard.observability.summary.manualRuns} note="Rodadas disparadas no painel" />
+            <OpsMetricCard label="Cidades com volume" value={dashboard.observability.summary.cityVolume} note="Leitura recente de envios" />
+            <OpsMetricCard label="Combustíveis com volume" value={dashboard.observability.summary.fuelVolume} note="Cobertura por tipo" />
+            <OpsMetricCard label="Bloqueios" value={dashboard.observability.summary.blockedSubmissions} note="Spam, validação ou rate limit" tone="warning" />
+          </div>
+
+          <div className="grid gap-3 lg:grid-cols-2">
+            <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Volume por cidade</p>
+              <div className="mt-4 space-y-3">
+                {dashboard.observability.byCity.slice(0, 6).map((row) => (
+                  <div key={row.city} className="rounded-[18px] border border-white/8 bg-black/20 px-4 py-3 text-sm text-white/66">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-white">{row.city}</span>
+                      <span>{row.count} envios</span>
+                    </div>
+                    <p className="mt-1 text-xs text-white/44">Aprovados {row.approved} · Pendentes {row.pending} · Rejeitados {row.rejected}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Eventos recentes</p>
+              <div className="mt-4 space-y-3">
+                {dashboard.observability.recentEvents.slice(0, 6).map((event) => (
+                  <div key={event.id} className="rounded-[18px] border border-white/8 bg-black/20 px-4 py-3 text-sm text-white/66">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-white">{event.eventType}</span>
+                      <span className="text-xs text-white/42">{formatDateTimeBR(event.createdAt)}</span>
+                    </div>
+                    <p className="mt-1 text-xs text-white/44">{event.reason ?? "sem motivo"} · {event.city ?? "sem cidade"}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
+            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Ações administrativas recentes</p>
+            <div className="mt-4 space-y-3">
+              {dashboard.observability.recentAdminActions.slice(0, 6).map((action) => (
+                <div key={action.id} className="rounded-[18px] border border-white/8 bg-black/20 px-4 py-3 text-sm text-white/66">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium text-white">{action.actionKind}</span>
+                    <span className="text-xs text-white/42">{formatDateTimeBR(action.createdAt)}</span>
+                  </div>
+                  <p className="mt-1 text-xs text-white/44">{action.note ?? action.actorEmail ?? "sem nota"}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </SectionCard>
+
+        <SectionCard className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
               <p className="text-xs uppercase tracking-[0.2em] text-white/42">Grupos territoriais</p>
               <h2 className="mt-1 text-xl font-semibold text-white">Curadoria editorial inicial</h2>
             </div>
@@ -200,3 +277,4 @@ export default async function AdminOpsPage({ searchParams }: { searchParams?: Pr
     </AppShell>
   );
 }
+

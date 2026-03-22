@@ -38,7 +38,7 @@ export default async function AdminLoginPage({ searchParams }: AdminLoginPagePro
               <h1 className="font-display text-2xl text-white">{brand.name}</h1>
             </div>
           </div>
-          <p className="text-sm text-white/62">Acesso administrativo para moderação e governança do app.</p>
+          <p className="text-sm text-white/62">Acesso administrativo para moderação, curadoria territorial e operação do beta.</p>
         </SectionCard>
 
         <SectionCard className="space-y-4">

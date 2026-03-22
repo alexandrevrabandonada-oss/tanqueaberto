@@ -54,6 +54,53 @@ export interface OpsGroupCoverageItem {
   coverageState: "vazio" | "básico" | "ativo";
 }
 
+export interface OperationalEventItem {
+  id: string;
+  eventType: string;
+  severity: "info" | "warning" | "error";
+  scopeType: string | null;
+  scopeId: string | null;
+  actorEmail: string | null;
+  stationId: string | null;
+  reportId: string | null;
+  city: string | null;
+  fuelType: string | null;
+  reason: string | null;
+  payload: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface AdminActionLogItem {
+  id: string;
+  actionKind: string;
+  actorId: string | null;
+  actorEmail: string | null;
+  targetType: string | null;
+  targetId: string | null;
+  note: string | null;
+  payload: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface OperationalTelemetry {
+  summary: {
+    submissions: number;
+    approvals: number;
+    rejections: number;
+    blockedSubmissions: number;
+    uploadErrors: number;
+    authErrors: number;
+    cronErrors: number;
+    manualRuns: number;
+    cityVolume: number;
+    fuelVolume: number;
+  };
+  byCity: Array<{ city: string; count: number; approved: number; pending: number; rejected: number }>;
+  byFuel: Array<{ fuelType: string; count: number; approved: number; pending: number; rejected: number }>;
+  recentEvents: OperationalEventItem[];
+  recentAdminActions: AdminActionLogItem[];
+}
+
 export interface OpsDashboard {
   recentRuns: OpsJobRun[];
   lastRefresh: OpsJobRun | null;
@@ -61,6 +108,7 @@ export interface OpsDashboard {
   coverageRows: OpsCoverageCityFuelRow[];
   priorityTargets: OpsPriorityTarget[];
   groups: OpsGroupCoverageItem[];
+  observability: OperationalTelemetry;
   summary: {
     citiesCovered: number;
     recentObservations: number;

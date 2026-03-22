@@ -3,6 +3,7 @@ const { Client } = require("pg");
 import { generateRecurringAuditDossiers } from "@/lib/audit/scheduler";
 import type { AuditReportRunItem } from "@/lib/audit/types";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { recordOperationalEvent } from "@/lib/ops/logs";
 import type { OpsCadence, OpsJobRun, OpsJobStatus, OpsJobType } from "./types";
 
 function getConnectionString() {
@@ -45,6 +46,16 @@ async function insertJobRun(jobType: OpsJobType, cadence: OpsCadence, triggeredB
     throw new Error(`Falha ao registrar execução de ${jobType}`);
   }
 
+  await recordOperationalEvent({
+    eventType: "job_started",
+    severity: "info",
+    scopeType: "job",
+    scopeId: String(data.id),
+    actorEmail: triggeredBy ?? null,
+    reason: jobType,
+    payload: { jobType, cadence, triggeredBy, payload }
+  });
+
   return toJobRun(data as Record<string, unknown>);
 }
 
@@ -66,6 +77,15 @@ async function finishJobRun(jobRunId: string, status: Exclude<OpsJobStatus, "run
   if (error || !data) {
     throw new Error(`Falha ao finalizar execução ${jobRunId}`);
   }
+
+  await recordOperationalEvent({
+    eventType: status === "success" ? "job_finished" : "job_failed",
+    severity: status === "success" ? "info" : "error",
+    scopeType: "job",
+    scopeId: jobRunId,
+    reason: errorMessage ?? status,
+    payload: { metrics, status }
+  });
 
   return toJobRun(data as Record<string, unknown>);
 }
@@ -154,4 +174,3 @@ export async function runAuditDossiersJob(input?: { cadence?: OpsCadence; trigge
     return { jobRun: failure, generatedRuns: [] as AuditReportRunItem[], success: false, message: failure.errorMessage };
   }
 }
-

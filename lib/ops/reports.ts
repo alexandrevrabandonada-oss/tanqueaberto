@@ -2,16 +2,18 @@ import { getAuditGroups, getAuditGroupMembers } from "@/lib/audit/groups";
 import { getRecentOpsJobRuns, getLastOpsJobRun } from "@/lib/ops/scheduler";
 import { getCoverageSignals } from "@/lib/ops/coverage";
 import { getPriorityTargets } from "@/lib/ops/priority";
+import { getOperationalTelemetry } from "@/lib/ops/observability";
 import type { OpsDashboard } from "./types";
 
 export async function getOperationalDashboard(days = 30): Promise<OpsDashboard> {
-  const [recentRuns, coverageSignals, priorityTargets, groups, lastRefresh, lastDossiers] = await Promise.all([
+  const [recentRuns, coverageSignals, priorityTargets, groups, lastRefresh, lastDossiers, observability] = await Promise.all([
     getRecentOpsJobRuns(12),
     getCoverageSignals(days),
     getPriorityTargets(12),
     getAuditGroups(),
     getLastOpsJobRun("audit_refresh"),
-    getLastOpsJobRun("audit_dossiers")
+    getLastOpsJobRun("audit_dossiers"),
+    getOperationalTelemetry(7)
   ]);
 
   const groupMembers = await Promise.all(groups.map(async (group) => ({ group, members: await getAuditGroupMembers(group.id) })));
@@ -32,6 +34,7 @@ export async function getOperationalDashboard(days = 30): Promise<OpsDashboard> 
     coverageRows: coverageSignals.coverageRows,
     priorityTargets,
     groups: groupsSummary,
+    observability,
     summary: {
       citiesCovered: coverageSignals.citiesCovered,
       recentObservations: coverageSignals.recentObservations,

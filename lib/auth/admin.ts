@@ -43,7 +43,7 @@ export async function requireAdminUser() {
   const { data: userResult, error: userError } = await supabase.auth.getUser();
 
   if (userError || !userResult.user?.email || !userResult.user.id) {
-    redirect(ADMIN_LOGIN_ROUTE);
+    redirect(`${ADMIN_LOGIN_ROUTE}?error=session_expired` as Route);
   }
 
   const { data, error } = await lookupAdminUser(userResult.user.email);
@@ -54,7 +54,7 @@ export async function requireAdminUser() {
 
   if (!data?.email || !data?.user_id) {
     await supabase.auth.signOut();
-    redirect(ADMIN_LOGIN_ROUTE);
+    redirect(`${ADMIN_LOGIN_ROUTE}?error=not_authorized` as Route);
   }
 
   return { id: data.user_id, email: data.email } satisfies AdminUser;

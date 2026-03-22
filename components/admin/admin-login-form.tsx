@@ -16,6 +16,10 @@ interface AdminLoginFormProps {
 }
 
 function resolveMessage(notice?: string, error?: string) {
+  if (error === "session_expired") {
+    return "Sua sessão expirou. Entre de novo para continuar.";
+  }
+
   if (error === "not_authorized") {
     return "Seu e-mail não está liberado para o admin.";
   }

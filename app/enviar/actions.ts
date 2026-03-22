@@ -2,7 +2,10 @@
 
 import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 
+import { recordOperationalEvent } from "@/lib/ops/logs";
+import { checkSubmissionRateLimit, getSubmissionClientIp, hashSubmissionIp } from "@/lib/ops/rate-limit";
 import { recordPriceReportAuditEvent } from "@/lib/audit/events";
 import { buildReportPhotoPath, validateReportPhoto, REPORT_PHOTO_BUCKET } from "@/lib/upload/report-photo";
 import { createSupabaseServiceClient } from "@/lib/supabase/admin";
@@ -19,6 +22,16 @@ function getString(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
 }
 
+async function getSubmissionContext() {
+  const currentHeaders = await headers();
+  const ip = getSubmissionClientIp(currentHeaders as Headers);
+  return {
+    ip,
+    ipHash: hashSubmissionIp(ip),
+    userAgent: currentHeaders.get("user-agent") ?? null
+  };
+}
+
 export async function submitPriceReportAction(_prevState: SubmitState, formData: FormData): Promise<SubmitState> {
   const stationId = getString(formData, "stationId");
   const fuelType = getString(formData, "fuelType") as FuelType;
@@ -26,8 +39,18 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
   const nickname = getString(formData, "nickname");
   const honeypot = getString(formData, "website");
   const photo = formData.get("photo");
+  const context = await getSubmissionContext();
 
   if (honeypot) {
+    await recordOperationalEvent({
+      eventType: "submission_blocked",
+      severity: "warning",
+      scopeType: "submission",
+      stationId: stationId || null,
+      fuelType: fuelType || null,
+      ipHash: context.ipHash,
+      reason: "honeypot"
+    });
     return { error: "Não foi possível enviar agora.", success: false };
   }
 
@@ -41,15 +64,42 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
 
   const price = Number(priceRaw.replace(",", "."));
   if (!priceRaw || Number.isNaN(price) || price <= 0) {
+    await recordOperationalEvent({
+      eventType: "submission_blocked",
+      severity: "warning",
+      scopeType: "submission",
+      stationId,
+      fuelType,
+      ipHash: context.ipHash,
+      reason: "invalid_price"
+    });
     return { error: "Informe um preço válido.", success: false };
   }
 
   if (!photo || !(photo instanceof File)) {
+    await recordOperationalEvent({
+      eventType: "upload_rejected_missing",
+      severity: "warning",
+      scopeType: "submission",
+      stationId,
+      fuelType,
+      ipHash: context.ipHash,
+      reason: "missing_photo"
+    });
     return { error: "Anexe uma foto do painel ou da bomba.", success: false };
   }
 
   const validationError = validateReportPhoto(photo);
   if (validationError) {
+    await recordOperationalEvent({
+      eventType: validationError.includes("5 MB") ? "upload_rejected_size" : "upload_rejected_type",
+      severity: "warning",
+      scopeType: "submission",
+      stationId,
+      fuelType,
+      ipHash: context.ipHash,
+      reason: validationError
+    });
     return { error: validationError, success: false };
   }
 
@@ -57,12 +107,51 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
 
   const { data: station, error: stationError } = await supabase
     .from("stations")
-    .select("id,is_active")
+    .select("id,is_active,name,city")
     .eq("id", stationId)
     .maybeSingle();
 
   if (stationError || !station?.is_active) {
+    await recordOperationalEvent({
+      eventType: "submission_blocked",
+      severity: "warning",
+      scopeType: "submission",
+      stationId,
+      fuelType,
+      ipHash: context.ipHash,
+      reason: stationError ? stationError.message : "inactive_station"
+    });
     return { error: "Escolha um posto ativo.", success: false };
+  }
+
+  const limitCheck = await checkSubmissionRateLimit({ ipHash: context.ipHash, stationId, fuelType });
+
+  if (!limitCheck.allowed) {
+    const rateLimitMessage =
+      limitCheck.reason === "proteção temporariamente indisponível"
+        ? "A proteção do envio está temporariamente indisponível. Tente novamente em instantes."
+        : `Você já enviou muitas vezes em pouco tempo. Tente novamente em ${Math.max(
+            1,
+            Math.ceil((new Date(limitCheck.blockedUntil ?? new Date().toISOString()).getTime() - Date.now()) / 60000)
+          )} min.`;
+
+    await recordOperationalEvent({
+      eventType: "submission_blocked",
+      severity: "warning",
+      scopeType: "submission",
+      stationId,
+      fuelType,
+      ipHash: context.ipHash,
+      city: station.city,
+      reason: limitCheck.reason ?? "limit_exceeded",
+      payload: {
+        attemptCount: limitCheck.attemptCount,
+        blockedUntil: limitCheck.blockedUntil,
+        windowStart: limitCheck.windowStart
+      }
+    });
+
+    return { error: rateLimitMessage, success: false };
   }
 
   const extension = photo.name.split(".").pop()?.toLowerCase() || "jpg";
@@ -77,6 +166,20 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
   });
 
   if (uploadError) {
+    await recordOperationalEvent({
+      eventType: "upload_failed",
+      severity: "error",
+      scopeType: "submission",
+      stationId,
+      fuelType,
+      ipHash: context.ipHash,
+      city: station.city,
+      reason: uploadError.message,
+      payload: {
+        bucket: REPORT_PHOTO_BUCKET,
+        filePath
+      }
+    });
     return { error: "Não foi possível enviar a foto agora.", success: false };
   }
 
@@ -104,6 +207,20 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
     .single();
 
   if (insertError || !report) {
+    await recordOperationalEvent({
+      eventType: "submission_failed",
+      severity: "error",
+      scopeType: "submission",
+      stationId,
+      fuelType,
+      ipHash: context.ipHash,
+      city: station.city,
+      reason: insertError?.message ?? "failed_to_save_report",
+      payload: {
+        stationName: station.name,
+        photoHash
+      }
+    });
     return { error: "Não foi possível salvar o envio agora.", success: false };
   }
 
@@ -119,6 +236,22 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
     }
   });
 
+  await recordOperationalEvent({
+    eventType: "submission_accepted",
+    severity: "info",
+    scopeType: "submission",
+    stationId,
+    fuelType,
+    ipHash: context.ipHash,
+    city: station.city,
+    payload: {
+      reportId: report.id,
+      stationName: station.name,
+      nickname: nickname || null,
+      windowCount: limitCheck.attemptCount
+    }
+  });
+
   revalidatePath("/");
   revalidatePath("/atualizacoes");
   revalidatePath(`/postos/${stationId}`);
@@ -127,3 +260,6 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
 
   return { error: null, success: true };
 }
+
+
+

@@ -238,3 +238,8 @@ Leitura rápida:
 - Para testar cenários com e sem preço recente, use `NEXT_PUBLIC_BOMBA_ABERTA_USE_FIXTURES=1` apenas em preview/dev.
 - A lista pública de lacunas fica em `/postos/sem-atualizacao`.
 - O checklist mínimo de beta está em [`docs/beta-launch-gate.md`](./docs/beta-launch-gate.md).
+
+## Segurança operacional
+
+Para beta fechado, consulte [docs/security-operational.md](/C:/Projetos/Tanque%20Aberto/docs/security-operational.md).
+Esse documento explica rate limit do envio, logs administrativos, observabilidade mínima e leitura rápida de erros comuns.
