@@ -15,7 +15,7 @@ export function MissionOverlay() {
   if (!mission) return null;
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-[100] animate-in slide-in-from-top duration-300">
+    <div className="fixed top-0 left-0 right-0 z-[600] animate-in slide-in-from-top duration-300">
       <div className="bg-zinc-900/95 backdrop-blur-md border-b border-yellow-400/20 px-4 py-3 shadow-2xl">
         <div className="max-w-md mx-auto flex items-center justify-between gap-4">
           <div className="flex flex-col min-w-0">
