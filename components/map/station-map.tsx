@@ -92,7 +92,23 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
         </span>
         <p className="w-full text-[10px] leading-relaxed text-white/48">Todos os postos mostram o cadastro visível. Só com preço recente mostra apenas o que já foi aprovado.</p>
       </div>
-      <MapContainer center={[-22.53, -44.12]} zoom={11} scrollWheelZoom={false} className={cn("w-full", className)}>
+      <MapContainer 
+        center={[-22.53, -44.12]} 
+        zoom={11} 
+        scrollWheelZoom={false} 
+        className={cn("w-full", className)}
+        whenReady={() => {
+          void trackProductEvent({
+            eventType: "map_ready_performance" as any,
+            pagePath: returnToHref ?? "/",
+            pageTitle: "Mapa vivo",
+            payload: {
+              timestamp: Date.now(),
+              stationCount: mapStations.length
+            }
+          });
+        }}
+      >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

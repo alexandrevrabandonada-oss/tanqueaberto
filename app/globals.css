@@ -59,6 +59,23 @@ a {
   background: #111;
 }
 
+/* Hardened Performance Utilities */
+.backdrop-blur-xl {
+  backdrop-filter: blur(12px); /* Reduced from default for better GPU performance */
+}
+
+.backdrop-blur-md {
+  backdrop-filter: blur(6px);
+}
+
+.low-perf-mode * {
+  animation: none !important;
+  transition: none !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
 .custom-map-pin {
   background: transparent;
   border: 0;
@@ -68,8 +85,9 @@ a {
   width: 18px;
   height: 18px;
   border-radius: 9999px;
-  border: 3px solid rgba(0, 0, 0, 0.84);
-  box-shadow: 0 0 0 6px rgba(255, 199, 0, 0.16);
+  border: 2px solid rgba(0, 0, 0, 0.8);
+  /* Simplified shadow for performance */
+  box-shadow: 0 0 0 4px rgba(255, 199, 0, 0.1);
 }
 
 .map-pin-dot--recent {

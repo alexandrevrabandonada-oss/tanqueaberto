@@ -1,7 +1,7 @@
 "use client";
 
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, Camera, Clock3, Search, SlidersHorizontal, Star, X } from "lucide-react";
+import { ArrowRight, Camera, Clock3, Search, SlidersHorizontal, Star, X, Zap } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
 
@@ -29,6 +29,7 @@ import { persistHomeContext, priorityCities, readHomeContext, readLastStationCon
 import { startRoute, readRouteContext } from "@/lib/navigation/route-context";
 import { RouteAssistant } from "@/components/routes/route-assistant";
 import { useStreetMode } from "@/hooks/use-street-mode";
+import { useNetworkHardening } from "@/hooks/use-network-hardening";
 import { useMissionContext } from "@/components/mission/mission-context";
 import { MySubmissionsList } from "@/components/history/my-submissions-list";
 import { RecorteActivityWidget } from "@/components/home/recorte-activity-widget";
@@ -118,6 +119,7 @@ export function HomeBrowser({
   const lastTrackedSearchRef = useRef(initialQuery);
   const deferredQuery = useDeferredValue(query);
   const { coords, loading: geoLoading, error: geoError, getLocation } = useGeolocation();
+  const { isLowPerf, effectiveType } = useNetworkHardening();
   const { isStreetMode, toggleStreetMode, recentIds, favoriteIds, toggleFavorite, isFavorite } = useStreetMode();
   const { startMission } = useMissionContext();
 
@@ -347,6 +349,13 @@ export function HomeBrowser({
         <RouteAssistant stations={stations} />
       </div>
 
+      {isLowPerf && (
+        <div className="mb-4 flex items-center gap-3 rounded-[22px] border border-orange-500/30 bg-orange-500/10 px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-orange-400">
+          <Zap className="h-3.5 w-3.5" />
+          Conexão instável ({effectiveType}). Modo econômico ativo.
+        </div>
+      )}
+
       <div className="mb-4">
         <Button 
           variant={isStreetMode ? "primary" : "secondary"}
@@ -402,7 +411,7 @@ export function HomeBrowser({
         <MySubmissionsList />
       </div>
 
-      {selectedCity && (
+      {selectedCity && !isLowPerf && (
         <div className="mb-6">
           <RecorteActivityWidget 
             city={selectedCity} 
@@ -412,7 +421,7 @@ export function HomeBrowser({
         </div>
       )}
 
-      <SectionCard className={cn("space-y-4", isStreetMode && "space-y-2 py-3")}>
+      <SectionCard className={cn("space-y-4", isStreetMode && "space-y-2 py-3", isLowPerf && "low-perf-mode shadow-none border-white/5")}>
         {/* Smart Default Contextual Message */}
         {defaultSelectionReason && (
           <div className="mx-1 -mt-2 mb-2 flex items-center justify-between rounded-full bg-emerald-500/10 px-4 py-2 border border-emerald-500/20 animate-in fade-in slide-in-from-top-2">
@@ -724,7 +733,7 @@ export function HomeBrowser({
             <Badge variant="outline" className="text-[10px]">{summaryStations.length} no mapa</Badge>
           </div>
           <div className="space-y-1.5">
-            {summaryStations.map((station) => {
+            {summaryStations.slice(0, 10).map((station) => {
               const latest = getSelectedStationReport(station, fuelFilter);
               const stationHref = `/postos/${station.id}?returnTo=${encodeURIComponent(contextHref)}` as Route;
               return (
@@ -756,10 +765,28 @@ export function HomeBrowser({
                     ) : (
                       <span className="text-[10px] uppercase tracking-wider text-white/24">Sem preço</span>
                     )}
+                    <ArrowRight className="h-4 w-4 text-white/20 transition group-hover:translate-x-1 group-hover:text-white" />
                   </div>
                 </Link>
               );
             })}
+            
+            {summaryStations.length > 10 && (
+              <div className="pt-2 text-center">
+                <p className="text-[10px] text-white/30 uppercase tracking-widest">
+                  + {summaryStations.length - 10} {summaryStations.length - 10 === 1 ? "posto oculto" : "postos ocultos"} para performance
+                </p>
+                <div className="mt-3 flex gap-2">
+                   <ButtonLink 
+                     href={("/postos/sem-atualizacao" as Route)} 
+                     variant="secondary" 
+                     className="flex-1 h-9 text-[10px] font-bold"
+                   >
+                     Ver todos
+                   </ButtonLink>
+                </div>
+              </div>
+            )}
           </div>
         </SectionCard>
       ) : null}
