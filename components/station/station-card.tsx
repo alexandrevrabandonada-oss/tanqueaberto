@@ -39,27 +39,30 @@ export function StationCard({ station, fuelFilter = "all", returnToHref }: Stati
       ? "Sem atualização recente"
       : `Atualizado ${formatRecencyLabel(latest.reportedAt)}`
     : "Sem preço recente";
+  const showReviewBadge = hasPendingStationLocationReview(station) && !latest;
 
   return (
     <SectionCard className="space-y-4">
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-white/40">{station.brand}</p>
-          <h3 className="text-lg font-semibold text-white">{getStationPublicName(station)}</h3>
+        <div className="min-w-0">
+          <p className="text-xs uppercase tracking-[0.2em] text-white/40">{station.brand || "Cadastro territorial"}</p>
+          <h3 className="truncate text-lg font-semibold text-white">{getStationPublicName(station)}</h3>
+          <p className="mt-1 text-sm text-white/50">
+            {station.neighborhood}, {station.city}
+          </p>
         </div>
-        <Badge variant={latest ? recencyToneToBadgeVariant(latestTone) : "outline"}>{latest ? (latestTone === "stale" ? "Sem atualização" : "Preço recente") : "Sem preço"}</Badge>
+        <Badge variant={latest ? recencyToneToBadgeVariant(latestTone) : "outline"}>{latest ? (latestTone === "stale" ? "Sem atualização" : "Preço recente") : "Sem preço recente"}</Badge>
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Badge variant="outline">Posto cadastrado</Badge>
-        {latest ? <Badge variant={recencyToneToBadgeVariant(latestTone)}>{formatRecencyLabel(latest.reportedAt)}</Badge> : null}
-        {hasPendingStationLocationReview(station) ? <Badge variant="warning">Localização em revisão</Badge> : null}
+        {showReviewBadge ? <Badge variant="warning">Localização em revisão</Badge> : null}
+        {latest ? <Badge variant="outline">{formatRecencyLabel(latest.reportedAt)}</Badge> : <Badge variant="outline">Aguardando primeiro preço</Badge>}
       </div>
 
       <div className="flex items-center gap-2 text-sm text-white/64">
         <MapPin className="h-4 w-4 text-[color:var(--color-accent)]" />
         <span>
-          {station.neighborhood}, {station.city}
+          {station.address}, {station.neighborhood}, {station.city}
         </span>
       </div>
 
@@ -81,7 +84,7 @@ export function StationCard({ station, fuelFilter = "all", returnToHref }: Stati
             href={sendHref}
             className="w-full"
             onClick={() => {
-              rememberStationVisit({ id: station.id, name: station.name, city: station.city });
+              rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
               void trackProductEvent({ eventType: "submit_opened", pagePath: sendHref, pageTitle: getStationPublicName(station), stationId: station.id, city: station.city, fuelType: null, scopeType: "submission", scopeId: station.id, payload: { source: "station-card-send" } });
             }}
           >
@@ -93,7 +96,7 @@ export function StationCard({ station, fuelFilter = "all", returnToHref }: Stati
       <Link
         href={stationHref}
         onClick={() => {
-          rememberStationVisit({ id: station.id, name: station.name, city: station.city });
+          rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
           void trackProductEvent({ eventType: "station_clicked", pagePath: stationHref, pageTitle: getStationPublicName(station), stationId: station.id, city: station.city, fuelType: latest?.fuelType ?? null, scopeType: "station", scopeId: station.id, payload: { source: "station-card-open" } });
         }}
         className="inline-flex items-center justify-center rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-white transition hover:border-[color:var(--color-accent)] hover:text-[color:var(--color-accent)]"

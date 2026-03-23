@@ -1,5 +1,45 @@
 import type { Station, StationWithReports } from "@/lib/types";
 
+export interface StationPublicIdentity extends Pick<Station, "name" | "brand" | "city" | "neighborhood"> {
+  address?: string | null;
+  namePublic?: string | null;
+  nameOfficial?: string | null;
+  geoReviewStatus?: Station["geoReviewStatus"];
+}
+
+export interface StationEditorialReviewItem {
+  station: Station;
+  displayName: string;
+  reasons: string[];
+  duplicateGroupSize: number;
+  priorityScore: number;
+}
+
+function normalizeText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+function titleCaseToken(token: string) {
+  if (!token) {
+    return token;
+  }
+
+  if (/^[A-Z0-9&.-]{2,6}$/.test(token) && token === token.toUpperCase()) {
+    return token.toUpperCase();
+  }
+
+  const lower = token.toLowerCase();
+  return lower.slice(0, 1).toUpperCase() + lower.slice(1);
+}
+
+function splitWords(value: string) {
+  return value.split(/\s+/g).map((item) => item.trim()).filter(Boolean);
+}
+
 export function isValidStationCoordinate(lat: number | null | undefined, lng: number | null | undefined) {
   if (lat === null || lat === undefined || lng === null || lng === undefined) {
     return false;
@@ -33,36 +73,174 @@ export function normalizeStationPublicName(name: string) {
     .trim();
 }
 
-export function formatStationDisplayName(name: string) {
-  const cleaned = normalizeStationPublicName(name);
+function detectStreetHint(address: string) {
+  const cleaned = normalizeStationPublicName(address);
   if (!cleaned) {
-    return "Posto";
+    return "";
   }
 
-  return cleaned
-    .split(" ")
-    .map((part) => {
-      const token = part.trim();
-      if (!token) return token;
-      if (/^[A-Z0-9&.-]{2,5}$/.test(token) && token === token.toUpperCase()) {
-        return token.toUpperCase();
-      }
-
-      const lower = token.toLowerCase();
-      return lower.slice(0, 1).toUpperCase() + lower.slice(1);
-    })
-    .join(" ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-export function getStationPublicName(station: Pick<Station, "name" | "namePublic">) {
-  return station.namePublic?.trim() || formatStationDisplayName(station.name);
+  const firstSegment = cleaned.split(",")[0] ?? "";
+  return firstSegment.trim();
 }
 
 export function detectGenericStationName(name: string) {
   const normalized = normalizeStationPublicName(name).toLowerCase();
   return /^(posto|auto posto|combust[íi]veis?|gasolina|revenda|posto de combust[íi]vel|posto combust[íi]vel)$/i.test(normalized) || normalized.length < 4;
+}
+
+function buildFallbackStationName(station: StationPublicIdentity) {
+  const candidates = [station.namePublic, station.nameOfficial, station.name, station.brand]
+    .map((value) => normalizeStationPublicName(String(value ?? "")))
+    .filter(Boolean);
+
+  let base = candidates.find((value) => !detectGenericStationName(value)) ?? candidates[0] ?? "";
+  const neighborhood = normalizeStationPublicName(station.neighborhood ?? "");
+  const streetHint = detectStreetHint(station.address ?? "");
+  const city = normalizeStationPublicName(station.city ?? "");
+  const brand = normalizeStationPublicName(station.brand ?? "");
+
+  if (!base || detectGenericStationName(base)) {
+    base = [brand, streetHint || neighborhood, city].filter(Boolean)[0] ?? "Posto";
+  }
+
+  if (detectGenericStationName(base)) {
+    base = [brand, streetHint || neighborhood || city].filter(Boolean).join(" · ") || "Posto";
+  }
+
+  const titleCased = splitWords(base).map(titleCaseToken).join(" ");
+  const segments = titleCased.split(" · ").map((part) => part.trim()).filter(Boolean);
+
+  if (segments.length === 1) {
+    if (streetHint && !normalizeText(titleCased).includes(normalizeText(streetHint))) {
+      segments.push(splitWords(streetHint).map(titleCaseToken).join(" "));
+    } else if (neighborhood && !normalizeText(titleCased).includes(normalizeText(neighborhood))) {
+      segments.push(splitWords(neighborhood).map(titleCaseToken).join(" "));
+    } else if (city && !normalizeText(titleCased).includes(normalizeText(city))) {
+      segments.push(splitWords(city).map(titleCaseToken).join(" "));
+    }
+  }
+
+  return segments.filter(Boolean).join(" · ").replace(/\s+/g, " ").trim() || "Posto";
+}
+
+export function formatStationDisplayName(name: string) {
+  const cleaned = normalizeStationPublicName(name);
+  if (!cleaned || detectGenericStationName(cleaned)) {
+    return "Posto";
+  }
+
+  return splitWords(cleaned)
+    .map(titleCaseToken)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function getStationPublicName(station: StationPublicIdentity) {
+  const explicit = normalizeStationPublicName(station.namePublic ?? "");
+  if (explicit && !detectGenericStationName(explicit)) {
+    return formatStationDisplayName(explicit);
+  }
+
+  const fallback = buildFallbackStationName(station);
+  return fallback;
+}
+
+export function hasStationEditorialRisk(station: StationPublicIdentity) {
+  const publicName = getStationPublicName(station);
+  return detectGenericStationName(publicName) || station.geoReviewStatus === "manual_review";
+}
+
+export function getStationEditorialReviewReason(station: StationPublicIdentity) {
+  const reasons: string[] = [];
+  const publicName = getStationPublicName(station);
+
+  if (detectGenericStationName(publicName)) {
+    reasons.push("Nome genérico ou pouco distintivo");
+  }
+
+  if (!station.namePublic?.trim() && !station.nameOfficial?.trim()) {
+    reasons.push("Sem nome público consolidado");
+  }
+
+  if (station.geoReviewStatus === "manual_review") {
+    reasons.push("Curadoria territorial pendente");
+  }
+
+  return reasons;
+}
+
+export function getStationDuplicateSignature(station: StationPublicIdentity) {
+  const parts = [getStationPublicName(station), station.brand, station.neighborhood, station.city]
+    .map((value) => normalizeText(String(value ?? "")))
+    .filter(Boolean);
+
+  return parts.join("|");
+}
+
+export function getStationEditorialReviewQueue(stations: Station[]) {
+  const grouped = new Map<string, Station[]>();
+
+  for (const station of stations) {
+    const key = getStationDuplicateSignature(station);
+    const list = grouped.get(key) ?? [];
+    list.push(station);
+    grouped.set(key, list);
+  }
+
+  const items: StationEditorialReviewItem[] = [];
+
+  for (const station of stations) {
+    const duplicateGroup = grouped.get(getStationDuplicateSignature(station)) ?? [];
+    const displayName = getStationPublicName(station);
+    const reasons = getStationEditorialReviewReason(station);
+    const duplicateGroupSize = duplicateGroup.length;
+
+    if (duplicateGroupSize > 1) {
+      reasons.push(`Possível repetição visual (${duplicateGroupSize} no mesmo recorte)`);
+    }
+
+    if (!displayName || detectGenericStationName(displayName)) {
+      reasons.push("Nome precisa de fallback mais legível");
+    }
+
+    if (reasons.length === 0) {
+      continue;
+    }
+
+    const priorityCities = new Set(["VOLTA REDONDA", "BARRA MANSA", "BARRA DO PIRAI"]);
+    let priorityScore = 0;
+
+    if (priorityCities.has(station.city.trim().toUpperCase())) {
+      priorityScore += 20;
+    }
+
+    if (duplicateGroupSize > 1) {
+      priorityScore += Math.min(30, duplicateGroupSize * 6);
+    }
+
+    if (detectGenericStationName(displayName)) {
+      priorityScore += 30;
+    }
+
+    if (station.geoReviewStatus === "manual_review") {
+      priorityScore += 15;
+    }
+
+    if (!station.namePublic?.trim()) {
+      priorityScore += 10;
+    }
+
+    items.push({
+      station,
+      displayName,
+      reasons,
+      duplicateGroupSize,
+      priorityScore
+    });
+  }
+
+  return items.sort((left, right) => right.priorityScore - left.priorityScore || left.station.city.localeCompare(right.station.city, "pt-BR") || left.displayName.localeCompare(right.displayName, "pt-BR")).slice(0, 12);
 }
 
 export function canShowStationOnMap(station: Pick<Station, "lat" | "lng" | "geoConfidence" | "geoReviewStatus">) {

@@ -72,7 +72,7 @@ export default async function StationAuditPage({ params, searchParams }: Station
           <span className="rounded-full border border-white/10 bg-white/5 px-3 py-2">{station.city}</span>
           <span className="rounded-full border border-white/10 bg-white/5 px-3 py-2">{fuelLabels[fuelType]}</span>
           <span className="rounded-full border border-white/10 bg-white/5 px-3 py-2">{days} dias</span>
-          {hasPendingStationLocationReview(station) ? <span className="rounded-full border border-white/10 bg-white/5 px-3 py-2">Localização em revisão</span> : null}
+          {hasPendingStationLocationReview(station) && !latestReport ? <span className="rounded-full border border-white/10 bg-white/5 px-3 py-2">Localização em revisão</span> : null}
         </div>
       </SectionCard>
 

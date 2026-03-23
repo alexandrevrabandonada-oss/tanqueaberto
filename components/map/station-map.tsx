@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import type { StationWithReports } from "@/lib/types";
 import { fuelLabels } from "@/lib/format/labels";
-import { canShowStationOnMap } from "@/lib/quality/stations";
+import { canShowStationOnMap, getStationPublicName, hasPendingStationLocationReview } from "@/lib/quality/stations";
 import { formatCurrencyBRL } from "@/lib/format/currency";
 import { formatRecencyLabel, getRecencyTone, recencyToneToBadgeVariant } from "@/lib/format/time";
 import { cn } from "@/lib/utils";
@@ -53,6 +53,7 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
   const selectedStation = useMemo(() => mapStations.find((station) => station.id === selectedStationId) ?? null, [mapStations, selectedStationId]);
   const selectedReport = selectedStation ? getSelectedStationReport(selectedStation, fuelFilter) : null;
   const selectedTone = selectedReport ? getRecencyTone(selectedReport.reportedAt) : "stale";
+  const selectedStationName = selectedStation ? getStationPublicName(selectedStation) : "";
 
   if (mapStations.length === 0) {
     return (
@@ -93,6 +94,7 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
           const sendHref = getSendHref(station.id, returnToHref, fuelFilter);
           const recencyTone = selectedReportForStation ? getRecencyTone(selectedReportForStation.reportedAt) : "stale";
           const pinStatus = station.geoReviewStatus === "manual_review" ? "review" : selectedReportForStation && recencyTone !== "stale" ? "recent" : "stale";
+          const displayName = getStationPublicName(station);
 
           return (
             <Marker
@@ -102,18 +104,19 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
               eventHandlers={{
                 click: () => {
                   setSelectedStationId(station.id);
-                  rememberStationVisit({ id: station.id, name: station.name, city: station.city });
-                  void trackProductEvent({ eventType: "station_clicked", pagePath: returnToHref ?? "/", pageTitle: station.name, stationId: station.id, city: station.city, fuelType: selectedReportForStation?.fuelType ?? null, scopeType: "station", scopeId: station.id, payload: { source: "map-pin" } });
+                  rememberStationVisit({ id: station.id, name: displayName, city: station.city });
+                  void trackProductEvent({ eventType: "station_clicked", pagePath: returnToHref ?? "/", pageTitle: displayName, stationId: station.id, city: station.city, fuelType: selectedReportForStation?.fuelType ?? null, scopeType: "station", scopeId: station.id, payload: { source: "map-pin" } });
                 }
               }}
             >
               <Popup>
                 <div className="space-y-2">
                   <div>
-                    <p className="text-sm font-semibold text-zinc-900">{station.name}</p>
+                    <p className="text-sm font-semibold text-zinc-900">{displayName}</p>
                     <p className="text-xs text-zinc-600">
                       {station.neighborhood}, {station.city}
                     </p>
+                    <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-zinc-500">{station.brand || "Cadastro territorial"}</p>
                   </div>
                   <Badge variant={pinStatus === "recent" ? recencyToneToBadgeVariant(recencyTone) : pinStatus === "review" ? "warning" : "outline"}>
                     {pinStatus === "recent"
@@ -135,14 +138,14 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
                     <Link
                       href={stationHref}
                       className="text-xs font-semibold text-zinc-900 underline"
-                      onClick={() => rememberStationVisit({ id: station.id, name: station.name, city: station.city })}
+                      onClick={() => rememberStationVisit({ id: station.id, name: displayName, city: station.city })}
                     >
                       Ver posto
                     </Link>
                     <Link
                       href={sendHref}
                       className="text-xs font-semibold text-zinc-900 underline"
-                      onClick={() => rememberStationVisit({ id: station.id, name: station.name, city: station.city })}
+                      onClick={() => rememberStationVisit({ id: station.id, name: displayName, city: station.city })}
                     >
                       Enviar preço
                     </Link>
@@ -161,10 +164,11 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-xs uppercase tracking-[0.2em] text-white/42">Pin tocado</p>
-                  <h4 className="mt-1 text-base font-semibold text-white">{selectedStation.name}</h4>
+                  <h4 className="mt-1 text-base font-semibold text-white">{selectedStationName}</h4>
                   <p className="text-sm text-white/54">
                     {selectedStation.neighborhood}, {selectedStation.city}
                   </p>
+                  <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-white/42">{selectedStation.brand || "Cadastro territorial"}</p>
                 </div>
                 <Badge variant={selectedReport ? recencyToneToBadgeVariant(selectedTone) : "outline"}>
                   {selectedReport ? formatRecencyLabel(selectedReport.reportedAt) : "Sem preço"}
@@ -173,7 +177,7 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
               <div className="flex flex-wrap gap-2 text-xs text-white/56">
                 {selectedReport ? <Badge variant="default">{fuelFilter === "all" ? fuelLabels[selectedReport.fuelType] : `Filtro: ${fuelLabels[fuelFilter]}`}</Badge> : null}
                 {selectedReport ? <Badge variant={recencyToneToBadgeVariant(selectedTone)}>{selectedTone === "stale" ? "Sem atualização recente" : "Preço recente"}</Badge> : <Badge variant="outline">Posto cadastrado</Badge>}
-                {selectedStation.geoReviewStatus === "manual_review" ? <Badge variant="warning">Localização em revisão</Badge> : null}
+                {selectedStation.geoReviewStatus === "manual_review" && !selectedReport ? <Badge variant="warning">Localização em revisão</Badge> : null}
               </div>
               <p className="text-sm text-white/58">
                 {selectedReport
@@ -186,8 +190,8 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
                   variant="secondary"
                   className="flex-1"
                   onClick={() => {
-                    rememberStationVisit({ id: selectedStation.id, name: selectedStation.name, city: selectedStation.city });
-                    void trackProductEvent({ eventType: "station_clicked", pagePath: getStationHref(selectedStation.id, returnToHref), pageTitle: selectedStation.name, stationId: selectedStation.id, city: selectedStation.city, fuelType: selectedReport?.fuelType ?? null, scopeType: "station", scopeId: selectedStation.id, payload: { source: "map-card-open" } });
+                    rememberStationVisit({ id: selectedStation.id, name: selectedStationName, city: selectedStation.city });
+                    void trackProductEvent({ eventType: "station_clicked", pagePath: getStationHref(selectedStation.id, returnToHref), pageTitle: selectedStationName, stationId: selectedStation.id, city: selectedStation.city, fuelType: selectedReport?.fuelType ?? null, scopeType: "station", scopeId: selectedStation.id, payload: { source: "map-card-open" } });
                   }}
                 >
                   Abrir posto
@@ -196,8 +200,8 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
                   href={getSendHref(selectedStation.id, returnToHref, fuelFilter)}
                   className="flex-1"
                   onClick={() => {
-                    rememberStationVisit({ id: selectedStation.id, name: selectedStation.name, city: selectedStation.city });
-                    void trackProductEvent({ eventType: "submit_opened", pagePath: getSendHref(selectedStation.id, returnToHref, fuelFilter), pageTitle: selectedStation.name, stationId: selectedStation.id, city: selectedStation.city, fuelType: selectedReport?.fuelType ?? null, scopeType: "submission", scopeId: selectedStation.id, payload: { source: "map-card-send" } });
+                    rememberStationVisit({ id: selectedStation.id, name: selectedStationName, city: selectedStation.city });
+                    void trackProductEvent({ eventType: "submit_opened", pagePath: getSendHref(selectedStation.id, returnToHref, fuelFilter), pageTitle: selectedStationName, stationId: selectedStation.id, city: selectedStation.city, fuelType: selectedReport?.fuelType ?? null, scopeType: "submission", scopeId: selectedStation.id, payload: { source: "map-card-send" } });
                   }}
                 >
                   Enviar preço agora

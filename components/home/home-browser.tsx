@@ -19,7 +19,7 @@ import { formatRecencyLabel, getRecencyTone, recencyToneToBadgeVariant } from "@
 import { fuelLabels, publicFuelFilters, recencyFilters } from "@/lib/format/labels";
 import { filterReports, filterStations, getSelectedStationReport, hasRecentStationPriceForFilter, type StationPresenceFilter } from "@/lib/filters/public";
 import { sortStationsForPublicView } from "@/lib/filters/sort";
-import { canShowStationOnMap, hasPendingStationLocationReview } from "@/lib/quality/stations";
+import { canShowStationOnMap, getStationPublicName, hasPendingStationLocationReview } from "@/lib/quality/stations";
 import { persistHomeContext, priorityCities, readHomeContext, readLastStationContext, rememberStationVisit } from "@/lib/navigation/home-context";
 import type { FuelFilter, RecencyFilter } from "@/lib/filters/public";
 import type { ReportWithStation, StationWithReports } from "@/lib/types";
@@ -422,13 +422,13 @@ export function HomeBrowser({
                   key={station.id}
                   href={stationHref}
                   onClick={() => {
-                    rememberStationVisit({ id: station.id, name: station.name, city: station.city });
+                    rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
                     void trackProductEvent({ eventType: "station_clicked", pagePath: contextHref, pageTitle: "Mapa vivo", stationId: station.id, city: station.city, fuelType: latest?.fuelType ?? null, scopeType: "station", scopeId: station.id, payload: { source: "recorte-lista" } });
                   }}
                   className="flex items-center justify-between rounded-[20px] border border-white/8 bg-black/30 px-4 py-3 transition hover:border-[color:var(--color-accent)]/40"
                 >
                   <div className="min-w-0">
-                    <p className="truncate font-medium text-white">{station.name}</p>
+                    <p className="truncate font-medium text-white">{getStationPublicName(station)}</p>
                     <p className="truncate text-sm text-white/50">
                       {station.neighborhood}, {station.city}
                     </p>
@@ -488,7 +488,7 @@ export function HomeBrowser({
               <div key={report.id} className="rounded-[22px] border border-white/8 bg-black/30 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-medium text-white">{station.name}</p>
+                    <p className="font-medium text-white">{getStationPublicName(station)}</p>
                     <p className="text-sm text-white/50">
                       {station.neighborhood}, {station.city}
                     </p>
@@ -569,7 +569,7 @@ export function HomeBrowser({
               <div key={report.id} className="rounded-[22px] border border-white/8 bg-black/30 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-medium text-white">{report.station.name}</p>
+                    <p className="font-medium text-white">{getStationPublicName(report.station)}</p>
                     <p className="text-sm text-white/50">
                       {report.station.neighborhood}, {report.station.city}
                     </p>

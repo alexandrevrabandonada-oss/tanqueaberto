@@ -88,7 +88,7 @@ export default async function StationPage({ params, searchParams }: StationPageP
             <div className="mt-3 flex flex-wrap gap-2">
               <Badge variant="outline">Posto cadastrado</Badge>
               <Badge variant={marketPresence === "recent" ? "default" : "outline"}>{getStationMarketPresenceLabel(station)}</Badge>
-              {hasPendingStationLocationReview(station) ? <Badge variant="warning">Localização em revisão</Badge> : null}
+              {hasPendingStationLocationReview(station) && !latest ? <Badge variant="warning">Localização em revisão</Badge> : null}
             </div>
           </div>
           <div className="text-right">

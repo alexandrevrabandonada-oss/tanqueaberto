@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
 import { OpsMetricCard } from "@/components/admin/ops/ops-metric-card";
 import { BetaInviteManager } from "@/components/admin/ops/beta-invite-manager";
+import { StationEditorialQueue } from "@/components/admin/ops/station-editorial-queue";
 import { CityReadinessPanel } from "@/components/admin/ops/city-readiness-panel";
 import { BetaOpsSignals } from "@/components/admin/ops/beta-ops-signals";
 import { BetaFeedbackTriage } from "@/components/admin/ops/beta-feedback-triage";
@@ -17,7 +18,9 @@ import {
 } from "./actions";
 import { requireAdminUser } from "@/lib/auth/admin";
 import { getBetaFeedbackSummary } from "@/lib/beta/feedback";
+import { getActiveStations } from "@/lib/data/queries";
 import { getBetaOpsInsights } from "@/lib/ops/insights";
+import { getStationEditorialReviewQueue } from "@/lib/quality/stations";
 import { getCityReadinessRows } from "@/lib/ops/readiness";
 import { fuelLabels } from "@/lib/format/labels";
 import { formatDateTimeBR, formatRecencyLabel } from "@/lib/format/time";
@@ -48,7 +51,8 @@ interface AdminOpsPageProps {
 export default async function AdminOpsPage({ searchParams }: AdminOpsPageProps) {
   await requireAdminUser();
   const params = (await searchParams) ?? {};
-  const [opsInsights, readinessRows] = await Promise.all([getBetaOpsInsights(), getCityReadinessRows(30)]);
+  const [opsInsights, readinessRows, stations] = await Promise.all([getBetaOpsInsights(), getCityReadinessRows(30), getActiveStations()]);
+  const editorialQueue = getStationEditorialReviewQueue(stations);
   const { dashboard, inviteSummary, daily, alerts } = opsInsights;
   const feedback = await getBetaFeedbackSummary(14);
   const banner = resolveNotice(params);
@@ -88,6 +92,7 @@ export default async function AdminOpsPage({ searchParams }: AdminOpsPageProps) 
 
           <BetaOpsSignals alerts={alerts} />
           <CityReadinessPanel rows={readinessRows} />
+          <StationEditorialQueue items={editorialQueue} />
 
           <div className="grid gap-3 sm:grid-cols-3">
             <form action={runAuditRefreshAction}>
@@ -183,7 +188,7 @@ export default async function AdminOpsPage({ searchParams }: AdminOpsPageProps) 
             <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
               <p className="text-xs uppercase tracking-[0.2em] text-white/42">Cidades Fracas (Oportunidade)</p>
               <div className="mt-4 space-y-2">
-                {daily.weakCities.map((city) => (
+                {daily.weakCities.map((city: { city: string; count: number; coverageLabel: string; confidenceLabel: string }) => (
                   <div key={city.city} className="flex items-center justify-between rounded-[18px] border border-white/8 bg-black/20 px-4 py-3 text-sm">
                     <span className="text-white font-medium">{city.city}</span>
                     <span className="text-white/42">{city.coverageLabel} · {city.count} obs</span>
@@ -194,7 +199,7 @@ export default async function AdminOpsPage({ searchParams }: AdminOpsPageProps) 
             <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
               <p className="text-xs uppercase tracking-[0.2em] text-white/42">Eventos Críticos</p>
               <div className="mt-4 space-y-2">
-                {dashboard.observability.recentEvents.filter(e => e.severity === "error" || e.severity === "warning").slice(0, 5).map((event) => (
+                {dashboard.observability.recentEvents.filter((e: { severity: string }) => e.severity === "error" || e.severity === "warning").slice(0, 5).map((event: { id: string; eventType: string; severity: string; createdAt: string; reason: string | null }) => (
                   <div key={event.id} className="rounded-[18px] border border-white/8 bg-black/20 px-4 py-3 text-xs">
                     <div className="flex justify-between items-center">
                       <span className={event.severity === "error" ? "text-[color:var(--color-danger)]" : "text-[color:var(--color-warning)]"}>{event.eventType}</span>
