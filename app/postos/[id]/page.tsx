@@ -68,7 +68,7 @@ export default async function StationPage({ params, searchParams }: StationPageP
   const latest = station.latestReports[0];
   const marketPresence = getStationMarketPresence(station);
   const stationAuditHref = (`/auditoria/posto/${id}?fuel=${selectedFuel}&days=${selectedDays}` as Route);
-  const sendPriceHref = (`/enviar?stationId=${id}&returnTo=${encodeURIComponent(returnToHref)}#photo` as Route);
+  const sendPriceHref = (`/enviar?stationId=${id}&fuel=${selectedFuel}&returnTo=${encodeURIComponent(returnToHref)}#photo` as Route);
   const backHref = returnToHref as Route;
 
   return (

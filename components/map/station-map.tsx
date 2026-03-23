@@ -40,8 +40,9 @@ function getStationHref(stationId: string, returnToHref?: string) {
   return returnToHref ? (`/postos/${stationId}?returnTo=${encodeURIComponent(returnToHref)}` as Route) : (`/postos/${stationId}` as Route);
 }
 
-function getSendHref(stationId: string, returnToHref?: string) {
-  const base = `/enviar?stationId=${stationId}#photo`;
+function getSendHref(stationId: string, returnToHref?: string, fuelFilter?: FuelFilter) {
+  const fuelParam = fuelFilter && fuelFilter !== "all" ? `&fuel=${fuelFilter}` : "";
+  const base = `/enviar?stationId=${stationId}${fuelParam}#photo`;
   return returnToHref ? (`${base}&returnTo=${encodeURIComponent(returnToHref)}` as Route) : (base as Route);
 }
 
@@ -89,7 +90,7 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
         {mapStations.map((station) => {
           const selectedReportForStation = getSelectedStationReport(station, fuelFilter);
           const stationHref = getStationHref(station.id, returnToHref);
-          const sendHref = getSendHref(station.id, returnToHref);
+          const sendHref = getSendHref(station.id, returnToHref, fuelFilter);
           const recencyTone = selectedReportForStation ? getRecencyTone(selectedReportForStation.reportedAt) : "stale";
           const pinStatus = station.geoReviewStatus === "manual_review" ? "review" : selectedReportForStation && recencyTone !== "stale" ? "recent" : "stale";
 
@@ -192,11 +193,11 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
                   Abrir posto
                 </ButtonLink>
                 <ButtonLink
-                  href={getSendHref(selectedStation.id, returnToHref)}
+                  href={getSendHref(selectedStation.id, returnToHref, fuelFilter)}
                   className="flex-1"
                   onClick={() => {
                     rememberStationVisit({ id: selectedStation.id, name: selectedStation.name, city: selectedStation.city });
-                    void trackProductEvent({ eventType: "submit_opened", pagePath: getSendHref(selectedStation.id, returnToHref), pageTitle: selectedStation.name, stationId: selectedStation.id, city: selectedStation.city, fuelType: selectedReport?.fuelType ?? null, scopeType: "submission", scopeId: selectedStation.id, payload: { source: "map-card-send" } });
+                    void trackProductEvent({ eventType: "submit_opened", pagePath: getSendHref(selectedStation.id, returnToHref, fuelFilter), pageTitle: selectedStation.name, stationId: selectedStation.id, city: selectedStation.city, fuelType: selectedReport?.fuelType ?? null, scopeType: "submission", scopeId: selectedStation.id, payload: { source: "map-card-send" } });
                   }}
                 >
                   Enviar preço agora

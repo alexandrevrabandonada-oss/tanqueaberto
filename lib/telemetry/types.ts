@@ -5,6 +5,8 @@ export type ProductTelemetryEventType =
   | "station_opened"
   | "submit_opened"
   | "submission_started"
+  | "submission_step"
+  | "submission_abandoned"
   | "submission_failed"
   | "submission_accepted"
   | "audit_opened"

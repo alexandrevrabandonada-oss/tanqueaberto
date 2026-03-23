@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
 import { getStationOptions } from "@/lib/data";
+import type { FuelType } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -24,12 +25,19 @@ function safeReturnTo(value: string | string[] | undefined) {
   return candidate.startsWith("/") ? candidate : "";
 }
 
+function parseFuel(value: string | string[] | undefined): FuelType | undefined {
+  const candidate = firstValue(value);
+  const allowed: FuelType[] = ["gasolina_comum", "gasolina_aditivada", "etanol", "diesel_s10", "diesel_comum", "gnv"];
+  return allowed.includes(candidate as FuelType) ? (candidate as FuelType) : undefined;
+}
+
 export default async function SubmitPage({ searchParams }: SubmitPageProps) {
   const params = (await searchParams) ?? {};
   const stations = await getStationOptions();
   const initialStationId = firstValue(params.stationId);
   const returnToHref = safeReturnTo(params.returnTo);
   const initialStation = initialStationId ? stations.find((station) => station.id === initialStationId) ?? null : null;
+  const initialFuelType = parseFuel(params.fuel);
 
   return (
     <AppShell>
@@ -68,7 +76,7 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
             Tirar foto agora
           </a>
         </div>
-        <PriceSubmitForm stations={stations} initialStationId={initialStation?.id} returnToHref={returnToHref || undefined} />
+        <PriceSubmitForm stations={stations} initialStationId={initialStation?.id} initialFuelType={initialFuelType} returnToHref={returnToHref || undefined} />
         <div className="rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/58">
           <div className="flex items-center gap-2 text-white/80">
             <ShieldCheck className="h-4 w-4 text-[color:var(--color-accent)]" />

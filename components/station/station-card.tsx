@@ -24,14 +24,15 @@ function getStationHref(stationId: string, returnToHref?: string) {
   return returnToHref ? (`/postos/${stationId}?returnTo=${encodeURIComponent(returnToHref)}` as Route) : (`/postos/${stationId}` as Route);
 }
 
-function getSendHref(stationId: string, returnToHref?: string) {
-  return returnToHref ? (`/enviar?stationId=${stationId}&returnTo=${encodeURIComponent(returnToHref)}#photo` as Route) : ((`/enviar?stationId=${stationId}#photo`) as Route);
+function getSendHref(stationId: string, returnToHref?: string, fuelFilter?: "all" | FuelType) {
+  const fuelParam = fuelFilter && fuelFilter !== "all" ? `&fuel=${fuelFilter}` : "";
+  return returnToHref ? (`/enviar?stationId=${stationId}${fuelParam}&returnTo=${encodeURIComponent(returnToHref)}#photo` as Route) : ((`/enviar?stationId=${stationId}${fuelParam}#photo`) as Route);
 }
 
 export function StationCard({ station, fuelFilter = "all", returnToHref }: StationCardProps) {
   const latest: PriceReport | null = getSelectedStationReport(station, fuelFilter);
   const stationHref = getStationHref(station.id, returnToHref);
-  const sendHref = getSendHref(station.id, returnToHref);
+  const sendHref = getSendHref(station.id, returnToHref, fuelFilter);
   const latestTone = latest ? getRecencyTone(latest.reportedAt) : "stale";
   const latestLabel = latest
     ? latestTone === "stale"
