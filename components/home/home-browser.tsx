@@ -152,6 +152,31 @@ export function HomeBrowser({
     setIsHydrated(true);
   }, [initialCity, initialFuelFilter, initialPresenceFilter, initialQuery, initialRecencyFilter]);
 
+  const selectedReadiness = useMemo(() => {
+    if (!selectedCity) return null;
+    return territorialSummary.find(group => 
+      group.name.trim().toUpperCase() === selectedCity.trim().toUpperCase() || 
+      (group as any).city?.trim().toUpperCase() === selectedCity.trim().toUpperCase()
+    );
+  }, [selectedCity, territorialSummary]);
+
+  const expansionSignal = useMemo(() => {
+    if (!selectedReadiness) return null;
+    switch (selectedReadiness.status) {
+      case "ready": return { text: "Este recorte já está forte.", icon: "✨" };
+      case "validating": return { text: "Recorte em validação técnica.", icon: "🧪" };
+      case "limited": return { text: "Aqui sua contribuição é especialmente útil.", icon: "🧱" };
+      default: return null;
+    }
+  }, [selectedReadiness]);
+
+  const cityOptions = useMemo(() => {
+    const allCities = Array.from(new Set(stations.map((station) => station.city).filter(Boolean))).sort((left, right) => left.localeCompare(right, "pt-BR"));
+    const priority = priorityCities.filter((city) => allCities.some((item) => item.localeCompare(city, "pt-BR") === 0));
+    const others = allCities.filter((city) => !priority.some((item) => item.localeCompare(city, "pt-BR") === 0));
+    return { priority, others, allCities };
+  }, [stations]);
+
   useEffect(() => {
     if (!isHydrated) {
       return;
@@ -172,31 +197,6 @@ export function HomeBrowser({
       });
     }
   }, [fuelFilter, isHydrated, presenceFilter, query, recencyFilter, selectedCity, selectedReadiness]);
-
-  const cityOptions = useMemo(() => {
-    const allCities = Array.from(new Set(stations.map((station) => station.city).filter(Boolean))).sort((left, right) => left.localeCompare(right, "pt-BR"));
-    const priority = priorityCities.filter((city) => allCities.some((item) => item.localeCompare(city, "pt-BR") === 0));
-    const others = allCities.filter((city) => !priority.some((item) => item.localeCompare(city, "pt-BR") === 0));
-    return { priority, others, allCities };
-  }, [stations]);
-
-  const selectedReadiness = useMemo(() => {
-    if (!selectedCity) return null;
-    return territorialSummary.find(group => 
-      group.name.trim().toUpperCase() === selectedCity.trim().toUpperCase() || 
-      (group as any).city?.trim().toUpperCase() === selectedCity.trim().toUpperCase()
-    );
-  }, [selectedCity, territorialSummary]);
-
-  const expansionSignal = useMemo(() => {
-    if (!selectedReadiness) return null;
-    switch (selectedReadiness.status) {
-      case "ready": return { text: "Este recorte já está forte.", icon: "✨" };
-      case "validating": return { text: "Recorte em validação técnica.", icon: "🧪" };
-      case "limited": return { text: "Aqui sua contribuição é especialmente útil.", icon: "🧱" };
-      default: return null;
-    }
-  }, [selectedReadiness]);
 
   const stationsWithDistances = useMemo(() => {
     if (!coords) return stations;
