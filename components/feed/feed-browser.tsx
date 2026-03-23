@@ -25,7 +25,7 @@ export function FeedBrowser({ feed }: FeedBrowserProps) {
   const deferredQuery = useDeferredValue(query);
 
   const filteredFeed = useMemo(
-    () => filterReports(feed, deferredQuery, fuelFilter, recencyFilter),
+    () => filterReports(feed, deferredQuery, "", fuelFilter, recencyFilter),
     [deferredQuery, feed, fuelFilter, recencyFilter]
   );
 

@@ -4,6 +4,7 @@ import { getRecencyTone } from "@/lib/format/time";
 export type FuelFilter = "all" | FuelType;
 export type RecencyFilter = "all" | "24h" | "48h";
 export type StationPresenceFilter = "all" | "recent";
+export type StationCityFilter = string;
 
 export interface SearchableStation {
   name: string;
@@ -16,9 +17,17 @@ export interface SearchableStation {
 function normalize(value: string) {
   return value
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[̀-ͯ]/g, "")
     .trim()
     .toLowerCase();
+}
+
+function matchesCityFilter(city: string, filter: StationCityFilter) {
+  if (!filter) {
+    return true;
+  }
+
+  return normalize(city) === normalize(filter);
 }
 
 export function matchesSearchTerm(station: SearchableStation, query: string) {
@@ -62,9 +71,19 @@ export function hasRecentStationPrice(station: StationWithReports, referenceDate
   return getRecencyTone(latest.reportedAt, referenceDate) !== "stale";
 }
 
+export function hasRecentStationPriceForFilter(station: StationWithReports, fuelFilter: FuelFilter, referenceDate = new Date()) {
+  const report = getSelectedStationReport(station, fuelFilter);
+  if (!report) {
+    return false;
+  }
+
+  return getRecencyTone(report.reportedAt, referenceDate) !== "stale";
+}
+
 export function filterStations(
   stations: StationWithReports[],
   query: string,
+  cityFilter: StationCityFilter,
   fuelFilter: FuelFilter,
   recencyFilter: RecencyFilter,
   presenceFilter: StationPresenceFilter = "all"
@@ -74,12 +93,16 @@ export function filterStations(
       return false;
     }
 
-    if (presenceFilter === "recent" && !hasRecentStationPrice(station)) {
+    if (!matchesCityFilter(station.city, cityFilter)) {
       return false;
     }
 
     const report = getSelectedStationReport(station, fuelFilter);
     if (!report && fuelFilter !== "all") {
+      return false;
+    }
+
+    if (presenceFilter === "recent" && !hasRecentStationPriceForFilter(station, fuelFilter)) {
       return false;
     }
 
@@ -91,9 +114,13 @@ export function filterStations(
   });
 }
 
-export function filterReports(reports: ReportWithStation[], query: string, fuelFilter: FuelFilter, recencyFilter: RecencyFilter) {
+export function filterReports(reports: ReportWithStation[], query: string, cityFilter: StationCityFilter, fuelFilter: FuelFilter, recencyFilter: RecencyFilter) {
   return reports.filter((report) => {
     if (!matchesSearchTerm({ ...report.station, address: "" }, query)) {
+      return false;
+    }
+
+    if (!matchesCityFilter(report.station.city, cityFilter)) {
       return false;
     }
 

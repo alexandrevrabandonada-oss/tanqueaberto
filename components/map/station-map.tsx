@@ -10,16 +10,19 @@ import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import type { StationWithReports } from "@/lib/types";
 import { fuelLabels } from "@/lib/format/labels";
-import { canShowStationOnMap, getStationMarketPresence } from "@/lib/quality/stations";
+import { canShowStationOnMap } from "@/lib/quality/stations";
 import { formatCurrencyBRL } from "@/lib/format/currency";
 import { formatRecencyLabel, getRecencyTone, recencyToneToBadgeVariant } from "@/lib/format/time";
 import { cn } from "@/lib/utils";
 import { trackProductEvent } from "@/lib/telemetry/client";
+import { getSelectedStationReport, type FuelFilter } from "@/lib/filters/public";
+import { rememberStationVisit } from "@/lib/navigation/home-context";
 
 interface StationMapProps {
   stations: StationWithReports[];
   className?: string;
   returnToHref?: string;
+  fuelFilter?: FuelFilter;
 }
 
 function createPinIcon(status: "recent" | "stale" | "review") {
@@ -42,21 +45,20 @@ function getSendHref(stationId: string, returnToHref?: string) {
   return returnToHref ? (`${base}&returnTo=${encodeURIComponent(returnToHref)}` as Route) : (base as Route);
 }
 
-export function StationMap({ stations, className = "h-[360px]", returnToHref }: StationMapProps) {
+export function StationMap({ stations, className = "h-[360px]", returnToHref, fuelFilter = "all" }: StationMapProps) {
   const mapStations = stations.filter((station) => canShowStationOnMap(station));
   const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
 
-  const selectedStation = useMemo(
-    () => mapStations.find((station) => station.id === selectedStationId) ?? null,
-    [mapStations, selectedStationId]
-  );
+  const selectedStation = useMemo(() => mapStations.find((station) => station.id === selectedStationId) ?? null, [mapStations, selectedStationId]);
+  const selectedReport = selectedStation ? getSelectedStationReport(selectedStation, fuelFilter) : null;
+  const selectedTone = selectedReport ? getRecencyTone(selectedReport.reportedAt) : "stale";
 
   if (mapStations.length === 0) {
     return (
       <div className={cn("grid place-items-center rounded-[28px] border border-white/8 bg-black/30 px-6 text-center text-sm text-white/58", className)}>
         <div className="space-y-2">
           <p className="text-base font-semibold text-white">Ainda não há coordenadas confiáveis para mostrar no mapa.</p>
-          <p>Tente outro bairro, cidade ou aguarde a curadoria concluir a localização.</p>
+          <p>Tente outra cidade, outro bairro ou aguarde a curadoria concluir a localização.</p>
         </div>
       </div>
     );
@@ -85,22 +87,24 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref }: 
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         {mapStations.map((station) => {
-          const latest = station.latestReports[0];
+          const selectedReportForStation = getSelectedStationReport(station, fuelFilter);
           const stationHref = getStationHref(station.id, returnToHref);
           const sendHref = getSendHref(station.id, returnToHref);
-          const marketPresence = getStationMarketPresence(station);
-          const recencyTone = latest ? getRecencyTone(latest.reportedAt) : "stale";
-          const pinStatus = station.geoReviewStatus === "manual_review" ? "review" : marketPresence === "recent" ? "recent" : "stale";
+          const recencyTone = selectedReportForStation ? getRecencyTone(selectedReportForStation.reportedAt) : "stale";
+          const pinStatus = station.geoReviewStatus === "manual_review" ? "review" : selectedReportForStation && recencyTone !== "stale" ? "recent" : "stale";
 
           return (
             <Marker
               key={station.id}
               position={[station.lat, station.lng]}
               icon={createPinIcon(pinStatus)}
-              eventHandlers={{ click: () => {
-                setSelectedStationId(station.id);
-                void trackProductEvent({ eventType: "station_clicked", pagePath: returnToHref ?? "/", pageTitle: station.name, stationId: station.id, city: station.city, fuelType: latest?.fuelType ?? null, scopeType: "station", scopeId: station.id, payload: { source: "map-pin" } });
-              } }}
+              eventHandlers={{
+                click: () => {
+                  setSelectedStationId(station.id);
+                  rememberStationVisit({ id: station.id, name: station.name, city: station.city });
+                  void trackProductEvent({ eventType: "station_clicked", pagePath: returnToHref ?? "/", pageTitle: station.name, stationId: station.id, city: station.city, fuelType: selectedReportForStation?.fuelType ?? null, scopeType: "station", scopeId: station.id, payload: { source: "map-pin" } });
+                }
+              }}
             >
               <Popup>
                 <div className="space-y-2">
@@ -111,22 +115,34 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref }: 
                     </p>
                   </div>
                   <Badge variant={pinStatus === "recent" ? recencyToneToBadgeVariant(recencyTone) : pinStatus === "review" ? "warning" : "outline"}>
-                    {pinStatus === "recent" ? `Atualizado ${formatRecencyLabel(latest!.reportedAt)}` : pinStatus === "review" ? "Localização em revisão" : "Sem atualização recente"}
+                    {pinStatus === "recent"
+                      ? `Atualizado ${formatRecencyLabel(selectedReportForStation!.reportedAt)}`
+                      : pinStatus === "review"
+                        ? "Localização em revisão"
+                        : "Sem atualização recente"}
                   </Badge>
-                  {latest ? (
+                  {selectedReportForStation ? (
                     <div className="space-y-1 text-xs text-zinc-700">
                       <p>
-                        {fuelLabels[latest.fuelType]}: <strong>{formatCurrencyBRL(latest.price)}</strong>
+                        {fuelLabels[selectedReportForStation.fuelType]}: <strong>{formatCurrencyBRL(selectedReportForStation.price)}</strong>
                       </p>
                     </div>
                   ) : (
                     <p className="text-xs text-zinc-600">Posto cadastrado no território, sem preço recente aprovado.</p>
                   )}
                   <div className="flex flex-wrap gap-2 pt-1">
-                    <Link href={stationHref} className="text-xs font-semibold text-zinc-900 underline">
+                    <Link
+                      href={stationHref}
+                      className="text-xs font-semibold text-zinc-900 underline"
+                      onClick={() => rememberStationVisit({ id: station.id, name: station.name, city: station.city })}
+                    >
                       Ver posto
                     </Link>
-                    <Link href={sendHref} className="text-xs font-semibold text-zinc-900 underline">
+                    <Link
+                      href={sendHref}
+                      className="text-xs font-semibold text-zinc-900 underline"
+                      onClick={() => rememberStationVisit({ id: station.id, name: station.name, city: station.city })}
+                    >
                       Enviar preço
                     </Link>
                   </div>
@@ -149,22 +165,41 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref }: 
                     {selectedStation.neighborhood}, {selectedStation.city}
                   </p>
                 </div>
-                <Badge variant={selectedStation.latestReports[0] ? recencyToneToBadgeVariant(getRecencyTone(selectedStation.latestReports[0].reportedAt)) : "outline"}>
-                  {selectedStation.latestReports[0] ? formatRecencyLabel(selectedStation.latestReports[0].reportedAt) : "Sem preço"}
+                <Badge variant={selectedReport ? recencyToneToBadgeVariant(selectedTone) : "outline"}>
+                  {selectedReport ? formatRecencyLabel(selectedReport.reportedAt) : "Sem preço"}
                 </Badge>
               </div>
               <div className="flex flex-wrap gap-2 text-xs text-white/56">
-                {selectedStation.latestReports[0] ? (
-                  <Badge variant="default">{fuelLabels[selectedStation.latestReports[0].fuelType]} {formatCurrencyBRL(selectedStation.latestReports[0].price)}</Badge>
-                ) : null}
+                {selectedReport ? <Badge variant="default">{fuelFilter === "all" ? fuelLabels[selectedReport.fuelType] : `Filtro: ${fuelLabels[fuelFilter]}`}</Badge> : null}
+                {selectedReport ? <Badge variant={recencyToneToBadgeVariant(selectedTone)}>{selectedTone === "stale" ? "Sem atualização recente" : "Preço recente"}</Badge> : <Badge variant="outline">Posto cadastrado</Badge>}
                 {selectedStation.geoReviewStatus === "manual_review" ? <Badge variant="warning">Localização em revisão</Badge> : null}
               </div>
+              <p className="text-sm text-white/58">
+                {selectedReport
+                  ? `${fuelLabels[selectedReport.fuelType]} · ${formatCurrencyBRL(selectedReport.price)} · ${formatRecencyLabel(selectedReport.reportedAt)}`
+                  : "Posto cadastrado no território, sem preço recente aprovado."}
+              </p>
               <div className="flex gap-2">
-                <ButtonLink href={getStationHref(selectedStation.id, returnToHref)} variant="secondary" className="flex-1" onClick={() => void trackProductEvent({ eventType: "station_clicked", pagePath: getStationHref(selectedStation.id, returnToHref), pageTitle: selectedStation.name, stationId: selectedStation.id, city: selectedStation.city, fuelType: selectedStation.latestReports[0]?.fuelType ?? null, scopeType: "station", scopeId: selectedStation.id, payload: { source: "map-card-open" } })}>
+                <ButtonLink
+                  href={getStationHref(selectedStation.id, returnToHref)}
+                  variant="secondary"
+                  className="flex-1"
+                  onClick={() => {
+                    rememberStationVisit({ id: selectedStation.id, name: selectedStation.name, city: selectedStation.city });
+                    void trackProductEvent({ eventType: "station_clicked", pagePath: getStationHref(selectedStation.id, returnToHref), pageTitle: selectedStation.name, stationId: selectedStation.id, city: selectedStation.city, fuelType: selectedReport?.fuelType ?? null, scopeType: "station", scopeId: selectedStation.id, payload: { source: "map-card-open" } });
+                  }}
+                >
                   Abrir posto
                 </ButtonLink>
-                <ButtonLink href={getSendHref(selectedStation.id, returnToHref)} className="flex-1" onClick={() => void trackProductEvent({ eventType: "submit_opened", pagePath: getSendHref(selectedStation.id, returnToHref), pageTitle: selectedStation.name, stationId: selectedStation.id, city: selectedStation.city, fuelType: selectedStation.latestReports[0]?.fuelType ?? null, scopeType: "submission", scopeId: selectedStation.id, payload: { source: "map-card-send" } })}>
-                  Enviar preço
+                <ButtonLink
+                  href={getSendHref(selectedStation.id, returnToHref)}
+                  className="flex-1"
+                  onClick={() => {
+                    rememberStationVisit({ id: selectedStation.id, name: selectedStation.name, city: selectedStation.city });
+                    void trackProductEvent({ eventType: "submit_opened", pagePath: getSendHref(selectedStation.id, returnToHref), pageTitle: selectedStation.name, stationId: selectedStation.id, city: selectedStation.city, fuelType: selectedReport?.fuelType ?? null, scopeType: "submission", scopeId: selectedStation.id, payload: { source: "map-card-send" } });
+                  }}
+                >
+                  Enviar preço agora
                 </ButtonLink>
               </div>
             </div>
@@ -181,6 +216,3 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref }: 
     </div>
   );
 }
-
-
-

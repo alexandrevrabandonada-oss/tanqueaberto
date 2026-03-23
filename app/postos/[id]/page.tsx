@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, Camera, Clock3, MapPinned } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { ProductEvent } from "@/components/telemetry/product-event";
 import { PriceTable } from "@/components/station/price-table";
+import { RememberStationVisit } from "@/components/navigation/remember-station";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
@@ -73,6 +74,7 @@ export default async function StationPage({ params, searchParams }: StationPageP
   return (
     <AppShell>
       <ProductEvent eventType="station_opened" pagePath={"/postos/" + id} pageTitle={getStationPublicName(station)} stationId={id} city={station.city} fuelType={latest?.fuelType ?? null} scopeType="station" scopeId={id} />
+      <RememberStationVisit stationId={id} stationName={getStationPublicName(station)} city={station.city} />
       <SectionCard className="space-y-5">
         <div className="flex items-start justify-between gap-4">
           <div>

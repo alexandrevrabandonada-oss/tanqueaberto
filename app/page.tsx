@@ -29,6 +29,11 @@ function parsePresence(value: string | string[] | undefined): StationPresenceFil
   return candidate === "recent" ? "recent" : "all";
 }
 
+function parseCity(value: string | string[] | undefined) {
+  const candidate = firstValue(value).trim();
+  return candidate === "all" ? "" : candidate;
+}
+
 export default async function HomePage({ searchParams }: HomePageProps) {
   const params = (await searchParams) ?? {};
   const [stations, feed, recentCount] = await Promise.all([getHomeStations(), getRecentFeed(), getRecentApprovedCount()]);
@@ -41,6 +46,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         recentCount={recentCount}
         betaClosed={isBetaClosed()}
         initialQuery={firstValue(params.q)}
+        initialCity={parseCity(params.city)}
         initialFuelFilter={parseFuel(params.fuel)}
         initialRecencyFilter={parseRecency(params.recency)}
         initialPresenceFilter={parsePresence(params.presence)}

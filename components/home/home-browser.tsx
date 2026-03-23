@@ -1,7 +1,7 @@
 "use client";
 
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, Camera, Clock3, Search, X } from "lucide-react";
+import { ArrowRight, Camera, Clock3, Search, SlidersHorizontal, X } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
 
@@ -17,8 +17,10 @@ import { formatCurrencyBRL } from "@/lib/format/currency";
 import { formatDateTimeBR } from "@/lib/format/time";
 import { formatRecencyLabel, getRecencyTone, recencyToneToBadgeVariant } from "@/lib/format/time";
 import { fuelLabels, publicFuelFilters, recencyFilters } from "@/lib/format/labels";
-import { filterReports, filterStations, getSelectedStationReport, type StationPresenceFilter } from "@/lib/filters/public";
-import { canShowStationOnMap, hasPendingStationLocationReview, hasRecentStationPrice } from "@/lib/quality/stations";
+import { filterReports, filterStations, getSelectedStationReport, hasRecentStationPriceForFilter, type StationPresenceFilter } from "@/lib/filters/public";
+import { sortStationsForPublicView } from "@/lib/filters/sort";
+import { canShowStationOnMap, hasPendingStationLocationReview } from "@/lib/quality/stations";
+import { persistHomeContext, priorityCities, readHomeContext, readLastStationContext, rememberStationVisit } from "@/lib/navigation/home-context";
 import type { FuelFilter, RecencyFilter } from "@/lib/filters/public";
 import type { ReportWithStation, StationWithReports } from "@/lib/types";
 
@@ -28,19 +30,53 @@ interface HomeBrowserProps {
   recentCount: number;
   betaClosed?: boolean;
   initialQuery?: string;
+  initialCity?: string;
   initialFuelFilter?: FuelFilter;
   initialRecencyFilter?: RecencyFilter;
   initialPresenceFilter?: StationPresenceFilter;
 }
 
-function buildContextHref(query: string, fuelFilter: FuelFilter, recencyFilter: RecencyFilter, presenceFilter: StationPresenceFilter) {
+function buildContextHref(query: string, city: string, fuelFilter: FuelFilter, recencyFilter: RecencyFilter, presenceFilter: StationPresenceFilter) {
   const params = new URLSearchParams();
   if (query) params.set("q", query);
+  if (city) params.set("city", city);
   if (fuelFilter !== "all") params.set("fuel", fuelFilter);
   if (recencyFilter !== "all") params.set("recency", recencyFilter);
   if (presenceFilter !== "all") params.set("presence", presenceFilter);
   const suffix = params.toString();
   return suffix ? `/?${suffix}` : "/";
+}
+
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  options
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: Array<{ value: string; label: string }>;
+}) {
+  return (
+    <label className="space-y-2 rounded-[22px] border border-white/8 bg-black/30 px-4 py-3 text-sm text-white/58">
+      <span className="block text-xs uppercase tracking-[0.18em] text-white/42">{label}</span>
+      <div className="relative">
+        <select
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="w-full appearance-none rounded-[16px] border border-white/8 bg-black/45 px-3 py-3 pr-10 text-sm text-white outline-none transition focus:border-[color:var(--color-accent)]"
+        >
+          {options.map((item) => (
+            <option key={item.value} value={item.value} className="bg-zinc-900 text-white">
+              {item.label}
+            </option>
+          ))}
+        </select>
+        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-white/40">▾</span>
+      </div>
+    </label>
+  );
 }
 
 export function HomeBrowser({
@@ -49,14 +85,18 @@ export function HomeBrowser({
   recentCount,
   betaClosed = false,
   initialQuery = "",
+  initialCity = "",
   initialFuelFilter = "all",
   initialRecencyFilter = "all",
   initialPresenceFilter = "all"
 }: HomeBrowserProps) {
   const [query, setQuery] = useState(initialQuery);
+  const [selectedCity, setSelectedCity] = useState(initialCity);
   const [fuelFilter, setFuelFilter] = useState<FuelFilter>(initialFuelFilter);
   const [recencyFilter, setRecencyFilter] = useState<RecencyFilter>(initialRecencyFilter);
   const [presenceFilter, setPresenceFilter] = useState<StationPresenceFilter>(initialPresenceFilter);
+  const [lastStation, setLastStation] = useState<ReturnType<typeof readLastStationContext>>(() => null);
+  const [isHydrated, setIsHydrated] = useState(false);
   const lastTrackedSearchRef = useRef(initialQuery);
   const deferredQuery = useDeferredValue(query);
 
@@ -64,23 +104,79 @@ export function HomeBrowser({
     void trackProductEvent({ eventType: "home_opened", pagePath: "/", pageTitle: "Mapa vivo", scopeType: "page", scopeId: "/" });
   }, []);
 
+  useEffect(() => {
+    const storedContext = readHomeContext();
+    const storedLastStation = readLastStationContext();
+
+    if (!initialQuery && storedContext.query) {
+      setQuery(storedContext.query);
+    }
+
+    if (!initialCity && storedContext.city) {
+      setSelectedCity(storedContext.city);
+    }
+
+    if (initialFuelFilter === "all" && storedContext.fuelFilter && storedContext.fuelFilter !== "all") {
+      setFuelFilter(storedContext.fuelFilter);
+    }
+
+    if (initialRecencyFilter === "all" && storedContext.recencyFilter && storedContext.recencyFilter !== "all") {
+      setRecencyFilter(storedContext.recencyFilter);
+    }
+
+    if (initialPresenceFilter === "all" && storedContext.presenceFilter && storedContext.presenceFilter !== "all") {
+      setPresenceFilter(storedContext.presenceFilter);
+    }
+
+    if (storedLastStation) {
+      setLastStation(storedLastStation);
+    }
+
+    setIsHydrated(true);
+  }, [initialCity, initialFuelFilter, initialPresenceFilter, initialQuery, initialRecencyFilter]);
+
+  useEffect(() => {
+    if (!isHydrated) {
+      return;
+    }
+
+    persistHomeContext({ query, city: selectedCity, fuelFilter, recencyFilter, presenceFilter });
+  }, [fuelFilter, isHydrated, presenceFilter, query, recencyFilter, selectedCity]);
+
+  const cityOptions = useMemo(() => {
+    const allCities = Array.from(new Set(stations.map((station) => station.city).filter(Boolean))).sort((left, right) => left.localeCompare(right, "pt-BR"));
+    const priority = priorityCities.filter((city) => allCities.some((item) => item.localeCompare(city, "pt-BR") === 0));
+    const others = allCities.filter((city) => !priority.some((item) => item.localeCompare(city, "pt-BR") === 0));
+    return { priority, others, allCities };
+  }, [stations]);
+
   const filteredStations = useMemo(
-    () => filterStations(stations, deferredQuery, fuelFilter, recencyFilter, presenceFilter),
-    [deferredQuery, fuelFilter, presenceFilter, recencyFilter, stations]
+    () => filterStations(stations, deferredQuery, selectedCity, fuelFilter, recencyFilter, presenceFilter),
+    [deferredQuery, fuelFilter, presenceFilter, recencyFilter, selectedCity, stations]
   );
   const filteredFeed = useMemo(
-    () => filterReports(feed, deferredQuery, fuelFilter, recencyFilter),
-    [deferredQuery, feed, fuelFilter, recencyFilter]
+    () => filterReports(feed, deferredQuery, selectedCity, fuelFilter, recencyFilter),
+    [deferredQuery, feed, fuelFilter, recencyFilter, selectedCity]
   );
-  const visibleStations = useMemo(() => filteredStations.filter((station) => canShowStationOnMap(station)), [filteredStations]);
-  const stationsWithRecentPrice = useMemo(() => visibleStations.filter((station) => hasRecentStationPrice(station)), [visibleStations]);
+  const orderedStations = useMemo(
+    () => sortStationsForPublicView(filteredStations, { cityFilter: selectedCity, fuelFilter }),
+    [filteredStations, fuelFilter, selectedCity]
+  );
+  const visibleStations = useMemo(() => orderedStations.filter((station) => canShowStationOnMap(station)), [orderedStations]);
+  const stationsWithRecentPrice = useMemo(
+    () => visibleStations.filter((station) => hasRecentStationPriceForFilter(station, fuelFilter)),
+    [fuelFilter, visibleStations]
+  );
   const stationsWithoutRecentPrice = visibleStations.length - stationsWithRecentPrice.length;
-  const reviewStations = useMemo(() => filteredStations.filter((station) => hasPendingStationLocationReview(station)), [filteredStations]);
-  const noRecentStations = useMemo(() => visibleStations.filter((station) => !hasRecentStationPrice(station)).slice(0, 4), [visibleStations]);
-  const contextHref = useMemo(() => buildContextHref(query, fuelFilter, recencyFilter, presenceFilter), [query, fuelFilter, recencyFilter, presenceFilter]);
+  const reviewStations = useMemo(() => orderedStations.filter((station) => hasPendingStationLocationReview(station)), [orderedStations]);
+  const noRecentStations = useMemo(
+    () => orderedStations.filter((station) => !hasRecentStationPriceForFilter(station, fuelFilter)).slice(0, 4),
+    [fuelFilter, orderedStations]
+  );
+  const contextHref = useMemo(() => buildContextHref(query, selectedCity, fuelFilter, recencyFilter, presenceFilter), [fuelFilter, presenceFilter, query, recencyFilter, selectedCity]);
 
   const cheapestNow = useMemo(() => {
-    return filteredStations
+    return orderedStations
       .map((station) => {
         const report = getSelectedStationReport(station, fuelFilter);
         return report ? { station, report } : null;
@@ -88,11 +184,19 @@ export function HomeBrowser({
       .filter((item): item is { station: StationWithReports; report: NonNullable<ReturnType<typeof getSelectedStationReport>> } => Boolean(item))
       .sort((left, right) => left.report.price - right.report.price)
       .slice(0, 3);
-  }, [filteredStations, fuelFilter]);
+  }, [fuelFilter, orderedStations]);
 
-  const hasFilters = Boolean(query || fuelFilter !== "all" || recencyFilter !== "all" || presenceFilter !== "all");
+  const hasFilters = Boolean(query || selectedCity || fuelFilter !== "all" || recencyFilter !== "all" || presenceFilter !== "all");
   const mapStations = visibleStations;
-  const summaryStations = filteredStations.slice(0, 6);
+  const summaryStations = orderedStations.slice(0, 6);
+
+  const resetFilters = () => {
+    setQuery("");
+    setSelectedCity("");
+    setFuelFilter("all");
+    setRecencyFilter("all");
+    setPresenceFilter("all");
+  };
 
   return (
     <>
@@ -116,7 +220,7 @@ export function HomeBrowser({
         <div className="space-y-2">
           <Badge>Mapa vivo</Badge>
           <h2 className="text-[1.6rem] font-semibold leading-tight text-white">Veja o cadastro territorial e o preço recente sem misturar as duas coisas.</h2>
-          <p className="text-sm text-white/58">Busque, filtre e entenda em poucos segundos o que já está no mapa, o que já foi atualizado e o que ainda precisa de colaboração.</p>
+          <p className="text-sm text-white/58">Busque, escolha a cidade e entenda em poucos segundos o que já está no mapa, o que já foi atualizado e o que ainda precisa de colaboração.</p>
         </div>
 
         <div className="flex items-center gap-3 rounded-[22px] border border-white/8 bg-black/30 px-4 py-3 text-sm text-white/50">
@@ -149,89 +253,155 @@ export function HomeBrowser({
         </div>
 
         <div className="space-y-3">
-          <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
-            {publicFuelFilters.map((item) => (
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setSelectedCity("")}
+              className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${
+                selectedCity === "" ? "bg-[color:var(--color-accent)] text-black" : "border border-white/10 bg-white/5 text-white/66"
+              }`}
+            >
+              Todas as cidades
+            </button>
+            {cityOptions.priority.map((city) => (
               <button
-                key={item.value}
+                key={city}
                 type="button"
-                onClick={() => setFuelFilter(item.value)}
+                onClick={() => setSelectedCity(city)}
                 className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${
-                  fuelFilter === item.value ? "bg-[color:var(--color-accent)] text-black" : "border border-white/10 bg-white/5 text-white/66"
+                  selectedCity.localeCompare(city, "pt-BR") === 0 ? "bg-white text-black" : "border border-white/10 bg-white/5 text-white/66"
                 }`}
               >
-                {item.label}
+                {city}
               </button>
             ))}
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
-            {recencyFilters.map((item) => (
-              <button
-                key={item.value}
-                type="button"
-                onClick={() => setRecencyFilter(item.value)}
-                className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${
-                  recencyFilter === item.value ? "bg-white text-black" : "border border-white/10 bg-white/5 text-white/66"
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
+          <p className="text-xs leading-relaxed text-white/44">Comece por Volta Redonda, Barra Mansa ou Barra do Piraí. O recorte preferido fica salvo para a próxima visita.</p>
+
+          <div className="grid gap-3 md:grid-cols-3">
+            <FilterSelect
+              label="Combustível"
+              value={fuelFilter}
+              onChange={(value) => setFuelFilter(value as FuelFilter)}
+              options={publicFuelFilters.map((item) => ({ value: item.value, label: item.label }))}
+            />
+            <FilterSelect
+              label="Recência"
+              value={recencyFilter}
+              onChange={(value) => setRecencyFilter(value as RecencyFilter)}
+              options={recencyFilters.map((item) => ({ value: item.value, label: item.label }))}
+            />
+            <div className="space-y-2 rounded-[22px] border border-white/8 bg-black/30 px-4 py-3 text-sm text-white/58">
+              <span className="block text-xs uppercase tracking-[0.18em] text-white/42">Exibição</span>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { value: "all" as const, label: "Todos os postos" },
+                  { value: "recent" as const, label: "Só com preço recente" }
+                ].map((item) => (
+                  <button
+                    key={item.value}
+                    type="button"
+                    onClick={() => setPresenceFilter(item.value)}
+                    className={`rounded-[16px] px-3 py-3 text-xs font-semibold transition ${
+                      presenceFilter === item.value ? "bg-white text-black" : "border border-white/10 bg-white/5 text-white/66"
+                    }`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
-            {[
-              { value: "all" as const, label: "Todos os postos" },
-              { value: "recent" as const, label: "Só com preço recente" }
-            ].map((item) => (
-              <button
-                key={item.value}
-                type="button"
-                onClick={() => setPresenceFilter(item.value)}
-                className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${
-                  presenceFilter === item.value ? "bg-white text-black" : "border border-white/10 bg-white/5 text-white/66"
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-          <div className="rounded-[18px] border border-white/8 bg-white/5 px-4 py-3 text-xs leading-relaxed text-white/58">
-            <span className="font-medium text-white/72">Como ler este filtro:</span>{" "}
-            <span className="text-white/54">“Todos os postos” mostra o cadastro visível. “Só com preço recente” esconde o que ainda não foi aprovado.</span>
-          </div>
+
+          <details className="rounded-[22px] border border-white/8 bg-white/5 px-4 py-3 text-sm text-white/58">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-white/76">
+              <span className="inline-flex items-center gap-2 font-medium">
+                <SlidersHorizontal className="h-4 w-4 text-[color:var(--color-accent)]" />
+                Mais filtros
+              </span>
+              <span className="text-xs uppercase tracking-[0.18em] text-white/42">Avançado</span>
+            </summary>
+            <div className="mt-4 space-y-4">
+              <div className="space-y-2">
+                <p className="text-xs uppercase tracking-[0.18em] text-white/42">Combustíveis rápidos</p>
+                <div className="flex flex-wrap gap-2">
+                  {publicFuelFilters.map((item) => (
+                    <button
+                      key={item.value}
+                      type="button"
+                      onClick={() => setFuelFilter(item.value)}
+                      className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${
+                        fuelFilter === item.value ? "bg-[color:var(--color-accent)] text-black" : "border border-white/10 bg-white/5 text-white/66"
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {cityOptions.others.length > 0 ? (
+                <label className="space-y-2 rounded-[22px] border border-white/8 bg-black/30 px-4 py-3 text-sm text-white/58">
+                  <span className="block text-xs uppercase tracking-[0.18em] text-white/42">Outras cidades</span>
+                  <div className="relative">
+                    <select
+                      value={selectedCity && !priorityCities.some((city) => city.localeCompare(selectedCity, "pt-BR") === 0) ? selectedCity : ""}
+                      onChange={(event) => setSelectedCity(event.target.value)}
+                      className="w-full appearance-none rounded-[16px] border border-white/8 bg-black/45 px-3 py-3 pr-10 text-sm text-white outline-none transition focus:border-[color:var(--color-accent)]"
+                    >
+                      <option value="" className="bg-zinc-900 text-white">Selecionar cidade</option>
+                      {cityOptions.others.map((city) => (
+                        <option key={city} value={city} className="bg-zinc-900 text-white">
+                          {city}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-white/40">▾</span>
+                  </div>
+                </label>
+              ) : null}
+
+              <p className="text-xs leading-relaxed text-white/46">Os filtros avançados continuam disponíveis, mas ficam abaixo da decisão inicial para reduzir ruído na primeira leitura.</p>
+            </div>
+          </details>
         </div>
 
         <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-white/44">
-          <span>{filteredStations.length} postos no filtro</span>
+          <span>{orderedStations.length} postos no recorte</span>
           {hasFilters ? (
-            <button
-              type="button"
-              onClick={() => {
-                setQuery("");
-                setFuelFilter("all");
-                setRecencyFilter("all");
-                setPresenceFilter("all");
-              }}
-              className="text-white/60 transition hover:text-white"
-            >
-              Limpar busca
+            <button type="button" onClick={resetFilters} className="text-white/60 transition hover:text-white">
+              Limpar filtros
             </button>
           ) : null}
         </div>
       </SectionCard>
+
+      {lastStation ? (
+        <SectionCard className="flex items-center justify-between gap-3 border-white/8 bg-white/5">
+          <div>
+            <p className="text-xs uppercase tracking-[0.18em] text-white/42">Retomar contexto</p>
+            <h3 className="mt-1 text-lg font-semibold text-white">Último posto visto: {lastStation.name}</h3>
+            <p className="text-sm text-white/54">{lastStation.city}</p>
+          </div>
+          <ButtonLink href={(`/postos/${lastStation.id}?returnTo=${encodeURIComponent(contextHref)}` as Route)} variant="secondary">
+            Abrir novamente
+          </ButtonLink>
+        </SectionCard>
+      ) : null}
 
       <SectionCard className="space-y-3 overflow-hidden p-0">
         <div className="border-b border-white/8 px-5 pt-5">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-white/42">Mapa vivo</p>
-              <h3 className="mt-1 text-xl font-semibold text-white">Pins filtrados com legenda clara</h3>
+              <h3 className="mt-1 text-xl font-semibold text-white">Pins filtrados com leitura por cidade</h3>
             </div>
             <Link href="/enviar" className="text-sm text-[color:var(--color-accent)]">
               Enviar preço
             </Link>
           </div>
         </div>
-        <StationMapShell stations={mapStations} className="h-[440px]" returnToHref={contextHref} />
+        <StationMapShell stations={mapStations} className="h-[440px]" returnToHref={contextHref} fuelFilter={fuelFilter} />
       </SectionCard>
 
       {summaryStations.length > 0 ? (
@@ -245,10 +415,18 @@ export function HomeBrowser({
           </div>
           <div className="space-y-2">
             {summaryStations.map((station) => {
-              const latest = station.latestReports[0];
+              const latest = getSelectedStationReport(station, fuelFilter);
               const stationHref = `/postos/${station.id}?returnTo=${encodeURIComponent(contextHref)}` as Route;
               return (
-                <Link key={station.id} href={stationHref} onClick={() => void trackProductEvent({ eventType: "station_clicked", pagePath: contextHref, pageTitle: "Mapa vivo", stationId: station.id, city: station.city, fuelType: latest?.fuelType ?? null, scopeType: "station", scopeId: station.id, payload: { source: "recorte-lista" } })} className="flex items-center justify-between rounded-[20px] border border-white/8 bg-black/30 px-4 py-3 transition hover:border-[color:var(--color-accent)]/40">
+                <Link
+                  key={station.id}
+                  href={stationHref}
+                  onClick={() => {
+                    rememberStationVisit({ id: station.id, name: station.name, city: station.city });
+                    void trackProductEvent({ eventType: "station_clicked", pagePath: contextHref, pageTitle: "Mapa vivo", stationId: station.id, city: station.city, fuelType: latest?.fuelType ?? null, scopeType: "station", scopeId: station.id, payload: { source: "recorte-lista" } });
+                  }}
+                  className="flex items-center justify-between rounded-[20px] border border-white/8 bg-black/30 px-4 py-3 transition hover:border-[color:var(--color-accent)]/40"
+                >
                   <div className="min-w-0">
                     <p className="truncate font-medium text-white">{station.name}</p>
                     <p className="truncate text-sm text-white/50">
@@ -355,16 +533,16 @@ export function HomeBrowser({
           <Clock3 className="h-5 w-5 text-[color:var(--color-accent)]" />
         </div>
         <div className="space-y-3">
-          {filteredStations.length === 0 ? (
+          {orderedStations.length === 0 ? (
             <EmptyStateCard
               title="Nenhum posto encontrado para essa busca."
-              description="Tente outro bairro, cidade, combustível ou remova os filtros para voltar ao mapa completo."
+              description="Tente outra cidade, combustível ou janela de recência. Se quiser, abra os postos sem atualização para colaborar."
               actionHref="/postos/sem-atualizacao"
               actionLabel="Ver postos sem atualização"
               className="text-left"
             />
           ) : (
-            filteredStations.map((station) => <StationCard key={station.id} station={station} fuelFilter={fuelFilter} returnToHref={contextHref} />)
+            orderedStations.map((station) => <StationCard key={station.id} station={station} fuelFilter={fuelFilter} returnToHref={contextHref} />)
           )}
         </div>
       </SectionCard>
@@ -440,9 +618,3 @@ export function HomeBrowser({
     </>
   );
 }
-
-
-
-
-
-
