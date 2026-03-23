@@ -4,6 +4,7 @@ import { getCurrentAdminUser } from "@/lib/auth/admin";
 import { getBetaFeedbackSummary } from "@/lib/beta/feedback";
 import { getBetaInviteCodes } from "@/lib/beta/invites";
 import { getBetaOpsInsights } from "@/lib/ops/insights";
+import { getCityReadinessRows } from "@/lib/ops/readiness";
 import { getOperationalTelemetry } from "@/lib/ops/observability";
 
 function csvEscape(value: unknown) {
@@ -108,7 +109,7 @@ export async function GET(request: Request) {
     });
   }
 
-  if (kind === "invites") {
+    if (kind === "invites") {
     const invites = await getBetaInviteCodes(Number.isFinite(days) ? days : 25);
     const rows = invites.map((item) => ({
       code: item.code,
@@ -127,6 +128,33 @@ export async function GET(request: Request) {
       headers: {
         "content-type": "text/csv; charset=utf-8",
         "content-disposition": 'attachment; filename="bomba-aberta-beta-invites.csv"'
+      }
+    });
+  }
+
+  if (kind === "readiness") {
+    const rows = await getCityReadinessRows(Number.isFinite(days) ? days : 30);
+    const csvRows = rows.map((row) => ({
+      city: row.city,
+      city_slug: row.citySlug,
+      score: row.score,
+      traffic_light: row.trafficLight,
+      recommendation: row.recommendation,
+      visible_stations: row.visibleStations,
+      stations_with_recent_price: row.stationsWithRecentPrice,
+      approved_reports_recent: row.approvedReportsRecent,
+      negative_feedback: row.negativeFeedback,
+      upload_errors: row.uploadErrors,
+      weak_coverage_rows: row.weakCoverageRows,
+      low_coverage_rows: row.lowCoverageRows,
+      gap_density: row.gapDensity,
+      gaps: row.gaps.join(" | ")
+    }));
+
+    return new NextResponse(toCsv(csvRows), {
+      headers: {
+        "content-type": "text/csv; charset=utf-8",
+        "content-disposition": 'attachment; filename="bomba-aberta-readiness.csv"'
       }
     });
   }

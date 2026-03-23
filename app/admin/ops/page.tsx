@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
 import { OpsMetricCard } from "@/components/admin/ops/ops-metric-card";
 import { BetaInviteManager } from "@/components/admin/ops/beta-invite-manager";
+import { CityReadinessPanel } from "@/components/admin/ops/city-readiness-panel";
 import { BetaOpsSignals } from "@/components/admin/ops/beta-ops-signals";
 import { BetaFeedbackTriage } from "@/components/admin/ops/beta-feedback-triage";
 import { 
@@ -17,6 +18,7 @@ import {
 import { requireAdminUser } from "@/lib/auth/admin";
 import { getBetaFeedbackSummary } from "@/lib/beta/feedback";
 import { getBetaOpsInsights } from "@/lib/ops/insights";
+import { getCityReadinessRows } from "@/lib/ops/readiness";
 import { fuelLabels } from "@/lib/format/labels";
 import { formatDateTimeBR, formatRecencyLabel } from "@/lib/format/time";
 
@@ -46,7 +48,8 @@ interface AdminOpsPageProps {
 export default async function AdminOpsPage({ searchParams }: AdminOpsPageProps) {
   await requireAdminUser();
   const params = (await searchParams) ?? {};
-  const { dashboard, inviteSummary, daily, alerts } = await getBetaOpsInsights();
+  const [opsInsights, readinessRows] = await Promise.all([getBetaOpsInsights(), getCityReadinessRows(30)]);
+  const { dashboard, inviteSummary, daily, alerts } = opsInsights;
   const feedback = await getBetaFeedbackSummary(14);
   const banner = resolveNotice(params);
 
@@ -73,6 +76,10 @@ export default async function AdminOpsPage({ searchParams }: AdminOpsPageProps) 
                   <Download className="h-3.5 w-3.5" />
                   CSV eventos
                 </Link>
+                <Link href="/admin/ops/export?kind=readiness" className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-white/72 hover:border-[color:var(--color-accent)] hover:text-white">
+                  <Download className="h-3.5 w-3.5" />
+                  CSV readiness
+                </Link>
               </div>
             </div>
           </div>
@@ -80,6 +87,7 @@ export default async function AdminOpsPage({ searchParams }: AdminOpsPageProps) 
           {banner ? <div className="rounded-[18px] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/74">{banner}</div> : null}
 
           <BetaOpsSignals alerts={alerts} />
+          <CityReadinessPanel rows={readinessRows} />
 
           <div className="grid gap-3 sm:grid-cols-3">
             <form action={runAuditRefreshAction}>

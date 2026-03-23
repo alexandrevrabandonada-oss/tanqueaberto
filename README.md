@@ -241,7 +241,7 @@ Leitura rápida:
 
 ## Segurança operacional
 
-Para beta fechado, consulte [docs/security-operational.md](/C:/Projetos/Tanque%20Aberto/docs/security-operational.md).
+Para beta fechado, consulte [docs/security-operational.md](/C:/Projetos/Tanque%20Aberto/docs/security-operational.md) e [docs/city-readiness.md](/C:/Projetos/Tanque%20Aberto/docs/city-readiness.md).
 Esse documento explica rate limit do envio, logs administrativos, observabilidade mínima e leitura rápida de erros comuns.
 
 ## Beta fechado em domínio real

@@ -2,6 +2,26 @@ export type OpsJobType = "audit_refresh" | "audit_dossiers" | "coverage_snapshot
 export type OpsCadence = "manual" | "cron_daily" | "cron_weekly" | "cron_monthly";
 export type OpsJobStatus = "running" | "success" | "failed";
 
+export type CityReadinessTrafficLight = "green" | "yellow" | "red";
+export type CityReadinessRecommendation = "segurar" | "testar pequeno" | "pronta para ampliar";
+
+export interface CityReadinessRow {
+  city: string;
+  citySlug: string;
+  score: number;
+  trafficLight: CityReadinessTrafficLight;
+  recommendation: CityReadinessRecommendation;
+  visibleStations: number;
+  stationsWithRecentPrice: number;
+  approvedReportsRecent: number;
+  negativeFeedback: number;
+  uploadErrors: number;
+  weakCoverageRows: number;
+  lowCoverageRows: number;
+  gapDensity: number;
+  gaps: string[];
+}
+
 export interface OpsJobRun {
   id: string;
   jobType: OpsJobType;
@@ -158,4 +178,3 @@ export interface OpsDashboard {
     emptyGroups: number;
   };
 }
-

@@ -53,6 +53,21 @@ Se a taxa de bloqueio subir, o problema tende a ser abuso, repetição de envio 
 Se os erros de upload subirem, o primeiro ponto de revisão é bucket, tipo de arquivo e limite de tamanho.
 Se os erros de auth subirem, revisar allowlist, credenciais e expiração de sessão.
 
+## Readiness por cidade
+
+A regra de rollout por cidade é simples:
+
+- `segurar`: menos de 5 postos visíveis, menos de 3 postos com preço recente ou menos de 6 reports recentes.
+- `testar pequeno`: cidade com base mínima, mas score abaixo de 70 ou ainda com feedback/uploads de alerta.
+- `pronta para ampliar`: score a partir de 70, feedback negativo baixo e erros de upload controlados.
+
+Leitura prática:
+- use o painel em `/admin/ops` para comparar cidades antes de abrir beta presencial.
+- dê prioridade a Volta Redonda, Barra Mansa e Barra do Piraí.
+- se a cidade tiver cobertura baixa ou muitos vazios, segure o rollout e concentre coleta.
+- o CSV `readiness` exporta esse resumo em formato aberto.
+
+Mais detalhes de uso em `docs/city-readiness.md`.
 ## Beta fechado
 
 - O acesso público pode ser bloqueado com `NEXT_PUBLIC_BETA_CLOSED=1`.
