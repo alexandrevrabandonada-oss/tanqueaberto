@@ -523,7 +523,8 @@ function PriceSubmitFormBody({
     stations,
     state.error,
     state.errorCode,
-    state.retryable
+    state.retryable,
+    isOnline
   ]);
 
   function markStarted(step: SubmissionDraftStep, extra?: Record<string, unknown>) {

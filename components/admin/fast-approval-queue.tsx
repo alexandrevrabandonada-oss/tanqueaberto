@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import Image from "next/image";
 import { Check, X, Zap, ChevronRight, ChevronLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,48 @@ export function FastApprovalQueue({ reports }: FastApprovalQueueProps) {
   const [isPending, startTransition] = useTransition();
   const currentReport = reports[currentIndex];
 
+  const nextReport = useCallback(() => {
+    if (currentIndex < reports.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    }
+  }, [currentIndex, reports.length]);
+
+  const prevReport = useCallback(() => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+    }
+  }, [currentIndex]);
+
+  const approveCurrent = useCallback(() => {
+    if (!currentReport || isPending) return;
+    const formData = new FormData();
+    formData.append("reportId", currentReport.id);
+    formData.append("decision", "approved");
+    formData.append("moderationNote", "Aprovação rápida via Fast Lane");
+    
+    startTransition(async () => {
+      await moderateReportAction(formData);
+      if (currentIndex < reports.length - 1) {
+        setCurrentIndex(currentIndex + 1);
+      }
+    });
+  }, [currentIndex, currentReport, isPending, reports.length]);
+
+  const rejectCurrent = useCallback(() => {
+    if (!currentReport || isPending) return;
+    const formData = new FormData();
+    formData.append("reportId", currentReport.id);
+    formData.append("decision", "rejected");
+    formData.append("moderationNote", "Rejeição rápida via Fast Lane");
+    
+    startTransition(async () => {
+      await moderateReportAction(formData);
+      if (currentIndex < reports.length - 1) {
+        setCurrentIndex(currentIndex + 1);
+      }
+    });
+  }, [currentIndex, currentReport, isPending, reports.length]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
@@ -38,49 +80,7 @@ export function FastApprovalQueue({ reports }: FastApprovalQueueProps) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentIndex, reports]);
-
-  const nextReport = () => {
-    if (currentIndex < reports.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    }
-  };
-
-  const prevReport = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
-    }
-  };
-
-  const approveCurrent = () => {
-    if (!currentReport || isPending) return;
-    const formData = new FormData();
-    formData.append("reportId", currentReport.id);
-    formData.append("decision", "approved");
-    formData.append("moderationNote", "Aprovação rápida via Fast Lane");
-    
-    startTransition(async () => {
-      await moderateReportAction(formData);
-      if (currentIndex < reports.length - 1) {
-        setCurrentIndex(currentIndex + 1);
-      }
-    });
-  };
-
-  const rejectCurrent = () => {
-    if (!currentReport || isPending) return;
-    const formData = new FormData();
-    formData.append("reportId", currentReport.id);
-    formData.append("decision", "rejected");
-    formData.append("moderationNote", "Rejeição rápida via Fast Lane");
-
-    startTransition(async () => {
-      await moderateReportAction(formData);
-      if (currentIndex < reports.length - 1) {
-        setCurrentIndex(currentIndex + 1);
-      }
-    });
-  };
+  }, [approveCurrent, rejectCurrent, nextReport, prevReport]);
 
   if (reports.length === 0) {
     return (
