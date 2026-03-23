@@ -34,12 +34,12 @@ export default async function AdminOpsPage() {
                <p className="text-xs text-white/30">Última atualização</p>
                <p className="text-sm font-medium text-white/60">{formatDateTimeBR(digest.timestamp)}</p>
              </div>
-             <Link href="/api/admin/ops/export">
+             <a href="/api/admin/ops/export" download>
                 <Button variant="secondary" className="gap-2">
                   <Download className="h-4 w-4" />
                   Exportar CSV
                 </Button>
-             </Link>
+             </a>
           </div>
         </div>
       </SectionCard>
@@ -126,8 +126,8 @@ export default async function AdminOpsPage() {
                     </div>
                     <p className="text-sm leading-relaxed text-white/60">{action.description}</p>
                     <div className="flex items-center gap-2 pt-2">
-                       <Button size="sm" variant="secondary" className="h-8 text-xs">Resolver agora</Button>
-                       <Button size="sm" variant="ghost" className="h-8 text-xs opacity-0 group-hover:opacity-100">Ignorar</Button>
+                       <Button variant="secondary" className="h-8 px-3 text-xs">Resolver agora</Button>
+                       <Button variant="ghost" className="h-8 px-3 text-xs opacity-0 group-hover:opacity-100">Ignorar</Button>
                     </div>
                   </div>
                 ))
@@ -204,7 +204,7 @@ export default async function AdminOpsPage() {
               </div>
               <div className="space-y-3">
                  <div className="flex items-center justify-between text-sm">
-                   <span className="text-white/60">Grupos 'Ready'</span>
+                   <span className="text-white/60">Grupos &apos;Ready&apos;</span>
                    <span className="font-bold text-white">12</span>
                  </div>
                  <div className="flex items-center justify-between text-sm">
@@ -232,7 +232,7 @@ export default async function AdminOpsPage() {
                     <p className="text-xs text-white/40 uppercase tracking-widest">Maior Volume Pendente</p>
                     <p className="text-sm font-semibold text-white">Volta Redonda (14 reports)</p>
                  </div>
-                 <Button variant="outline" className="w-full text-xs font-bold" size="sm">Congelar Grupos Críticos</Button>
+                 <Button variant="secondary" className="w-full text-xs font-bold py-2">Congelar Grupos Críticos</Button>
               </div>
            </SectionCard>
         </div>
