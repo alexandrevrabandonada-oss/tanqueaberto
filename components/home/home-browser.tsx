@@ -153,9 +153,9 @@ export function HomeBrowser({
   }, [initialCity, initialFuelFilter, initialPresenceFilter, initialQuery, initialRecencyFilter]);
 
   const selectedReadiness = useMemo(() => {
-    if (!selectedCity) return null;
+    if (!selectedCity || !Array.isArray(territorialSummary)) return null;
     return territorialSummary.find(group => 
-      group.name.trim().toUpperCase() === selectedCity.trim().toUpperCase() || 
+      group.name?.trim().toUpperCase() === selectedCity.trim().toUpperCase() || 
       (group as any).city?.trim().toUpperCase() === selectedCity.trim().toUpperCase()
     );
   }, [selectedCity, territorialSummary]);
@@ -171,6 +171,7 @@ export function HomeBrowser({
   }, [selectedReadiness]);
 
   const cityOptions = useMemo(() => {
+    if (!Array.isArray(stations)) return { priority: [], others: [], allCities: [] };
     const allCities = Array.from(new Set(stations.map((station) => station.city).filter(Boolean))).sort((left, right) => left.localeCompare(right, "pt-BR"));
     const priority = priorityCities.filter((city) => allCities.some((item) => item.localeCompare(city, "pt-BR") === 0));
     const others = allCities.filter((city) => !priority.some((item) => item.localeCompare(city, "pt-BR") === 0));
@@ -405,7 +406,7 @@ export function HomeBrowser({
               Todas as cidades
             </button>
             {cityOptions.priority.map((city) => {
-              const readiness = territorialSummary.find(g => g.name.toUpperCase() === city.toUpperCase() || (g as any).city?.toUpperCase() === city.toUpperCase());
+              const readiness = Array.isArray(territorialSummary) ? territorialSummary.find(g => g.name?.trim().toUpperCase() === city.trim().toUpperCase() || (g as any).city?.toUpperCase() === city.toUpperCase()) : null;
               return (
                 <button
                   key={city}
@@ -443,9 +444,13 @@ export function HomeBrowser({
                 variant="primary" 
                 className="h-7 px-3 text-[9px] font-bold uppercase tracking-wider rounded-lg animate-pulse"
                 onClick={() => {
-                  const cityStations = stations.filter(s => s.city.trim().toUpperCase() === selectedCity.trim().toUpperCase());
+                  const cityStations = stations.filter(s => 
+                    s?.city && 
+                    selectedCity && 
+                    s.city.trim().toUpperCase() === selectedCity.trim().toUpperCase()
+                  );
                   const cityStationIds = cityStations.map(s => s.id);
-                  startMission(selectedReadiness.slug, selectedReadiness.name, cityStationIds);
+                  startMission(selectedReadiness?.slug || "general", selectedReadiness?.name || selectedCity, cityStationIds);
                 }}
               >
                 Missão Coleta

@@ -16,32 +16,34 @@ export interface EffectiveGroupStatus {
 }
 
 export async function getTerritorialReleaseSummary(): Promise<EffectiveGroupStatus[]> {
-  const dashboard = await getEditorialGapDashboard(14);
-  const groups = await getAuditGroups();
-  
-  return groups.map(group => {
-    const gapItem = dashboard.groupRows.find(row => row.id === `group:${group.slug}`);
+  try {
+    const dashboard = await getEditorialGapDashboard(14);
+    const groups = await getAuditGroups();
     
-    // Default logic based on readiness if no override exists
-    // In a real implementation, we would check group.releaseStatus from the DB
-    const suggestedStatus: GroupReleaseStatus = 
-      gapItem?.recommendation === "vale pedir coleta já" ? "ready" :
-      gapItem?.recommendation === "pode esperar" ? "validating" : "limited";
+    return groups.map(group => {
+      const gapItem = dashboard.groupRows?.find(row => row.id === `group:${group.slug}`);
+      
+      const suggestedStatus: GroupReleaseStatus = 
+        gapItem?.recommendation === "vale pedir coleta já" ? "ready" :
+        gapItem?.recommendation === "pode esperar" ? "validating" : "limited";
 
-    // For now, we use the DB values if present, otherwise fallback to suggested
-    const status = (group.releaseStatus as GroupReleaseStatus) || suggestedStatus;
-    const isPublished = typeof group.isPublished === "boolean" ? group.isPublished : (status !== "limited" && status !== "hidden");
+      const status = (group.releaseStatus as GroupReleaseStatus) || suggestedStatus;
+      const isPublished = typeof group.isPublished === "boolean" ? group.isPublished : (status !== "limited" && status !== "hidden");
 
-    return {
-      slug: group.slug,
-      name: group.name,
-      status,
-      isPublished,
-      isOverride: Boolean(group.releaseStatus),
-      score: gapItem?.score ?? 0,
-      recommendation: gapItem?.recommendation ?? "precisa revisar base primeiro"
-    };
-  });
+      return {
+        slug: group.slug,
+        name: group.name,
+        status,
+        isPublished,
+        isOverride: Boolean(group.releaseStatus),
+        score: gapItem?.score ?? 0,
+        recommendation: gapItem?.recommendation ?? "precisa revisar base primeiro"
+      };
+    });
+  } catch (error) {
+    console.error("Failed to generate territorial release summary", error);
+    return [];
+  }
 }
 
 // Helpers moved to release-types.ts
