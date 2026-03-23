@@ -762,7 +762,7 @@ function PriceSubmitFormBody({
               </>
             )}
           </div>
-          <Badge variant={state.success ? "primary" : "warning"}>{state.success ? "Enviado" : isStreetMode ? "Compacto" : "Rápido"}</Badge>
+          <Badge variant={state.success ? "accent" : "warning"}>{state.success ? "Enviado" : isStreetMode ? "Compacto" : "Rápido"}</Badge>
         </div>
         {!isStreetMode && (
           <div className="mt-4 flex flex-wrap gap-2 text-[11px] text-white/52">
