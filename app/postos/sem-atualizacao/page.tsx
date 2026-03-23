@@ -2,6 +2,7 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { StationCard } from "@/components/station/station-card";
 import { ButtonLink } from "@/components/ui/button";
+import { MissionStartButton } from "@/components/mission/mission-start-button";
 import { SectionCard } from "@/components/ui/section-card";
 import { getHomeStations } from "@/lib/data";
 import { canShowStationOnMap, hasRecentStationPrice } from "@/lib/quality/stations";
@@ -45,6 +46,15 @@ export default async function StationsWithoutRecentPricePage() {
 
           <div className="flex flex-wrap gap-3">
             <ButtonLink href="/enviar">Enviar preço</ButtonLink>
+            {withoutRecent.length > 0 && (
+              <MissionStartButton 
+                groupId="gaps" 
+                groupName="Lacunas do Mapa" 
+                stationIds={withoutRecent.map(s => s.id)}
+              >
+                Missão: Resolver Lacunas
+              </MissionStartButton>
+            )}
             <ButtonLink href="/" variant="secondary">Voltar ao mapa</ButtonLink>
           </div>
         </SectionCard>

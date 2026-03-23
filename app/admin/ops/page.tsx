@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, ArrowUpRight, ArrowDownRight, Zap, Target, BarChart3, Clock, CheckCircle2, AlertTriangle, Download } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, ArrowDownRight, Zap, Target, BarChart3, Clock, CheckCircle2, AlertTriangle, Download, ShieldAlert } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { SectionCard } from "@/components/ui/section-card";
@@ -34,6 +34,18 @@ export default async function AdminOpsPage() {
                <p className="text-xs text-white/30">Última atualização</p>
                <p className="text-sm font-medium text-white/60">{formatDateTimeBR(digest.timestamp)}</p>
              </div>
+             <Link href={"/admin/ops/qualidade" as any}>
+                <Button variant="secondary" className="gap-2">
+                  <ShieldAlert className="h-4 w-4" />
+                  Qualidade do Dado
+                </Button>
+             </Link>
+             <Link href={"/admin/ops/aprendizado" as any}>
+                <Button variant="secondary" className="gap-2">
+                  <Target className="h-4 w-4 text-rose-400" />
+                  Aprendizado do Beta
+                </Button>
+             </Link>
              <a href="/api/admin/ops/export" download>
                 <Button variant="secondary" className="gap-2">
                   <Download className="h-4 w-4" />

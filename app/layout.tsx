@@ -70,15 +70,23 @@ export const viewport: Viewport = {
 };
 
 import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { MissionProvider } from "@/components/mission/mission-context";
+import { MissionOverlay } from "@/components/mission/mission-overlay";
+import { SubmissionHistoryProvider } from "@/components/history/submission-history-context";
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body className="bg-[color:var(--color-bg)] font-body text-[color:var(--color-text)]">
         <PwaRegister />
-        <ErrorBoundary name="RootLayout">
-          {children}
-        </ErrorBoundary>
+        <MissionProvider>
+          <SubmissionHistoryProvider>
+            <MissionOverlay />
+            <ErrorBoundary name="RootLayout">
+              {children}
+            </ErrorBoundary>
+          </SubmissionHistoryProvider>
+        </MissionProvider>
       </body>
     </html>
   );

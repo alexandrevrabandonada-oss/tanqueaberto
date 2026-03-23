@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { GroupStatusBadge } from "@/components/ui/group-status-badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
+import { ReadinessBadge } from "./readiness-badge";
 import { EmptyStateCard } from "@/components/state/empty-state-card";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { calculateDistance, formatDistance } from "@/lib/geo/distance";
@@ -29,6 +30,9 @@ import { persistHomeContext, priorityCities, readHomeContext, readLastStationCon
 import { startRoute, readRouteContext } from "@/lib/navigation/route-context";
 import { RouteAssistant } from "@/components/routes/route-assistant";
 import { useStreetMode } from "@/hooks/use-street-mode";
+import { useMissionContext } from "@/components/mission/mission-context";
+import { MySubmissionsList } from "@/components/history/my-submissions-list";
+import { type EffectiveGroupStatus } from "@/lib/ops/release-control";
 import type { FuelFilter, RecencyFilter } from "@/lib/filters/public";
 import type { ReportWithStation, StationWithReports } from "@/lib/types";
 
@@ -36,6 +40,7 @@ interface HomeBrowserProps {
   stations: StationWithReports[];
   feed: ReportWithStation[];
   recentCount: number;
+  territorialSummary: EffectiveGroupStatus[];
   betaClosed?: boolean;
   initialQuery?: string;
   initialCity?: string;
@@ -91,6 +96,7 @@ export function HomeBrowser({
   stations,
   feed,
   recentCount,
+  territorialSummary,
   betaClosed = false,
   initialQuery = "",
   initialCity = "",
@@ -109,6 +115,7 @@ export function HomeBrowser({
   const deferredQuery = useDeferredValue(query);
   const { coords, loading: geoLoading, error: geoError, getLocation } = useGeolocation();
   const { isStreetMode, toggleStreetMode, recentIds, favoriteIds, toggleFavorite, isFavorite } = useStreetMode();
+  const { startMission } = useMissionContext();
 
   useEffect(() => {
     void trackProductEvent({ eventType: "home_opened", pagePath: "/", pageTitle: "Mapa vivo", scopeType: "page", scopeId: "/", payload: { streetMode: isStreetMode } });
@@ -151,7 +158,20 @@ export function HomeBrowser({
     }
 
     persistHomeContext({ query, city: selectedCity, fuelFilter, recencyFilter, presenceFilter });
-  }, [fuelFilter, isHydrated, presenceFilter, query, recencyFilter, selectedCity]);
+    
+    if (selectedCity && isHydrated) {
+      void trackProductEvent({
+        eventType: "territorial_recorte_selected" as any,
+        pagePath: "/",
+        pageTitle: "Mapa vivo",
+        city: selectedCity,
+        payload: {
+          status: selectedReadiness?.status || "unknown",
+          score: selectedReadiness?.score || 0
+        }
+      });
+    }
+  }, [fuelFilter, isHydrated, presenceFilter, query, recencyFilter, selectedCity, selectedReadiness]);
 
   const cityOptions = useMemo(() => {
     const allCities = Array.from(new Set(stations.map((station) => station.city).filter(Boolean))).sort((left, right) => left.localeCompare(right, "pt-BR"));
@@ -159,6 +179,24 @@ export function HomeBrowser({
     const others = allCities.filter((city) => !priority.some((item) => item.localeCompare(city, "pt-BR") === 0));
     return { priority, others, allCities };
   }, [stations]);
+
+  const selectedReadiness = useMemo(() => {
+    if (!selectedCity) return null;
+    return territorialSummary.find(group => 
+      group.name.trim().toUpperCase() === selectedCity.trim().toUpperCase() || 
+      (group as any).city?.trim().toUpperCase() === selectedCity.trim().toUpperCase()
+    );
+  }, [selectedCity, territorialSummary]);
+
+  const expansionSignal = useMemo(() => {
+    if (!selectedReadiness) return null;
+    switch (selectedReadiness.status) {
+      case "ready": return { text: "Este recorte já está forte.", icon: "✨" };
+      case "validating": return { text: "Recorte em validação técnica.", icon: "🧪" };
+      case "limited": return { text: "Aqui sua contribuição é especialmente útil.", icon: "🧱" };
+      default: return null;
+    }
+  }, [selectedReadiness]);
 
   const stationsWithDistances = useMemo(() => {
     if (!coords) return stations;
@@ -304,6 +342,10 @@ export function HomeBrowser({
         </SectionCard>
       )}
 
+      <div className="mb-6">
+        <MySubmissionsList />
+      </div>
+
       <SectionCard className={cn("space-y-4", isStreetMode && "space-y-2 py-3")}>
         {!isStreetMode && (
           <div className="space-y-1.5">
@@ -362,20 +404,54 @@ export function HomeBrowser({
             >
               Todas as cidades
             </button>
-            {cityOptions.priority.map((city) => (
-              <button
-                key={city}
-                type="button"
-                onClick={() => setSelectedCity(city)}
-                className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${
-                  selectedCity.localeCompare(city, "pt-BR") === 0 ? "bg-white text-black" : "border border-white/10 bg-white/5 text-white/66"
-                }`}
-              >
-                {city}
-              </button>
-            ))}
+            {cityOptions.priority.map((city) => {
+              const readiness = territorialSummary.find(g => g.name.toUpperCase() === city.toUpperCase() || (g as any).city?.toUpperCase() === city.toUpperCase());
+              return (
+                <button
+                  key={city}
+                  type="button"
+                  onClick={() => setSelectedCity(city)}
+                  className={`flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${
+                    selectedCity.localeCompare(city, "pt-BR") === 0 ? "bg-white text-black" : "border border-white/10 bg-white/5 text-white/66 hover:bg-white/10"
+                  }`}
+                >
+                  {city}
+                  {readiness && (
+                    <span className={cn(
+                      "h-1.5 w-1.5 rounded-full",
+                      readiness.status === "ready" ? "bg-emerald-500" :
+                      readiness.status === "validating" ? "bg-blue-500" : "bg-orange-500"
+                    )} />
+                  )}
+                </button>
+              );
+            })}
           </div>
-          <p className="text-xs leading-relaxed text-white/44">Comece por Volta Redonda, Barra Mansa ou Barra do Piraí. O recorte preferido fica salvo para a próxima visita.</p>
+          
+          <div className="flex items-center justify-between min-h-[1.5rem]">
+            {expansionSignal ? (
+              <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
+                <span className="text-xs text-white/40">{expansionSignal.icon} {expansionSignal.text}</span>
+                {selectedReadiness && <ReadinessBadge status={selectedReadiness.status} className="h-4 py-0" />}
+              </div>
+            ) : (
+              <p className="text-xs leading-relaxed text-white/44">Comece por Volta Redonda, Barra Mansa ou Barra do Piraí.</p>
+            )}
+            
+            {selectedReadiness && selectedReadiness.status !== "ready" && (
+              <Button 
+                variant="primary" 
+                className="h-7 px-3 text-[9px] font-bold uppercase tracking-wider rounded-lg animate-pulse"
+                onClick={() => {
+                  const cityStations = stations.filter(s => s.city.trim().toUpperCase() === selectedCity.trim().toUpperCase());
+                  const cityStationIds = cityStations.map(s => s.id);
+                  startMission(selectedReadiness.slug, selectedReadiness.name, cityStationIds);
+                }}
+              >
+                Missão Coleta
+              </Button>
+            )}
+          </div>
 
           <div className="grid gap-3 md:grid-cols-3">
             <FilterSelect
@@ -468,6 +544,19 @@ export function HomeBrowser({
         <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-white/44">
           <div className="flex items-center gap-3">
             <span>{orderedStations.length} postos no recorte</span>
+            {orderedStations.length > 0 && (
+               <button 
+                 type="button" 
+                 onClick={() => {
+                   const stationIds = orderedStations.map(s => s.id);
+                   const missionName = selectedCity || "Personalizada";
+                   startMission(selectedCity || "custom", missionName, stationIds);
+                 }}
+                 className="font-bold text-yellow-400 hover:underline"
+               >
+                 · Iniciar Missão de Rua
+               </button>
+            )}
             {selectedCity && !readRouteContext().active && (
               <button 
                 type="button" 

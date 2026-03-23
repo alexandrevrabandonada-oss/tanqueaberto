@@ -36,7 +36,14 @@ export type ProductTelemetryEventType =
   | "route_abandoned"
   | "geolocation_granted"
   | "geolocation_denied"
-  | "geolocation_error";
+  | "geolocation_error"
+  | "mission_started"
+  | "mission_completed"
+  | "mission_aborted"
+  | "mission_station_completed"
+  | "mission_station_skipped"
+  | "field_quality_warning_shown"
+  | "submission_quality_flagged";
 
 export interface ProductTelemetryEventInput {
   eventType: ProductTelemetryEventType;

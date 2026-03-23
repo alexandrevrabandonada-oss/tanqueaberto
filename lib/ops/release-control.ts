@@ -5,7 +5,7 @@ import { type GroupReleaseStatus } from "./release-types";
 
 export { type GroupReleaseStatus };
 
-interface EffectiveGroupStatus {
+export interface EffectiveGroupStatus {
   slug: string;
   name: string;
   status: GroupReleaseStatus;

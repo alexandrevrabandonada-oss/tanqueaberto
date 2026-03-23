@@ -1,6 +1,7 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { HomeBrowser } from "@/components/home/home-browser";
 import { getHomeStations, getRecentApprovedCount, getRecentFeed } from "@/lib/data";
+import { getTerritorialReleaseSummary } from "@/lib/ops/release-control";
 import { isBetaClosed } from "@/lib/beta/gate";
 import type { FuelFilter, RecencyFilter, StationPresenceFilter } from "@/lib/filters/public";
 
@@ -36,7 +37,12 @@ function parseCity(value: string | string[] | undefined) {
 
 export default async function HomePage({ searchParams }: HomePageProps) {
   const params = (await searchParams) ?? {};
-  const [stations, feed, recentCount] = await Promise.all([getHomeStations(), getRecentFeed(), getRecentApprovedCount()]);
+  const [stations, feed, recentCount, territorialSummary] = await Promise.all([
+    getHomeStations(), 
+    getRecentFeed(), 
+    getRecentApprovedCount(),
+    getTerritorialReleaseSummary()
+  ]);
 
   return (
     <AppShell>
@@ -44,6 +50,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         stations={stations}
         feed={feed}
         recentCount={recentCount}
+        territorialSummary={territorialSummary}
         betaClosed={isBetaClosed()}
         initialQuery={firstValue(params.q)}
         initialCity={parseCity(params.city)}

@@ -21,8 +21,10 @@ import { clearSubmissionDraft, loadSubmissionDraft, saveSubmissionDraft, type Su
 import { SubmissionQueuePanel } from "@/components/forms/submission-queue-panel";
 import { buildSubmissionQueueHref, clearSubmissionQueueForDraftKey, loadSubmissionQueue, removeSubmissionQueueEntry, upsertSubmissionQueueEntry, type SubmissionQueueEntry } from "@/lib/queue/submission-queue";
 import { useStreetMode } from "@/hooks/use-street-mode";
+import { useMissionContext } from "@/components/mission/mission-context";
 import { cn } from "@/lib/utils";
 import { getStationPublicName } from "@/lib/quality/stations";
+import { useSubmissionHistory } from "@/components/history/submission-history-context";
 
 const fuelOptions: FuelType[] = ["gasolina_comum", "gasolina_aditivada", "etanol", "diesel_s10", "diesel_comum", "gnv"];
 const allowedFuelSet = new Set<FuelType>(fuelOptions);
@@ -94,8 +96,11 @@ function PriceSubmitFormBody({
   const router = useRouter();
   const [state, formAction, pending] = useActionState(submitPriceReportAction, initialState);
   const { isStreetMode } = useStreetMode();
+  const { mission, nextStation } = useMissionContext();
+  const { addSubmission } = useSubmissionHistory();
   const safeReturnToHref = useMemo(() => safeRoute(returnToHref), [returnToHref]);
   const draftKey = useMemo(() => createDraftKey(initialStationId), [initialStationId]);
+
   const initialStation = useMemo(() => stations.find((station) => station.id === initialStationId) ?? null, [initialStationId, stations]);
   const lockedStation = Boolean(initialStation);
   const compactMode = lockedStation;
@@ -116,6 +121,24 @@ function PriceSubmitFormBody({
   const [isOnline, setIsOnline] = useState(true);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const priceInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Record history on success
+  useEffect(() => {
+    if (state.success && state.reportId) {
+      const station = stations.find(s => s.id === stationId);
+      if (station) {
+        addSubmission({
+          reportId: state.reportId,
+          stationId: station.id,
+          stationName: getStationPublicName(station),
+          fuelType,
+          price,
+          status: "pending",
+          submittedAt: new Date().toISOString()
+        });
+      }
+    }
+  }, [state.success, state.reportId, addSubmission, stations, stationId, fuelType, price]);
   const selectedFileRef = useRef<File | null>(null);
   const hasStartedRef = useRef(false);
   const completedRef = useRef(false);
@@ -310,14 +333,64 @@ function PriceSubmitFormBody({
   const currentQueueItem = queueItems.find((item) => item.draftKey === draftKey) ?? null;
   const selectedStation = stations.find((station) => station.id === stationId) ?? stations[0] ?? null;
 
-  const { currentDistance, locationConfidence } = useMemo(() => {
-    if (!coords || !selectedStation) return { currentDistance: null, locationConfidence: "none" };
+  const { currentDistance, locationConfidence, isAmbiguous, closestStationId } = useMemo(() => {
+    if (!coords || !selectedStation) return { currentDistance: null, locationConfidence: "none", isAmbiguous: false, closestStationId: null };
     
+    let closestId: string | null = null;
+    let minDistance = Infinity;
+    let nearbyInCluster = 0;
+
+    for (const s of stations) {
+      const dist = calculateDistance(coords.lat, coords.lng, s.lat, s.lng);
+      if (dist < minDistance) {
+        minDistance = dist;
+        closestId = s.id;
+      }
+      // If another station is within 60m of the selected station AND within 100m of the user
+      if (s.id !== selectedStation.id) {
+        const distFromSelected = calculateDistance(selectedStation.lat, selectedStation.lng, s.lat, s.lng);
+        if (distFromSelected < 60 && dist < 120) {
+          nearbyInCluster++;
+        }
+      }
+    }
+
     const dist = calculateDistance(coords.lat, coords.lng, selectedStation.lat, selectedStation.lng);
     const confidence = dist <= 200 ? "high" : "low" as "none" | "high" | "low";
     
-    return { currentDistance: dist, locationConfidence: confidence };
-  }, [coords, selectedStation]);
+    // Ambiguidade se houver outro posto muito perto do selecionado e o usuário estiver na área
+    const ambiguous = nearbyInCluster > 0 && (closestId !== selectedStation.id || minDistance > 30);
+
+    return { 
+      currentDistance: dist, 
+      locationConfidence: confidence, 
+      isAmbiguous: ambiguous,
+      closestStationId: closestId
+    };
+  }, [coords, selectedStation, stations]);
+  const ambiguityTrackedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (isAmbiguous && !lockedStation && coords && ambiguityTrackedRef.current !== stationId) {
+      ambiguityTrackedRef.current = stationId;
+      void trackProductEvent({
+        eventType: "field_quality_warning_shown",
+        pagePath: "/enviar",
+        pageTitle: "Enviar preço",
+        stationId: stationId || null,
+        city: selectedStation?.city ?? null,
+        fuelType,
+        scopeType: "submission",
+        scopeId: stationId || null,
+        reason: "proximity_ambiguity",
+        payload: {
+          currentDistance,
+          closestStationId,
+          compactMode,
+          lockedStation
+        }
+      });
+    }
+  }, [isAmbiguous, lockedStation, coords, stationId, selectedStation, fuelType, currentDistance, closestStationId, compactMode]);
 
   useEffect(() => {
     if (!state.success) {
@@ -755,6 +828,11 @@ function PriceSubmitFormBody({
                 ⚠️ <strong>Posto distante:</strong> Você está a {formatDistance(currentDistance!)} daqui.
               </div>
             )}
+            {isAmbiguous && !lockedStation && (
+              <div className={cn("mt-2 rounded-lg border border-yellow-400/30 bg-yellow-400/10 px-3 py-2 text-[11px] text-yellow-200", isStreetMode && "mt-1")}>
+                ✨ <strong>Confirme o posto:</strong> Há outros postos muito próximos aqui. Verifique se escolheu o correto.
+              </div>
+            )}
             {!isStreetMode && (
               <>
                 <h3 className="mt-2 text-xl font-semibold text-white">Foto primeiro, resto rápido.</h3>
@@ -862,40 +940,66 @@ function PriceSubmitFormBody({
           </div>
           
           <div className="mt-6 space-y-3">
-            <Button
-              type="button"
-              className="w-full h-16 text-lg font-bold shadow-lg"
-              onClick={() => {
-                void trackProductEvent({
-                  eventType: "submission_series_continued",
-                  pagePath: "/enviar",
-                  pageTitle: "Enviar preço",
-                  stationId: submittedStationId,
-                  fuelType,
-                  scopeType: "submission",
-                  scopeId: submittedStationId,
-                  payload: { mode: "same_station", streetMode: isStreetMode }
-                });
-                void resetForAnotherSubmission();
-              }}
-            >
-              ENVIAR OUTRO NESTE POSTO
-            </Button>
+            {mission && mission.currentIndex + 1 < mission.stationIds.length ? (() => {
+               const nextId = mission.stationIds[mission.currentIndex + 1];
+               const nextS = stations.find(s => s.id === nextId);
+               return (
+                 <Button
+                    type="button"
+                    className="w-full h-16 text-lg font-black bg-yellow-400 text-black border-4 border-black/10 shadow-[0_10px_40px_rgba(255,212,0,0.3)]"
+                    onClick={() => {
+                      if (submittedStationId) {
+                        nextStation(submittedStationId);
+                      } else {
+                        nextStation();
+                      }
+                      router.push((`/enviar?stationId=${nextId}#photo` as Route));
+                    }}
+                  >
+                    IR PARA O PRÓXIMO ALVO: {nextS ? getStationPublicName(nextS).toUpperCase() : "PRÓXIMO"}
+                  </Button>
+               );
+            })() : (
+              <Button
+                type="button"
+                className="w-full h-16 text-lg font-bold shadow-lg"
+                onClick={() => {
+                  void trackProductEvent({
+                    eventType: "submission_series_continued",
+                    pagePath: "/enviar",
+                    pageTitle: "Enviar preço",
+                    stationId: submittedStationId,
+                    fuelType,
+                    scopeType: "submission",
+                    scopeId: submittedStationId,
+                    payload: { mode: "same_station", streetMode: isStreetMode }
+                  });
+                  void resetForAnotherSubmission();
+                }}
+              >
+                ENVIAR OUTRO NESTE POSTO
+              </Button>
+            )}
             
             {(() => {
               const route = readRouteContext();
-              const nextStationId = route?.completedStationIds ? stations.find(s => !route.completedStationIds.includes(s.id) && s.id !== submittedStationId)?.id : null;
+              const nextStationIdInRoute = route?.completedStationIds ? stations.find(s => !route.completedStationIds.includes(s.id) && s.id !== submittedStationId)?.id : null;
 
-              if (nextStationId && nextStationId !== submittedStationId) {
-                const nextStation = stations.find(s => s.id === nextStationId);
+              if (nextStationIdInRoute && nextStationIdInRoute !== submittedStationId && !mission) {
+                const ns = stations.find(s => s.id === nextStationIdInRoute);
                 return (
                   <Button
                     type="button"
                     variant="secondary"
                     className="w-full h-14 font-semibold"
-                    onClick={() => router.push((`/enviar?stationId=${nextStationId}#photo` as Route))}
+                    onClick={() => {
+                       if (submittedStationId) {
+                         completeStationInRoute(submittedStationId);
+                       }
+                       router.push((`/enviar?stationId=${nextStationIdInRoute}#photo` as Route));
+                    }}
                   >
-                    IR PARA: {nextStation ? getStationPublicName(nextStation) : "PRÓXIMO POSTO"}
+                    IR PARA: {ns ? getStationPublicName(ns) : "PRÓXIMO POSTO"}
                   </Button>
                 );
               }
@@ -907,7 +1011,14 @@ function PriceSubmitFormBody({
                 type="button" 
                 variant="ghost" 
                 className="flex-1 h-12"
-                onClick={() => router.push((safeReturnToHref ?? "/") as Route)}
+                onClick={() => {
+                  if (mission && submittedStationId) {
+                    nextStation(submittedStationId);
+                  } else if (mission) {
+                    nextStation();
+                  }
+                  router.push((safeReturnToHref ?? "/") as Route);
+                }}
               >
                 Voltar ao mapa
               </Button>

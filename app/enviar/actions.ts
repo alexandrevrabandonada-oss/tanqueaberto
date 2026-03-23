@@ -19,6 +19,7 @@ interface SubmitState {
   errorCode: string | null;
   retryable: boolean;
   success: boolean;
+  reportId?: string;
 }
 
 const fuelTypes: FuelType[] = ["gasolina_comum", "gasolina_aditivada", "etanol", "diesel_s10", "diesel_comum", "gnv"];
@@ -31,8 +32,8 @@ function failure(error: string, errorCode: string, retryable = false): SubmitSta
   return { error, errorCode, retryable, success: false };
 }
 
-function success(): SubmitState {
-  return { error: null, errorCode: null, retryable: false, success: true };
+function success(reportId?: string): SubmitState {
+  return { error: null, errorCode: null, retryable: false, success: true, reportId };
 }
 
 function getString(formData: FormData, name: string) {
@@ -265,6 +266,17 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
   const distance = distanceRaw ? Number(distanceRaw) : null;
   const locationConfidence = (getString(formData, "locationConfidence") as any) || "none";
 
+  // Hardening: Photo Duplication Detection
+  const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+  const { data: duplicatePhotoReports } = await supabase
+    .from("price_reports")
+    .select("id")
+    .eq("photo_hash", photoHash)
+    .gt("created_at", fortyEightHoursAgo)
+    .limit(1);
+
+  const potentialPhotoReuse = Boolean(duplicatePhotoReports?.[0]?.id);
+
   // Hardening: Reconciliation Logic
   const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
   const { data: existingReports } = await supabase
@@ -279,9 +291,28 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
 
   const reconciliationId = existingReports?.[0]?.reconciliation_id || 
     `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-  const isConfirmation = Boolean(existingReports?.[0]?.reconciliation_id);
+  
+  // A report is a confirmation ONLY if it's a new photo of the same price
+  const isConfirmation = Boolean(existingReports?.[0]?.reconciliation_id) && !potentialPhotoReuse;
+  
+  // A report is a duplicate if it's the same photo AND same price
+  const isDuplicate = Boolean(existingReports?.[0]?.reconciliation_id) && potentialPhotoReuse;
 
-  // Hardening: Price Discrepancy Detection
+  // Hardening: Price Conflict Detection (Recent different price)
+  const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
+  const { data: conflictingReports } = await supabase
+    .from("price_reports")
+    .select("id, price")
+    .eq("station_id", stationId)
+    .eq("fuel_type", fuelType)
+    .neq("price", price)
+    .neq("status", "rejected")
+    .gt("reported_at", twelveHoursAgo)
+    .limit(1);
+
+  const isPriceConflict = Boolean(conflictingReports?.[0]);
+
+  // Hardening: Price Discrepancy Detection (vs historical approved)
   const { data: lastApproved } = await supabase
     .from("price_reports")
     .select("price")
@@ -318,14 +349,19 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
       submitted_at: timestamp,
       reported_at: timestamp,
       reporter_nickname: nickname || null,
-      status: "pending",
+      status: potentialPhotoReuse ? "flagged" : "pending",
       source_kind: "community",
       photo_hash: photoHash,
       location_distance: distance,
       location_confidence: locationConfidence,
       reconciliation_id: reconciliationId,
       is_confirmation: isConfirmation,
-      metadata: { price_discrepancy: priceDiscrepancy },
+      metadata: { 
+        price_discrepancy: priceDiscrepancy,
+        potential_photo_reuse: potentialPhotoReuse,
+        is_price_conflict: isPriceConflict,
+        is_duplicate: isDuplicate
+      },
       version: 1
     })
     .select("id")
@@ -364,13 +400,16 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
       locationDistance: distance,
       reconciliationId,
       isConfirmation,
-      priceDiscrepancy
+      priceDiscrepancy,
+      potentialPhotoReuse,
+      isPriceConflict,
+      isDuplicate
     }
   });
 
   await recordOperationalEvent({
     eventType: "submission_accepted",
-    severity: "info",
+    severity: (potentialPhotoReuse || isPriceConflict || priceDiscrepancy) ? "warning" : "info",
     scopeType: "submission",
     stationId,
     fuelType,
@@ -382,7 +421,10 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
       nickname: nickname || null,
       windowCount: limitCheck.attemptCount,
       locationConfidence,
-      priceDiscrepancy
+      priceDiscrepancy,
+      potentialPhotoReuse,
+      isPriceConflict,
+      isDuplicate
     }
   });
 
@@ -392,7 +434,7 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
   revalidatePath("/admin");
   revalidatePath("/auditoria");
 
-  return success();
+  return success(report.id);
 }
 
 

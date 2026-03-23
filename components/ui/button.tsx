@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { cn } from "@/lib/utils";
 
-type ButtonVariant = "primary" | "secondary" | "ghost";
+type ButtonVariant = "primary" | "secondary" | "ghost" | "accent";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
@@ -20,6 +20,7 @@ const base =
 
 const variants: Record<ButtonVariant, string> = {
   primary: "bg-[color:var(--color-accent)] text-black shadow-[0_10px_30px_rgba(255,212,0,0.18)]",
+  accent: "bg-yellow-400 text-black border-2 border-black/10 shadow-lg hover:bg-yellow-300",
   secondary: "border border-white/10 bg-white/5 text-white hover:border-[color:var(--color-accent)]",
   ghost: "text-white/72 hover:bg-white/5 hover:text-white"
 };

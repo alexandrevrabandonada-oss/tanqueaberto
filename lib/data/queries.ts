@@ -277,6 +277,23 @@ export async function getPendingReports(): Promise<ReportWithStation[]> {
   return getModerationReports("pending", 24);
 }
 
+export async function getReportsByIds(ids: string[]): Promise<PriceReport[]> {
+  if (ids.length === 0) return [];
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("price_reports")
+    .select("id,station_id,fuel_type,price,photo_url,photo_taken_at,reported_at,created_at,reporter_nickname,status,moderation_note,approved_at,rejected_at")
+    .in("id", ids);
+
+  if (error || !data) {
+    if (error) console.error("Failed to load reports by ids", error);
+    return [];
+  }
+
+  return (data as PriceReportRow[]).map(mapReportRow);
+}
+
 export async function getModerationCounts() {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.from("price_reports").select("status").order("created_at", { ascending: false });

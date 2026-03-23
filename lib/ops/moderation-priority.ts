@@ -50,5 +50,15 @@ export function getReportPriorityScore(
     score -= 40; // Heavy penalty for suspicious prices
   }
 
+  // 7. Photo Reuse (Hardening)
+  if (report.metadata?.potential_photo_reuse) {
+    score -= 50; // Very heavy penalty for reused photos
+  }
+
+  // 8. Price Conflict (Hardening)
+  if (report.metadata?.is_price_conflict) {
+    score -= 30; // Penalty for conflicting with a very recent different price
+  }
+
   return Math.max(-100, Math.min(100, score));
 }
