@@ -126,11 +126,11 @@ export async function signOutAdminAction() {
   redirect(ADMIN_LOGIN_ROUTE);
 }
 
-async function moderateReport(reportId: string, decision: "approved" | "rejected", moderationNote?: string) {
+async function moderateReports(reportIds: string[], decision: "approved" | "rejected", moderationNote?: string) {
   const admin = await requireAdminUser();
   const supabase = await createSupabaseServerClient();
 
-  const { data: report, error: reportError } = await supabase.from("price_reports").select("id,station_id,version,fuel_type,price,reported_at").eq("id", reportId).maybeSingle();
+  const { data: report, error: reportError } = await supabase.from("price_reports").select("id,station_id,version,fuel_type,price,reported_at").in("id", reportIds).limit(1).maybeSingle();
 
   if (reportError || !report) {
     redirect(ADMIN_ROUTE);
@@ -163,14 +163,14 @@ async function moderateReport(reportId: string, decision: "approved" | "rejected
             version: nextVersion
           }
     )
-    .eq("id", reportId);
+    .in("id", reportIds);
 
   if (error) {
     await recordOperationalEvent({
       eventType: "moderation_failed",
       severity: "error",
       scopeType: "report",
-      scopeId: reportId,
+      scopeId: reportIds[0],
       actorId: admin.id,
       actorEmail: admin.email,
       stationId: report.station_id,
@@ -178,7 +178,8 @@ async function moderateReport(reportId: string, decision: "approved" | "rejected
       reason: error.message,
       payload: {
         decision,
-        moderationNote: note
+        moderationNote: note,
+        additionalReportIds: reportIds.slice(1)
       }
     });
     redirect(ADMIN_ROUTE);
@@ -189,14 +190,15 @@ async function moderateReport(reportId: string, decision: "approved" | "rejected
     actorId: admin.id,
     actorEmail: admin.email,
     targetType: "report",
-    targetId: reportId,
+    targetId: reportIds[0],
     note,
     payload: {
       stationId: report.station_id,
       fuelType: report.fuel_type,
       price: report.price,
       reportedAt: report.reported_at,
-      version: nextVersion
+      version: nextVersion,
+      groupedCount: reportIds.length
     }
   });
 
@@ -204,7 +206,7 @@ async function moderateReport(reportId: string, decision: "approved" | "rejected
     eventType: decision === "approved" ? "moderation_approved" : "moderation_rejected",
     severity: decision === "approved" ? "info" : "warning",
     scopeType: "report",
-    scopeId: reportId,
+    scopeId: reportIds[0],
     actorId: admin.id,
     actorEmail: admin.email,
     stationId: report.station_id,
@@ -213,7 +215,8 @@ async function moderateReport(reportId: string, decision: "approved" | "rejected
     payload: {
       version: nextVersion,
       decision,
-      moderationNote: note
+      moderationNote: note,
+      groupedCount: reportIds.length
     }
   });
 
@@ -227,14 +230,17 @@ async function moderateReport(reportId: string, decision: "approved" | "rejected
 
 export async function moderateReportAction(formData: FormData) {
   const reportId = String(formData.get("reportId") ?? "");
+  const confirmationIds = formData.getAll("confirmationIds").map(id => String(id));
   const decision = String(formData.get("decision") ?? "") as "approved" | "rejected";
   const moderationNote = String(formData.get("moderationNote") ?? "");
 
-  if (!reportId || (decision !== "approved" && decision !== "rejected")) {
+  const allIds = [reportId, ...confirmationIds].filter(Boolean);
+
+  if (allIds.length === 0 || (decision !== "approved" && decision !== "rejected")) {
     redirect(ADMIN_ROUTE);
   }
 
-  await moderateReport(reportId, decision, moderationNote);
+  await moderateReports(allIds, decision, moderationNote);
 }
 
 export async function updateStationCurationAction(formData: FormData) {

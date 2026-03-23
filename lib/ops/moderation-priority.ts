@@ -38,5 +38,17 @@ export function getReportPriorityScore(
     score += 100; // Instant priority
   }
 
-  return Math.min(100, score);
+  // 5. Geographic Confidence Signal (Hardening)
+  if (report.locationConfidence === "low") {
+    score -= 30; // Significant penalty for distant reports
+  } else if (report.locationConfidence === "high") {
+    score += 10; // Small bonus for proximity
+  }
+
+  // 6. Price Discrepancy (Hardening)
+  if (report.metadata?.price_discrepancy) {
+    score -= 40; // Heavy penalty for suspicious prices
+  }
+
+  return Math.max(-100, Math.min(100, score));
 }

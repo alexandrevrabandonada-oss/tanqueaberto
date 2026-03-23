@@ -1,7 +1,7 @@
 "use client";
 
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, Camera, Clock3, Search, SlidersHorizontal, X } from "lucide-react";
+import { ArrowRight, Camera, Clock3, Search, SlidersHorizontal, Star, X } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
 
@@ -10,20 +10,25 @@ import { FirstVisitGuide } from "@/components/onboarding/first-visit-guide";
 import { StationCard } from "@/components/station/station-card";
 import { Badge } from "@/components/ui/badge";
 import { GroupStatusBadge } from "@/components/ui/group-status-badge";
-import { ButtonLink } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
 import { EmptyStateCard } from "@/components/state/empty-state-card";
+import { useGeolocation } from "@/hooks/use-geolocation";
+import { calculateDistance, formatDistance } from "@/lib/geo/distance";
+import { cn } from "@/lib/utils";
 import { trackProductEvent } from "@/lib/telemetry/client";
 import { formatCurrencyBRL } from "@/lib/format/currency";
 import { formatDateTimeBR } from "@/lib/format/time";
 import { formatRecencyLabel, getRecencyTone, recencyToneToBadgeVariant } from "@/lib/format/time";
 import { fuelLabels, publicFuelFilters, recencyFilters } from "@/lib/format/labels";
 import { filterReports, filterStations, getSelectedStationReport, hasRecentStationPriceForFilter, type StationPresenceFilter } from "@/lib/filters/public";
-import { sortStationsForPublicView } from "@/lib/filters/sort";
+import { sortStationsForPublicView }
+ from "@/lib/filters/sort";
 import { canShowStationOnMap, getStationPublicName, hasPendingStationLocationReview } from "@/lib/quality/stations";
 import { persistHomeContext, priorityCities, readHomeContext, readLastStationContext, rememberStationVisit } from "@/lib/navigation/home-context";
 import { startRoute, readRouteContext } from "@/lib/navigation/route-context";
 import { RouteAssistant } from "@/components/routes/route-assistant";
+import { useStreetMode } from "@/hooks/use-street-mode";
 import type { FuelFilter, RecencyFilter } from "@/lib/filters/public";
 import type { ReportWithStation, StationWithReports } from "@/lib/types";
 
@@ -102,10 +107,12 @@ export function HomeBrowser({
   const [isHydrated, setIsHydrated] = useState(false);
   const lastTrackedSearchRef = useRef(initialQuery);
   const deferredQuery = useDeferredValue(query);
+  const { coords, loading: geoLoading, error: geoError, getLocation } = useGeolocation();
+  const { isStreetMode, toggleStreetMode, recentIds, favoriteIds, toggleFavorite, isFavorite } = useStreetMode();
 
   useEffect(() => {
-    void trackProductEvent({ eventType: "home_opened", pagePath: "/", pageTitle: "Mapa vivo", scopeType: "page", scopeId: "/" });
-  }, []);
+    void trackProductEvent({ eventType: "home_opened", pagePath: "/", pageTitle: "Mapa vivo", scopeType: "page", scopeId: "/", payload: { streetMode: isStreetMode } });
+  }, [isStreetMode]);
 
   useEffect(() => {
     const storedContext = readHomeContext();
@@ -153,18 +160,40 @@ export function HomeBrowser({
     return { priority, others, allCities };
   }, [stations]);
 
+  const stationsWithDistances = useMemo(() => {
+    if (!coords) return stations;
+    return stations.map(station => ({
+      ...station,
+      distance: calculateDistance(coords.lat, coords.lng, station.lat, station.lng)
+    }));
+  }, [stations, coords]);
+
   const filteredStations = useMemo(
-    () => filterStations(stations, deferredQuery, selectedCity, fuelFilter, recencyFilter, presenceFilter),
-    [deferredQuery, fuelFilter, presenceFilter, recencyFilter, selectedCity, stations]
+    () => filterStations(stationsWithDistances, deferredQuery, selectedCity, fuelFilter, recencyFilter, presenceFilter),
+    [deferredQuery, fuelFilter, presenceFilter, recencyFilter, selectedCity, stationsWithDistances]
   );
   const filteredFeed = useMemo(
     () => filterReports(feed, deferredQuery, selectedCity, fuelFilter, recencyFilter),
     [deferredQuery, feed, fuelFilter, recencyFilter, selectedCity]
   );
-  const orderedStations = useMemo(
-    () => sortStationsForPublicView(filteredStations, { cityFilter: selectedCity, fuelFilter }),
-    [filteredStations, fuelFilter, selectedCity]
-  );
+  const orderedStations = useMemo(() => {
+    let result = [...filteredStations];
+
+    // Sort: Priority 1: Distance (if available), Priority 2: Release Status, Priority 3: Score
+    return result.sort((a, b) => {
+      // If coordinates are active, proximity is the main driver
+      if (coords && a.distance !== undefined && b.distance !== undefined) {
+        return a.distance - b.distance;
+      }
+
+      const statusOrder: Record<string, number> = { ready: 0, validating: 1, limited: 2, hidden: 3 };
+      const orderA = statusOrder[a.releaseStatus ?? "limited"] ?? 99;
+      const orderB = statusOrder[b.releaseStatus ?? "limited"] ?? 99;
+      if (orderA !== orderB) return orderA - orderB;
+      
+      return (b.priorityScore ?? 0) - (a.priorityScore ?? 0);
+    });
+  }, [filteredStations, coords]);
   const visibleStations = useMemo(() => orderedStations.filter((station) => canShowStationOnMap(station)), [orderedStations]);
   const stationsWithRecentPrice = useMemo(
     () => visibleStations.filter((station) => hasRecentStationPriceForFilter(station, fuelFilter)),
@@ -224,12 +253,65 @@ export function HomeBrowser({
         <RouteAssistant stations={stations} />
       </div>
 
-      <SectionCard className="space-y-4">
-        <div className="space-y-1.5">
-          <Badge className="text-[10px] uppercase tracking-widest">Mapa Vivo</Badge>
-          <h2 className="text-2xl font-bold tracking-tight text-white">Transparência territorial e preço real</h2>
-          <p className="text-sm leading-relaxed text-white/40">Busque, filtre e colabore para manter o mapa vivo.</p>
-        </div>
+      <div className="mb-4">
+        <Button 
+          variant={isStreetMode ? "primary" : "secondary"}
+          onClick={toggleStreetMode}
+          className="w-full h-14 rounded-[22px] text-xs font-bold uppercase tracking-widest shadow-lg border-2 border-white/5"
+        >
+          {isStreetMode ? "MODO RUA ATIVO" : "🚀 MODO RUA (MAIS RÁPIDO)"}
+        </Button>
+      </div>
+
+      {(recentIds.length > 0 || favoriteIds.length > 0) && (
+        <SectionCard className="mb-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] uppercase tracking-widest text-white/30">Acesso Rápido</p>
+            <Badge variant="outline" className="text-[9px]">Polegar amigável</Badge>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
+            {favoriteIds.map(fid => {
+              const s = stations.find(st => st.id === fid);
+              if (!s) return null;
+              return (
+                <Link 
+                  key={`fav-${fid}`}
+                  href={`/enviar?stationId=${fid}#photo`}
+                  className="flex min-w-[150px] flex-col rounded-[22px] border border-yellow-400/30 bg-yellow-400/5 p-4 transition active:scale-95 hover:bg-yellow-400/10"
+                >
+                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mb-2" />
+                  <p className="text-sm font-bold text-white truncate">{getStationPublicName(s)}</p>
+                  <p className="text-xs text-white/40 truncate">{s.neighborhood}</p>
+                </Link>
+              );
+            })}
+            {recentIds.filter(rid => !favoriteIds.includes(rid)).map(rid => {
+              const s = stations.find(st => st.id === rid);
+              if (!s) return null;
+              return (
+                <Link 
+                  key={`rec-${rid}`}
+                  href={`/enviar?stationId=${rid}#photo`}
+                  className="flex min-w-[150px] flex-col rounded-[22px] border border-white/10 bg-white/5 p-4 transition active:scale-95 hover:bg-white/10"
+                >
+                  <Clock3 className="h-4 w-4 text-white/40 mb-2" />
+                  <p className="text-sm font-bold text-white truncate">{getStationPublicName(s)}</p>
+                  <p className="text-xs text-white/40 truncate">{s.neighborhood}</p>
+                </Link>
+              );
+            })}
+          </div>
+        </SectionCard>
+      )}
+
+      <SectionCard className={cn("space-y-4", isStreetMode && "space-y-2 py-3")}>
+        {!isStreetMode && (
+          <div className="space-y-1.5">
+            <Badge className="text-[10px] uppercase tracking-widest">Mapa Vivo</Badge>
+            <h2 className="text-2xl font-bold tracking-tight text-white">Transparência territorial e preço real</h2>
+            <p className="text-sm leading-relaxed text-white/40">Busque, filtre e colabore para manter o mapa vivo.</p>
+          </div>
+        )}
 
         <div className="flex items-center gap-3 rounded-[22px] border border-white/8 bg-black/30 px-4 py-3 text-sm text-white/50">
           <Search className="h-4 w-4 text-[color:var(--color-accent)]" />
@@ -261,7 +343,16 @@ export function HomeBrowser({
         </div>
 
         <div className="space-y-3">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex h-10 w-full items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            <Button 
+              variant={coords ? "primary" : "secondary"}
+              onClick={() => getLocation()}
+              disabled={geoLoading}
+              className="h-8 shrink-0 py-0 px-3 text-[10px] font-bold uppercase tracking-widest"
+            >
+              {geoLoading ? "Buscando..." : coords ? "GPS Ativo" : "📍 Perto de mim"}
+            </Button>
+            <div className="h-4 w-px shrink-0 bg-white/10" />
             <button
               type="button"
               onClick={() => setSelectedCity("")}
@@ -423,7 +514,7 @@ export function HomeBrowser({
             </Link>
           </div>
         </div>
-        <StationMapShell stations={mapStations} className="h-[440px]" returnToHref={contextHref} fuelFilter={fuelFilter} />
+        <StationMapShell stations={mapStations} className="h-[440px]" returnToHref={contextHref} fuelFilter={fuelFilter} center={coords} />
       </SectionCard>
 
       {summaryStations.length > 0 ? (
@@ -461,6 +552,11 @@ export function HomeBrowser({
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
+                    {station.distance !== undefined && (
+                      <span className="text-[10px] font-medium text-white/40">
+                        {formatDistance(station.distance)}
+                      </span>
+                    )}
                     {latest ? (
                       <Badge variant={recencyToneToBadgeVariant(getRecencyTone(latest.reportedAt))} className="text-[10px]">
                         {formatRecencyLabel(latest.reportedAt)}
@@ -540,7 +636,15 @@ export function HomeBrowser({
           </div>
           <div className="space-y-3">
             {noRecentStations.map((station) => (
-              <StationCard key={station.id} station={station} fuelFilter={fuelFilter} returnToHref={contextHref} />
+              <StationCard 
+                key={station.id} 
+                station={station} 
+                fuelFilter={fuelFilter} 
+                returnToHref={contextHref}
+                isStreetMode={isStreetMode}
+                isFavorite={isFavorite(station.id)}
+                onFavoriteToggle={() => toggleFavorite(station.id)}
+              />
             ))}
           </div>
         </SectionCard>
@@ -564,7 +668,17 @@ export function HomeBrowser({
               className="text-left"
             />
           ) : (
-            orderedStations.map((station) => <StationCard key={station.id} station={station} fuelFilter={fuelFilter} returnToHref={contextHref} />)
+            orderedStations.map((station) => (
+              <StationCard 
+                key={station.id} 
+                station={station} 
+                fuelFilter={fuelFilter} 
+                returnToHref={contextHref}
+                isStreetMode={isStreetMode}
+                isFavorite={isFavorite(station.id)}
+                onFavoriteToggle={() => toggleFavorite(station.id)}
+              />
+            ))
           )}
         </div>
       </SectionCard>

@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
 import { readRouteContext, stopRoute, skipStationInRoute, type RouteContext } from "@/lib/navigation/route-context";
 import { getNextPriorityStation } from "@/lib/ops/route-priority";
+import { useGeolocation } from "@/hooks/use-geolocation";
+import { formatDistance } from "@/lib/geo/distance";
 import { trackProductEvent } from "@/lib/telemetry/client";
 import { getStationPublicName } from "@/lib/quality/stations";
 import type { StationWithReports } from "@/lib/types";
@@ -30,10 +32,12 @@ export function RouteAssistant({ stations, currentStationId = null }: RouteAssis
     setContext(readRouteContext());
   }, []);
 
+  const { coords, getLocation } = useGeolocation();
+
   const nextStation = useMemo(() => {
     if (!context || !context.active) return null;
-    return getNextPriorityStation(stations, context, currentStationId);
-  }, [context, stations, currentStationId]);
+    return getNextPriorityStation(stations, context, currentStationId, coords);
+  }, [context, stations, currentStationId, coords]);
 
   if (!isMounted || !context || !context.active) {
     return null;
@@ -111,6 +115,12 @@ export function RouteAssistant({ stations, currentStationId = null }: RouteAssis
           <p className="mt-1 flex items-center gap-1.5 text-sm text-white/50">
             <MapPin className="h-3.5 w-3.5 text-[color:var(--color-accent)]/60" />
             {nextStation.neighborhood}, {nextStation.city}
+            {nextStation.distance !== undefined && (
+              <span className="flex items-center gap-1 text-[color:var(--color-accent)]">
+                <span className="h-1 w-1 rounded-full bg-white/20" />
+                {formatDistance(nextStation.distance)}
+              </span>
+            )}
           </p>
           <div className="mt-3 flex gap-4 text-[11px] text-white/30">
             <span>{nextStation.latestReports.length || 0} reports recentes</span>

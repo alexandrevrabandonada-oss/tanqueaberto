@@ -1,12 +1,14 @@
 import { computeStationPriorityScore } from "@/lib/quality/stations";
 import { hasRecentStationPriceForFilter } from "@/lib/filters/public";
 import type { RouteContext } from "@/lib/navigation/route-context";
+import { calculateDistance } from "@/lib/geo/distance";
 import type { FuelType, StationWithReports } from "@/lib/types";
 
 export function getNextPriorityStation(
   stations: StationWithReports[],
   context: RouteContext,
-  currentStationId: string | null
+  currentStationId: string | null,
+  userCoords?: { lat: number; lng: number } | null
 ): StationWithReports | null {
   if (!context.active) return null;
 
@@ -16,8 +18,6 @@ export function getNextPriorityStation(
   const candidates = stations.filter((station) => {
     // Basic context filtering
     if (context.city && station.city.toUpperCase() !== context.city.toUpperCase()) return false;
-    // Note: groupId filtering would require station.groupId which might not exist directly yet
-    // For now we use city as the primary route boundary as requested in the "simple" rules.
 
     // Exclude exclusions
     if (station.id === currentStationId) return false;
@@ -42,7 +42,18 @@ export function getNextPriorityStation(
       isReviewed: station.geoReviewStatus === "ok"
     });
 
-    return { station, score };
+    // Distance boost: Up to 50 points for being very close (within 1km)
+    let distanceBoost = 0;
+    if (userCoords) {
+      const dist = calculateDistance(userCoords.lat, userCoords.lng, station.lat, station.lng);
+      if (dist < 1000) {
+        distanceBoost = Math.max(0, 50 - (dist / 1000) * 50);
+      } else if (dist < 5000) {
+        distanceBoost = 10; // Small boost for nearby stations
+      }
+    }
+
+    return { station, score: score + distanceBoost };
   });
 
   // Sort by score descending

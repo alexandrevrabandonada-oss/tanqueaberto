@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Route } from "next";
 import Link from "next/link";
-import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
+import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,15 @@ interface StationMapProps {
   className?: string;
   returnToHref?: string;
   fuelFilter?: FuelFilter;
+  center?: { lat: number; lng: number } | null;
+}
+
+function ChangeView({ center }: { center: { lat: number; lng: number } }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView([center.lat, center.lng], 13);
+  }, [center.lat, center.lng, map]);
+  return null;
 }
 
 function createPinIcon(status: "recent" | "stale" | "review") {
@@ -46,7 +55,7 @@ function getSendHref(stationId: string, returnToHref?: string, fuelFilter?: Fuel
   return returnToHref ? (`${base}&returnTo=${encodeURIComponent(returnToHref)}` as Route) : (base as Route);
 }
 
-export function StationMap({ stations, className = "h-[360px]", returnToHref, fuelFilter = "all" }: StationMapProps) {
+export function StationMap({ stations, className = "h-[360px]", returnToHref, fuelFilter = "all", center }: StationMapProps) {
   const mapStations = stations.filter((station) => canShowStationOnMap(station));
   const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
 
@@ -88,6 +97,7 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        {center && <ChangeView center={center} />}
         {mapStations.map((station) => {
           const selectedReportForStation = getSelectedStationReport(station, fuelFilter);
           const stationHref = getStationHref(station.id, returnToHref);

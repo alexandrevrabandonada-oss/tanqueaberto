@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import Image from "next/image";
 import { Check, X, Zap, ChevronRight, ChevronLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -19,13 +19,40 @@ interface FastApprovalQueueProps {
 export function FastApprovalQueue({ reports }: FastApprovalQueueProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPending, startTransition] = useTransition();
-  const currentReport = reports[currentIndex];
+
+  const groupedReports = useMemo(() => {
+    const groups: Record<string, ReportWithStation[]> = {};
+    const result: { main: ReportWithStation; confirmations: ReportWithStation[] }[] = [];
+
+    reports.forEach((report) => {
+      const rid = report.reconciliationId || `single-${report.id}`;
+      if (!groups[rid]) {
+        groups[rid] = [];
+      }
+      groups[rid].push(report);
+    });
+
+    Object.values(groups).forEach((group) => {
+      // Sort group: non-confirmations first (main), then confirmations
+      group.sort((a, b) => (a.isConfirmation ? 1 : 0) - (b.isConfirmation ? 0 : 1));
+      result.push({
+        main: group[0],
+        confirmations: group.slice(1)
+      });
+    });
+
+    // Sort result by priority score of main report
+    return result.sort((a, b) => (b.main.priorityScore || 0) - (a.main.priorityScore || 0));
+  }, [reports]);
+
+  const currentGroup = groupedReports[currentIndex];
+  const currentReport = currentGroup?.main;
 
   const nextReport = useCallback(() => {
-    if (currentIndex < reports.length - 1) {
+    if (currentIndex < groupedReports.length - 1) {
       setCurrentIndex(currentIndex + 1);
     }
-  }, [currentIndex, reports.length]);
+  }, [currentIndex, groupedReports.length]);
 
   const prevReport = useCallback(() => {
     if (currentIndex > 0) {
@@ -34,34 +61,40 @@ export function FastApprovalQueue({ reports }: FastApprovalQueueProps) {
   }, [currentIndex]);
 
   const approveCurrent = useCallback(() => {
-    if (!currentReport || isPending) return;
+    if (!currentReport || !currentGroup || isPending) return;
     const formData = new FormData();
     formData.append("reportId", currentReport.id);
     formData.append("decision", "approved");
-    formData.append("moderationNote", "Aprovação rápida via Fast Lane");
+    formData.append("moderationNote", `Aprovação rápida (${currentGroup.confirmations.length + 1} reports agrupados)`);
+    
+    // Add confirmation IDs if any
+    currentGroup.confirmations.forEach(c => formData.append("confirmationIds", c.id));
     
     startTransition(async () => {
       await moderateReportAction(formData);
-      if (currentIndex < reports.length - 1) {
+      if (currentIndex < groupedReports.length - 1) {
         setCurrentIndex(currentIndex + 1);
       }
     });
-  }, [currentIndex, currentReport, isPending, reports.length]);
+  }, [currentIndex, currentGroup, currentReport, isPending, groupedReports.length]);
 
   const rejectCurrent = useCallback(() => {
-    if (!currentReport || isPending) return;
+    if (!currentReport || !currentGroup || isPending) return;
     const formData = new FormData();
     formData.append("reportId", currentReport.id);
     formData.append("decision", "rejected");
-    formData.append("moderationNote", "Rejeição rápida via Fast Lane");
+    formData.append("moderationNote", `Rejeição rápida (${currentGroup.confirmations.length + 1} reports agrupados)`);
+    
+    // Add confirmation IDs if any
+    currentGroup.confirmations.forEach(c => formData.append("confirmationIds", c.id));
     
     startTransition(async () => {
       await moderateReportAction(formData);
-      if (currentIndex < reports.length - 1) {
+      if (currentIndex < groupedReports.length - 1) {
         setCurrentIndex(currentIndex + 1);
       }
     });
-  }, [currentIndex, currentReport, isPending, reports.length]);
+  }, [currentIndex, currentGroup, currentReport, isPending, groupedReports.length]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -102,7 +135,7 @@ export function FastApprovalQueue({ reports }: FastApprovalQueueProps) {
           <span className="text-xs font-bold uppercase tracking-widest text-[color:var(--color-accent)]">Fila Prioritária</span>
         </div>
         <div className="text-xs text-white/40">
-          {currentIndex + 1} de {reports.length} pendentes
+          {currentIndex + 1} de {groupedReports.length} grupos
         </div>
       </div>
 
@@ -133,8 +166,28 @@ export function FastApprovalQueue({ reports }: FastApprovalQueueProps) {
         </div>
 
         <div className="flex items-center justify-between p-4">
-          <div className="text-xs text-white/40">
-            Enviado {formatRecencyLabel(currentReport.reportedAt)} por <span className="text-white/60">{currentReport.reporterNickname || "Anônimo"}</span>
+          <div className="space-y-1">
+            <div className="text-xs text-white/40">
+              Enviado {formatRecencyLabel(currentReport.reportedAt)} por <span className="text-white/60">{currentReport.reporterNickname || "Anônimo"}</span>
+            </div>
+            {currentGroup.confirmations.length > 0 && (
+              <div className="flex items-center gap-1.5 text-[10px] text-[color:var(--color-accent)] font-medium">
+                <Check className="h-3 w-3" />
+                +{currentGroup.confirmations.length} confirmações idênticas agrupadas
+              </div>
+            )}
+            {currentReport.locationConfidence === "low" && (
+              <div className="flex items-center gap-1.5 text-[10px] text-orange-400 font-medium">
+                <Badge variant="warning" className="h-4 px-1.5 py-0 text-[9px]">LONGE</Badge>
+                Dista {currentReport.locationDistance ? Math.round(currentReport.locationDistance) : "?"}m do posto
+              </div>
+            )}
+            {currentReport.metadata?.price_discrepancy && (
+              <div className="flex items-center gap-1.5 text-[10px] text-[color:var(--color-danger)] font-medium">
+                <Badge variant="danger" className="h-4 px-1.5 py-0 text-[9px]">DIFERENÇA ALTA</Badge>
+                Preço muito diferente do último aprovado
+              </div>
+            )}
           </div>
           <Badge variant={currentReport.priorityScore && currentReport.priorityScore > 50 ? "accent" : "warning"}>
             Score: {currentReport.priorityScore ?? 0}
@@ -177,7 +230,7 @@ export function FastApprovalQueue({ reports }: FastApprovalQueueProps) {
         <Button 
           variant="secondary" 
           onClick={nextReport} 
-          disabled={currentIndex === reports.length - 1}
+          disabled={currentIndex === groupedReports.length - 1}
           className="h-8 px-2 text-[10px]"
         >
           PRÓXIMO <ChevronRight className="ml-1 h-3 w-3" />

@@ -56,6 +56,11 @@ function mapReportRow(row: PriceReportRow): PriceReport {
     moderatedBy: row.moderated_by ?? null,
     sourceKind: (row.source_kind as PriceReport["sourceKind"]) ?? "community",
     photoHash: row.photo_hash ?? null,
+    locationDistance: row.location_distance ?? null,
+    locationConfidence: row.location_confidence as PriceReport["locationConfidence"] ?? null,
+    reconciliationId: row.reconciliation_id ?? null,
+    isConfirmation: row.is_confirmation ?? null,
+    metadata: row.metadata ?? null,
     version: row.version ?? 1
   };
 }

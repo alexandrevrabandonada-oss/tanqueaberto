@@ -69,12 +69,16 @@ export const viewport: Viewport = {
   viewportFit: "cover"
 };
 
+import { ErrorBoundary } from "@/components/ui/error-boundary";
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body className="bg-[color:var(--color-bg)] font-body text-[color:var(--color-text)]">
         <PwaRegister />
-        {children}
+        <ErrorBoundary name="RootLayout">
+          {children}
+        </ErrorBoundary>
       </body>
     </html>
   );

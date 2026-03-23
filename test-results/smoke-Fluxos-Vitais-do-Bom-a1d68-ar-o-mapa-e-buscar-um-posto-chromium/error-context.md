@@ -1,0 +1,3842 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - alert [ref=e2]
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - link "VR Abandonada Bomba Aberta" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - img [ref=e7]
+        - generic [ref=e8]:
+          - paragraph [ref=e9]: VR Abandonada
+          - heading "Bomba Aberta" [level=1] [ref=e10]
+      - generic [ref=e11]:
+        - img [ref=e12]
+        - text: Sul Fluminense
+        - img [ref=e16]
+    - main [ref=e18]:
+      - generic [ref=e19]:
+        - generic [ref=e20]:
+          - generic [ref=e21]:
+            - generic [ref=e22]: Primeira visita
+            - heading "Comece pelo mapa. Leva poucos segundos para entender." [level=2] [ref=e23]
+            - paragraph [ref=e24]: O app mostra o que já está cadastrado no território, o que já tem preço recente aprovado e onde ainda falta atualização.
+          - button "Fechar ajuda" [ref=e25]:
+            - img [ref=e26]
+        - generic [ref=e29]:
+          - generic [ref=e30]:
+            - generic [ref=e31]:
+              - img [ref=e32]
+              - text: Posto cadastrado
+            - paragraph [ref=e36]: O posto existe no mapa, mesmo que ainda não tenha preço recente.
+          - generic [ref=e37]:
+            - generic [ref=e38]:
+              - img [ref=e39]
+              - text: Preço recente
+            - paragraph [ref=e42]: É o último preço aprovado com foto e horário visível para consulta.
+          - generic [ref=e43]:
+            - generic [ref=e44]:
+              - img [ref=e45]
+              - text: Seu envio
+            - paragraph [ref=e48]: Foto + preço + horário entram como aguardando moderação.
+        - generic [ref=e49]:
+          - link "Enviar o primeiro preço" [ref=e50] [cursor=pointer]:
+            - /url: /enviar
+          - link "Entender como funciona" [ref=e51] [cursor=pointer]:
+            - /url: /auditoria/metodologia
+          - link "Ver postos sem atualização" [ref=e52] [cursor=pointer]:
+            - /url: /postos/sem-atualizacao
+      - generic [ref=e53]:
+        - generic [ref=e54]:
+          - generic [ref=e55]: Mapa vivo
+          - heading "Veja o cadastro territorial e o preço recente sem misturar as duas coisas." [level=2] [ref=e56]
+          - paragraph [ref=e57]: Busque, escolha a cidade e entenda em poucos segundos o que já está no mapa, o que já foi atualizado e o que ainda precisa de colaboração.
+        - generic [ref=e58]:
+          - img [ref=e59]
+          - textbox "Buscar posto, bairro ou cidade" [ref=e62]
+        - generic [ref=e63]:
+          - button "Todas as cidades" [ref=e65]
+          - paragraph [ref=e66]: Comece por Volta Redonda, Barra Mansa ou Barra do Piraí. O recorte preferido fica salvo para a próxima visita.
+          - generic [ref=e67]:
+            - generic [ref=e68]:
+              - generic [ref=e69]: Combustível
+              - generic [ref=e70]:
+                - combobox "Combustível ▾" [ref=e71]:
+                  - option "Todos" [selected]
+                  - option "Gasolina comum"
+                  - option "Gasolina aditivada"
+                  - option "Etanol"
+                  - option "Diesel S10"
+                  - option "Diesel comum"
+                  - option "GNV"
+                - generic: ▾
+            - generic [ref=e72]:
+              - generic [ref=e73]: Recência
+              - generic [ref=e74]:
+                - combobox "Recência ▾" [ref=e75]:
+                  - option "Todos" [selected]
+                  - option "24h"
+                  - option "48h"
+                - generic: ▾
+            - generic [ref=e76]:
+              - generic [ref=e77]: Exibição
+              - generic [ref=e78]:
+                - button "Todos os postos" [ref=e79]
+                - button "Só com preço recente" [ref=e80]
+          - group [ref=e81]:
+            - generic "Mais filtros Avançado" [ref=e82] [cursor=pointer]:
+              - generic [ref=e83]:
+                - img [ref=e84]
+                - text: Mais filtros
+              - generic [ref=e85]: Avançado
+            - option "Selecionar cidade" [selected]
+            - option "BARRA DO PIRAI"
+            - option "BARRA MANSA"
+            - option "PINHEIRAL"
+            - option "PORTO REAL"
+            - option "QUATIS"
+            - option "RESENDE"
+            - option "VOLTA REDONDA"
+        - generic [ref=e87]: 133 postos no recorte
+      - generic [ref=e88]:
+        - generic [ref=e90]:
+          - generic [ref=e91]:
+            - paragraph [ref=e92]: Mapa vivo
+            - heading "Pins filtrados com leitura por cidade" [level=3] [ref=e93]
+          - link "Enviar preço" [ref=e94] [cursor=pointer]:
+            - /url: /enviar
+        - generic [ref=e96]:
+          - generic [ref=e97]:
+            - generic [ref=e98]: Com preço recente
+            - generic [ref=e100]: Sem atualização recente
+            - generic [ref=e102]: Em revisão territorial
+            - paragraph [ref=e104]: Todos os postos mostram o cadastro visível. Só com preço recente mostra apenas o que já foi aprovado.
+          - generic [ref=e105]:
+            - generic:
+              - generic:
+                - button [ref=e106] [cursor=pointer]
+                - button [ref=e108] [cursor=pointer]
+                - button [ref=e110] [cursor=pointer]
+                - button [ref=e112] [cursor=pointer]
+                - button [ref=e114] [cursor=pointer]
+                - button [ref=e116] [cursor=pointer]
+                - button [ref=e118] [cursor=pointer]
+                - button [ref=e120] [cursor=pointer]
+                - button [ref=e122] [cursor=pointer]
+                - button [ref=e124] [cursor=pointer]
+                - button [ref=e126] [cursor=pointer]
+                - button [ref=e128] [cursor=pointer]
+                - button [ref=e130] [cursor=pointer]
+                - button [ref=e132] [cursor=pointer]
+                - button [ref=e134] [cursor=pointer]
+                - button [ref=e136] [cursor=pointer]
+                - button [ref=e138] [cursor=pointer]
+                - button [ref=e140] [cursor=pointer]
+                - button [ref=e142] [cursor=pointer]
+                - button [ref=e144] [cursor=pointer]
+                - button [ref=e146] [cursor=pointer]
+                - button [ref=e148] [cursor=pointer]
+                - button [ref=e150] [cursor=pointer]
+                - button [ref=e152] [cursor=pointer]
+                - button [ref=e154] [cursor=pointer]
+                - button [ref=e156] [cursor=pointer]
+                - button [ref=e158] [cursor=pointer]
+            - generic:
+              - generic [ref=e160]:
+                - button "Zoom in" [ref=e161] [cursor=pointer]: +
+                - button "Zoom out" [ref=e162] [cursor=pointer]: −
+              - generic [ref=e163]:
+                - link "Leaflet" [ref=e164] [cursor=pointer]:
+                  - /url: https://leafletjs.com
+                  - img [ref=e165]
+                  - text: Leaflet
+                - text: "| ©"
+                - link "OpenStreetMap" [ref=e169] [cursor=pointer]:
+                  - /url: https://www.openstreetmap.org/copyright
+                - text: contributors
+          - generic [ref=e171]:
+            - paragraph [ref=e172]: Toque em um pin para ver o card rápido e seguir para o posto ou para o envio.
+            - button "Abrir um pin" [ref=e173]
+      - generic [ref=e174]:
+        - generic [ref=e175]:
+          - generic [ref=e176]:
+            - paragraph [ref=e177]: Lista do recorte
+            - heading "Exploração sincronizada com o mapa" [level=2] [ref=e178]
+          - generic [ref=e179]: 6 visíveis agora
+        - generic [ref=e180]:
+          - link "Bandeira BRANCA · RUA CESAR Salamonte ATERRADO, VOLTA REDONDA Sem preço" [ref=e181] [cursor=pointer]:
+            - /url: /postos/868562b7-5f23-4fa1-b212-52a92ddd692d?returnTo=%2F
+            - generic [ref=e182]:
+              - paragraph [ref=e183]: Bandeira BRANCA · RUA CESAR Salamonte
+              - paragraph [ref=e184]: ATERRADO, VOLTA REDONDA
+            - generic [ref=e186]: Sem preço
+          - link "Bandeira BRANCA · RUA Cincinato BRAGA ATERRADO, VOLTA REDONDA Sem preço" [ref=e187] [cursor=pointer]:
+            - /url: /postos/8108fb5f-5b69-4e71-98b5-997952c46ca8?returnTo=%2F
+            - generic [ref=e188]:
+              - paragraph [ref=e189]: Bandeira BRANCA · RUA Cincinato BRAGA
+              - paragraph [ref=e190]: ATERRADO, VOLTA REDONDA
+            - generic [ref=e192]: Sem preço
+          - link "VIBRA · Avenida LUCAS Evangelista DE Oliveira FRANCO ATERRADO, VOLTA REDONDA Sem preço" [ref=e193] [cursor=pointer]:
+            - /url: /postos/40d56678-a4c0-4ba7-b6c0-bfc5cb531824?returnTo=%2F
+            - generic [ref=e194]:
+              - paragraph [ref=e195]: VIBRA · Avenida LUCAS Evangelista DE Oliveira FRANCO
+              - paragraph [ref=e196]: ATERRADO, VOLTA REDONDA
+            - generic [ref=e198]: Sem preço
+          - link "POSTO Voltaco DE VOLTA Redonda ATERRADO, VOLTA REDONDA Sem preço" [ref=e199] [cursor=pointer]:
+            - /url: /postos/e57087e6-3b96-4d20-ba15-f1a891e66ce9?returnTo=%2F
+            - generic [ref=e200]:
+              - paragraph [ref=e201]: POSTO Voltaco DE VOLTA Redonda
+              - paragraph [ref=e202]: ATERRADO, VOLTA REDONDA
+            - generic [ref=e204]: Sem preço
+          - link "SUL GAS - Comercio DE Combustiveis ATERRADO, VOLTA REDONDA Sem preço" [ref=e205] [cursor=pointer]:
+            - /url: /postos/59375f0c-fcae-4236-a9f2-5e52d4084158?returnTo=%2F
+            - generic [ref=e206]:
+              - paragraph [ref=e207]: SUL GAS - Comercio DE Combustiveis
+              - paragraph [ref=e208]: ATERRADO, VOLTA REDONDA
+            - generic [ref=e210]: Sem preço
+          - link "RAIZEN · Rodovia DOS Metalurgicos CASA DE PEDRA, VOLTA REDONDA Sem preço" [ref=e211] [cursor=pointer]:
+            - /url: /postos/37fdcdd8-3579-4774-a82c-b043356a0b35?returnTo=%2F
+            - generic [ref=e212]:
+              - paragraph [ref=e213]: RAIZEN · Rodovia DOS Metalurgicos
+              - paragraph [ref=e214]: CASA DE PEDRA, VOLTA REDONDA
+            - generic [ref=e216]: Sem preço
+      - generic [ref=e217]:
+        - generic [ref=e218]:
+          - paragraph [ref=e219]: Postos visíveis
+          - paragraph [ref=e220]: "27"
+          - paragraph [ref=e221]: Cadastro territorial apto ao mapa
+        - generic [ref=e222]:
+          - paragraph [ref=e223]: Com preço recente
+          - paragraph [ref=e224]: "0"
+          - paragraph [ref=e225]: Atualização recente aprovada
+        - generic [ref=e226]:
+          - paragraph [ref=e227]: Sem atualização
+          - paragraph [ref=e228]: "27"
+          - paragraph [ref=e229]: Cadastro visível ainda sem preço recente
+        - generic [ref=e230]:
+          - paragraph [ref=e231]: Atualizações 24h
+          - paragraph [ref=e232]: "0"
+          - paragraph [ref=e233]: Envios aprovados na última janela
+      - generic [ref=e234]:
+        - generic [ref=e235]:
+          - generic [ref=e236]:
+            - paragraph [ref=e237]: Mais baratos agora
+            - heading "Leitura rápida do filtro atual" [level=2] [ref=e238]
+          - generic [ref=e239]: Todos os combustíveis
+        - generic [ref=e240]:
+          - img [ref=e242]
+          - generic [ref=e243]:
+            - heading "Há postos cadastrados, mas ainda sem preço recente neste recorte." [level=3] [ref=e244]
+            - paragraph [ref=e245]: Abra a lista dos postos sem atualização e envie a primeira foto onde puder.
+          - link "Ver postos sem atualização" [ref=e246] [cursor=pointer]:
+            - /url: /postos/sem-atualizacao
+      - generic [ref=e247]:
+        - generic [ref=e248]:
+          - generic [ref=e249]:
+            - paragraph [ref=e250]: Postos sem atualização recente
+            - heading "Onde ainda falta preço aprovado" [level=2] [ref=e251]
+          - link "Ver lista completa" [ref=e252] [cursor=pointer]:
+            - /url: /postos/sem-atualizacao
+        - generic [ref=e253]:
+          - generic [ref=e254]:
+            - generic [ref=e255]:
+              - generic [ref=e256]:
+                - paragraph [ref=e257]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · RUA CESAR Salamonte" [level=3] [ref=e258]
+                - paragraph [ref=e259]: ATERRADO, VOLTA REDONDA
+              - generic [ref=e260]: Sem preço recente
+            - generic [ref=e261]:
+              - generic [ref=e262]: Localização em revisão
+              - generic [ref=e263]: Aguardando primeiro preço
+            - generic [ref=e264]:
+              - img [ref=e265]
+              - generic [ref=e268]: RUA CESAR SALAMONTE, 43, ATERRADO, VOLTA REDONDA
+            - generic [ref=e269]:
+              - paragraph [ref=e270]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e271] [cursor=pointer]:
+                - /url: /enviar?stationId=868562b7-5f23-4fa1-b212-52a92ddd692d&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e272]
+            - generic [ref=e275]:
+              - link "Abrir câmera" [ref=e276] [cursor=pointer]:
+                - /url: /enviar?stationId=868562b7-5f23-4fa1-b212-52a92ddd692d&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e277]
+              - link "Abrir posto" [ref=e280] [cursor=pointer]:
+                - /url: /postos/868562b7-5f23-4fa1-b212-52a92ddd692d?returnTo=%2F
+          - generic [ref=e281]:
+            - generic [ref=e282]:
+              - generic [ref=e283]:
+                - paragraph [ref=e284]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · RUA Cincinato BRAGA" [level=3] [ref=e285]
+                - paragraph [ref=e286]: ATERRADO, VOLTA REDONDA
+              - generic [ref=e287]: Sem preço recente
+            - generic [ref=e288]:
+              - generic [ref=e289]: Localização em revisão
+              - generic [ref=e290]: Aguardando primeiro preço
+            - generic [ref=e291]:
+              - img [ref=e292]
+              - generic [ref=e295]: RUA CINCINATO BRAGA, 220, ATERRADO, VOLTA REDONDA
+            - generic [ref=e296]:
+              - paragraph [ref=e297]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e298] [cursor=pointer]:
+                - /url: /enviar?stationId=8108fb5f-5b69-4e71-98b5-997952c46ca8&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e299]
+            - generic [ref=e302]:
+              - link "Abrir câmera" [ref=e303] [cursor=pointer]:
+                - /url: /enviar?stationId=8108fb5f-5b69-4e71-98b5-997952c46ca8&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e304]
+              - link "Abrir posto" [ref=e307] [cursor=pointer]:
+                - /url: /postos/8108fb5f-5b69-4e71-98b5-997952c46ca8?returnTo=%2F
+          - generic [ref=e308]:
+            - generic [ref=e309]:
+              - generic [ref=e310]:
+                - paragraph [ref=e311]: VIBRA
+                - heading "VIBRA · Avenida LUCAS Evangelista DE Oliveira FRANCO" [level=3] [ref=e312]
+                - paragraph [ref=e313]: ATERRADO, VOLTA REDONDA
+              - generic [ref=e314]: Sem preço recente
+            - generic [ref=e315]:
+              - generic [ref=e316]: Localização em revisão
+              - generic [ref=e317]: Aguardando primeiro preço
+            - generic [ref=e318]:
+              - img [ref=e319]
+              - generic [ref=e322]: AVENIDA LUCAS EVANGELISTA DE OLIVEIRA FRANCO, 90, ATERRADO, VOLTA REDONDA
+            - generic [ref=e323]:
+              - paragraph [ref=e324]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e325] [cursor=pointer]:
+                - /url: /enviar?stationId=40d56678-a4c0-4ba7-b6c0-bfc5cb531824&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e326]
+            - generic [ref=e329]:
+              - link "Abrir câmera" [ref=e330] [cursor=pointer]:
+                - /url: /enviar?stationId=40d56678-a4c0-4ba7-b6c0-bfc5cb531824&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e331]
+              - link "Abrir posto" [ref=e334] [cursor=pointer]:
+                - /url: /postos/40d56678-a4c0-4ba7-b6c0-bfc5cb531824?returnTo=%2F
+          - generic [ref=e335]:
+            - generic [ref=e336]:
+              - generic [ref=e337]:
+                - paragraph [ref=e338]: BANDEIRA BRANCA
+                - heading "POSTO Voltaco DE VOLTA Redonda" [level=3] [ref=e339]
+                - paragraph [ref=e340]: ATERRADO, VOLTA REDONDA
+              - generic [ref=e341]: Sem preço recente
+            - generic [ref=e343]: Aguardando primeiro preço
+            - generic [ref=e344]:
+              - img [ref=e345]
+              - generic [ref=e348]: RUA CESAR SALAMONTE, 43, ATERRADO, VOLTA REDONDA
+            - generic [ref=e349]:
+              - paragraph [ref=e350]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e351] [cursor=pointer]:
+                - /url: /enviar?stationId=e57087e6-3b96-4d20-ba15-f1a891e66ce9&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e352]
+            - generic [ref=e355]:
+              - link "Abrir câmera" [ref=e356] [cursor=pointer]:
+                - /url: /enviar?stationId=e57087e6-3b96-4d20-ba15-f1a891e66ce9&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e357]
+              - link "Abrir posto" [ref=e360] [cursor=pointer]:
+                - /url: /postos/e57087e6-3b96-4d20-ba15-f1a891e66ce9?returnTo=%2F
+      - generic [ref=e361]:
+        - generic [ref=e362]:
+          - generic [ref=e363]:
+            - paragraph [ref=e364]: Agora no mapa
+            - heading "Consulta rápida" [level=2] [ref=e365]
+          - img [ref=e366]
+        - generic [ref=e369]:
+          - generic [ref=e370]:
+            - generic [ref=e371]:
+              - generic [ref=e372]:
+                - paragraph [ref=e373]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · RUA CESAR Salamonte" [level=3] [ref=e374]
+                - paragraph [ref=e375]: ATERRADO, VOLTA REDONDA
+              - generic [ref=e376]: Sem preço recente
+            - generic [ref=e377]:
+              - generic [ref=e378]: Localização em revisão
+              - generic [ref=e379]: Aguardando primeiro preço
+            - generic [ref=e380]:
+              - img [ref=e381]
+              - generic [ref=e384]: RUA CESAR SALAMONTE, 43, ATERRADO, VOLTA REDONDA
+            - generic [ref=e385]:
+              - paragraph [ref=e386]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e387] [cursor=pointer]:
+                - /url: /enviar?stationId=868562b7-5f23-4fa1-b212-52a92ddd692d&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e388]
+            - generic [ref=e391]:
+              - link "Abrir câmera" [ref=e392] [cursor=pointer]:
+                - /url: /enviar?stationId=868562b7-5f23-4fa1-b212-52a92ddd692d&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e393]
+              - link "Abrir posto" [ref=e396] [cursor=pointer]:
+                - /url: /postos/868562b7-5f23-4fa1-b212-52a92ddd692d?returnTo=%2F
+          - generic [ref=e397]:
+            - generic [ref=e398]:
+              - generic [ref=e399]:
+                - paragraph [ref=e400]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · RUA Cincinato BRAGA" [level=3] [ref=e401]
+                - paragraph [ref=e402]: ATERRADO, VOLTA REDONDA
+              - generic [ref=e403]: Sem preço recente
+            - generic [ref=e404]:
+              - generic [ref=e405]: Localização em revisão
+              - generic [ref=e406]: Aguardando primeiro preço
+            - generic [ref=e407]:
+              - img [ref=e408]
+              - generic [ref=e411]: RUA CINCINATO BRAGA, 220, ATERRADO, VOLTA REDONDA
+            - generic [ref=e412]:
+              - paragraph [ref=e413]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e414] [cursor=pointer]:
+                - /url: /enviar?stationId=8108fb5f-5b69-4e71-98b5-997952c46ca8&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e415]
+            - generic [ref=e418]:
+              - link "Abrir câmera" [ref=e419] [cursor=pointer]:
+                - /url: /enviar?stationId=8108fb5f-5b69-4e71-98b5-997952c46ca8&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e420]
+              - link "Abrir posto" [ref=e423] [cursor=pointer]:
+                - /url: /postos/8108fb5f-5b69-4e71-98b5-997952c46ca8?returnTo=%2F
+          - generic [ref=e424]:
+            - generic [ref=e425]:
+              - generic [ref=e426]:
+                - paragraph [ref=e427]: VIBRA
+                - heading "VIBRA · Avenida LUCAS Evangelista DE Oliveira FRANCO" [level=3] [ref=e428]
+                - paragraph [ref=e429]: ATERRADO, VOLTA REDONDA
+              - generic [ref=e430]: Sem preço recente
+            - generic [ref=e431]:
+              - generic [ref=e432]: Localização em revisão
+              - generic [ref=e433]: Aguardando primeiro preço
+            - generic [ref=e434]:
+              - img [ref=e435]
+              - generic [ref=e438]: AVENIDA LUCAS EVANGELISTA DE OLIVEIRA FRANCO, 90, ATERRADO, VOLTA REDONDA
+            - generic [ref=e439]:
+              - paragraph [ref=e440]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e441] [cursor=pointer]:
+                - /url: /enviar?stationId=40d56678-a4c0-4ba7-b6c0-bfc5cb531824&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e442]
+            - generic [ref=e445]:
+              - link "Abrir câmera" [ref=e446] [cursor=pointer]:
+                - /url: /enviar?stationId=40d56678-a4c0-4ba7-b6c0-bfc5cb531824&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e447]
+              - link "Abrir posto" [ref=e450] [cursor=pointer]:
+                - /url: /postos/40d56678-a4c0-4ba7-b6c0-bfc5cb531824?returnTo=%2F
+          - generic [ref=e451]:
+            - generic [ref=e452]:
+              - generic [ref=e453]:
+                - paragraph [ref=e454]: BANDEIRA BRANCA
+                - heading "POSTO Voltaco DE VOLTA Redonda" [level=3] [ref=e455]
+                - paragraph [ref=e456]: ATERRADO, VOLTA REDONDA
+              - generic [ref=e457]: Sem preço recente
+            - generic [ref=e459]: Aguardando primeiro preço
+            - generic [ref=e460]:
+              - img [ref=e461]
+              - generic [ref=e464]: RUA CESAR SALAMONTE, 43, ATERRADO, VOLTA REDONDA
+            - generic [ref=e465]:
+              - paragraph [ref=e466]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e467] [cursor=pointer]:
+                - /url: /enviar?stationId=e57087e6-3b96-4d20-ba15-f1a891e66ce9&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e468]
+            - generic [ref=e471]:
+              - link "Abrir câmera" [ref=e472] [cursor=pointer]:
+                - /url: /enviar?stationId=e57087e6-3b96-4d20-ba15-f1a891e66ce9&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e473]
+              - link "Abrir posto" [ref=e476] [cursor=pointer]:
+                - /url: /postos/e57087e6-3b96-4d20-ba15-f1a891e66ce9?returnTo=%2F
+          - generic [ref=e477]:
+            - generic [ref=e478]:
+              - generic [ref=e479]:
+                - paragraph [ref=e480]: BANDEIRA BRANCA
+                - heading "SUL GAS - Comercio DE Combustiveis" [level=3] [ref=e481]
+                - paragraph [ref=e482]: ATERRADO, VOLTA REDONDA
+              - generic [ref=e483]: Sem preço recente
+            - generic [ref=e485]: Aguardando primeiro preço
+            - generic [ref=e486]:
+              - img [ref=e487]
+              - generic [ref=e490]: RUA NESTOR RODRIGUES PERLINGEIRO, 500, ATERRADO, VOLTA REDONDA
+            - generic [ref=e491]:
+              - paragraph [ref=e492]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e493] [cursor=pointer]:
+                - /url: /enviar?stationId=59375f0c-fcae-4236-a9f2-5e52d4084158&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e494]
+            - generic [ref=e497]:
+              - link "Abrir câmera" [ref=e498] [cursor=pointer]:
+                - /url: /enviar?stationId=59375f0c-fcae-4236-a9f2-5e52d4084158&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e499]
+              - link "Abrir posto" [ref=e502] [cursor=pointer]:
+                - /url: /postos/59375f0c-fcae-4236-a9f2-5e52d4084158?returnTo=%2F
+          - generic [ref=e503]:
+            - generic [ref=e504]:
+              - generic [ref=e505]:
+                - paragraph [ref=e506]: RAIZEN
+                - heading "RAIZEN · Rodovia DOS Metalurgicos" [level=3] [ref=e507]
+                - paragraph [ref=e508]: CASA DE PEDRA, VOLTA REDONDA
+              - generic [ref=e509]: Sem preço recente
+            - generic [ref=e510]:
+              - generic [ref=e511]: Localização em revisão
+              - generic [ref=e512]: Aguardando primeiro preço
+            - generic [ref=e513]:
+              - img [ref=e514]
+              - generic [ref=e517]: RODOVIA DOS METALURGICOS, 8300, CASA DE PEDRA, VOLTA REDONDA
+            - generic [ref=e518]:
+              - paragraph [ref=e519]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e520] [cursor=pointer]:
+                - /url: /enviar?stationId=37fdcdd8-3579-4774-a82c-b043356a0b35&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e521]
+            - generic [ref=e524]:
+              - link "Abrir câmera" [ref=e525] [cursor=pointer]:
+                - /url: /enviar?stationId=37fdcdd8-3579-4774-a82c-b043356a0b35&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e526]
+              - link "Abrir posto" [ref=e529] [cursor=pointer]:
+                - /url: /postos/37fdcdd8-3579-4774-a82c-b043356a0b35?returnTo=%2F
+          - generic [ref=e530]:
+            - generic [ref=e531]:
+              - generic [ref=e532]:
+                - paragraph [ref=e533]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · RUA 719" [level=3] [ref=e534]
+                - paragraph [ref=e535]: CASA DE PEDRA, VOLTA REDONDA
+              - generic [ref=e536]: Sem preço recente
+            - generic [ref=e537]:
+              - generic [ref=e538]: Localização em revisão
+              - generic [ref=e539]: Aguardando primeiro preço
+            - generic [ref=e540]:
+              - img [ref=e541]
+              - generic [ref=e544]: RUA 719, 150, CASA DE PEDRA, VOLTA REDONDA
+            - generic [ref=e545]:
+              - paragraph [ref=e546]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e547] [cursor=pointer]:
+                - /url: /enviar?stationId=407538d8-f730-4b0a-ba44-1d3483468bd8&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e548]
+            - generic [ref=e551]:
+              - link "Abrir câmera" [ref=e552] [cursor=pointer]:
+                - /url: /enviar?stationId=407538d8-f730-4b0a-ba44-1d3483468bd8&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e553]
+              - link "Abrir posto" [ref=e556] [cursor=pointer]:
+                - /url: /postos/407538d8-f730-4b0a-ba44-1d3483468bd8?returnTo=%2F
+          - generic [ref=e557]:
+            - generic [ref=e558]:
+              - generic [ref=e559]:
+                - paragraph [ref=e560]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · RUA NOSSA Senhora DA Conceicao" [level=3] [ref=e561]
+                - paragraph [ref=e562]: CONFORTO, VOLTA REDONDA
+              - generic [ref=e563]: Sem preço recente
+            - generic [ref=e564]:
+              - generic [ref=e565]: Localização em revisão
+              - generic [ref=e566]: Aguardando primeiro preço
+            - generic [ref=e567]:
+              - img [ref=e568]
+              - generic [ref=e571]: RUA NOSSA SENHORA DA CONCEICAO, 87, CONFORTO, VOLTA REDONDA
+            - generic [ref=e572]:
+              - paragraph [ref=e573]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e574] [cursor=pointer]:
+                - /url: /enviar?stationId=89d08112-7693-4ed9-ad24-536e61e3cebd&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e575]
+            - generic [ref=e578]:
+              - link "Abrir câmera" [ref=e579] [cursor=pointer]:
+                - /url: /enviar?stationId=89d08112-7693-4ed9-ad24-536e61e3cebd&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e580]
+              - link "Abrir posto" [ref=e583] [cursor=pointer]:
+                - /url: /postos/89d08112-7693-4ed9-ad24-536e61e3cebd?returnTo=%2F
+          - generic [ref=e584]:
+            - generic [ref=e585]:
+              - generic [ref=e586]:
+                - paragraph [ref=e587]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · RUA 4" [level=3] [ref=e588]
+                - paragraph [ref=e589]: CONFORTO, VOLTA REDONDA
+              - generic [ref=e590]: Sem preço recente
+            - generic [ref=e591]:
+              - generic [ref=e592]: Localização em revisão
+              - generic [ref=e593]: Aguardando primeiro preço
+            - generic [ref=e594]:
+              - img [ref=e595]
+              - generic [ref=e598]: RUA 4, 149, CONFORTO, VOLTA REDONDA
+            - generic [ref=e599]:
+              - paragraph [ref=e600]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e601] [cursor=pointer]:
+                - /url: /enviar?stationId=4ae51d62-1d55-410b-acd8-e937a2d01d02&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e602]
+            - generic [ref=e605]:
+              - link "Abrir câmera" [ref=e606] [cursor=pointer]:
+                - /url: /enviar?stationId=4ae51d62-1d55-410b-acd8-e937a2d01d02&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e607]
+              - link "Abrir posto" [ref=e610] [cursor=pointer]:
+                - /url: /postos/4ae51d62-1d55-410b-acd8-e937a2d01d02?returnTo=%2F
+          - generic [ref=e611]:
+            - generic [ref=e612]:
+              - generic [ref=e613]:
+                - paragraph [ref=e614]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · Rodovia DOS Metalurgicos" [level=3] [ref=e615]
+                - paragraph [ref=e616]: JARDIM BELVEDERE, VOLTA REDONDA
+              - generic [ref=e617]: Sem preço recente
+            - generic [ref=e618]:
+              - generic [ref=e619]: Localização em revisão
+              - generic [ref=e620]: Aguardando primeiro preço
+            - generic [ref=e621]:
+              - img [ref=e622]
+              - generic [ref=e625]: RODOVIA DOS METALURGICOS, 941, JARDIM BELVEDERE, VOLTA REDONDA
+            - generic [ref=e626]:
+              - paragraph [ref=e627]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e628] [cursor=pointer]:
+                - /url: /enviar?stationId=1d5a5d27-3686-418e-846e-97782df3d77e&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e629]
+            - generic [ref=e632]:
+              - link "Abrir câmera" [ref=e633] [cursor=pointer]:
+                - /url: /enviar?stationId=1d5a5d27-3686-418e-846e-97782df3d77e&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e634]
+              - link "Abrir posto" [ref=e637] [cursor=pointer]:
+                - /url: /postos/1d5a5d27-3686-418e-846e-97782df3d77e?returnTo=%2F
+          - generic [ref=e638]:
+            - generic [ref=e639]:
+              - generic [ref=e640]:
+                - paragraph [ref=e641]: VIBRA
+                - heading "VIBRA · Avenida NOSSA Senhora DO AMPARO" [level=3] [ref=e642]
+                - paragraph [ref=e643]: NITEROI, VOLTA REDONDA
+              - generic [ref=e644]: Sem preço recente
+            - generic [ref=e645]:
+              - generic [ref=e646]: Localização em revisão
+              - generic [ref=e647]: Aguardando primeiro preço
+            - generic [ref=e648]:
+              - img [ref=e649]
+              - generic [ref=e652]: AVENIDA NOSSA SENHORA DO AMPARO, 2, NITEROI, VOLTA REDONDA
+            - generic [ref=e653]:
+              - paragraph [ref=e654]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e655] [cursor=pointer]:
+                - /url: /enviar?stationId=6c819fb5-4e28-49b5-9f4c-fcc5362f998e&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e656]
+            - generic [ref=e659]:
+              - link "Abrir câmera" [ref=e660] [cursor=pointer]:
+                - /url: /enviar?stationId=6c819fb5-4e28-49b5-9f4c-fcc5362f998e&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e661]
+              - link "Abrir posto" [ref=e664] [cursor=pointer]:
+                - /url: /postos/6c819fb5-4e28-49b5-9f4c-fcc5362f998e?returnTo=%2F
+          - generic [ref=e665]:
+            - generic [ref=e666]:
+              - generic [ref=e667]:
+                - paragraph [ref=e668]: BANDEIRA BRANCA
+                - heading "POSTO Barbara" [level=3] [ref=e669]
+                - paragraph [ref=e670]: PONTE ALTA, VOLTA REDONDA
+              - generic [ref=e671]: Sem preço recente
+            - generic [ref=e673]: Aguardando primeiro preço
+            - generic [ref=e674]:
+              - img [ref=e675]
+              - generic [ref=e678]: VIA SERGIO BRAGA, 1070, PONTE ALTA, VOLTA REDONDA
+            - generic [ref=e679]:
+              - paragraph [ref=e680]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e681] [cursor=pointer]:
+                - /url: /enviar?stationId=d556355e-e360-422f-a882-db6871b8c2b1&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e682]
+            - generic [ref=e685]:
+              - link "Abrir câmera" [ref=e686] [cursor=pointer]:
+                - /url: /enviar?stationId=d556355e-e360-422f-a882-db6871b8c2b1&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e687]
+              - link "Abrir posto" [ref=e690] [cursor=pointer]:
+                - /url: /postos/d556355e-e360-422f-a882-db6871b8c2b1?returnTo=%2F
+          - generic [ref=e691]:
+            - generic [ref=e692]:
+              - generic [ref=e693]:
+                - paragraph [ref=e694]: IPIRANGA
+                - heading "Ipiranga · RUA Fernando Ferrari" [level=3] [ref=e695]
+                - paragraph [ref=e696]: RETIRO, VOLTA REDONDA
+              - generic [ref=e697]: Sem preço recente
+            - generic [ref=e698]:
+              - generic [ref=e699]: Localização em revisão
+              - generic [ref=e700]: Aguardando primeiro preço
+            - generic [ref=e701]:
+              - img [ref=e702]
+              - generic [ref=e705]: RUA FERNANDO FERRARI, 898, RETIRO, VOLTA REDONDA
+            - generic [ref=e706]:
+              - paragraph [ref=e707]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e708] [cursor=pointer]:
+                - /url: /enviar?stationId=09d3a4ec-a861-4dec-85e2-8bfb8059e18e&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e709]
+            - generic [ref=e712]:
+              - link "Abrir câmera" [ref=e713] [cursor=pointer]:
+                - /url: /enviar?stationId=09d3a4ec-a861-4dec-85e2-8bfb8059e18e&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e714]
+              - link "Abrir posto" [ref=e717] [cursor=pointer]:
+                - /url: /postos/09d3a4ec-a861-4dec-85e2-8bfb8059e18e?returnTo=%2F
+          - generic [ref=e718]:
+            - generic [ref=e719]:
+              - generic [ref=e720]:
+                - paragraph [ref=e721]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · Avenida SAVIO COTA DE Almeida GAMA" [level=3] [ref=e722]
+                - paragraph [ref=e723]: RETIRO, VOLTA REDONDA
+              - generic [ref=e724]: Sem preço recente
+            - generic [ref=e725]:
+              - generic [ref=e726]: Localização em revisão
+              - generic [ref=e727]: Aguardando primeiro preço
+            - generic [ref=e728]:
+              - img [ref=e729]
+              - generic [ref=e732]: AVENIDA SAVIO COTA DE ALMEIDA GAMA, 01313, RETIRO, VOLTA REDONDA
+            - generic [ref=e733]:
+              - paragraph [ref=e734]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e735] [cursor=pointer]:
+                - /url: /enviar?stationId=630504c0-45f2-4995-92db-b358630d12e7&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e736]
+            - generic [ref=e739]:
+              - link "Abrir câmera" [ref=e740] [cursor=pointer]:
+                - /url: /enviar?stationId=630504c0-45f2-4995-92db-b358630d12e7&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e741]
+              - link "Abrir posto" [ref=e744] [cursor=pointer]:
+                - /url: /postos/630504c0-45f2-4995-92db-b358630d12e7?returnTo=%2F
+          - generic [ref=e745]:
+            - generic [ref=e746]:
+              - generic [ref=e747]:
+                - paragraph [ref=e748]: IPIRANGA
+                - heading "Ipiranga · Avenida SAVIO COTA DE Almeida GAMA" [level=3] [ref=e749]
+                - paragraph [ref=e750]: RETIRO, VOLTA REDONDA
+              - generic [ref=e751]: Sem preço recente
+            - generic [ref=e752]:
+              - generic [ref=e753]: Localização em revisão
+              - generic [ref=e754]: Aguardando primeiro preço
+            - generic [ref=e755]:
+              - img [ref=e756]
+              - generic [ref=e759]: AVENIDA SAVIO COTA DE ALMEIDA GAMA, 633, RETIRO, VOLTA REDONDA
+            - generic [ref=e760]:
+              - paragraph [ref=e761]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e762] [cursor=pointer]:
+                - /url: /enviar?stationId=02be38ca-9ad0-4732-b501-c4067aec3865&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e763]
+            - generic [ref=e766]:
+              - link "Abrir câmera" [ref=e767] [cursor=pointer]:
+                - /url: /enviar?stationId=02be38ca-9ad0-4732-b501-c4067aec3865&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e768]
+              - link "Abrir posto" [ref=e771] [cursor=pointer]:
+                - /url: /postos/02be38ca-9ad0-4732-b501-c4067aec3865?returnTo=%2F
+          - generic [ref=e772]:
+            - generic [ref=e773]:
+              - generic [ref=e774]:
+                - paragraph [ref=e775]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · Avenida Almirante Adalberto DE BARROS NUNES" [level=3] [ref=e776]
+                - paragraph [ref=e777]: RETIRO, VOLTA REDONDA
+              - generic [ref=e778]: Sem preço recente
+            - generic [ref=e779]:
+              - generic [ref=e780]: Localização em revisão
+              - generic [ref=e781]: Aguardando primeiro preço
+            - generic [ref=e782]:
+              - img [ref=e783]
+              - generic [ref=e786]: AVENIDA ALMIRANTE ADALBERTO DE BARROS NUNES, 2720, RETIRO, VOLTA REDONDA
+            - generic [ref=e787]:
+              - paragraph [ref=e788]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e789] [cursor=pointer]:
+                - /url: /enviar?stationId=cc7c8230-0822-4b42-89ec-b2bffd49ddc7&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e790]
+            - generic [ref=e793]:
+              - link "Abrir câmera" [ref=e794] [cursor=pointer]:
+                - /url: /enviar?stationId=cc7c8230-0822-4b42-89ec-b2bffd49ddc7&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e795]
+              - link "Abrir posto" [ref=e798] [cursor=pointer]:
+                - /url: /postos/cc7c8230-0822-4b42-89ec-b2bffd49ddc7?returnTo=%2F
+          - generic [ref=e799]:
+            - generic [ref=e800]:
+              - generic [ref=e801]:
+                - paragraph [ref=e802]: VIBRA
+                - heading "POSTO BEIRA RIO DE VOLTA Redonda" [level=3] [ref=e803]
+                - paragraph [ref=e804]: RETIRO, VOLTA REDONDA
+              - generic [ref=e805]: Sem preço recente
+            - generic [ref=e807]: Aguardando primeiro preço
+            - generic [ref=e808]:
+              - img [ref=e809]
+              - generic [ref=e812]: AVENIDA ALM ADALBERTO B NUNES, 3740, RETIRO, VOLTA REDONDA
+            - generic [ref=e813]:
+              - paragraph [ref=e814]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e815] [cursor=pointer]:
+                - /url: /enviar?stationId=45e3435f-ba37-4458-a006-ed05a3aef1c3&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e816]
+            - generic [ref=e819]:
+              - link "Abrir câmera" [ref=e820] [cursor=pointer]:
+                - /url: /enviar?stationId=45e3435f-ba37-4458-a006-ed05a3aef1c3&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e821]
+              - link "Abrir posto" [ref=e824] [cursor=pointer]:
+                - /url: /postos/45e3435f-ba37-4458-a006-ed05a3aef1c3?returnTo=%2F
+          - generic [ref=e825]:
+            - generic [ref=e826]:
+              - generic [ref=e827]:
+                - paragraph [ref=e828]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · Rodovia Presidente DUTRA KM 257" [level=3] [ref=e829]
+                - paragraph [ref=e830]: RIO DAS FLORES, VOLTA REDONDA
+              - generic [ref=e831]: Sem preço recente
+            - generic [ref=e832]:
+              - generic [ref=e833]: Localização em revisão
+              - generic [ref=e834]: Aguardando primeiro preço
+            - generic [ref=e835]:
+              - img [ref=e836]
+              - generic [ref=e839]: RODOVIA PRESIDENTE DUTRA KM 257, 15, RIO DAS FLORES, VOLTA REDONDA
+            - generic [ref=e840]:
+              - paragraph [ref=e841]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e842] [cursor=pointer]:
+                - /url: /enviar?stationId=9e650593-a78b-47bc-a276-5021a92e6656&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e843]
+            - generic [ref=e846]:
+              - link "Abrir câmera" [ref=e847] [cursor=pointer]:
+                - /url: /enviar?stationId=9e650593-a78b-47bc-a276-5021a92e6656&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e848]
+              - link "Abrir posto" [ref=e851] [cursor=pointer]:
+                - /url: /postos/9e650593-a78b-47bc-a276-5021a92e6656?returnTo=%2F
+          - generic [ref=e852]:
+            - generic [ref=e853]:
+              - generic [ref=e854]:
+                - paragraph [ref=e855]: BANDEIRA BRANCA
+                - heading "POSTO ROMA" [level=3] [ref=e856]
+                - paragraph [ref=e857]: ROMA I, VOLTA REDONDA
+              - generic [ref=e858]: Sem preço recente
+            - generic [ref=e860]: Aguardando primeiro preço
+            - generic [ref=e861]:
+              - img [ref=e862]
+              - generic [ref=e865]: ESTRADA DA COMPANHIA, S/N, ROMA I, VOLTA REDONDA
+            - generic [ref=e866]:
+              - paragraph [ref=e867]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e868] [cursor=pointer]:
+                - /url: /enviar?stationId=8e6a3b12-7631-4af4-91af-72b24385e3f2&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e869]
+            - generic [ref=e872]:
+              - link "Abrir câmera" [ref=e873] [cursor=pointer]:
+                - /url: /enviar?stationId=8e6a3b12-7631-4af4-91af-72b24385e3f2&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e874]
+              - link "Abrir posto" [ref=e877] [cursor=pointer]:
+                - /url: /postos/8e6a3b12-7631-4af4-91af-72b24385e3f2?returnTo=%2F
+          - generic [ref=e878]:
+            - generic [ref=e879]:
+              - generic [ref=e880]:
+                - paragraph [ref=e881]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · Rodovia Rjt-153 (caetano ARCURI Spineli)" [level=3] [ref=e882]
+                - paragraph [ref=e883]: SANTA CRUZ, VOLTA REDONDA
+              - generic [ref=e884]: Sem preço recente
+            - generic [ref=e885]:
+              - generic [ref=e886]: Localização em revisão
+              - generic [ref=e887]: Aguardando primeiro preço
+            - generic [ref=e888]:
+              - img [ref=e889]
+              - generic [ref=e892]: RODOVIA RJT-153 (CAETANO ARCURI SPINELI), 3501, SANTA CRUZ, VOLTA REDONDA
+            - generic [ref=e893]:
+              - paragraph [ref=e894]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e895] [cursor=pointer]:
+                - /url: /enviar?stationId=51aa735e-d411-41ee-b925-4d5cdaf09971&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e896]
+            - generic [ref=e899]:
+              - link "Abrir câmera" [ref=e900] [cursor=pointer]:
+                - /url: /enviar?stationId=51aa735e-d411-41ee-b925-4d5cdaf09971&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e901]
+              - link "Abrir posto" [ref=e904] [cursor=pointer]:
+                - /url: /postos/51aa735e-d411-41ee-b925-4d5cdaf09971?returnTo=%2F
+          - generic [ref=e905]:
+            - generic [ref=e906]:
+              - generic [ref=e907]:
+                - paragraph [ref=e908]: RAIZEN
+                - heading "RAIZEN · Avenida AMARAL Peixoto" [level=3] [ref=e909]
+                - paragraph [ref=e910]: SAO JOAO, VOLTA REDONDA
+              - generic [ref=e911]: Sem preço recente
+            - generic [ref=e912]:
+              - generic [ref=e913]: Localização em revisão
+              - generic [ref=e914]: Aguardando primeiro preço
+            - generic [ref=e915]:
+              - img [ref=e916]
+              - generic [ref=e919]: AVENIDA AMARAL PEIXOTO, 957, SAO JOAO, VOLTA REDONDA
+            - generic [ref=e920]:
+              - paragraph [ref=e921]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e922] [cursor=pointer]:
+                - /url: /enviar?stationId=c95b217d-1752-4373-b4d6-7df8e6498905&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e923]
+            - generic [ref=e926]:
+              - link "Abrir câmera" [ref=e927] [cursor=pointer]:
+                - /url: /enviar?stationId=c95b217d-1752-4373-b4d6-7df8e6498905&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e928]
+              - link "Abrir posto" [ref=e931] [cursor=pointer]:
+                - /url: /postos/c95b217d-1752-4373-b4d6-7df8e6498905?returnTo=%2F
+          - generic [ref=e932]:
+            - generic [ref=e933]:
+              - generic [ref=e934]:
+                - paragraph [ref=e935]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · Avenida CARLOS CHAGAS" [level=3] [ref=e936]
+                - paragraph [ref=e937]: SÃO LUCAS, VOLTA REDONDA
+              - generic [ref=e938]: Sem preço recente
+            - generic [ref=e939]:
+              - generic [ref=e940]: Localização em revisão
+              - generic [ref=e941]: Aguardando primeiro preço
+            - generic [ref=e942]:
+              - img [ref=e943]
+              - generic [ref=e946]: AVENIDA CARLOS CHAGAS, 615, SÃO LUCAS, VOLTA REDONDA
+            - generic [ref=e947]:
+              - paragraph [ref=e948]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e949] [cursor=pointer]:
+                - /url: /enviar?stationId=90f10544-3d32-4b3d-884c-48913a1111ef&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e950]
+            - generic [ref=e953]:
+              - link "Abrir câmera" [ref=e954] [cursor=pointer]:
+                - /url: /enviar?stationId=90f10544-3d32-4b3d-884c-48913a1111ef&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e955]
+              - link "Abrir posto" [ref=e958] [cursor=pointer]:
+                - /url: /postos/90f10544-3d32-4b3d-884c-48913a1111ef?returnTo=%2F
+          - generic [ref=e959]:
+            - generic [ref=e960]:
+              - generic [ref=e961]:
+                - paragraph [ref=e962]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · Rodovia LUCIO MEIRA" [level=3] [ref=e963]
+                - paragraph [ref=e964]: SAO LUIZ, VOLTA REDONDA
+              - generic [ref=e965]: Sem preço recente
+            - generic [ref=e966]:
+              - generic [ref=e967]: Localização em revisão
+              - generic [ref=e968]: Aguardando primeiro preço
+            - generic [ref=e969]:
+              - img [ref=e970]
+              - generic [ref=e973]: RODOVIA LUCIO MEIRA, 299, SAO LUIZ, VOLTA REDONDA
+            - generic [ref=e974]:
+              - paragraph [ref=e975]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e976] [cursor=pointer]:
+                - /url: /enviar?stationId=b34f7ecf-c2f7-41f9-92ff-18e32580887f&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e977]
+            - generic [ref=e980]:
+              - link "Abrir câmera" [ref=e981] [cursor=pointer]:
+                - /url: /enviar?stationId=b34f7ecf-c2f7-41f9-92ff-18e32580887f&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e982]
+              - link "Abrir posto" [ref=e985] [cursor=pointer]:
+                - /url: /postos/b34f7ecf-c2f7-41f9-92ff-18e32580887f?returnTo=%2F
+          - generic [ref=e986]:
+            - generic [ref=e987]:
+              - generic [ref=e988]:
+                - paragraph [ref=e989]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · Avenida DAURO Peixoto ARAGAO" [level=3] [ref=e990]
+                - paragraph [ref=e991]: TRES POCOS, VOLTA REDONDA
+              - generic [ref=e992]: Sem preço recente
+            - generic [ref=e993]:
+              - generic [ref=e994]: Localização em revisão
+              - generic [ref=e995]: Aguardando primeiro preço
+            - generic [ref=e996]:
+              - img [ref=e997]
+              - generic [ref=e1000]: AVENIDA DAURO PEIXOTO ARAGAO, 8600, TRES POCOS, VOLTA REDONDA
+            - generic [ref=e1001]:
+              - paragraph [ref=e1002]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1003] [cursor=pointer]:
+                - /url: /enviar?stationId=f8f54eb3-fa46-4c74-8df1-a6accbf6b55d&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1004]
+            - generic [ref=e1007]:
+              - link "Abrir câmera" [ref=e1008] [cursor=pointer]:
+                - /url: /enviar?stationId=f8f54eb3-fa46-4c74-8df1-a6accbf6b55d&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1009]
+              - link "Abrir posto" [ref=e1012] [cursor=pointer]:
+                - /url: /postos/f8f54eb3-fa46-4c74-8df1-a6accbf6b55d?returnTo=%2F
+          - generic [ref=e1013]:
+            - generic [ref=e1014]:
+              - generic [ref=e1015]:
+                - paragraph [ref=e1016]: IPIRANGA
+                - heading "Ipiranga · Avenida Almirante Adalberto DE BARROS NUNES" [level=3] [ref=e1017]
+                - paragraph [ref=e1018]: VILA MURY, VOLTA REDONDA
+              - generic [ref=e1019]: Sem preço recente
+            - generic [ref=e1020]:
+              - generic [ref=e1021]: Localização em revisão
+              - generic [ref=e1022]: Aguardando primeiro preço
+            - generic [ref=e1023]:
+              - img [ref=e1024]
+              - generic [ref=e1027]: AVENIDA ALMIRANTE ADALBERTO DE BARROS NUNES, 1954, VILA MURY, VOLTA REDONDA
+            - generic [ref=e1028]:
+              - paragraph [ref=e1029]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1030] [cursor=pointer]:
+                - /url: /enviar?stationId=a439244e-a271-4e76-8f35-861707ddcb9d&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1031]
+            - generic [ref=e1034]:
+              - link "Abrir câmera" [ref=e1035] [cursor=pointer]:
+                - /url: /enviar?stationId=a439244e-a271-4e76-8f35-861707ddcb9d&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1036]
+              - link "Abrir posto" [ref=e1039] [cursor=pointer]:
+                - /url: /postos/a439244e-a271-4e76-8f35-861707ddcb9d?returnTo=%2F
+          - generic [ref=e1040]:
+            - generic [ref=e1041]:
+              - generic [ref=e1042]:
+                - paragraph [ref=e1043]: BANDEIRA BRANCA
+                - heading "POSTO VOLTA Redonda" [level=3] [ref=e1044]
+                - paragraph [ref=e1045]: ", VOLTA REDONDA"
+              - generic [ref=e1046]: Sem preço recente
+            - generic [ref=e1047]:
+              - generic [ref=e1048]: Localização em revisão
+              - generic [ref=e1049]: Aguardando primeiro preço
+            - generic [ref=e1050]:
+              - img [ref=e1051]
+              - generic [ref=e1054]: VIA SERGIO BRAGA, 811, , VOLTA REDONDA
+            - generic [ref=e1055]:
+              - paragraph [ref=e1056]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1057] [cursor=pointer]:
+                - /url: /enviar?stationId=f9c4ce4d-28e6-4d88-b7b1-d7c0ceb4816c&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1058]
+            - generic [ref=e1061]:
+              - link "Abrir câmera" [ref=e1062] [cursor=pointer]:
+                - /url: /enviar?stationId=f9c4ce4d-28e6-4d88-b7b1-d7c0ceb4816c&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1063]
+              - link "Abrir posto" [ref=e1066] [cursor=pointer]:
+                - /url: /postos/f9c4ce4d-28e6-4d88-b7b1-d7c0ceb4816c?returnTo=%2F
+          - generic [ref=e1067]:
+            - generic [ref=e1068]:
+              - generic [ref=e1069]:
+                - paragraph [ref=e1070]: BANDEIRA BRANCA
+                - heading "POSTO METANO VOLTA Redonda" [level=3] [ref=e1071]
+                - paragraph [ref=e1072]: ATERRADO, VOLTA REDONDA
+              - generic [ref=e1073]: Sem preço recente
+            - generic [ref=e1074]:
+              - generic [ref=e1075]: Localização em revisão
+              - generic [ref=e1076]: Aguardando primeiro preço
+            - generic [ref=e1077]:
+              - img [ref=e1078]
+              - generic [ref=e1081]: RUA CINCINATO BRAGA, 220, ATERRADO, VOLTA REDONDA
+            - generic [ref=e1082]:
+              - paragraph [ref=e1083]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1084] [cursor=pointer]:
+                - /url: /enviar?stationId=2aae1b40-8c62-4e10-9a28-498b23839309&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1085]
+            - generic [ref=e1088]:
+              - link "Abrir câmera" [ref=e1089] [cursor=pointer]:
+                - /url: /enviar?stationId=2aae1b40-8c62-4e10-9a28-498b23839309&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1090]
+              - link "Abrir posto" [ref=e1093] [cursor=pointer]:
+                - /url: /postos/2aae1b40-8c62-4e10-9a28-498b23839309?returnTo=%2F
+          - generic [ref=e1094]:
+            - generic [ref=e1095]:
+              - generic [ref=e1096]:
+                - paragraph [ref=e1097]: IPIRANGA
+                - heading "A P JET Revenda DE Combustivel" [level=3] [ref=e1098]
+                - paragraph [ref=e1099]: DOM BOSCO, VOLTA REDONDA
+              - generic [ref=e1100]: Sem preço recente
+            - generic [ref=e1101]:
+              - generic [ref=e1102]: Localização em revisão
+              - generic [ref=e1103]: Aguardando primeiro preço
+            - generic [ref=e1104]:
+              - img [ref=e1105]
+              - generic [ref=e1108]: RODOVIA LUCIO MEIRA, KM 14, DOM BOSCO, VOLTA REDONDA
+            - generic [ref=e1109]:
+              - paragraph [ref=e1110]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1111] [cursor=pointer]:
+                - /url: /enviar?stationId=46eb6a79-d8d5-4f02-91e4-ca0508ed5ecf&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1112]
+            - generic [ref=e1115]:
+              - link "Abrir câmera" [ref=e1116] [cursor=pointer]:
+                - /url: /enviar?stationId=46eb6a79-d8d5-4f02-91e4-ca0508ed5ecf&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1117]
+              - link "Abrir posto" [ref=e1120] [cursor=pointer]:
+                - /url: /postos/46eb6a79-d8d5-4f02-91e4-ca0508ed5ecf?returnTo=%2F
+          - generic [ref=e1121]:
+            - generic [ref=e1122]:
+              - generic [ref=e1123]:
+                - paragraph [ref=e1124]: VIBRA
+                - heading "R C POSTO DE Combustiveis" [level=3] [ref=e1125]
+                - paragraph [ref=e1126]: DOM BOSCO, VOLTA REDONDA
+              - generic [ref=e1127]: Sem preço recente
+            - generic [ref=e1128]:
+              - generic [ref=e1129]: Localização em revisão
+              - generic [ref=e1130]: Aguardando primeiro preço
+            - generic [ref=e1131]:
+              - img [ref=e1132]
+              - generic [ref=e1135]: RODOVIA LUCIO MEIRA, 13492, DOM BOSCO, VOLTA REDONDA
+            - generic [ref=e1136]:
+              - paragraph [ref=e1137]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1138] [cursor=pointer]:
+                - /url: /enviar?stationId=69858d13-658d-450a-8bea-db33c1c744c6&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1139]
+            - generic [ref=e1142]:
+              - link "Abrir câmera" [ref=e1143] [cursor=pointer]:
+                - /url: /enviar?stationId=69858d13-658d-450a-8bea-db33c1c744c6&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1144]
+              - link "Abrir posto" [ref=e1147] [cursor=pointer]:
+                - /url: /postos/69858d13-658d-450a-8bea-db33c1c744c6?returnTo=%2F
+          - generic [ref=e1148]:
+            - generic [ref=e1149]:
+              - generic [ref=e1150]:
+                - paragraph [ref=e1151]: BANDEIRA BRANCA
+                - heading "POSTO DE Combustivel Confortaco" [level=3] [ref=e1152]
+                - paragraph [ref=e1153]: JARDIM BELVEDERE, VOLTA REDONDA
+              - generic [ref=e1154]: Sem preço recente
+            - generic [ref=e1155]:
+              - generic [ref=e1156]: Localização em revisão
+              - generic [ref=e1157]: Aguardando primeiro preço
+            - generic [ref=e1158]:
+              - img [ref=e1159]
+              - generic [ref=e1162]: RODOVIA DOS METALURGICOS, 941, JARDIM BELVEDERE, VOLTA REDONDA
+            - generic [ref=e1163]:
+              - paragraph [ref=e1164]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1165] [cursor=pointer]:
+                - /url: /enviar?stationId=01d310dd-ed50-4858-8645-ec43d247f938&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1166]
+            - generic [ref=e1169]:
+              - link "Abrir câmera" [ref=e1170] [cursor=pointer]:
+                - /url: /enviar?stationId=01d310dd-ed50-4858-8645-ec43d247f938&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1171]
+              - link "Abrir posto" [ref=e1174] [cursor=pointer]:
+                - /url: /postos/01d310dd-ed50-4858-8645-ec43d247f938?returnTo=%2F
+          - generic [ref=e1175]:
+            - generic [ref=e1176]:
+              - generic [ref=e1177]:
+                - paragraph [ref=e1178]: VIBRA
+                - heading "POSTO Independencia" [level=3] [ref=e1179]
+                - paragraph [ref=e1180]: PONTE ALTA, VOLTA REDONDA
+              - generic [ref=e1181]: Sem preço recente
+            - generic [ref=e1182]:
+              - generic [ref=e1183]: Localização em revisão
+              - generic [ref=e1184]: Aguardando primeiro preço
+            - generic [ref=e1185]:
+              - img [ref=e1186]
+              - generic [ref=e1189]: VIA SERGIO BRAGA, 720, PONTE ALTA, VOLTA REDONDA
+            - generic [ref=e1190]:
+              - paragraph [ref=e1191]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1192] [cursor=pointer]:
+                - /url: /enviar?stationId=e4521f8a-aa7e-481b-b41d-1dbb9f1a467b&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1193]
+            - generic [ref=e1196]:
+              - link "Abrir câmera" [ref=e1197] [cursor=pointer]:
+                - /url: /enviar?stationId=e4521f8a-aa7e-481b-b41d-1dbb9f1a467b&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1198]
+              - link "Abrir posto" [ref=e1201] [cursor=pointer]:
+                - /url: /postos/e4521f8a-aa7e-481b-b41d-1dbb9f1a467b?returnTo=%2F
+          - generic [ref=e1202]:
+            - generic [ref=e1203]:
+              - generic [ref=e1204]:
+                - paragraph [ref=e1205]: BANDEIRA BRANCA
+                - heading "Alianca RETIRO VR Comercio DE GNV" [level=3] [ref=e1206]
+                - paragraph [ref=e1207]: RETIRO, VOLTA REDONDA
+              - generic [ref=e1208]: Sem preço recente
+            - generic [ref=e1209]:
+              - generic [ref=e1210]: Localização em revisão
+              - generic [ref=e1211]: Aguardando primeiro preço
+            - generic [ref=e1212]:
+              - img [ref=e1213]
+              - generic [ref=e1216]: RUA GOMES FILHO, 44, RETIRO, VOLTA REDONDA
+            - generic [ref=e1217]:
+              - paragraph [ref=e1218]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1219] [cursor=pointer]:
+                - /url: /enviar?stationId=064f1a3c-8449-4fbb-a00e-597288f36201&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1220]
+            - generic [ref=e1223]:
+              - link "Abrir câmera" [ref=e1224] [cursor=pointer]:
+                - /url: /enviar?stationId=064f1a3c-8449-4fbb-a00e-597288f36201&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1225]
+              - link "Abrir posto" [ref=e1228] [cursor=pointer]:
+                - /url: /postos/064f1a3c-8449-4fbb-a00e-597288f36201?returnTo=%2F
+          - generic [ref=e1229]:
+            - generic [ref=e1230]:
+              - generic [ref=e1231]:
+                - paragraph [ref=e1232]: BANDEIRA BRANCA
+                - heading "POSTO DE Combustiveis PARES RETIRO" [level=3] [ref=e1233]
+                - paragraph [ref=e1234]: RETIRO, VOLTA REDONDA
+              - generic [ref=e1235]: Sem preço recente
+            - generic [ref=e1236]:
+              - generic [ref=e1237]: Localização em revisão
+              - generic [ref=e1238]: Aguardando primeiro preço
+            - generic [ref=e1239]:
+              - img [ref=e1240]
+              - generic [ref=e1243]: AVENIDA SAVIO COTA DE ALMEIDA GAMA, 2395, RETIRO, VOLTA REDONDA
+            - generic [ref=e1244]:
+              - paragraph [ref=e1245]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1246] [cursor=pointer]:
+                - /url: /enviar?stationId=37eaf4ca-a1bb-4f10-be85-16017a266bd6&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1247]
+            - generic [ref=e1250]:
+              - link "Abrir câmera" [ref=e1251] [cursor=pointer]:
+                - /url: /enviar?stationId=37eaf4ca-a1bb-4f10-be85-16017a266bd6&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1252]
+              - link "Abrir posto" [ref=e1255] [cursor=pointer]:
+                - /url: /postos/37eaf4ca-a1bb-4f10-be85-16017a266bd6?returnTo=%2F
+          - generic [ref=e1256]:
+            - generic [ref=e1257]:
+              - generic [ref=e1258]:
+                - paragraph [ref=e1259]: RAIZEN
+                - heading "POSTO DE Combustiveis PARES Metalurgico" [level=3] [ref=e1260]
+                - paragraph [ref=e1261]: SAO GERALDO, VOLTA REDONDA
+              - generic [ref=e1262]: Sem preço recente
+            - generic [ref=e1263]:
+              - generic [ref=e1264]: Localização em revisão
+              - generic [ref=e1265]: Aguardando primeiro preço
+            - generic [ref=e1266]:
+              - img [ref=e1267]
+              - generic [ref=e1270]: RODOVIA DOS METALURGICOS, 1200, SAO GERALDO, VOLTA REDONDA
+            - generic [ref=e1271]:
+              - paragraph [ref=e1272]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1273] [cursor=pointer]:
+                - /url: /enviar?stationId=08620ff2-e52d-46ff-b295-74135f422556&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1274]
+            - generic [ref=e1277]:
+              - link "Abrir câmera" [ref=e1278] [cursor=pointer]:
+                - /url: /enviar?stationId=08620ff2-e52d-46ff-b295-74135f422556&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1279]
+              - link "Abrir posto" [ref=e1282] [cursor=pointer]:
+                - /url: /postos/08620ff2-e52d-46ff-b295-74135f422556?returnTo=%2F
+          - generic [ref=e1283]:
+            - generic [ref=e1284]:
+              - generic [ref=e1285]:
+                - paragraph [ref=e1286]: IPIRANGA
+                - heading "A P F Distribuidora DE Combustivel" [level=3] [ref=e1287]
+                - paragraph [ref=e1288]: SAO JOAO, VOLTA REDONDA
+              - generic [ref=e1289]: Sem preço recente
+            - generic [ref=e1290]:
+              - generic [ref=e1291]: Localização em revisão
+              - generic [ref=e1292]: Aguardando primeiro preço
+            - generic [ref=e1293]:
+              - img [ref=e1294]
+              - generic [ref=e1297]: AVENIDA AMARAL PEIXOTO, 800, SAO JOAO, VOLTA REDONDA
+            - generic [ref=e1298]:
+              - paragraph [ref=e1299]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1300] [cursor=pointer]:
+                - /url: /enviar?stationId=c9c088ef-b7c1-4e3c-9bcc-1c87f3e1952f&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1301]
+            - generic [ref=e1304]:
+              - link "Abrir câmera" [ref=e1305] [cursor=pointer]:
+                - /url: /enviar?stationId=c9c088ef-b7c1-4e3c-9bcc-1c87f3e1952f&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1306]
+              - link "Abrir posto" [ref=e1309] [cursor=pointer]:
+                - /url: /postos/c9c088ef-b7c1-4e3c-9bcc-1c87f3e1952f?returnTo=%2F
+          - generic [ref=e1310]:
+            - generic [ref=e1311]:
+              - generic [ref=e1312]:
+                - paragraph [ref=e1313]: BANDEIRA BRANCA
+                - heading "POSTO DE Combustivel Gustavo LIRA" [level=3] [ref=e1314]
+                - paragraph [ref=e1315]: SAO JOAO, VOLTA REDONDA
+              - generic [ref=e1316]: Sem preço recente
+            - generic [ref=e1317]:
+              - generic [ref=e1318]: Localização em revisão
+              - generic [ref=e1319]: Aguardando primeiro preço
+            - generic [ref=e1320]:
+              - img [ref=e1321]
+              - generic [ref=e1324]: RUA GUSTAVO LIRA, 128, SAO JOAO, VOLTA REDONDA
+            - generic [ref=e1325]:
+              - paragraph [ref=e1326]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1327] [cursor=pointer]:
+                - /url: /enviar?stationId=01d2de03-e032-4028-a774-4196ea8ce1ea&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1328]
+            - generic [ref=e1331]:
+              - link "Abrir câmera" [ref=e1332] [cursor=pointer]:
+                - /url: /enviar?stationId=01d2de03-e032-4028-a774-4196ea8ce1ea&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1333]
+              - link "Abrir posto" [ref=e1336] [cursor=pointer]:
+                - /url: /postos/01d2de03-e032-4028-a774-4196ea8ce1ea?returnTo=%2F
+          - generic [ref=e1337]:
+            - generic [ref=e1338]:
+              - generic [ref=e1339]:
+                - paragraph [ref=e1340]: BANDEIRA BRANCA
+                - heading "POSTO Getulio VARGAS" [level=3] [ref=e1341]
+                - paragraph [ref=e1342]: SAO JOAO, VOLTA REDONDA
+              - generic [ref=e1343]: Sem preço recente
+            - generic [ref=e1344]:
+              - generic [ref=e1345]: Localização em revisão
+              - generic [ref=e1346]: Aguardando primeiro preço
+            - generic [ref=e1347]:
+              - img [ref=e1348]
+              - generic [ref=e1351]: AVENIDA GETULIO VARGAS, 253, SAO JOAO, VOLTA REDONDA
+            - generic [ref=e1352]:
+              - paragraph [ref=e1353]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1354] [cursor=pointer]:
+                - /url: /enviar?stationId=6ac6d86c-0915-4eb7-8351-b91d241f6744&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1355]
+            - generic [ref=e1358]:
+              - link "Abrir câmera" [ref=e1359] [cursor=pointer]:
+                - /url: /enviar?stationId=6ac6d86c-0915-4eb7-8351-b91d241f6744&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1360]
+              - link "Abrir posto" [ref=e1363] [cursor=pointer]:
+                - /url: /postos/6ac6d86c-0915-4eb7-8351-b91d241f6744?returnTo=%2F
+          - generic [ref=e1364]:
+            - generic [ref=e1365]:
+              - generic [ref=e1366]:
+                - paragraph [ref=e1367]: BANDEIRA BRANCA
+                - heading "POSTO DE Gasolina Barreto E SILVA" [level=3] [ref=e1368]
+                - paragraph [ref=e1369]: SAO LUIZ, VOLTA REDONDA
+              - generic [ref=e1370]: Sem preço recente
+            - generic [ref=e1371]:
+              - generic [ref=e1372]: Localização em revisão
+              - generic [ref=e1373]: Aguardando primeiro preço
+            - generic [ref=e1374]:
+              - img [ref=e1375]
+              - generic [ref=e1378]: RODOVIA LUCIO MEIRA, 299, SAO LUIZ, VOLTA REDONDA
+            - generic [ref=e1379]:
+              - paragraph [ref=e1380]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1381] [cursor=pointer]:
+                - /url: /enviar?stationId=d5f7a792-4e44-4556-9173-08702c3c8bb5&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1382]
+            - generic [ref=e1385]:
+              - link "Abrir câmera" [ref=e1386] [cursor=pointer]:
+                - /url: /enviar?stationId=d5f7a792-4e44-4556-9173-08702c3c8bb5&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1387]
+              - link "Abrir posto" [ref=e1390] [cursor=pointer]:
+                - /url: /postos/d5f7a792-4e44-4556-9173-08702c3c8bb5?returnTo=%2F
+          - generic [ref=e1391]:
+            - generic [ref=e1392]:
+              - generic [ref=e1393]:
+                - paragraph [ref=e1394]: BANDEIRA BRANCA
+                - heading "POSTO TRES POCOS" [level=3] [ref=e1395]
+                - paragraph [ref=e1396]: TRES POCOS, VOLTA REDONDA
+              - generic [ref=e1397]: Sem preço recente
+            - generic [ref=e1398]:
+              - generic [ref=e1399]: Localização em revisão
+              - generic [ref=e1400]: Aguardando primeiro preço
+            - generic [ref=e1401]:
+              - img [ref=e1402]
+              - generic [ref=e1405]: AVENIDA PAULO ERLEI ALVES ABRANTES, S/N, TRES POCOS, VOLTA REDONDA
+            - generic [ref=e1406]:
+              - paragraph [ref=e1407]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1408] [cursor=pointer]:
+                - /url: /enviar?stationId=bd2a491e-8120-4cd2-a64a-81a336fa94d7&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1409]
+            - generic [ref=e1412]:
+              - link "Abrir câmera" [ref=e1413] [cursor=pointer]:
+                - /url: /enviar?stationId=bd2a491e-8120-4cd2-a64a-81a336fa94d7&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1414]
+              - link "Abrir posto" [ref=e1417] [cursor=pointer]:
+                - /url: /postos/bd2a491e-8120-4cd2-a64a-81a336fa94d7?returnTo=%2F
+          - generic [ref=e1418]:
+            - generic [ref=e1419]:
+              - generic [ref=e1420]:
+                - paragraph [ref=e1421]: RAIZEN
+                - heading "T S 2000 AUTO POSTO" [level=3] [ref=e1422]
+                - paragraph [ref=e1423]: VILA MURY, VOLTA REDONDA
+              - generic [ref=e1424]: Sem preço recente
+            - generic [ref=e1425]:
+              - generic [ref=e1426]: Localização em revisão
+              - generic [ref=e1427]: Aguardando primeiro preço
+            - generic [ref=e1428]:
+              - img [ref=e1429]
+              - generic [ref=e1432]: AVENIDA ALMIRANTE ADALBERTO DE BARROS NUNES, 1000, VILA MURY, VOLTA REDONDA
+            - generic [ref=e1433]:
+              - paragraph [ref=e1434]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1435] [cursor=pointer]:
+                - /url: /enviar?stationId=57b80904-c149-4898-9d35-e0b34fefe4b2&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1436]
+            - generic [ref=e1439]:
+              - link "Abrir câmera" [ref=e1440] [cursor=pointer]:
+                - /url: /enviar?stationId=57b80904-c149-4898-9d35-e0b34fefe4b2&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1441]
+              - link "Abrir posto" [ref=e1444] [cursor=pointer]:
+                - /url: /postos/57b80904-c149-4898-9d35-e0b34fefe4b2?returnTo=%2F
+          - generic [ref=e1445]:
+            - generic [ref=e1446]:
+              - generic [ref=e1447]:
+                - paragraph [ref=e1448]: VIBRA
+                - heading "Alianca VOLTA Redonda Comercio DE Combustiveis" [level=3] [ref=e1449]
+                - paragraph [ref=e1450]: VILA SANTA CECILIA, VOLTA REDONDA
+              - generic [ref=e1451]: Sem preço recente
+            - generic [ref=e1452]:
+              - generic [ref=e1453]: Localização em revisão
+              - generic [ref=e1454]: Aguardando primeiro preço
+            - generic [ref=e1455]:
+              - img [ref=e1456]
+              - generic [ref=e1459]: RUA VINTE E TRES, 08, VILA SANTA CECILIA, VOLTA REDONDA
+            - generic [ref=e1460]:
+              - paragraph [ref=e1461]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1462] [cursor=pointer]:
+                - /url: /enviar?stationId=35f139a3-3b00-4d13-a15b-e470349257ad&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1463]
+            - generic [ref=e1466]:
+              - link "Abrir câmera" [ref=e1467] [cursor=pointer]:
+                - /url: /enviar?stationId=35f139a3-3b00-4d13-a15b-e470349257ad&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1468]
+              - link "Abrir posto" [ref=e1471] [cursor=pointer]:
+                - /url: /postos/35f139a3-3b00-4d13-a15b-e470349257ad?returnTo=%2F
+          - generic [ref=e1472]:
+            - generic [ref=e1473]:
+              - generic [ref=e1474]:
+                - paragraph [ref=e1475]: RAIZEN
+                - heading "SUINA Derivados DE Petroleo" [level=3] [ref=e1476]
+                - paragraph [ref=e1477]: VOLDAC, VOLTA REDONDA
+              - generic [ref=e1478]: Sem preço recente
+            - generic [ref=e1479]:
+              - generic [ref=e1480]: Localização em revisão
+              - generic [ref=e1481]: Aguardando primeiro preço
+            - generic [ref=e1482]:
+              - img [ref=e1483]
+              - generic [ref=e1486]: AVENIDA NOSSA SENHORA DO AMPARO, 875, VOLDAC, VOLTA REDONDA
+            - generic [ref=e1487]:
+              - paragraph [ref=e1488]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1489] [cursor=pointer]:
+                - /url: /enviar?stationId=cba5416d-ecdc-4aca-8a52-af3e1eb90e37&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1490]
+            - generic [ref=e1493]:
+              - link "Abrir câmera" [ref=e1494] [cursor=pointer]:
+                - /url: /enviar?stationId=cba5416d-ecdc-4aca-8a52-af3e1eb90e37&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1495]
+              - link "Abrir posto" [ref=e1498] [cursor=pointer]:
+                - /url: /postos/cba5416d-ecdc-4aca-8a52-af3e1eb90e37?returnTo=%2F
+          - generic [ref=e1499]:
+            - generic [ref=e1500]:
+              - generic [ref=e1501]:
+                - paragraph [ref=e1502]: ALE
+                - heading "AUTO POSTO TREVO DO AMPARO" [level=3] [ref=e1503]
+                - paragraph [ref=e1504]: AMPARO, BARRA MANSA
+              - generic [ref=e1505]: Sem preço recente
+            - generic [ref=e1507]: Aguardando primeiro preço
+            - generic [ref=e1508]:
+              - img [ref=e1509]
+              - generic [ref=e1512]: RUA ARY KERNER THOMAS DA COSTA, 102, AMPARO, BARRA MANSA
+            - generic [ref=e1513]:
+              - paragraph [ref=e1514]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1515] [cursor=pointer]:
+                - /url: /enviar?stationId=5fc24569-1ebf-46e5-be78-6d5cdf9ad2f0&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1516]
+            - generic [ref=e1519]:
+              - link "Abrir câmera" [ref=e1520] [cursor=pointer]:
+                - /url: /enviar?stationId=5fc24569-1ebf-46e5-be78-6d5cdf9ad2f0&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1521]
+              - link "Abrir posto" [ref=e1524] [cursor=pointer]:
+                - /url: /postos/5fc24569-1ebf-46e5-be78-6d5cdf9ad2f0?returnTo=%2F
+          - generic [ref=e1525]:
+            - generic [ref=e1526]:
+              - generic [ref=e1527]:
+                - paragraph [ref=e1528]: ALE
+                - heading "ALE · RUA ARY KERNER THOMAS DA COSTA" [level=3] [ref=e1529]
+                - paragraph [ref=e1530]: AMPARO, BARRA MANSA
+              - generic [ref=e1531]: Sem preço recente
+            - generic [ref=e1532]:
+              - generic [ref=e1533]: Localização em revisão
+              - generic [ref=e1534]: Aguardando primeiro preço
+            - generic [ref=e1535]:
+              - img [ref=e1536]
+              - generic [ref=e1539]: RUA ARY KERNER THOMAS DA COSTA, 102, AMPARO, BARRA MANSA
+            - generic [ref=e1540]:
+              - paragraph [ref=e1541]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1542] [cursor=pointer]:
+                - /url: /enviar?stationId=8962ceee-3d11-456f-abfb-ba6c30c738e3&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1543]
+            - generic [ref=e1546]:
+              - link "Abrir câmera" [ref=e1547] [cursor=pointer]:
+                - /url: /enviar?stationId=8962ceee-3d11-456f-abfb-ba6c30c738e3&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1548]
+              - link "Abrir posto" [ref=e1551] [cursor=pointer]:
+                - /url: /postos/8962ceee-3d11-456f-abfb-ba6c30c738e3?returnTo=%2F
+          - generic [ref=e1552]:
+            - generic [ref=e1553]:
+              - generic [ref=e1554]:
+                - paragraph [ref=e1555]: VIBRA
+                - heading "JOFAVE Combustiveis" [level=3] [ref=e1556]
+                - paragraph [ref=e1557]: BARBARÁ, BARRA MANSA
+              - generic [ref=e1558]: Sem preço recente
+            - generic [ref=e1560]: Aguardando primeiro preço
+            - generic [ref=e1561]:
+              - img [ref=e1562]
+              - generic [ref=e1565]: VIA SERGIO BRAGA, S/N, BARBARÁ, BARRA MANSA
+            - generic [ref=e1566]:
+              - paragraph [ref=e1567]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1568] [cursor=pointer]:
+                - /url: /enviar?stationId=8e7712e3-048e-40dd-b0f3-b6a609336e27&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1569]
+            - generic [ref=e1572]:
+              - link "Abrir câmera" [ref=e1573] [cursor=pointer]:
+                - /url: /enviar?stationId=8e7712e3-048e-40dd-b0f3-b6a609336e27&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1574]
+              - link "Abrir posto" [ref=e1577] [cursor=pointer]:
+                - /url: /postos/8e7712e3-048e-40dd-b0f3-b6a609336e27?returnTo=%2F
+          - generic [ref=e1578]:
+            - generic [ref=e1579]:
+              - generic [ref=e1580]:
+                - paragraph [ref=e1581]: VIBRA
+                - heading "VIBRA · VIA SERGIO BRAGA" [level=3] [ref=e1582]
+                - paragraph [ref=e1583]: BARBARÁ, BARRA MANSA
+              - generic [ref=e1584]: Sem preço recente
+            - generic [ref=e1585]:
+              - generic [ref=e1586]: Localização em revisão
+              - generic [ref=e1587]: Aguardando primeiro preço
+            - generic [ref=e1588]:
+              - img [ref=e1589]
+              - generic [ref=e1592]: VIA SERGIO BRAGA, S/N, BARBARÁ, BARRA MANSA
+            - generic [ref=e1593]:
+              - paragraph [ref=e1594]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1595] [cursor=pointer]:
+                - /url: /enviar?stationId=04916e22-41ce-4245-b5ec-110f8e2b5286&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1596]
+            - generic [ref=e1599]:
+              - link "Abrir câmera" [ref=e1600] [cursor=pointer]:
+                - /url: /enviar?stationId=04916e22-41ce-4245-b5ec-110f8e2b5286&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1601]
+              - link "Abrir posto" [ref=e1604] [cursor=pointer]:
+                - /url: /postos/04916e22-41ce-4245-b5ec-110f8e2b5286?returnTo=%2F
+          - generic [ref=e1605]:
+            - generic [ref=e1606]:
+              - generic [ref=e1607]:
+                - paragraph [ref=e1608]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · RUA Prefeito Leonisio Socrates Batista" [level=3] [ref=e1609]
+                - paragraph [ref=e1610]: BOA SORTE, BARRA MANSA
+              - generic [ref=e1611]: Sem preço recente
+            - generic [ref=e1612]:
+              - generic [ref=e1613]: Localização em revisão
+              - generic [ref=e1614]: Aguardando primeiro preço
+            - generic [ref=e1615]:
+              - img [ref=e1616]
+              - generic [ref=e1619]: RUA PREFEITO LEONISIO SOCRATES BATISTA, 116, BOA SORTE, BARRA MANSA
+            - generic [ref=e1620]:
+              - paragraph [ref=e1621]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1622] [cursor=pointer]:
+                - /url: /enviar?stationId=0442607b-2bc4-4431-8e97-b0f6ef57a09b&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1623]
+            - generic [ref=e1626]:
+              - link "Abrir câmera" [ref=e1627] [cursor=pointer]:
+                - /url: /enviar?stationId=0442607b-2bc4-4431-8e97-b0f6ef57a09b&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1628]
+              - link "Abrir posto" [ref=e1631] [cursor=pointer]:
+                - /url: /postos/0442607b-2bc4-4431-8e97-b0f6ef57a09b?returnTo=%2F
+          - generic [ref=e1632]:
+            - generic [ref=e1633]:
+              - generic [ref=e1634]:
+                - paragraph [ref=e1635]: BANDEIRA BRANCA
+                - heading "POSTO BOA SORTE BM" [level=3] [ref=e1636]
+                - paragraph [ref=e1637]: BOA SORTE, BARRA MANSA
+              - generic [ref=e1638]: Sem preço recente
+            - generic [ref=e1640]: Aguardando primeiro preço
+            - generic [ref=e1641]:
+              - img [ref=e1642]
+              - generic [ref=e1645]: RUA PREFEITO LEONISIO SOCRATES BATISTA, 116, BOA SORTE, BARRA MANSA
+            - generic [ref=e1646]:
+              - paragraph [ref=e1647]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1648] [cursor=pointer]:
+                - /url: /enviar?stationId=8286d82d-2723-4585-8947-e93747af99e8&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1649]
+            - generic [ref=e1652]:
+              - link "Abrir câmera" [ref=e1653] [cursor=pointer]:
+                - /url: /enviar?stationId=8286d82d-2723-4585-8947-e93747af99e8&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1654]
+              - link "Abrir posto" [ref=e1657] [cursor=pointer]:
+                - /url: /postos/8286d82d-2723-4585-8947-e93747af99e8?returnTo=%2F
+          - generic [ref=e1658]:
+            - generic [ref=e1659]:
+              - generic [ref=e1660]:
+                - paragraph [ref=e1661]: IPIRANGA
+                - heading "Ipiranga · RUA Antonio LUIS PIRES" [level=3] [ref=e1662]
+                - paragraph [ref=e1663]: BOA VISTA I, BARRA MANSA
+              - generic [ref=e1664]: Sem preço recente
+            - generic [ref=e1665]:
+              - generic [ref=e1666]: Localização em revisão
+              - generic [ref=e1667]: Aguardando primeiro preço
+            - generic [ref=e1668]:
+              - img [ref=e1669]
+              - generic [ref=e1672]: RUA ANTONIO LUIS PIRES, 310, BOA VISTA I, BARRA MANSA
+            - generic [ref=e1673]:
+              - paragraph [ref=e1674]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1675] [cursor=pointer]:
+                - /url: /enviar?stationId=96042f2a-803b-4711-9c22-8579b11289ac&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1676]
+            - generic [ref=e1679]:
+              - link "Abrir câmera" [ref=e1680] [cursor=pointer]:
+                - /url: /enviar?stationId=96042f2a-803b-4711-9c22-8579b11289ac&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1681]
+              - link "Abrir posto" [ref=e1684] [cursor=pointer]:
+                - /url: /postos/96042f2a-803b-4711-9c22-8579b11289ac?returnTo=%2F
+          - generic [ref=e1685]:
+            - generic [ref=e1686]:
+              - generic [ref=e1687]:
+                - paragraph [ref=e1688]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · Rodovia Presidente DUTRA" [level=3] [ref=e1689]
+                - paragraph [ref=e1690]: BOA VISTA I, BARRA MANSA
+              - generic [ref=e1691]: Sem preço recente
+            - generic [ref=e1692]:
+              - generic [ref=e1693]: Localização em revisão
+              - generic [ref=e1694]: Aguardando primeiro preço
+            - generic [ref=e1695]:
+              - img [ref=e1696]
+              - generic [ref=e1699]: RODOVIA PRESIDENTE DUTRA, KM 265, BOA VISTA I, BARRA MANSA
+            - generic [ref=e1700]:
+              - paragraph [ref=e1701]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1702] [cursor=pointer]:
+                - /url: /enviar?stationId=e47ea9e9-1257-4032-9050-fc3640c92b16&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1703]
+            - generic [ref=e1706]:
+              - link "Abrir câmera" [ref=e1707] [cursor=pointer]:
+                - /url: /enviar?stationId=e47ea9e9-1257-4032-9050-fc3640c92b16&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1708]
+              - link "Abrir posto" [ref=e1711] [cursor=pointer]:
+                - /url: /postos/e47ea9e9-1257-4032-9050-fc3640c92b16?returnTo=%2F
+          - generic [ref=e1712]:
+            - generic [ref=e1713]:
+              - generic [ref=e1714]:
+                - paragraph [ref=e1715]: IPIRANGA
+                - heading "POSTO Castelo DA Bocanha" [level=3] [ref=e1716]
+                - paragraph [ref=e1717]: BOCAININHA, BARRA MANSA
+              - generic [ref=e1718]: Sem preço recente
+            - generic [ref=e1720]: Aguardando primeiro preço
+            - generic [ref=e1721]:
+              - img [ref=e1722]
+              - generic [ref=e1725]: AVENIDA MIN AMARAL PEIXOTO, 635, BOCAININHA, BARRA MANSA
+            - generic [ref=e1726]:
+              - paragraph [ref=e1727]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1728] [cursor=pointer]:
+                - /url: /enviar?stationId=a9fd834c-9b8e-46fb-b4ce-d5ae69592f06&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1729]
+            - generic [ref=e1732]:
+              - link "Abrir câmera" [ref=e1733] [cursor=pointer]:
+                - /url: /enviar?stationId=a9fd834c-9b8e-46fb-b4ce-d5ae69592f06&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1734]
+              - link "Abrir posto" [ref=e1737] [cursor=pointer]:
+                - /url: /postos/a9fd834c-9b8e-46fb-b4ce-d5ae69592f06?returnTo=%2F
+          - generic [ref=e1738]:
+            - generic [ref=e1739]:
+              - generic [ref=e1740]:
+                - paragraph [ref=e1741]: IPIRANGA
+                - heading "POSTO NOVA BM" [level=3] [ref=e1742]
+                - paragraph [ref=e1743]: BOCAININHA, BARRA MANSA
+              - generic [ref=e1744]: Sem preço recente
+            - generic [ref=e1746]: Aguardando primeiro preço
+            - generic [ref=e1747]:
+              - img [ref=e1748]
+              - generic [ref=e1751]: AVENIDA MIN AMARAL PEIXOTO, 804, BOCAININHA, BARRA MANSA
+            - generic [ref=e1752]:
+              - paragraph [ref=e1753]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1754] [cursor=pointer]:
+                - /url: /enviar?stationId=fde9a07b-154a-492c-8893-e1a5e2f3a83e&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1755]
+            - generic [ref=e1758]:
+              - link "Abrir câmera" [ref=e1759] [cursor=pointer]:
+                - /url: /enviar?stationId=fde9a07b-154a-492c-8893-e1a5e2f3a83e&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1760]
+              - link "Abrir posto" [ref=e1763] [cursor=pointer]:
+                - /url: /postos/fde9a07b-154a-492c-8893-e1a5e2f3a83e?returnTo=%2F
+          - generic [ref=e1764]:
+            - generic [ref=e1765]:
+              - generic [ref=e1766]:
+                - paragraph [ref=e1767]: VIBRA
+                - heading "VIBRA · RUA Francisco VILELA DE Andrade NETO" [level=3] [ref=e1768]
+                - paragraph [ref=e1769]: CENTRO, BARRA MANSA
+              - generic [ref=e1770]: Sem preço recente
+            - generic [ref=e1771]:
+              - generic [ref=e1772]: Localização em revisão
+              - generic [ref=e1773]: Aguardando primeiro preço
+            - generic [ref=e1774]:
+              - img [ref=e1775]
+              - generic [ref=e1778]: RUA FRANCISCO VILELA DE ANDRADE NETO, 13, CENTRO, BARRA MANSA
+            - generic [ref=e1779]:
+              - paragraph [ref=e1780]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1781] [cursor=pointer]:
+                - /url: /enviar?stationId=b8e75441-21da-4d72-996d-c10b42a993f6&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1782]
+            - generic [ref=e1785]:
+              - link "Abrir câmera" [ref=e1786] [cursor=pointer]:
+                - /url: /enviar?stationId=b8e75441-21da-4d72-996d-c10b42a993f6&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1787]
+              - link "Abrir posto" [ref=e1790] [cursor=pointer]:
+                - /url: /postos/b8e75441-21da-4d72-996d-c10b42a993f6?returnTo=%2F
+          - generic [ref=e1791]:
+            - generic [ref=e1792]:
+              - generic [ref=e1793]:
+                - paragraph [ref=e1794]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · RUA DR MARIO RAMOS" [level=3] [ref=e1795]
+                - paragraph [ref=e1796]: CENTRO, BARRA MANSA
+              - generic [ref=e1797]: Sem preço recente
+            - generic [ref=e1798]:
+              - generic [ref=e1799]: Localização em revisão
+              - generic [ref=e1800]: Aguardando primeiro preço
+            - generic [ref=e1801]:
+              - img [ref=e1802]
+              - generic [ref=e1805]: RUA DR MARIO RAMOS, 273, CENTRO, BARRA MANSA
+            - generic [ref=e1806]:
+              - paragraph [ref=e1807]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1808] [cursor=pointer]:
+                - /url: /enviar?stationId=d297ad52-900a-4621-a7a0-a3d92bc92711&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1809]
+            - generic [ref=e1812]:
+              - link "Abrir câmera" [ref=e1813] [cursor=pointer]:
+                - /url: /enviar?stationId=d297ad52-900a-4621-a7a0-a3d92bc92711&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1814]
+              - link "Abrir posto" [ref=e1817] [cursor=pointer]:
+                - /url: /postos/d297ad52-900a-4621-a7a0-a3d92bc92711?returnTo=%2F
+          - generic [ref=e1818]:
+            - generic [ref=e1819]:
+              - generic [ref=e1820]:
+                - paragraph [ref=e1821]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · Avenida Francisco Villela DE Andrade NETO" [level=3] [ref=e1822]
+                - paragraph [ref=e1823]: CENTRO, BARRA MANSA
+              - generic [ref=e1824]: Sem preço recente
+            - generic [ref=e1825]:
+              - generic [ref=e1826]: Localização em revisão
+              - generic [ref=e1827]: Aguardando primeiro preço
+            - generic [ref=e1828]:
+              - img [ref=e1829]
+              - generic [ref=e1832]: AVENIDA FRANCISCO VILLELA DE ANDRADE NETO, 224, CENTRO, BARRA MANSA
+            - generic [ref=e1833]:
+              - paragraph [ref=e1834]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1835] [cursor=pointer]:
+                - /url: /enviar?stationId=b69d020e-3f67-4977-a1aa-c3a18dee2ad0&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1836]
+            - generic [ref=e1839]:
+              - link "Abrir câmera" [ref=e1840] [cursor=pointer]:
+                - /url: /enviar?stationId=b69d020e-3f67-4977-a1aa-c3a18dee2ad0&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1841]
+              - link "Abrir posto" [ref=e1844] [cursor=pointer]:
+                - /url: /postos/b69d020e-3f67-4977-a1aa-c3a18dee2ad0?returnTo=%2F
+          - generic [ref=e1845]:
+            - generic [ref=e1846]:
+              - generic [ref=e1847]:
+                - paragraph [ref=e1848]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · Avenida TRES DE Outubro" [level=3] [ref=e1849]
+                - paragraph [ref=e1850]: CENTRO, BARRA MANSA
+              - generic [ref=e1851]: Sem preço recente
+            - generic [ref=e1852]:
+              - generic [ref=e1853]: Localização em revisão
+              - generic [ref=e1854]: Aguardando primeiro preço
+            - generic [ref=e1855]:
+              - img [ref=e1856]
+              - generic [ref=e1859]: AVENIDA TRES DE OUTUBRO, 20, CENTRO, BARRA MANSA
+            - generic [ref=e1860]:
+              - paragraph [ref=e1861]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1862] [cursor=pointer]:
+                - /url: /enviar?stationId=2d39cfbf-5333-420e-accf-41739c837962&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1863]
+            - generic [ref=e1866]:
+              - link "Abrir câmera" [ref=e1867] [cursor=pointer]:
+                - /url: /enviar?stationId=2d39cfbf-5333-420e-accf-41739c837962&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1868]
+              - link "Abrir posto" [ref=e1871] [cursor=pointer]:
+                - /url: /postos/2d39cfbf-5333-420e-accf-41739c837962?returnTo=%2F
+          - generic [ref=e1872]:
+            - generic [ref=e1873]:
+              - generic [ref=e1874]:
+                - paragraph [ref=e1875]: ALE
+                - heading "ALE · RUA PINTO Ribeiro" [level=3] [ref=e1876]
+                - paragraph [ref=e1877]: CENTRO, BARRA MANSA
+              - generic [ref=e1878]: Sem preço recente
+            - generic [ref=e1879]:
+              - generic [ref=e1880]: Localização em revisão
+              - generic [ref=e1881]: Aguardando primeiro preço
+            - generic [ref=e1882]:
+              - img [ref=e1883]
+              - generic [ref=e1886]: RUA PINTO RIBEIRO, 385, CENTRO, BARRA MANSA
+            - generic [ref=e1887]:
+              - paragraph [ref=e1888]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1889] [cursor=pointer]:
+                - /url: /enviar?stationId=4870f79a-2e0c-48a2-9449-a46511291fad&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1890]
+            - generic [ref=e1893]:
+              - link "Abrir câmera" [ref=e1894] [cursor=pointer]:
+                - /url: /enviar?stationId=4870f79a-2e0c-48a2-9449-a46511291fad&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1895]
+              - link "Abrir posto" [ref=e1898] [cursor=pointer]:
+                - /url: /postos/4870f79a-2e0c-48a2-9449-a46511291fad?returnTo=%2F
+          - generic [ref=e1899]:
+            - generic [ref=e1900]:
+              - generic [ref=e1901]:
+                - paragraph [ref=e1902]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · Rodovia Presidente DUTRA" [level=3] [ref=e1903]
+                - paragraph [ref=e1904]: FLORIANO, BARRA MANSA
+              - generic [ref=e1905]: Sem preço recente
+            - generic [ref=e1906]:
+              - generic [ref=e1907]: Localização em revisão
+              - generic [ref=e1908]: Aguardando primeiro preço
+            - generic [ref=e1909]:
+              - img [ref=e1910]
+              - generic [ref=e1913]: RODOVIA PRESIDENTE DUTRA, S/NO., FLORIANO, BARRA MANSA
+            - generic [ref=e1914]:
+              - paragraph [ref=e1915]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1916] [cursor=pointer]:
+                - /url: /enviar?stationId=84b69bf4-968b-4777-a4ca-31ce2013861d&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1917]
+            - generic [ref=e1920]:
+              - link "Abrir câmera" [ref=e1921] [cursor=pointer]:
+                - /url: /enviar?stationId=84b69bf4-968b-4777-a4ca-31ce2013861d&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1922]
+              - link "Abrir posto" [ref=e1925] [cursor=pointer]:
+                - /url: /postos/84b69bf4-968b-4777-a4ca-31ce2013861d?returnTo=%2F
+          - generic [ref=e1926]:
+            - generic [ref=e1927]:
+              - generic [ref=e1928]:
+                - paragraph [ref=e1929]: IPIRANGA
+                - heading "Ipiranga · Rodovia PRES DUTRA" [level=3] [ref=e1930]
+                - paragraph [ref=e1931]: FLORIANO, BARRA MANSA
+              - generic [ref=e1932]: Sem preço recente
+            - generic [ref=e1933]:
+              - generic [ref=e1934]: Localização em revisão
+              - generic [ref=e1935]: Aguardando primeiro preço
+            - generic [ref=e1936]:
+              - img [ref=e1937]
+              - generic [ref=e1940]: RODOVIA PRES DUTRA, S/N, FLORIANO, BARRA MANSA
+            - generic [ref=e1941]:
+              - paragraph [ref=e1942]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1943] [cursor=pointer]:
+                - /url: /enviar?stationId=c6703137-33fb-4822-90b2-724001bd001e&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1944]
+            - generic [ref=e1947]:
+              - link "Abrir câmera" [ref=e1948] [cursor=pointer]:
+                - /url: /enviar?stationId=c6703137-33fb-4822-90b2-724001bd001e&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1949]
+              - link "Abrir posto" [ref=e1952] [cursor=pointer]:
+                - /url: /postos/c6703137-33fb-4822-90b2-724001bd001e?returnTo=%2F
+          - generic [ref=e1953]:
+            - generic [ref=e1954]:
+              - generic [ref=e1955]:
+                - paragraph [ref=e1956]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · Avenida TRES DE Outubro" [level=3] [ref=e1957]
+                - paragraph [ref=e1958]: JARDIM BOA VISTA, BARRA MANSA
+              - generic [ref=e1959]: Sem preço recente
+            - generic [ref=e1960]:
+              - generic [ref=e1961]: Localização em revisão
+              - generic [ref=e1962]: Aguardando primeiro preço
+            - generic [ref=e1963]:
+              - img [ref=e1964]
+              - generic [ref=e1967]: AVENIDA TRES DE OUTUBRO, 411, JARDIM BOA VISTA, BARRA MANSA
+            - generic [ref=e1968]:
+              - paragraph [ref=e1969]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1970] [cursor=pointer]:
+                - /url: /enviar?stationId=285b038a-bb14-4829-a254-17d8c176ebc7&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1971]
+            - generic [ref=e1974]:
+              - link "Abrir câmera" [ref=e1975] [cursor=pointer]:
+                - /url: /enviar?stationId=285b038a-bb14-4829-a254-17d8c176ebc7&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1976]
+              - link "Abrir posto" [ref=e1979] [cursor=pointer]:
+                - /url: /postos/285b038a-bb14-4829-a254-17d8c176ebc7?returnTo=%2F
+          - generic [ref=e1980]:
+            - generic [ref=e1981]:
+              - generic [ref=e1982]:
+                - paragraph [ref=e1983]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · Rodovia LUCIO MEIRA (br-393)" [level=3] [ref=e1984]
+                - paragraph [ref=e1985]: MORADA DA GRANJA, BARRA MANSA
+              - generic [ref=e1986]: Sem preço recente
+            - generic [ref=e1987]:
+              - generic [ref=e1988]: Localização em revisão
+              - generic [ref=e1989]: Aguardando primeiro preço
+            - generic [ref=e1990]:
+              - img [ref=e1991]
+              - generic [ref=e1994]: RODOVIA LUCIO MEIRA (BR-393), S/N, MORADA DA GRANJA, BARRA MANSA
+            - generic [ref=e1995]:
+              - paragraph [ref=e1996]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e1997] [cursor=pointer]:
+                - /url: /enviar?stationId=9d9ee00b-1b6d-4619-8aac-d8040cb7e4aa&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e1998]
+            - generic [ref=e2001]:
+              - link "Abrir câmera" [ref=e2002] [cursor=pointer]:
+                - /url: /enviar?stationId=9d9ee00b-1b6d-4619-8aac-d8040cb7e4aa&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2003]
+              - link "Abrir posto" [ref=e2006] [cursor=pointer]:
+                - /url: /postos/9d9ee00b-1b6d-4619-8aac-d8040cb7e4aa?returnTo=%2F
+          - generic [ref=e2007]:
+            - generic [ref=e2008]:
+              - generic [ref=e2009]:
+                - paragraph [ref=e2010]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · Rodovia Saturnino BRAGA" [level=3] [ref=e2011]
+                - paragraph [ref=e2012]: SANTA CLARA, BARRA MANSA
+              - generic [ref=e2013]: Sem preço recente
+            - generic [ref=e2014]:
+              - generic [ref=e2015]: Localização em revisão
+              - generic [ref=e2016]: Aguardando primeiro preço
+            - generic [ref=e2017]:
+              - img [ref=e2018]
+              - generic [ref=e2021]: RODOVIA SATURNINO BRAGA, 800, SANTA CLARA, BARRA MANSA
+            - generic [ref=e2022]:
+              - paragraph [ref=e2023]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2024] [cursor=pointer]:
+                - /url: /enviar?stationId=a8d3d4e7-4953-4591-b81e-6319b1d27d4a&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2025]
+            - generic [ref=e2028]:
+              - link "Abrir câmera" [ref=e2029] [cursor=pointer]:
+                - /url: /enviar?stationId=a8d3d4e7-4953-4591-b81e-6319b1d27d4a&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2030]
+              - link "Abrir posto" [ref=e2033] [cursor=pointer]:
+                - /url: /postos/a8d3d4e7-4953-4591-b81e-6319b1d27d4a?returnTo=%2F
+          - generic [ref=e2034]:
+            - generic [ref=e2035]:
+              - generic [ref=e2036]:
+                - paragraph [ref=e2037]: VIBRA
+                - heading "VIBRA · Rodovia Presidente DUTRA" [level=3] [ref=e2038]
+                - paragraph [ref=e2039]: SAO LUIZ, BARRA MANSA
+              - generic [ref=e2040]: Sem preço recente
+            - generic [ref=e2041]:
+              - generic [ref=e2042]: Localização em revisão
+              - generic [ref=e2043]: Aguardando primeiro preço
+            - generic [ref=e2044]:
+              - img [ref=e2045]
+              - generic [ref=e2048]: RODOVIA PRESIDENTE DUTRA, KM 269, SAO LUIZ, BARRA MANSA
+            - generic [ref=e2049]:
+              - paragraph [ref=e2050]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2051] [cursor=pointer]:
+                - /url: /enviar?stationId=6035d3fa-27c8-4ac9-b5ab-eca181397264&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2052]
+            - generic [ref=e2055]:
+              - link "Abrir câmera" [ref=e2056] [cursor=pointer]:
+                - /url: /enviar?stationId=6035d3fa-27c8-4ac9-b5ab-eca181397264&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2057]
+              - link "Abrir posto" [ref=e2060] [cursor=pointer]:
+                - /url: /postos/6035d3fa-27c8-4ac9-b5ab-eca181397264?returnTo=%2F
+          - generic [ref=e2061]:
+            - generic [ref=e2062]:
+              - generic [ref=e2063]:
+                - paragraph [ref=e2064]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · Avenida HOMERO LEITE" [level=3] [ref=e2065]
+                - paragraph [ref=e2066]: SAUDADE, BARRA MANSA
+              - generic [ref=e2067]: Sem preço recente
+            - generic [ref=e2068]:
+              - generic [ref=e2069]: Localização em revisão
+              - generic [ref=e2070]: Aguardando primeiro preço
+            - generic [ref=e2071]:
+              - img [ref=e2072]
+              - generic [ref=e2075]: AVENIDA HOMERO LEITE, 227, SAUDADE, BARRA MANSA
+            - generic [ref=e2076]:
+              - paragraph [ref=e2077]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2078] [cursor=pointer]:
+                - /url: /enviar?stationId=00d99131-e67d-4e59-9936-56411035910e&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2079]
+            - generic [ref=e2082]:
+              - link "Abrir câmera" [ref=e2083] [cursor=pointer]:
+                - /url: /enviar?stationId=00d99131-e67d-4e59-9936-56411035910e&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2084]
+              - link "Abrir posto" [ref=e2087] [cursor=pointer]:
+                - /url: /postos/00d99131-e67d-4e59-9936-56411035910e?returnTo=%2F
+          - generic [ref=e2088]:
+            - generic [ref=e2089]:
+              - generic [ref=e2090]:
+                - paragraph [ref=e2091]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · RUA MAJOR JOSE BENTO" [level=3] [ref=e2092]
+                - paragraph [ref=e2093]: VILA NOVA, BARRA MANSA
+              - generic [ref=e2094]: Sem preço recente
+            - generic [ref=e2095]:
+              - generic [ref=e2096]: Localização em revisão
+              - generic [ref=e2097]: Aguardando primeiro preço
+            - generic [ref=e2098]:
+              - img [ref=e2099]
+              - generic [ref=e2102]: RUA MAJOR JOSE BENTO, 806, VILA NOVA, BARRA MANSA
+            - generic [ref=e2103]:
+              - paragraph [ref=e2104]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2105] [cursor=pointer]:
+                - /url: /enviar?stationId=d08a8b2b-4040-4baf-a6f8-496814a78524&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2106]
+            - generic [ref=e2109]:
+              - link "Abrir câmera" [ref=e2110] [cursor=pointer]:
+                - /url: /enviar?stationId=d08a8b2b-4040-4baf-a6f8-496814a78524&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2111]
+              - link "Abrir posto" [ref=e2114] [cursor=pointer]:
+                - /url: /postos/d08a8b2b-4040-4baf-a6f8-496814a78524?returnTo=%2F
+          - generic [ref=e2115]:
+            - generic [ref=e2116]:
+              - generic [ref=e2117]:
+                - paragraph [ref=e2118]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · Rodovia PRES DUTRA" [level=3] [ref=e2119]
+                - paragraph [ref=e2120]: VILA PRINCIPAL, BARRA MANSA
+              - generic [ref=e2121]: Sem preço recente
+            - generic [ref=e2122]:
+              - generic [ref=e2123]: Localização em revisão
+              - generic [ref=e2124]: Aguardando primeiro preço
+            - generic [ref=e2125]:
+              - img [ref=e2126]
+              - generic [ref=e2129]: RODOVIA PRES DUTRA, S/N, VILA PRINCIPAL, BARRA MANSA
+            - generic [ref=e2130]:
+              - paragraph [ref=e2131]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2132] [cursor=pointer]:
+                - /url: /enviar?stationId=da573846-dc4f-4694-bac6-40777cc82cb3&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2133]
+            - generic [ref=e2136]:
+              - link "Abrir câmera" [ref=e2137] [cursor=pointer]:
+                - /url: /enviar?stationId=da573846-dc4f-4694-bac6-40777cc82cb3&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2138]
+              - link "Abrir posto" [ref=e2141] [cursor=pointer]:
+                - /url: /postos/da573846-dc4f-4694-bac6-40777cc82cb3?returnTo=%2F
+          - generic [ref=e2142]:
+            - generic [ref=e2143]:
+              - generic [ref=e2144]:
+                - paragraph [ref=e2145]: BANDEIRA BRANCA
+                - heading "POSTO SOL DA DUTRA" [level=3] [ref=e2146]
+                - paragraph [ref=e2147]: VILA PRINCIPAL, BARRA MANSA
+              - generic [ref=e2148]: Sem preço recente
+            - generic [ref=e2150]: Aguardando primeiro preço
+            - generic [ref=e2151]:
+              - img [ref=e2152]
+              - generic [ref=e2155]: RODOVIA PRES DUTRA, S/N, VILA PRINCIPAL, BARRA MANSA
+            - generic [ref=e2156]:
+              - paragraph [ref=e2157]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2158] [cursor=pointer]:
+                - /url: /enviar?stationId=10e93c40-9494-4ff2-accc-4446a9291b19&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2159]
+            - generic [ref=e2162]:
+              - link "Abrir câmera" [ref=e2163] [cursor=pointer]:
+                - /url: /enviar?stationId=10e93c40-9494-4ff2-accc-4446a9291b19&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2164]
+              - link "Abrir posto" [ref=e2167] [cursor=pointer]:
+                - /url: /postos/10e93c40-9494-4ff2-accc-4446a9291b19?returnTo=%2F
+          - generic [ref=e2168]:
+            - generic [ref=e2169]:
+              - generic [ref=e2170]:
+                - paragraph [ref=e2171]: BANDEIRA BRANCA
+                - heading "POSTO Perfeito DE BARRA MANSA" [level=3] [ref=e2172]
+                - paragraph [ref=e2173]: ABELHAS, BARRA MANSA
+              - generic [ref=e2174]: Sem preço recente
+            - generic [ref=e2175]:
+              - generic [ref=e2176]: Localização em revisão
+              - generic [ref=e2177]: Aguardando primeiro preço
+            - generic [ref=e2178]:
+              - img [ref=e2179]
+              - generic [ref=e2182]: RODOVIA PRESIDENTE DUTRA, KM 273, ABELHAS, BARRA MANSA
+            - generic [ref=e2183]:
+              - paragraph [ref=e2184]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2185] [cursor=pointer]:
+                - /url: /enviar?stationId=43ac09e5-ca46-455c-a61b-72811fe12d72&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2186]
+            - generic [ref=e2189]:
+              - link "Abrir câmera" [ref=e2190] [cursor=pointer]:
+                - /url: /enviar?stationId=43ac09e5-ca46-455c-a61b-72811fe12d72&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2191]
+              - link "Abrir posto" [ref=e2194] [cursor=pointer]:
+                - /url: /postos/43ac09e5-ca46-455c-a61b-72811fe12d72?returnTo=%2F
+          - generic [ref=e2195]:
+            - generic [ref=e2196]:
+              - generic [ref=e2197]:
+                - paragraph [ref=e2198]: BANDEIRA BRANCA
+                - heading "POSTO DE Abastecimento NUNES ALVES" [level=3] [ref=e2199]
+                - paragraph [ref=e2200]: ANO BOM, BARRA MANSA
+              - generic [ref=e2201]: Sem preço recente
+            - generic [ref=e2202]:
+              - generic [ref=e2203]: Localização em revisão
+              - generic [ref=e2204]: Aguardando primeiro preço
+            - generic [ref=e2205]:
+              - img [ref=e2206]
+              - generic [ref=e2209]: AVENIDA PRESIDENTE KENNEDY, 3601, ANO BOM, BARRA MANSA
+            - generic [ref=e2210]:
+              - paragraph [ref=e2211]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2212] [cursor=pointer]:
+                - /url: /enviar?stationId=f31d0771-dbc9-4f2b-b5b5-32ca144db313&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2213]
+            - generic [ref=e2216]:
+              - link "Abrir câmera" [ref=e2217] [cursor=pointer]:
+                - /url: /enviar?stationId=f31d0771-dbc9-4f2b-b5b5-32ca144db313&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2218]
+              - link "Abrir posto" [ref=e2221] [cursor=pointer]:
+                - /url: /postos/f31d0771-dbc9-4f2b-b5b5-32ca144db313?returnTo=%2F
+          - generic [ref=e2222]:
+            - generic [ref=e2223]:
+              - generic [ref=e2224]:
+                - paragraph [ref=e2225]: VIBRA
+                - heading "POSTO NACOES UNIDAS" [level=3] [ref=e2226]
+                - paragraph [ref=e2227]: ANO BOM, BARRA MANSA
+              - generic [ref=e2228]: Sem preço recente
+            - generic [ref=e2229]:
+              - generic [ref=e2230]: Localização em revisão
+              - generic [ref=e2231]: Aguardando primeiro preço
+            - generic [ref=e2232]:
+              - img [ref=e2233]
+              - generic [ref=e2236]: AVENIDA TENENTE JOSE EDUARDO, 25, ANO BOM, BARRA MANSA
+            - generic [ref=e2237]:
+              - paragraph [ref=e2238]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2239] [cursor=pointer]:
+                - /url: /enviar?stationId=8ede7303-cd2d-49c9-8da6-e70137877b1b&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2240]
+            - generic [ref=e2243]:
+              - link "Abrir câmera" [ref=e2244] [cursor=pointer]:
+                - /url: /enviar?stationId=8ede7303-cd2d-49c9-8da6-e70137877b1b&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2245]
+              - link "Abrir posto" [ref=e2248] [cursor=pointer]:
+                - /url: /postos/8ede7303-cd2d-49c9-8da6-e70137877b1b?returnTo=%2F
+          - generic [ref=e2249]:
+            - generic [ref=e2250]:
+              - generic [ref=e2251]:
+                - paragraph [ref=e2252]: BANDEIRA BRANCA
+                - heading "POSTO SAO Francisco DE ASSIS" [level=3] [ref=e2253]
+                - paragraph [ref=e2254]: ANO BOM, BARRA MANSA
+              - generic [ref=e2255]: Sem preço recente
+            - generic [ref=e2256]:
+              - generic [ref=e2257]: Localização em revisão
+              - generic [ref=e2258]: Aguardando primeiro preço
+            - generic [ref=e2259]:
+              - img [ref=e2260]
+              - generic [ref=e2263]: AVENIDA PRESIDENTE KENNEDY, 2457, ANO BOM, BARRA MANSA
+            - generic [ref=e2264]:
+              - paragraph [ref=e2265]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2266] [cursor=pointer]:
+                - /url: /enviar?stationId=1f6a86db-f414-41fd-b961-308e98a80a97&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2267]
+            - generic [ref=e2270]:
+              - link "Abrir câmera" [ref=e2271] [cursor=pointer]:
+                - /url: /enviar?stationId=1f6a86db-f414-41fd-b961-308e98a80a97&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2272]
+              - link "Abrir posto" [ref=e2275] [cursor=pointer]:
+                - /url: /postos/1f6a86db-f414-41fd-b961-308e98a80a97?returnTo=%2F
+          - generic [ref=e2276]:
+            - generic [ref=e2277]:
+              - generic [ref=e2278]:
+                - paragraph [ref=e2279]: VIBRA
+                - heading "POSTO OJM" [level=3] [ref=e2280]
+                - paragraph [ref=e2281]: CENTO, BARRA MANSA
+              - generic [ref=e2282]: Sem preço recente
+            - generic [ref=e2283]:
+              - generic [ref=e2284]: Localização em revisão
+              - generic [ref=e2285]: Aguardando primeiro preço
+            - generic [ref=e2286]:
+              - img [ref=e2287]
+              - generic [ref=e2290]: RUA ARY FONTENELLE, 353, CENTO, BARRA MANSA
+            - generic [ref=e2291]:
+              - paragraph [ref=e2292]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2293] [cursor=pointer]:
+                - /url: /enviar?stationId=6a8fb33c-b9ac-4f50-9b43-219bf91ea415&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2294]
+            - generic [ref=e2297]:
+              - link "Abrir câmera" [ref=e2298] [cursor=pointer]:
+                - /url: /enviar?stationId=6a8fb33c-b9ac-4f50-9b43-219bf91ea415&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2299]
+              - link "Abrir posto" [ref=e2302] [cursor=pointer]:
+                - /url: /postos/6a8fb33c-b9ac-4f50-9b43-219bf91ea415?returnTo=%2F
+          - generic [ref=e2303]:
+            - generic [ref=e2304]:
+              - generic [ref=e2305]:
+                - paragraph [ref=e2306]: VIBRA
+                - heading "Alianca CENTER Comercio DE Combustivel" [level=3] [ref=e2307]
+                - paragraph [ref=e2308]: CENTRO, BARRA MANSA
+              - generic [ref=e2309]: Sem preço recente
+            - generic [ref=e2310]:
+              - generic [ref=e2311]: Localização em revisão
+              - generic [ref=e2312]: Aguardando primeiro preço
+            - generic [ref=e2313]:
+              - img [ref=e2314]
+              - generic [ref=e2317]: RUA FRANCISCO VILELA DE ANDRADE NETO, 13, CENTRO, BARRA MANSA
+            - generic [ref=e2318]:
+              - paragraph [ref=e2319]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2320] [cursor=pointer]:
+                - /url: /enviar?stationId=da6feb04-92ec-406f-b410-afcf08179d95&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2321]
+            - generic [ref=e2324]:
+              - link "Abrir câmera" [ref=e2325] [cursor=pointer]:
+                - /url: /enviar?stationId=da6feb04-92ec-406f-b410-afcf08179d95&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2326]
+              - link "Abrir posto" [ref=e2329] [cursor=pointer]:
+                - /url: /postos/da6feb04-92ec-406f-b410-afcf08179d95?returnTo=%2F
+          - generic [ref=e2330]:
+            - generic [ref=e2331]:
+              - generic [ref=e2332]:
+                - paragraph [ref=e2333]: IPIRANGA
+                - heading "Organizaçao TUPY" [level=3] [ref=e2334]
+                - paragraph [ref=e2335]: CENTRO, BARRA MANSA
+              - generic [ref=e2336]: Sem preço recente
+            - generic [ref=e2337]:
+              - generic [ref=e2338]: Localização em revisão
+              - generic [ref=e2339]: Aguardando primeiro preço
+            - generic [ref=e2340]:
+              - img [ref=e2341]
+              - generic [ref=e2344]: AVENIDA DOMINGOS MARIANO, 510, CENTRO, BARRA MANSA
+            - generic [ref=e2345]:
+              - paragraph [ref=e2346]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2347] [cursor=pointer]:
+                - /url: /enviar?stationId=776e383b-1b4e-4d15-b90e-4ea43e7aff48&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2348]
+            - generic [ref=e2351]:
+              - link "Abrir câmera" [ref=e2352] [cursor=pointer]:
+                - /url: /enviar?stationId=776e383b-1b4e-4d15-b90e-4ea43e7aff48&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2353]
+              - link "Abrir posto" [ref=e2356] [cursor=pointer]:
+                - /url: /postos/776e383b-1b4e-4d15-b90e-4ea43e7aff48?returnTo=%2F
+          - generic [ref=e2357]:
+            - generic [ref=e2358]:
+              - generic [ref=e2359]:
+                - paragraph [ref=e2360]: BANDEIRA BRANCA
+                - heading "POSTO Universidade BM" [level=3] [ref=e2361]
+                - paragraph [ref=e2362]: CENTRO, BARRA MANSA
+              - generic [ref=e2363]: Sem preço recente
+            - generic [ref=e2364]:
+              - generic [ref=e2365]: Localização em revisão
+              - generic [ref=e2366]: Aguardando primeiro preço
+            - generic [ref=e2367]:
+              - img [ref=e2368]
+              - generic [ref=e2371]: RUA DR MARIO RAMOS, 273, CENTRO, BARRA MANSA
+            - generic [ref=e2372]:
+              - paragraph [ref=e2373]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2374] [cursor=pointer]:
+                - /url: /enviar?stationId=068dd8dd-02a6-4944-9ace-372ea6939e25&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2375]
+            - generic [ref=e2378]:
+              - link "Abrir câmera" [ref=e2379] [cursor=pointer]:
+                - /url: /enviar?stationId=068dd8dd-02a6-4944-9ace-372ea6939e25&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2380]
+              - link "Abrir posto" [ref=e2383] [cursor=pointer]:
+                - /url: /postos/068dd8dd-02a6-4944-9ace-372ea6939e25?returnTo=%2F
+          - generic [ref=e2384]:
+            - generic [ref=e2385]:
+              - generic [ref=e2386]:
+                - paragraph [ref=e2387]: IPIRANGA
+                - heading "POSTO BARRA MANSA" [level=3] [ref=e2388]
+                - paragraph [ref=e2389]: COTIARA, BARRA MANSA
+              - generic [ref=e2390]: Sem preço recente
+            - generic [ref=e2391]:
+              - generic [ref=e2392]: Localização em revisão
+              - generic [ref=e2393]: Aguardando primeiro preço
+            - generic [ref=e2394]:
+              - img [ref=e2395]
+              - generic [ref=e2398]: RODOVIA PRESIDENTE DUTRA, SN, COTIARA, BARRA MANSA
+            - generic [ref=e2399]:
+              - paragraph [ref=e2400]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2401] [cursor=pointer]:
+                - /url: /enviar?stationId=c036ffd5-667a-4388-8475-cb64985794f3&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2402]
+            - generic [ref=e2405]:
+              - link "Abrir câmera" [ref=e2406] [cursor=pointer]:
+                - /url: /enviar?stationId=c036ffd5-667a-4388-8475-cb64985794f3&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2407]
+              - link "Abrir posto" [ref=e2410] [cursor=pointer]:
+                - /url: /postos/c036ffd5-667a-4388-8475-cb64985794f3?returnTo=%2F
+          - generic [ref=e2411]:
+            - generic [ref=e2412]:
+              - generic [ref=e2413]:
+                - paragraph [ref=e2414]: BANDEIRA BRANCA
+                - heading "POSTO MONTE CRISTO" [level=3] [ref=e2415]
+                - paragraph [ref=e2416]: MONTE CRISTO, BARRA MANSA
+              - generic [ref=e2417]: Sem preço recente
+            - generic [ref=e2418]:
+              - generic [ref=e2419]: Localização em revisão
+              - generic [ref=e2420]: Aguardando primeiro preço
+            - generic [ref=e2421]:
+              - img [ref=e2422]
+              - generic [ref=e2425]: RODOVIA PRESIDENTE DUTRA, 009, MONTE CRISTO, BARRA MANSA
+            - generic [ref=e2426]:
+              - paragraph [ref=e2427]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2428] [cursor=pointer]:
+                - /url: /enviar?stationId=95d3ad05-e239-4799-b069-20f55f977a34&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2429]
+            - generic [ref=e2432]:
+              - link "Abrir câmera" [ref=e2433] [cursor=pointer]:
+                - /url: /enviar?stationId=95d3ad05-e239-4799-b069-20f55f977a34&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2434]
+              - link "Abrir posto" [ref=e2437] [cursor=pointer]:
+                - /url: /postos/95d3ad05-e239-4799-b069-20f55f977a34?returnTo=%2F
+          - generic [ref=e2438]:
+            - generic [ref=e2439]:
+              - generic [ref=e2440]:
+                - paragraph [ref=e2441]: VIBRA
+                - heading "POSTO METANO" [level=3] [ref=e2442]
+                - paragraph [ref=e2443]: SAO LUIZ, BARRA MANSA
+              - generic [ref=e2444]: Sem preço recente
+            - generic [ref=e2445]:
+              - generic [ref=e2446]: Localização em revisão
+              - generic [ref=e2447]: Aguardando primeiro preço
+            - generic [ref=e2448]:
+              - img [ref=e2449]
+              - generic [ref=e2452]: RODOVIA PRESIDENTE DUTRA, KM 269, SAO LUIZ, BARRA MANSA
+            - generic [ref=e2453]:
+              - paragraph [ref=e2454]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2455] [cursor=pointer]:
+                - /url: /enviar?stationId=2b52dc13-f256-4a72-8855-3e8daf428c7b&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2456]
+            - generic [ref=e2459]:
+              - link "Abrir câmera" [ref=e2460] [cursor=pointer]:
+                - /url: /enviar?stationId=2b52dc13-f256-4a72-8855-3e8daf428c7b&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2461]
+              - link "Abrir posto" [ref=e2464] [cursor=pointer]:
+                - /url: /postos/2b52dc13-f256-4a72-8855-3e8daf428c7b?returnTo=%2F
+          - generic [ref=e2465]:
+            - generic [ref=e2466]:
+              - generic [ref=e2467]:
+                - paragraph [ref=e2468]: RAIZEN
+                - heading "POSTO DE Abastecimento DE Combustiveis VILA NOVA" [level=3] [ref=e2469]
+                - paragraph [ref=e2470]: VILA NOVA, BARRA MANSA
+              - generic [ref=e2471]: Sem preço recente
+            - generic [ref=e2472]:
+              - generic [ref=e2473]: Localização em revisão
+              - generic [ref=e2474]: Aguardando primeiro preço
+            - generic [ref=e2475]:
+              - img [ref=e2476]
+              - generic [ref=e2479]: RUA MAJOR JOSE BENTO, 2137, VILA NOVA, BARRA MANSA
+            - generic [ref=e2480]:
+              - paragraph [ref=e2481]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2482] [cursor=pointer]:
+                - /url: /enviar?stationId=fc111789-019e-433f-ac25-ddd4d1a7ca37&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2483]
+            - generic [ref=e2486]:
+              - link "Abrir câmera" [ref=e2487] [cursor=pointer]:
+                - /url: /enviar?stationId=fc111789-019e-433f-ac25-ddd4d1a7ca37&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2488]
+              - link "Abrir posto" [ref=e2491] [cursor=pointer]:
+                - /url: /postos/fc111789-019e-433f-ac25-ddd4d1a7ca37?returnTo=%2F
+          - generic [ref=e2492]:
+            - generic [ref=e2493]:
+              - generic [ref=e2494]:
+                - paragraph [ref=e2495]: RAIZEN
+                - heading "POSTO Flumidiesel" [level=3] [ref=e2496]
+                - paragraph [ref=e2497]: VILA URSULINO, BARRA MANSA
+              - generic [ref=e2498]: Sem preço recente
+            - generic [ref=e2499]:
+              - generic [ref=e2500]: Localização em revisão
+              - generic [ref=e2501]: Aguardando primeiro preço
+            - generic [ref=e2502]:
+              - img [ref=e2503]
+              - generic [ref=e2506]: RODOVIA PRESIDENTE DUTRA, SN, VILA URSULINO, BARRA MANSA
+            - generic [ref=e2507]:
+              - paragraph [ref=e2508]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2509] [cursor=pointer]:
+                - /url: /enviar?stationId=25002095-2cb1-4282-96de-d5d0236b5b42&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2510]
+            - generic [ref=e2513]:
+              - link "Abrir câmera" [ref=e2514] [cursor=pointer]:
+                - /url: /enviar?stationId=25002095-2cb1-4282-96de-d5d0236b5b42&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2515]
+              - link "Abrir posto" [ref=e2518] [cursor=pointer]:
+                - /url: /postos/25002095-2cb1-4282-96de-d5d0236b5b42?returnTo=%2F
+          - generic [ref=e2519]:
+            - generic [ref=e2520]:
+              - generic [ref=e2521]:
+                - paragraph [ref=e2522]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · Rodovia LUCIO MEIRA" [level=3] [ref=e2523]
+                - paragraph [ref=e2524]: ARTHUR CATALDI, BARRA DO PIRAI
+              - generic [ref=e2525]: Sem preço recente
+            - generic [ref=e2526]:
+              - generic [ref=e2527]: Localização em revisão
+              - generic [ref=e2528]: Aguardando primeiro preço
+            - generic [ref=e2529]:
+              - img [ref=e2530]
+              - generic [ref=e2533]: RODOVIA LUCIO MEIRA, S/N, ARTHUR CATALDI, BARRA DO PIRAI
+            - generic [ref=e2534]:
+              - paragraph [ref=e2535]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2536] [cursor=pointer]:
+                - /url: /enviar?stationId=1597f2d4-5f9e-491d-9906-3d44a2e40e26&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2537]
+            - generic [ref=e2540]:
+              - link "Abrir câmera" [ref=e2541] [cursor=pointer]:
+                - /url: /enviar?stationId=1597f2d4-5f9e-491d-9906-3d44a2e40e26&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2542]
+              - link "Abrir posto" [ref=e2545] [cursor=pointer]:
+                - /url: /postos/1597f2d4-5f9e-491d-9906-3d44a2e40e26?returnTo=%2F
+          - generic [ref=e2546]:
+            - generic [ref=e2547]:
+              - generic [ref=e2548]:
+                - paragraph [ref=e2549]: VIBRA
+                - heading "VIBRA · Rodovia LUCIO MEIRA - BR 393" [level=3] [ref=e2550]
+                - paragraph [ref=e2551]: BELVEDERE DA TAQUARA, BARRA DO PIRAI
+              - generic [ref=e2552]: Sem preço recente
+            - generic [ref=e2553]:
+              - generic [ref=e2554]: Localização em revisão
+              - generic [ref=e2555]: Aguardando primeiro preço
+            - generic [ref=e2556]:
+              - img [ref=e2557]
+              - generic [ref=e2560]: RODOVIA LUCIO MEIRA - BR 393, SN, BELVEDERE DA TAQUARA, BARRA DO PIRAI
+            - generic [ref=e2561]:
+              - paragraph [ref=e2562]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2563] [cursor=pointer]:
+                - /url: /enviar?stationId=ef12f7be-b735-41ef-9b09-3712c4a7ab3f&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2564]
+            - generic [ref=e2567]:
+              - link "Abrir câmera" [ref=e2568] [cursor=pointer]:
+                - /url: /enviar?stationId=ef12f7be-b735-41ef-9b09-3712c4a7ab3f&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2569]
+              - link "Abrir posto" [ref=e2572] [cursor=pointer]:
+                - /url: /postos/ef12f7be-b735-41ef-9b09-3712c4a7ab3f?returnTo=%2F
+          - generic [ref=e2573]:
+            - generic [ref=e2574]:
+              - generic [ref=e2575]:
+                - paragraph [ref=e2576]: VIBRA
+                - heading "POSTO Belvedere DA BARRA · Rodovia LUCIO MEIRA - BR 393" [level=3] [ref=e2577]
+                - paragraph [ref=e2578]: BELVEDERE DA TAQUARA, BARRA DO PIRAI
+              - generic [ref=e2579]: Sem preço recente
+            - generic [ref=e2580]:
+              - generic [ref=e2581]: Localização em revisão
+              - generic [ref=e2582]: Aguardando primeiro preço
+            - generic [ref=e2583]:
+              - img [ref=e2584]
+              - generic [ref=e2587]: RODOVIA LUCIO MEIRA - BR 393, SN, BELVEDERE DA TAQUARA, BARRA DO PIRAI
+            - generic [ref=e2588]:
+              - paragraph [ref=e2589]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2590] [cursor=pointer]:
+                - /url: /enviar?stationId=c0b49312-c85f-45cf-aefe-483fcd4656be&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2591]
+            - generic [ref=e2594]:
+              - link "Abrir câmera" [ref=e2595] [cursor=pointer]:
+                - /url: /enviar?stationId=c0b49312-c85f-45cf-aefe-483fcd4656be&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2596]
+              - link "Abrir posto" [ref=e2599] [cursor=pointer]:
+                - /url: /postos/c0b49312-c85f-45cf-aefe-483fcd4656be?returnTo=%2F
+          - generic [ref=e2600]:
+            - generic [ref=e2601]:
+              - generic [ref=e2602]:
+                - paragraph [ref=e2603]: VIBRA
+                - heading "VIBRA · Rodovia BR 393" [level=3] [ref=e2604]
+                - paragraph [ref=e2605]: CALIFORNIA, BARRA DO PIRAI
+              - generic [ref=e2606]: Sem preço recente
+            - generic [ref=e2607]:
+              - generic [ref=e2608]: Localização em revisão
+              - generic [ref=e2609]: Aguardando primeiro preço
+            - generic [ref=e2610]:
+              - img [ref=e2611]
+              - generic [ref=e2614]: RODOVIA BR 393, S/N, CALIFORNIA, BARRA DO PIRAI
+            - generic [ref=e2615]:
+              - paragraph [ref=e2616]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2617] [cursor=pointer]:
+                - /url: /enviar?stationId=60c83c0c-8f77-4e20-8fdc-393b38a58352&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2618]
+            - generic [ref=e2621]:
+              - link "Abrir câmera" [ref=e2622] [cursor=pointer]:
+                - /url: /enviar?stationId=60c83c0c-8f77-4e20-8fdc-393b38a58352&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2623]
+              - link "Abrir posto" [ref=e2626] [cursor=pointer]:
+                - /url: /postos/60c83c0c-8f77-4e20-8fdc-393b38a58352?returnTo=%2F
+          - generic [ref=e2627]:
+            - generic [ref=e2628]:
+              - generic [ref=e2629]:
+                - paragraph [ref=e2630]: VIBRA
+                - heading "VIBRA · RUA Franklin DE MORAES" [level=3] [ref=e2631]
+                - paragraph [ref=e2632]: CENTRO, BARRA DO PIRAI
+              - generic [ref=e2633]: Sem preço recente
+            - generic [ref=e2634]:
+              - generic [ref=e2635]: Localização em revisão
+              - generic [ref=e2636]: Aguardando primeiro preço
+            - generic [ref=e2637]:
+              - img [ref=e2638]
+              - generic [ref=e2641]: RUA FRANKLIN DE MORAES, S/N, CENTRO, BARRA DO PIRAI
+            - generic [ref=e2642]:
+              - paragraph [ref=e2643]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2644] [cursor=pointer]:
+                - /url: /enviar?stationId=57db5863-dd53-4b9f-90e2-4378837e0e96&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2645]
+            - generic [ref=e2648]:
+              - link "Abrir câmera" [ref=e2649] [cursor=pointer]:
+                - /url: /enviar?stationId=57db5863-dd53-4b9f-90e2-4378837e0e96&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2650]
+              - link "Abrir posto" [ref=e2653] [cursor=pointer]:
+                - /url: /postos/57db5863-dd53-4b9f-90e2-4378837e0e96?returnTo=%2F
+          - generic [ref=e2654]:
+            - generic [ref=e2655]:
+              - generic [ref=e2656]:
+                - paragraph [ref=e2657]: VIBRA
+                - heading "POSTO DE Combustiveis Dorandia · Rodovia LUCIO MEIRA" [level=3] [ref=e2658]
+                - paragraph [ref=e2659]: DORANDIA, BARRA DO PIRAI
+              - generic [ref=e2660]: Sem preço recente
+            - generic [ref=e2661]:
+              - generic [ref=e2662]: Localização em revisão
+              - generic [ref=e2663]: Aguardando primeiro preço
+            - generic [ref=e2664]:
+              - img [ref=e2665]
+              - generic [ref=e2668]: RODOVIA LUCIO MEIRA, 26115, DORANDIA, BARRA DO PIRAI
+            - generic [ref=e2669]:
+              - paragraph [ref=e2670]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2671] [cursor=pointer]:
+                - /url: /enviar?stationId=63e24ab3-b460-42ba-9322-64d4af0f98ca&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2672]
+            - generic [ref=e2675]:
+              - link "Abrir câmera" [ref=e2676] [cursor=pointer]:
+                - /url: /enviar?stationId=63e24ab3-b460-42ba-9322-64d4af0f98ca&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2677]
+              - link "Abrir posto" [ref=e2680] [cursor=pointer]:
+                - /url: /postos/63e24ab3-b460-42ba-9322-64d4af0f98ca?returnTo=%2F
+          - generic [ref=e2681]:
+            - generic [ref=e2682]:
+              - generic [ref=e2683]:
+                - paragraph [ref=e2684]: BANDEIRA BRANCA
+                - heading "Matagal AUTO POSTO · Estrada RJ 137" [level=3] [ref=e2685]
+                - paragraph [ref=e2686]: IPIABAS, BARRA DO PIRAI
+              - generic [ref=e2687]: Sem preço recente
+            - generic [ref=e2688]:
+              - generic [ref=e2689]: Localização em revisão
+              - generic [ref=e2690]: Aguardando primeiro preço
+            - generic [ref=e2691]:
+              - img [ref=e2692]
+              - generic [ref=e2695]: ESTRADA RJ 137, 11006, IPIABAS, BARRA DO PIRAI
+            - generic [ref=e2696]:
+              - paragraph [ref=e2697]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2698] [cursor=pointer]:
+                - /url: /enviar?stationId=ce170b66-8aa0-4681-8af8-56dfb913979b&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2699]
+            - generic [ref=e2702]:
+              - link "Abrir câmera" [ref=e2703] [cursor=pointer]:
+                - /url: /enviar?stationId=ce170b66-8aa0-4681-8af8-56dfb913979b&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2704]
+              - link "Abrir posto" [ref=e2707] [cursor=pointer]:
+                - /url: /postos/ce170b66-8aa0-4681-8af8-56dfb913979b?returnTo=%2F
+          - generic [ref=e2708]:
+            - generic [ref=e2709]:
+              - generic [ref=e2710]:
+                - paragraph [ref=e2711]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · RUA PAULO Fernandes" [level=3] [ref=e2712]
+                - paragraph [ref=e2713]: MARACANA, BARRA DO PIRAI
+              - generic [ref=e2714]: Sem preço recente
+            - generic [ref=e2715]:
+              - generic [ref=e2716]: Localização em revisão
+              - generic [ref=e2717]: Aguardando primeiro preço
+            - generic [ref=e2718]:
+              - img [ref=e2719]
+              - generic [ref=e2722]: RUA PAULO FERNANDES, 224, MARACANA, BARRA DO PIRAI
+            - generic [ref=e2723]:
+              - paragraph [ref=e2724]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2725] [cursor=pointer]:
+                - /url: /enviar?stationId=63209619-6c60-47ad-9a9b-a07c7a81c786&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2726]
+            - generic [ref=e2729]:
+              - link "Abrir câmera" [ref=e2730] [cursor=pointer]:
+                - /url: /enviar?stationId=63209619-6c60-47ad-9a9b-a07c7a81c786&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2731]
+              - link "Abrir posto" [ref=e2734] [cursor=pointer]:
+                - /url: /postos/63209619-6c60-47ad-9a9b-a07c7a81c786?returnTo=%2F
+          - generic [ref=e2735]:
+            - generic [ref=e2736]:
+              - generic [ref=e2737]:
+                - paragraph [ref=e2738]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · RUA JOSE ALVES Pimenta" [level=3] [ref=e2739]
+                - paragraph [ref=e2740]: MATADOURO, BARRA DO PIRAI
+              - generic [ref=e2741]: Sem preço recente
+            - generic [ref=e2742]:
+              - generic [ref=e2743]: Localização em revisão
+              - generic [ref=e2744]: Aguardando primeiro preço
+            - generic [ref=e2745]:
+              - img [ref=e2746]
+              - generic [ref=e2749]: RUA JOSE ALVES PIMENTA, 1616, MATADOURO, BARRA DO PIRAI
+            - generic [ref=e2750]:
+              - paragraph [ref=e2751]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2752] [cursor=pointer]:
+                - /url: /enviar?stationId=abcd0409-3d98-4f56-a8f5-afc522edc13c&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2753]
+            - generic [ref=e2756]:
+              - link "Abrir câmera" [ref=e2757] [cursor=pointer]:
+                - /url: /enviar?stationId=abcd0409-3d98-4f56-a8f5-afc522edc13c&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2758]
+              - link "Abrir posto" [ref=e2761] [cursor=pointer]:
+                - /url: /postos/abcd0409-3d98-4f56-a8f5-afc522edc13c?returnTo=%2F
+          - generic [ref=e2762]:
+            - generic [ref=e2763]:
+              - generic [ref=e2764]:
+                - paragraph [ref=e2765]: RAIZEN
+                - heading "RAIZEN · RUA LUIZ Barbosa" [level=3] [ref=e2766]
+                - paragraph [ref=e2767]: MATADOURO, BARRA DO PIRAI
+              - generic [ref=e2768]: Sem preço recente
+            - generic [ref=e2769]:
+              - generic [ref=e2770]: Localização em revisão
+              - generic [ref=e2771]: Aguardando primeiro preço
+            - generic [ref=e2772]:
+              - img [ref=e2773]
+              - generic [ref=e2776]: RUA LUIZ BARBOSA, 411, MATADOURO, BARRA DO PIRAI
+            - generic [ref=e2777]:
+              - paragraph [ref=e2778]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2779] [cursor=pointer]:
+                - /url: /enviar?stationId=3bef6aba-2906-4d40-b375-6726752e977b&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2780]
+            - generic [ref=e2783]:
+              - link "Abrir câmera" [ref=e2784] [cursor=pointer]:
+                - /url: /enviar?stationId=3bef6aba-2906-4d40-b375-6726752e977b&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2785]
+              - link "Abrir posto" [ref=e2788] [cursor=pointer]:
+                - /url: /postos/3bef6aba-2906-4d40-b375-6726752e977b?returnTo=%2F
+          - generic [ref=e2789]:
+            - generic [ref=e2790]:
+              - generic [ref=e2791]:
+                - paragraph [ref=e2792]: BANDEIRA BRANCA
+                - heading "POSTO Zambeli · RUA JOSE ALVES Pimenta" [level=3] [ref=e2793]
+                - paragraph [ref=e2794]: MATADOURO, BARRA DO PIRAI
+              - generic [ref=e2795]: Sem preço recente
+            - generic [ref=e2796]:
+              - generic [ref=e2797]: Localização em revisão
+              - generic [ref=e2798]: Aguardando primeiro preço
+            - generic [ref=e2799]:
+              - img [ref=e2800]
+              - generic [ref=e2803]: RUA JOSE ALVES PIMENTA, 1616, MATADOURO, BARRA DO PIRAI
+            - generic [ref=e2804]:
+              - paragraph [ref=e2805]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2806] [cursor=pointer]:
+                - /url: /enviar?stationId=5768369b-4221-4ffe-b3ea-88bcf685364e&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2807]
+            - generic [ref=e2810]:
+              - link "Abrir câmera" [ref=e2811] [cursor=pointer]:
+                - /url: /enviar?stationId=5768369b-4221-4ffe-b3ea-88bcf685364e&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2812]
+              - link "Abrir posto" [ref=e2815] [cursor=pointer]:
+                - /url: /postos/5768369b-4221-4ffe-b3ea-88bcf685364e?returnTo=%2F
+          - generic [ref=e2816]:
+            - generic [ref=e2817]:
+              - generic [ref=e2818]:
+                - paragraph [ref=e2819]: RAIZEN
+                - heading "POSTOS Colorado · RUA LUIZ Barbosa" [level=3] [ref=e2820]
+                - paragraph [ref=e2821]: MATADOURO, BARRA DO PIRAI
+              - generic [ref=e2822]: Sem preço recente
+            - generic [ref=e2823]:
+              - generic [ref=e2824]: Localização em revisão
+              - generic [ref=e2825]: Aguardando primeiro preço
+            - generic [ref=e2826]:
+              - img [ref=e2827]
+              - generic [ref=e2830]: RUA LUIZ BARBOSA, 411, MATADOURO, BARRA DO PIRAI
+            - generic [ref=e2831]:
+              - paragraph [ref=e2832]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2833] [cursor=pointer]:
+                - /url: /enviar?stationId=9576feeb-44e1-442f-98ee-19af74600c86&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2834]
+            - generic [ref=e2837]:
+              - link "Abrir câmera" [ref=e2838] [cursor=pointer]:
+                - /url: /enviar?stationId=9576feeb-44e1-442f-98ee-19af74600c86&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2839]
+              - link "Abrir posto" [ref=e2842] [cursor=pointer]:
+                - /url: /postos/9576feeb-44e1-442f-98ee-19af74600c86?returnTo=%2F
+          - generic [ref=e2843]:
+            - generic [ref=e2844]:
+              - generic [ref=e2845]:
+                - paragraph [ref=e2846]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · Avenida Prefeito ARTHUR COSTA" [level=3] [ref=e2847]
+                - paragraph [ref=e2848]: MUQUECA, BARRA DO PIRAI
+              - generic [ref=e2849]: Sem preço recente
+            - generic [ref=e2850]:
+              - generic [ref=e2851]: Localização em revisão
+              - generic [ref=e2852]: Aguardando primeiro preço
+            - generic [ref=e2853]:
+              - img [ref=e2854]
+              - generic [ref=e2857]: AVENIDA PREFEITO ARTHUR COSTA, 988, MUQUECA, BARRA DO PIRAI
+            - generic [ref=e2858]:
+              - paragraph [ref=e2859]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2860] [cursor=pointer]:
+                - /url: /enviar?stationId=f555ecab-5d4d-4237-ad73-686d95e71356&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2861]
+            - generic [ref=e2864]:
+              - link "Abrir câmera" [ref=e2865] [cursor=pointer]:
+                - /url: /enviar?stationId=f555ecab-5d4d-4237-ad73-686d95e71356&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2866]
+              - link "Abrir posto" [ref=e2869] [cursor=pointer]:
+                - /url: /postos/f555ecab-5d4d-4237-ad73-686d95e71356?returnTo=%2F
+          - generic [ref=e2870]:
+            - generic [ref=e2871]:
+              - generic [ref=e2872]:
+                - paragraph [ref=e2873]: VIBRA
+                - heading "VIBRA · Avenida Prefeito ARTHUR COSTA" [level=3] [ref=e2874]
+                - paragraph [ref=e2875]: MUQUECA, BARRA DO PIRAI
+              - generic [ref=e2876]: Sem preço recente
+            - generic [ref=e2877]:
+              - generic [ref=e2878]: Localização em revisão
+              - generic [ref=e2879]: Aguardando primeiro preço
+            - generic [ref=e2880]:
+              - img [ref=e2881]
+              - generic [ref=e2884]: AVENIDA PREFEITO ARTHUR COSTA, 550, MUQUECA, BARRA DO PIRAI
+            - generic [ref=e2885]:
+              - paragraph [ref=e2886]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2887] [cursor=pointer]:
+                - /url: /enviar?stationId=61453618-febf-4429-9e0e-23d2b378edda&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2888]
+            - generic [ref=e2891]:
+              - link "Abrir câmera" [ref=e2892] [cursor=pointer]:
+                - /url: /enviar?stationId=61453618-febf-4429-9e0e-23d2b378edda&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2893]
+              - link "Abrir posto" [ref=e2896] [cursor=pointer]:
+                - /url: /postos/61453618-febf-4429-9e0e-23d2b378edda?returnTo=%2F
+          - generic [ref=e2897]:
+            - generic [ref=e2898]:
+              - generic [ref=e2899]:
+                - paragraph [ref=e2900]: BANDEIRA BRANCA
+                - heading "POSTO SAO Vicente DA BARRA · Avenida Prefeito ARTHUR COSTA" [level=3] [ref=e2901]
+                - paragraph [ref=e2902]: MUQUECA, BARRA DO PIRAI
+              - generic [ref=e2903]: Sem preço recente
+            - generic [ref=e2904]:
+              - generic [ref=e2905]: Localização em revisão
+              - generic [ref=e2906]: Aguardando primeiro preço
+            - generic [ref=e2907]:
+              - img [ref=e2908]
+              - generic [ref=e2911]: AVENIDA PREFEITO ARTHUR COSTA, 988, MUQUECA, BARRA DO PIRAI
+            - generic [ref=e2912]:
+              - paragraph [ref=e2913]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2914] [cursor=pointer]:
+                - /url: /enviar?stationId=585f2c44-2b89-4cff-81da-b651cd5108e2&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2915]
+            - generic [ref=e2918]:
+              - link "Abrir câmera" [ref=e2919] [cursor=pointer]:
+                - /url: /enviar?stationId=585f2c44-2b89-4cff-81da-b651cd5108e2&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2920]
+              - link "Abrir posto" [ref=e2923] [cursor=pointer]:
+                - /url: /postos/585f2c44-2b89-4cff-81da-b651cd5108e2?returnTo=%2F
+          - generic [ref=e2924]:
+            - generic [ref=e2925]:
+              - generic [ref=e2926]:
+                - paragraph [ref=e2927]: IPIRANGA
+                - heading "Ipiranga · RUA JOAO Batista" [level=3] [ref=e2928]
+                - paragraph [ref=e2929]: NOSSA SENHORA DE SANTANA, BARRA DO PIRAI
+              - generic [ref=e2930]: Sem preço recente
+            - generic [ref=e2931]:
+              - generic [ref=e2932]: Localização em revisão
+              - generic [ref=e2933]: Aguardando primeiro preço
+            - generic [ref=e2934]:
+              - img [ref=e2935]
+              - generic [ref=e2938]: RUA JOAO BATISTA, 5, NOSSA SENHORA DE SANTANA, BARRA DO PIRAI
+            - generic [ref=e2939]:
+              - paragraph [ref=e2940]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2941] [cursor=pointer]:
+                - /url: /enviar?stationId=4718bac9-3358-4084-a35f-1e48fed84738&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2942]
+            - generic [ref=e2945]:
+              - link "Abrir câmera" [ref=e2946] [cursor=pointer]:
+                - /url: /enviar?stationId=4718bac9-3358-4084-a35f-1e48fed84738&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2947]
+              - link "Abrir posto" [ref=e2950] [cursor=pointer]:
+                - /url: /postos/4718bac9-3358-4084-a35f-1e48fed84738?returnTo=%2F
+          - generic [ref=e2951]:
+            - generic [ref=e2952]:
+              - generic [ref=e2953]:
+                - paragraph [ref=e2954]: IPIRANGA
+                - heading "POSTO NOVA BARRA · RUA JOAO Batista" [level=3] [ref=e2955]
+                - paragraph [ref=e2956]: NOSSA SENHORA DE SANTANA, BARRA DO PIRAI
+              - generic [ref=e2957]: Sem preço recente
+            - generic [ref=e2958]:
+              - generic [ref=e2959]: Localização em revisão
+              - generic [ref=e2960]: Aguardando primeiro preço
+            - generic [ref=e2961]:
+              - img [ref=e2962]
+              - generic [ref=e2965]: RUA JOAO BATISTA, 5, NOSSA SENHORA DE SANTANA, BARRA DO PIRAI
+            - generic [ref=e2966]:
+              - paragraph [ref=e2967]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2968] [cursor=pointer]:
+                - /url: /enviar?stationId=3258f9f7-f4ed-4f7d-a2e9-79790765c9dd&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2969]
+            - generic [ref=e2972]:
+              - link "Abrir câmera" [ref=e2973] [cursor=pointer]:
+                - /url: /enviar?stationId=3258f9f7-f4ed-4f7d-a2e9-79790765c9dd&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2974]
+              - link "Abrir posto" [ref=e2977] [cursor=pointer]:
+                - /url: /postos/3258f9f7-f4ed-4f7d-a2e9-79790765c9dd?returnTo=%2F
+          - generic [ref=e2978]:
+            - generic [ref=e2979]:
+              - generic [ref=e2980]:
+                - paragraph [ref=e2981]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · RUA JOAO Batista" [level=3] [ref=e2982]
+                - paragraph [ref=e2983]: OFICINAS VELHAS, BARRA DO PIRAI
+              - generic [ref=e2984]: Sem preço recente
+            - generic [ref=e2985]:
+              - generic [ref=e2986]: Localização em revisão
+              - generic [ref=e2987]: Aguardando primeiro preço
+            - generic [ref=e2988]:
+              - img [ref=e2989]
+              - generic [ref=e2992]: RUA JOAO BATISTA, 170, OFICINAS VELHAS, BARRA DO PIRAI
+            - generic [ref=e2993]:
+              - paragraph [ref=e2994]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e2995] [cursor=pointer]:
+                - /url: /enviar?stationId=0f566270-5c2f-4cf9-a007-6c9fdef9f863&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e2996]
+            - generic [ref=e2999]:
+              - link "Abrir câmera" [ref=e3000] [cursor=pointer]:
+                - /url: /enviar?stationId=0f566270-5c2f-4cf9-a007-6c9fdef9f863&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3001]
+              - link "Abrir posto" [ref=e3004] [cursor=pointer]:
+                - /url: /postos/0f566270-5c2f-4cf9-a007-6c9fdef9f863?returnTo=%2F
+          - generic [ref=e3005]:
+            - generic [ref=e3006]:
+              - generic [ref=e3007]:
+                - paragraph [ref=e3008]: RAIZEN
+                - heading "POSTO DE Combustiveis Jalisco · RUA Angelica" [level=3] [ref=e3009]
+                - paragraph [ref=e3010]: SANTANA, BARRA DO PIRAI
+              - generic [ref=e3011]: Sem preço recente
+            - generic [ref=e3012]:
+              - generic [ref=e3013]: Localização em revisão
+              - generic [ref=e3014]: Aguardando primeiro preço
+            - generic [ref=e3015]:
+              - img [ref=e3016]
+              - generic [ref=e3019]: RUA ANGELICA, 127, SANTANA, BARRA DO PIRAI
+            - generic [ref=e3020]:
+              - paragraph [ref=e3021]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3022] [cursor=pointer]:
+                - /url: /enviar?stationId=96d19ea0-90a2-4780-a245-fab84fd0a0a8&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3023]
+            - generic [ref=e3026]:
+              - link "Abrir câmera" [ref=e3027] [cursor=pointer]:
+                - /url: /enviar?stationId=96d19ea0-90a2-4780-a245-fab84fd0a0a8&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3028]
+              - link "Abrir posto" [ref=e3031] [cursor=pointer]:
+                - /url: /postos/96d19ea0-90a2-4780-a245-fab84fd0a0a8?returnTo=%2F
+          - generic [ref=e3032]:
+            - generic [ref=e3033]:
+              - generic [ref=e3034]:
+                - paragraph [ref=e3035]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · Avenida DOUTOR Jefferson Geraldo BRUNO" [level=3] [ref=e3036]
+                - paragraph [ref=e3037]: ALAMBARY, RESENDE
+              - generic [ref=e3038]: Sem preço recente
+            - generic [ref=e3039]:
+              - generic [ref=e3040]: Localização em revisão
+              - generic [ref=e3041]: Aguardando primeiro preço
+            - generic [ref=e3042]:
+              - img [ref=e3043]
+              - generic [ref=e3046]: AVENIDA DOUTOR JEFFERSON GERALDO BRUNO, 3500, ALAMBARY, RESENDE
+            - generic [ref=e3047]:
+              - paragraph [ref=e3048]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3049] [cursor=pointer]:
+                - /url: /enviar?stationId=c13e7525-7e25-4bb1-8d49-8c0d798a5890&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3050]
+            - generic [ref=e3053]:
+              - link "Abrir câmera" [ref=e3054] [cursor=pointer]:
+                - /url: /enviar?stationId=c13e7525-7e25-4bb1-8d49-8c0d798a5890&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3055]
+              - link "Abrir posto" [ref=e3058] [cursor=pointer]:
+                - /url: /postos/c13e7525-7e25-4bb1-8d49-8c0d798a5890?returnTo=%2F
+          - generic [ref=e3059]:
+            - generic [ref=e3060]:
+              - generic [ref=e3061]:
+                - paragraph [ref=e3062]: RAIZEN
+                - heading "RAIZEN · Avenida Coronel Professor Antonio Esteves" [level=3] [ref=e3063]
+                - paragraph [ref=e3064]: CAMPO DE AVIACAO, RESENDE
+              - generic [ref=e3065]: Sem preço recente
+            - generic [ref=e3066]:
+              - generic [ref=e3067]: Localização em revisão
+              - generic [ref=e3068]: Aguardando primeiro preço
+            - generic [ref=e3069]:
+              - img [ref=e3070]
+              - generic [ref=e3073]: AVENIDA CORONEL PROFESSOR ANTONIO ESTEVES, 405, CAMPO DE AVIACAO, RESENDE
+            - generic [ref=e3074]:
+              - paragraph [ref=e3075]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3076] [cursor=pointer]:
+                - /url: /enviar?stationId=afa0de12-6fbb-431c-9bca-f364e90297b1&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3077]
+            - generic [ref=e3080]:
+              - link "Abrir câmera" [ref=e3081] [cursor=pointer]:
+                - /url: /enviar?stationId=afa0de12-6fbb-431c-9bca-f364e90297b1&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3082]
+              - link "Abrir posto" [ref=e3085] [cursor=pointer]:
+                - /url: /postos/afa0de12-6fbb-431c-9bca-f364e90297b1?returnTo=%2F
+          - generic [ref=e3086]:
+            - generic [ref=e3087]:
+              - generic [ref=e3088]:
+                - paragraph [ref=e3089]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · Avenida Presidente VARGAS" [level=3] [ref=e3090]
+                - paragraph [ref=e3091]: CAMPOS ELISEOS, RESENDE
+              - generic [ref=e3092]: Sem preço recente
+            - generic [ref=e3093]:
+              - generic [ref=e3094]: Localização em revisão
+              - generic [ref=e3095]: Aguardando primeiro preço
+            - generic [ref=e3096]:
+              - img [ref=e3097]
+              - generic [ref=e3100]: AVENIDA PRESIDENTE VARGAS, 301, CAMPOS ELISEOS, RESENDE
+            - generic [ref=e3101]:
+              - paragraph [ref=e3102]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3103] [cursor=pointer]:
+                - /url: /enviar?stationId=b7e4fdfb-b7cb-4d0e-a4be-48367342391e&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3104]
+            - generic [ref=e3107]:
+              - link "Abrir câmera" [ref=e3108] [cursor=pointer]:
+                - /url: /enviar?stationId=b7e4fdfb-b7cb-4d0e-a4be-48367342391e&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3109]
+              - link "Abrir posto" [ref=e3112] [cursor=pointer]:
+                - /url: /postos/b7e4fdfb-b7cb-4d0e-a4be-48367342391e?returnTo=%2F
+          - generic [ref=e3113]:
+            - generic [ref=e3114]:
+              - generic [ref=e3115]:
+                - paragraph [ref=e3116]: IPIRANGA
+                - heading "Ipiranga · Estrada Resende Riachuelo" [level=3] [ref=e3117]
+                - paragraph [ref=e3118]: CIDADE ALEGRIA, RESENDE
+              - generic [ref=e3119]: Sem preço recente
+            - generic [ref=e3120]:
+              - generic [ref=e3121]: Localização em revisão
+              - generic [ref=e3122]: Aguardando primeiro preço
+            - generic [ref=e3123]:
+              - img [ref=e3124]
+              - generic [ref=e3127]: ESTRADA RESENDE RIACHUELO, S/N, CIDADE ALEGRIA, RESENDE
+            - generic [ref=e3128]:
+              - paragraph [ref=e3129]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3130] [cursor=pointer]:
+                - /url: /enviar?stationId=bcc36a8d-5d02-4ece-9852-deb81996d983&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3131]
+            - generic [ref=e3134]:
+              - link "Abrir câmera" [ref=e3135] [cursor=pointer]:
+                - /url: /enviar?stationId=bcc36a8d-5d02-4ece-9852-deb81996d983&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3136]
+              - link "Abrir posto" [ref=e3139] [cursor=pointer]:
+                - /url: /postos/bcc36a8d-5d02-4ece-9852-deb81996d983?returnTo=%2F
+          - generic [ref=e3140]:
+            - generic [ref=e3141]:
+              - generic [ref=e3142]:
+                - paragraph [ref=e3143]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · RUA General José PESSOA" [level=3] [ref=e3144]
+                - paragraph [ref=e3145]: COMERCIAL, RESENDE
+              - generic [ref=e3146]: Sem preço recente
+            - generic [ref=e3147]:
+              - generic [ref=e3148]: Localização em revisão
+              - generic [ref=e3149]: Aguardando primeiro preço
+            - generic [ref=e3150]:
+              - img [ref=e3151]
+              - generic [ref=e3154]: RUA GENERAL JOSÉ PESSOA, 23, COMERCIAL, RESENDE
+            - generic [ref=e3155]:
+              - paragraph [ref=e3156]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3157] [cursor=pointer]:
+                - /url: /enviar?stationId=3456bfb6-9570-45a5-8038-6ec7145db448&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3158]
+            - generic [ref=e3161]:
+              - link "Abrir câmera" [ref=e3162] [cursor=pointer]:
+                - /url: /enviar?stationId=3456bfb6-9570-45a5-8038-6ec7145db448&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3163]
+              - link "Abrir posto" [ref=e3166] [cursor=pointer]:
+                - /url: /postos/3456bfb6-9570-45a5-8038-6ec7145db448?returnTo=%2F
+          - generic [ref=e3167]:
+            - generic [ref=e3168]:
+              - generic [ref=e3169]:
+                - paragraph [ref=e3170]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · Rodovia Presidente DUTRA" [level=3] [ref=e3171]
+                - paragraph [ref=e3172]: ENGENHEIRO PASSOS, RESENDE
+              - generic [ref=e3173]: Sem preço recente
+            - generic [ref=e3174]:
+              - generic [ref=e3175]: Localização em revisão
+              - generic [ref=e3176]: Aguardando primeiro preço
+            - generic [ref=e3177]:
+              - img [ref=e3178]
+              - generic [ref=e3181]: RODOVIA PRESIDENTE DUTRA, SN, ENGENHEIRO PASSOS, RESENDE
+            - generic [ref=e3182]:
+              - paragraph [ref=e3183]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3184] [cursor=pointer]:
+                - /url: /enviar?stationId=11986733-5719-47dd-8d88-cf0c38ee3501&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3185]
+            - generic [ref=e3188]:
+              - link "Abrir câmera" [ref=e3189] [cursor=pointer]:
+                - /url: /enviar?stationId=11986733-5719-47dd-8d88-cf0c38ee3501&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3190]
+              - link "Abrir posto" [ref=e3193] [cursor=pointer]:
+                - /url: /postos/11986733-5719-47dd-8d88-cf0c38ee3501?returnTo=%2F
+          - generic [ref=e3194]:
+            - generic [ref=e3195]:
+              - generic [ref=e3196]:
+                - paragraph [ref=e3197]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · Rodovia Presidente DUTRA" [level=3] [ref=e3198]
+                - paragraph [ref=e3199]: FAZENDA DA BARRA, RESENDE
+              - generic [ref=e3200]: Sem preço recente
+            - generic [ref=e3201]:
+              - generic [ref=e3202]: Localização em revisão
+              - generic [ref=e3203]: Aguardando primeiro preço
+            - generic [ref=e3204]:
+              - img [ref=e3205]
+              - generic [ref=e3208]: RODOVIA PRESIDENTE DUTRA, 300, FAZENDA DA BARRA, RESENDE
+            - generic [ref=e3209]:
+              - paragraph [ref=e3210]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3211] [cursor=pointer]:
+                - /url: /enviar?stationId=9033ebaa-1df0-454b-abe5-2014f0d90f47&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3212]
+            - generic [ref=e3215]:
+              - link "Abrir câmera" [ref=e3216] [cursor=pointer]:
+                - /url: /enviar?stationId=9033ebaa-1df0-454b-abe5-2014f0d90f47&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3217]
+              - link "Abrir posto" [ref=e3220] [cursor=pointer]:
+                - /url: /postos/9033ebaa-1df0-454b-abe5-2014f0d90f47?returnTo=%2F
+          - generic [ref=e3221]:
+            - generic [ref=e3222]:
+              - generic [ref=e3223]:
+                - paragraph [ref=e3224]: IPIRANGA
+                - heading "Ipiranga · Rodovia Presidente DUTRA" [level=3] [ref=e3225]
+                - paragraph [ref=e3226]: FAZENDA DA BARRA, RESENDE
+              - generic [ref=e3227]: Sem preço recente
+            - generic [ref=e3228]:
+              - generic [ref=e3229]: Localização em revisão
+              - generic [ref=e3230]: Aguardando primeiro preço
+            - generic [ref=e3231]:
+              - img [ref=e3232]
+              - generic [ref=e3235]: RODOVIA PRESIDENTE DUTRA, 2300, FAZENDA DA BARRA, RESENDE
+            - generic [ref=e3236]:
+              - paragraph [ref=e3237]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3238] [cursor=pointer]:
+                - /url: /enviar?stationId=e0aef1ec-7b96-4ef4-b2e6-f3198f9858ef&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3239]
+            - generic [ref=e3242]:
+              - link "Abrir câmera" [ref=e3243] [cursor=pointer]:
+                - /url: /enviar?stationId=e0aef1ec-7b96-4ef4-b2e6-f3198f9858ef&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3244]
+              - link "Abrir posto" [ref=e3247] [cursor=pointer]:
+                - /url: /postos/e0aef1ec-7b96-4ef4-b2e6-f3198f9858ef?returnTo=%2F
+          - generic [ref=e3248]:
+            - generic [ref=e3249]:
+              - generic [ref=e3250]:
+                - paragraph [ref=e3251]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · RUA Hostilio DE SOUZA" [level=3] [ref=e3252]
+                - paragraph [ref=e3253]: ITAPUCA, RESENDE
+              - generic [ref=e3254]: Sem preço recente
+            - generic [ref=e3255]:
+              - generic [ref=e3256]: Localização em revisão
+              - generic [ref=e3257]: Aguardando primeiro preço
+            - generic [ref=e3258]:
+              - img [ref=e3259]
+              - generic [ref=e3262]: RUA HOSTILIO DE SOUZA, 1403, ITAPUCA, RESENDE
+            - generic [ref=e3263]:
+              - paragraph [ref=e3264]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3265] [cursor=pointer]:
+                - /url: /enviar?stationId=db980df6-7a87-4f6c-9db3-77964f411a97&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3266]
+            - generic [ref=e3269]:
+              - link "Abrir câmera" [ref=e3270] [cursor=pointer]:
+                - /url: /enviar?stationId=db980df6-7a87-4f6c-9db3-77964f411a97&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3271]
+              - link "Abrir posto" [ref=e3274] [cursor=pointer]:
+                - /url: /postos/db980df6-7a87-4f6c-9db3-77964f411a97?returnTo=%2F
+          - generic [ref=e3275]:
+            - generic [ref=e3276]:
+              - generic [ref=e3277]:
+                - paragraph [ref=e3278]: VIBRA
+                - heading "VIBRA · RUA João Ferreira PINTO" [level=3] [ref=e3279]
+                - paragraph [ref=e3280]: JARDIM JALISCO, RESENDE
+              - generic [ref=e3281]: Sem preço recente
+            - generic [ref=e3282]:
+              - generic [ref=e3283]: Localização em revisão
+              - generic [ref=e3284]: Aguardando primeiro preço
+            - generic [ref=e3285]:
+              - img [ref=e3286]
+              - generic [ref=e3289]: RUA JOÃO FERREIRA PINTO, S/N, JARDIM JALISCO, RESENDE
+            - generic [ref=e3290]:
+              - paragraph [ref=e3291]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3292] [cursor=pointer]:
+                - /url: /enviar?stationId=b13ae588-4a78-47d2-9d66-6071bd31cb9e&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3293]
+            - generic [ref=e3296]:
+              - link "Abrir câmera" [ref=e3297] [cursor=pointer]:
+                - /url: /enviar?stationId=b13ae588-4a78-47d2-9d66-6071bd31cb9e&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3298]
+              - link "Abrir posto" [ref=e3301] [cursor=pointer]:
+                - /url: /postos/b13ae588-4a78-47d2-9d66-6071bd31cb9e?returnTo=%2F
+          - generic [ref=e3302]:
+            - generic [ref=e3303]:
+              - generic [ref=e3304]:
+                - paragraph [ref=e3305]: VIBRA
+                - heading "VIBRA · Avenida Marcilio DIAS" [level=3] [ref=e3306]
+                - paragraph [ref=e3307]: JARDIM JALISCO, RESENDE
+              - generic [ref=e3308]: Sem preço recente
+            - generic [ref=e3309]:
+              - generic [ref=e3310]: Localização em revisão
+              - generic [ref=e3311]: Aguardando primeiro preço
+            - generic [ref=e3312]:
+              - img [ref=e3313]
+              - generic [ref=e3316]: AVENIDA MARCILIO DIAS, 465, JARDIM JALISCO, RESENDE
+            - generic [ref=e3317]:
+              - paragraph [ref=e3318]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3319] [cursor=pointer]:
+                - /url: /enviar?stationId=361b5e99-3c82-484f-b8a2-090a4434b381&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3320]
+            - generic [ref=e3323]:
+              - link "Abrir câmera" [ref=e3324] [cursor=pointer]:
+                - /url: /enviar?stationId=361b5e99-3c82-484f-b8a2-090a4434b381&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3325]
+              - link "Abrir posto" [ref=e3328] [cursor=pointer]:
+                - /url: /postos/361b5e99-3c82-484f-b8a2-090a4434b381?returnTo=%2F
+          - generic [ref=e3329]:
+            - generic [ref=e3330]:
+              - generic [ref=e3331]:
+                - paragraph [ref=e3332]: VIBRA
+                - heading "VIBRA · Avenida Tenente Coronel Adalberto MENDES E RUA Fabiano Barreto" [level=3] [ref=e3333]
+                - paragraph [ref=e3334]: MANEJO, RESENDE
+              - generic [ref=e3335]: Sem preço recente
+            - generic [ref=e3336]:
+              - generic [ref=e3337]: Localização em revisão
+              - generic [ref=e3338]: Aguardando primeiro preço
+            - generic [ref=e3339]:
+              - img [ref=e3340]
+              - generic [ref=e3343]: AVENIDA TENENTE CORONEL ADALBERTO MENDES E RUA FABIANO BARRETO, 274, MANEJO, RESENDE
+            - generic [ref=e3344]:
+              - paragraph [ref=e3345]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3346] [cursor=pointer]:
+                - /url: /enviar?stationId=49fa5ac1-a5ed-4860-a694-03c099073e33&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3347]
+            - generic [ref=e3350]:
+              - link "Abrir câmera" [ref=e3351] [cursor=pointer]:
+                - /url: /enviar?stationId=49fa5ac1-a5ed-4860-a694-03c099073e33&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3352]
+              - link "Abrir posto" [ref=e3355] [cursor=pointer]:
+                - /url: /postos/49fa5ac1-a5ed-4860-a694-03c099073e33?returnTo=%2F
+          - generic [ref=e3356]:
+            - generic [ref=e3357]:
+              - generic [ref=e3358]:
+                - paragraph [ref=e3359]: ALE
+                - heading "ALE · Avenida General Afonseca" [level=3] [ref=e3360]
+                - paragraph [ref=e3361]: MANEJO, RESENDE
+              - generic [ref=e3362]: Sem preço recente
+            - generic [ref=e3363]:
+              - generic [ref=e3364]: Localização em revisão
+              - generic [ref=e3365]: Aguardando primeiro preço
+            - generic [ref=e3366]:
+              - img [ref=e3367]
+              - generic [ref=e3370]: AVENIDA GENERAL AFONSECA, 660, MANEJO, RESENDE
+            - generic [ref=e3371]:
+              - paragraph [ref=e3372]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3373] [cursor=pointer]:
+                - /url: /enviar?stationId=cc0378f3-c3f4-48e0-b0ea-4e26b6d99e1e&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3374]
+            - generic [ref=e3377]:
+              - link "Abrir câmera" [ref=e3378] [cursor=pointer]:
+                - /url: /enviar?stationId=cc0378f3-c3f4-48e0-b0ea-4e26b6d99e1e&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3379]
+              - link "Abrir posto" [ref=e3382] [cursor=pointer]:
+                - /url: /postos/cc0378f3-c3f4-48e0-b0ea-4e26b6d99e1e?returnTo=%2F
+          - generic [ref=e3383]:
+            - generic [ref=e3384]:
+              - generic [ref=e3385]:
+                - paragraph [ref=e3386]: RAIZEN
+                - heading "RAIZEN · Rodovia Presidente DUTRA" [level=3] [ref=e3387]
+                - paragraph [ref=e3388]: PARAISO, RESENDE
+              - generic [ref=e3389]: Sem preço recente
+            - generic [ref=e3390]:
+              - generic [ref=e3391]: Localização em revisão
+              - generic [ref=e3392]: Aguardando primeiro preço
+            - generic [ref=e3393]:
+              - img [ref=e3394]
+              - generic [ref=e3397]: RODOVIA PRESIDENTE DUTRA, SN, PARAISO, RESENDE
+            - generic [ref=e3398]:
+              - paragraph [ref=e3399]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3400] [cursor=pointer]:
+                - /url: /enviar?stationId=ba33874b-af30-4217-9bdd-6cc890860f0d&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3401]
+            - generic [ref=e3404]:
+              - link "Abrir câmera" [ref=e3405] [cursor=pointer]:
+                - /url: /enviar?stationId=ba33874b-af30-4217-9bdd-6cc890860f0d&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3406]
+              - link "Abrir posto" [ref=e3409] [cursor=pointer]:
+                - /url: /postos/ba33874b-af30-4217-9bdd-6cc890860f0d?returnTo=%2F
+          - generic [ref=e3410]:
+            - generic [ref=e3411]:
+              - generic [ref=e3412]:
+                - paragraph [ref=e3413]: IPIRANGA
+                - heading "Ipiranga · Rodovia Presidente DUTRA" [level=3] [ref=e3414]
+                - paragraph [ref=e3415]: PARAISO, RESENDE
+              - generic [ref=e3416]: Sem preço recente
+            - generic [ref=e3417]:
+              - generic [ref=e3418]: Localização em revisão
+              - generic [ref=e3419]: Aguardando primeiro preço
+            - generic [ref=e3420]:
+              - img [ref=e3421]
+              - generic [ref=e3424]: RODOVIA PRESIDENTE DUTRA, S/N, PARAISO, RESENDE
+            - generic [ref=e3425]:
+              - paragraph [ref=e3426]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3427] [cursor=pointer]:
+                - /url: /enviar?stationId=0c3c3dc1-47c7-4749-b37c-248c77379cb2&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3428]
+            - generic [ref=e3431]:
+              - link "Abrir câmera" [ref=e3432] [cursor=pointer]:
+                - /url: /enviar?stationId=0c3c3dc1-47c7-4749-b37c-248c77379cb2&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3433]
+              - link "Abrir posto" [ref=e3436] [cursor=pointer]:
+                - /url: /postos/0c3c3dc1-47c7-4749-b37c-248c77379cb2?returnTo=%2F
+          - generic [ref=e3437]:
+            - generic [ref=e3438]:
+              - generic [ref=e3439]:
+                - paragraph [ref=e3440]: RAIZEN
+                - heading "RAIZEN · Avenida DOUTOR TACITO VIANNA Rodrigues" [level=3] [ref=e3441]
+                - paragraph [ref=e3442]: PARAISO, RESENDE
+              - generic [ref=e3443]: Sem preço recente
+            - generic [ref=e3444]:
+              - generic [ref=e3445]: Localização em revisão
+              - generic [ref=e3446]: Aguardando primeiro preço
+            - generic [ref=e3447]:
+              - img [ref=e3448]
+              - generic [ref=e3451]: AVENIDA DOUTOR TACITO VIANNA RODRIGUES, 350, PARAISO, RESENDE
+            - generic [ref=e3452]:
+              - paragraph [ref=e3453]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3454] [cursor=pointer]:
+                - /url: /enviar?stationId=706f4a7c-f253-489c-9ebb-08a8396579ce&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3455]
+            - generic [ref=e3458]:
+              - link "Abrir câmera" [ref=e3459] [cursor=pointer]:
+                - /url: /enviar?stationId=706f4a7c-f253-489c-9ebb-08a8396579ce&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3460]
+              - link "Abrir posto" [ref=e3463] [cursor=pointer]:
+                - /url: /postos/706f4a7c-f253-489c-9ebb-08a8396579ce?returnTo=%2F
+          - generic [ref=e3464]:
+            - generic [ref=e3465]:
+              - generic [ref=e3466]:
+                - paragraph [ref=e3467]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · PRACA Concordia" [level=3] [ref=e3468]
+                - paragraph [ref=e3469]: PRIMEIRO DISTRITO, RESENDE
+              - generic [ref=e3470]: Sem preço recente
+            - generic [ref=e3471]:
+              - generic [ref=e3472]: Localização em revisão
+              - generic [ref=e3473]: Aguardando primeiro preço
+            - generic [ref=e3474]:
+              - img [ref=e3475]
+              - generic [ref=e3478]: PRACA CONCORDIA, 60, PRIMEIRO DISTRITO, RESENDE
+            - generic [ref=e3479]:
+              - paragraph [ref=e3480]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3481] [cursor=pointer]:
+                - /url: /enviar?stationId=d5f63f6f-c36c-493e-b2b8-aae99642a4a2&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3482]
+            - generic [ref=e3485]:
+              - link "Abrir câmera" [ref=e3486] [cursor=pointer]:
+                - /url: /enviar?stationId=d5f63f6f-c36c-493e-b2b8-aae99642a4a2&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3487]
+              - link "Abrir posto" [ref=e3490] [cursor=pointer]:
+                - /url: /postos/d5f63f6f-c36c-493e-b2b8-aae99642a4a2?returnTo=%2F
+          - generic [ref=e3491]:
+            - generic [ref=e3492]:
+              - generic [ref=e3493]:
+                - paragraph [ref=e3494]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · Rodovia Presidente DUTRA" [level=3] [ref=e3495]
+                - paragraph [ref=e3496]: SEXTO, RESENDE
+              - generic [ref=e3497]: Sem preço recente
+            - generic [ref=e3498]:
+              - generic [ref=e3499]: Localização em revisão
+              - generic [ref=e3500]: Aguardando primeiro preço
+            - generic [ref=e3501]:
+              - img [ref=e3502]
+              - generic [ref=e3505]: RODOVIA PRESIDENTE DUTRA, SN, SEXTO, RESENDE
+            - generic [ref=e3506]:
+              - paragraph [ref=e3507]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3508] [cursor=pointer]:
+                - /url: /enviar?stationId=0c0f1551-8b1e-497b-a829-03d7bfc7a3e5&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3509]
+            - generic [ref=e3512]:
+              - link "Abrir câmera" [ref=e3513] [cursor=pointer]:
+                - /url: /enviar?stationId=0c0f1551-8b1e-497b-a829-03d7bfc7a3e5&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3514]
+              - link "Abrir posto" [ref=e3517] [cursor=pointer]:
+                - /url: /postos/0c0f1551-8b1e-497b-a829-03d7bfc7a3e5?returnTo=%2F
+          - generic [ref=e3518]:
+            - generic [ref=e3519]:
+              - generic [ref=e3520]:
+                - paragraph [ref=e3521]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · Avenida Tenente-coronel Adalberto MENDES" [level=3] [ref=e3522]
+                - paragraph [ref=e3523]: VILA JULIETA, RESENDE
+              - generic [ref=e3524]: Sem preço recente
+            - generic [ref=e3525]:
+              - generic [ref=e3526]: Localização em revisão
+              - generic [ref=e3527]: Aguardando primeiro preço
+            - generic [ref=e3528]:
+              - img [ref=e3529]
+              - generic [ref=e3532]: AVENIDA TENENTE-CORONEL ADALBERTO MENDES, 1417, VILA JULIETA, RESENDE
+            - generic [ref=e3533]:
+              - paragraph [ref=e3534]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3535] [cursor=pointer]:
+                - /url: /enviar?stationId=bd6a7b75-6dc5-46bf-a3ef-cdae65390b28&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3536]
+            - generic [ref=e3539]:
+              - link "Abrir câmera" [ref=e3540] [cursor=pointer]:
+                - /url: /enviar?stationId=bd6a7b75-6dc5-46bf-a3ef-cdae65390b28&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3541]
+              - link "Abrir posto" [ref=e3544] [cursor=pointer]:
+                - /url: /postos/bd6a7b75-6dc5-46bf-a3ef-cdae65390b28?returnTo=%2F
+          - generic [ref=e3545]:
+            - generic [ref=e3546]:
+              - generic [ref=e3547]:
+                - paragraph [ref=e3548]: BANDEIRA BRANCA
+                - heading "B.D.-2 AUTO POSTO" [level=3] [ref=e3549]
+                - paragraph [ref=e3550]: CAMPOS ELISEOS, RESENDE
+              - generic [ref=e3551]: Sem preço recente
+            - generic [ref=e3552]:
+              - generic [ref=e3553]: Localização em revisão
+              - generic [ref=e3554]: Aguardando primeiro preço
+            - generic [ref=e3555]:
+              - img [ref=e3556]
+              - generic [ref=e3559]: AVENIDA PRESIDENTE VARGAS, 301, CAMPOS ELISEOS, RESENDE
+            - generic [ref=e3560]:
+              - paragraph [ref=e3561]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3562] [cursor=pointer]:
+                - /url: /enviar?stationId=a1d1a7c8-f992-436d-929d-907ac6c24835&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3563]
+            - generic [ref=e3566]:
+              - link "Abrir câmera" [ref=e3567] [cursor=pointer]:
+                - /url: /enviar?stationId=a1d1a7c8-f992-436d-929d-907ac6c24835&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3568]
+              - link "Abrir posto" [ref=e3571] [cursor=pointer]:
+                - /url: /postos/a1d1a7c8-f992-436d-929d-907ac6c24835?returnTo=%2F
+          - generic [ref=e3572]:
+            - generic [ref=e3573]:
+              - generic [ref=e3574]:
+                - paragraph [ref=e3575]: BANDEIRA BRANCA
+                - heading "POSTO Resende" [level=3] [ref=e3576]
+                - paragraph [ref=e3577]: CENTRO, RESENDE
+              - generic [ref=e3578]: Sem preço recente
+            - generic [ref=e3579]:
+              - generic [ref=e3580]: Localização em revisão
+              - generic [ref=e3581]: Aguardando primeiro preço
+            - generic [ref=e3582]:
+              - img [ref=e3583]
+              - generic [ref=e3586]: AVENIDA SATURNINO BRAGA, 212, CENTRO, RESENDE
+            - generic [ref=e3587]:
+              - paragraph [ref=e3588]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3589] [cursor=pointer]:
+                - /url: /enviar?stationId=ca9ac173-47ba-4b53-bfcf-45abd8fa3a8a&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3590]
+            - generic [ref=e3593]:
+              - link "Abrir câmera" [ref=e3594] [cursor=pointer]:
+                - /url: /enviar?stationId=ca9ac173-47ba-4b53-bfcf-45abd8fa3a8a&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3595]
+              - link "Abrir posto" [ref=e3598] [cursor=pointer]:
+                - /url: /postos/ca9ac173-47ba-4b53-bfcf-45abd8fa3a8a?returnTo=%2F
+          - generic [ref=e3599]:
+            - generic [ref=e3600]:
+              - generic [ref=e3601]:
+                - paragraph [ref=e3602]: IPIRANGA
+                - heading "POSTO Pinheirinho DE Resende" [level=3] [ref=e3603]
+                - paragraph [ref=e3604]: FAZENDA DA BARRA, RESENDE
+              - generic [ref=e3605]: Sem preço recente
+            - generic [ref=e3606]:
+              - generic [ref=e3607]: Localização em revisão
+              - generic [ref=e3608]: Aguardando primeiro preço
+            - generic [ref=e3609]:
+              - img [ref=e3610]
+              - generic [ref=e3613]: RODOVIA PRESIDENTE DUTRA, 2300, FAZENDA DA BARRA, RESENDE
+            - generic [ref=e3614]:
+              - paragraph [ref=e3615]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3616] [cursor=pointer]:
+                - /url: /enviar?stationId=ce06c420-744c-4dd2-a307-f7a1b84133e4&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3617]
+            - generic [ref=e3620]:
+              - link "Abrir câmera" [ref=e3621] [cursor=pointer]:
+                - /url: /enviar?stationId=ce06c420-744c-4dd2-a307-f7a1b84133e4&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3622]
+              - link "Abrir posto" [ref=e3625] [cursor=pointer]:
+                - /url: /postos/ce06c420-744c-4dd2-a307-f7a1b84133e4?returnTo=%2F
+          - generic [ref=e3626]:
+            - generic [ref=e3627]:
+              - generic [ref=e3628]:
+                - paragraph [ref=e3629]: VIBRA
+                - heading "CENTRO Automotivo BIG -jalisco DE Resende" [level=3] [ref=e3630]
+                - paragraph [ref=e3631]: JARDIM JALISCO, RESENDE
+              - generic [ref=e3632]: Sem preço recente
+            - generic [ref=e3633]:
+              - generic [ref=e3634]: Localização em revisão
+              - generic [ref=e3635]: Aguardando primeiro preço
+            - generic [ref=e3636]:
+              - img [ref=e3637]
+              - generic [ref=e3640]: RUA JOÃO FERREIRA PINTO, S/N, JARDIM JALISCO, RESENDE
+            - generic [ref=e3641]:
+              - paragraph [ref=e3642]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3643] [cursor=pointer]:
+                - /url: /enviar?stationId=4b4d5298-4207-4c57-9e35-f4fe30f4c58b&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3644]
+            - generic [ref=e3647]:
+              - link "Abrir câmera" [ref=e3648] [cursor=pointer]:
+                - /url: /enviar?stationId=4b4d5298-4207-4c57-9e35-f4fe30f4c58b&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3649]
+              - link "Abrir posto" [ref=e3652] [cursor=pointer]:
+                - /url: /postos/4b4d5298-4207-4c57-9e35-f4fe30f4c58b?returnTo=%2F
+          - generic [ref=e3653]:
+            - generic [ref=e3654]:
+              - generic [ref=e3655]:
+                - paragraph [ref=e3656]: BANDEIRA BRANCA
+                - heading "Rodogas POSTO Presidente" [level=3] [ref=e3657]
+                - paragraph [ref=e3658]: PARAISO, RESENDE
+              - generic [ref=e3659]: Sem preço recente
+            - generic [ref=e3660]:
+              - generic [ref=e3661]: Localização em revisão
+              - generic [ref=e3662]: Aguardando primeiro preço
+            - generic [ref=e3663]:
+              - img [ref=e3664]
+              - generic [ref=e3667]: AVENIDA DR JEFFERSON GERALDO BRUNO, 2850, PARAISO, RESENDE
+            - generic [ref=e3668]:
+              - paragraph [ref=e3669]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3670] [cursor=pointer]:
+                - /url: /enviar?stationId=d398676c-2b98-4170-a30f-a721837683f8&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3671]
+            - generic [ref=e3674]:
+              - link "Abrir câmera" [ref=e3675] [cursor=pointer]:
+                - /url: /enviar?stationId=d398676c-2b98-4170-a30f-a721837683f8&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3676]
+              - link "Abrir posto" [ref=e3679] [cursor=pointer]:
+                - /url: /postos/d398676c-2b98-4170-a30f-a721837683f8?returnTo=%2F
+          - generic [ref=e3680]:
+            - generic [ref=e3681]:
+              - generic [ref=e3682]:
+                - paragraph [ref=e3683]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · Avenida NILTON PENNA Botelho" [level=3] [ref=e3684]
+                - paragraph [ref=e3685]: PINHEIRAL, PINHEIRAL
+              - generic [ref=e3686]: Sem preço recente
+            - generic [ref=e3687]:
+              - generic [ref=e3688]: Localização em revisão
+              - generic [ref=e3689]: Aguardando primeiro preço
+            - generic [ref=e3690]:
+              - img [ref=e3691]
+              - generic [ref=e3694]: AVENIDA NILTON PENNA BOTELHO, 1151, PINHEIRAL, PINHEIRAL
+            - generic [ref=e3695]:
+              - paragraph [ref=e3696]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3697] [cursor=pointer]:
+                - /url: /enviar?stationId=f76288c4-b2e8-4926-b4be-ec047fd18369&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3698]
+            - generic [ref=e3701]:
+              - link "Abrir câmera" [ref=e3702] [cursor=pointer]:
+                - /url: /enviar?stationId=f76288c4-b2e8-4926-b4be-ec047fd18369&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3703]
+              - link "Abrir posto" [ref=e3706] [cursor=pointer]:
+                - /url: /postos/f76288c4-b2e8-4926-b4be-ec047fd18369?returnTo=%2F
+          - generic [ref=e3707]:
+            - generic [ref=e3708]:
+              - generic [ref=e3709]:
+                - paragraph [ref=e3710]: BANDEIRA BRANCA
+                - heading "AUTO POSTO REAL BEIRA RIO" [level=3] [ref=e3711]
+                - paragraph [ref=e3712]: CENTRO, PORTO REAL
+              - generic [ref=e3713]: Sem preço recente
+            - generic [ref=e3715]: Aguardando primeiro preço
+            - generic [ref=e3716]:
+              - img [ref=e3717]
+              - generic [ref=e3720]: AVENIDA GERALDO RIBAS, 1765, CENTRO, PORTO REAL
+            - generic [ref=e3721]:
+              - paragraph [ref=e3722]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3723] [cursor=pointer]:
+                - /url: /enviar?stationId=a1f5b4fd-12a6-4e20-8081-da2f9373ff95&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3724]
+            - generic [ref=e3727]:
+              - link "Abrir câmera" [ref=e3728] [cursor=pointer]:
+                - /url: /enviar?stationId=a1f5b4fd-12a6-4e20-8081-da2f9373ff95&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3729]
+              - link "Abrir posto" [ref=e3732] [cursor=pointer]:
+                - /url: /postos/a1f5b4fd-12a6-4e20-8081-da2f9373ff95?returnTo=%2F
+          - generic [ref=e3733]:
+            - generic [ref=e3734]:
+              - generic [ref=e3735]:
+                - paragraph [ref=e3736]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · Avenida Geraldo RIBAS" [level=3] [ref=e3737]
+                - paragraph [ref=e3738]: CENTRO, PORTO REAL
+              - generic [ref=e3739]: Sem preço recente
+            - generic [ref=e3740]:
+              - generic [ref=e3741]: Localização em revisão
+              - generic [ref=e3742]: Aguardando primeiro preço
+            - generic [ref=e3743]:
+              - img [ref=e3744]
+              - generic [ref=e3747]: AVENIDA GERALDO RIBAS, 1765, CENTRO, PORTO REAL
+            - generic [ref=e3748]:
+              - paragraph [ref=e3749]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3750] [cursor=pointer]:
+                - /url: /enviar?stationId=6c6baf77-e68a-4ce2-b1d8-5c4dc5e3c1e4&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3751]
+            - generic [ref=e3754]:
+              - link "Abrir câmera" [ref=e3755] [cursor=pointer]:
+                - /url: /enviar?stationId=6c6baf77-e68a-4ce2-b1d8-5c4dc5e3c1e4&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3756]
+              - link "Abrir posto" [ref=e3759] [cursor=pointer]:
+                - /url: /postos/6c6baf77-e68a-4ce2-b1d8-5c4dc5e3c1e4?returnTo=%2F
+          - generic [ref=e3760]:
+            - generic [ref=e3761]:
+              - generic [ref=e3762]:
+                - paragraph [ref=e3763]: VIBRA
+                - heading "VIBRA · Rodovia Presidente DUTRA" [level=3] [ref=e3764]
+                - paragraph [ref=e3765]: TREVO DE ACESSO AO POLO URBO AGRO INDUSTRIAL, PORTO REAL
+              - generic [ref=e3766]: Sem preço recente
+            - generic [ref=e3767]:
+              - generic [ref=e3768]: Localização em revisão
+              - generic [ref=e3769]: Aguardando primeiro preço
+            - generic [ref=e3770]:
+              - img [ref=e3771]
+              - generic [ref=e3774]: RODOVIA PRESIDENTE DUTRA, S/N, TREVO DE ACESSO AO POLO URBO AGRO INDUSTRIAL, PORTO REAL
+            - generic [ref=e3775]:
+              - paragraph [ref=e3776]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3777] [cursor=pointer]:
+                - /url: /enviar?stationId=ea406da7-733d-4efd-be0b-a2ad857eb8de&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3778]
+            - generic [ref=e3781]:
+              - link "Abrir câmera" [ref=e3782] [cursor=pointer]:
+                - /url: /enviar?stationId=ea406da7-733d-4efd-be0b-a2ad857eb8de&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3783]
+              - link "Abrir posto" [ref=e3786] [cursor=pointer]:
+                - /url: /postos/ea406da7-733d-4efd-be0b-a2ad857eb8de?returnTo=%2F
+          - generic [ref=e3787]:
+            - generic [ref=e3788]:
+              - generic [ref=e3789]:
+                - paragraph [ref=e3790]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · Avenida Roberto Silveira" [level=3] [ref=e3791]
+                - paragraph [ref=e3792]: BARRINHA, QUATIS
+              - generic [ref=e3793]: Sem preço recente
+            - generic [ref=e3794]:
+              - generic [ref=e3795]: Localização em revisão
+              - generic [ref=e3796]: Aguardando primeiro preço
+            - generic [ref=e3797]:
+              - img [ref=e3798]
+              - generic [ref=e3801]: AVENIDA ROBERTO SILVEIRA, 180, BARRINHA, QUATIS
+            - generic [ref=e3802]:
+              - paragraph [ref=e3803]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3804] [cursor=pointer]:
+                - /url: /enviar?stationId=33ce7840-bdc6-41e4-b4b2-0a4a391268d7&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3805]
+            - generic [ref=e3808]:
+              - link "Abrir câmera" [ref=e3809] [cursor=pointer]:
+                - /url: /enviar?stationId=33ce7840-bdc6-41e4-b4b2-0a4a391268d7&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3810]
+              - link "Abrir posto" [ref=e3813] [cursor=pointer]:
+                - /url: /postos/33ce7840-bdc6-41e4-b4b2-0a4a391268d7?returnTo=%2F
+          - generic [ref=e3814]:
+            - generic [ref=e3815]:
+              - generic [ref=e3816]:
+                - paragraph [ref=e3817]: BANDEIRA BRANCA
+                - heading "Bandeira BRANCA · Avenida Euclides ALVES Guimaraes COTIA" [level=3] [ref=e3818]
+                - paragraph [ref=e3819]: CENTRO, QUATIS
+              - generic [ref=e3820]: Sem preço recente
+            - generic [ref=e3821]:
+              - generic [ref=e3822]: Localização em revisão
+              - generic [ref=e3823]: Aguardando primeiro preço
+            - generic [ref=e3824]:
+              - img [ref=e3825]
+              - generic [ref=e3828]: AVENIDA EUCLIDES ALVES GUIMARAES COTIA, S/N, CENTRO, QUATIS
+            - generic [ref=e3829]:
+              - paragraph [ref=e3830]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3831] [cursor=pointer]:
+                - /url: /enviar?stationId=6bcdc6af-d4e4-44b2-a2c3-fae74a39f9c9&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3832]
+            - generic [ref=e3835]:
+              - link "Abrir câmera" [ref=e3836] [cursor=pointer]:
+                - /url: /enviar?stationId=6bcdc6af-d4e4-44b2-a2c3-fae74a39f9c9&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3837]
+              - link "Abrir posto" [ref=e3840] [cursor=pointer]:
+                - /url: /postos/6bcdc6af-d4e4-44b2-a2c3-fae74a39f9c9?returnTo=%2F
+          - generic [ref=e3841]:
+            - generic [ref=e3842]:
+              - generic [ref=e3843]:
+                - paragraph [ref=e3844]: VIBRA
+                - heading "POSTO DE Gasolina NOVO Pinheiral" [level=3] [ref=e3845]
+                - paragraph [ref=e3846]: CENTRO, PINHEIRAL
+              - generic [ref=e3847]: Sem preço recente
+            - generic [ref=e3848]:
+              - generic [ref=e3849]: Localização em revisão
+              - generic [ref=e3850]: Aguardando primeiro preço
+            - generic [ref=e3851]:
+              - img [ref=e3852]
+              - generic [ref=e3855]: AVENIDA NILTON PENNA BOTELHO, 738, CENTRO, PINHEIRAL
+            - generic [ref=e3856]:
+              - paragraph [ref=e3857]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3858] [cursor=pointer]:
+                - /url: /enviar?stationId=fe308f1b-d859-4cb8-a452-f40c0db94b0f&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3859]
+            - generic [ref=e3862]:
+              - link "Abrir câmera" [ref=e3863] [cursor=pointer]:
+                - /url: /enviar?stationId=fe308f1b-d859-4cb8-a452-f40c0db94b0f&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3864]
+              - link "Abrir posto" [ref=e3867] [cursor=pointer]:
+                - /url: /postos/fe308f1b-d859-4cb8-a452-f40c0db94b0f?returnTo=%2F
+          - generic [ref=e3868]:
+            - generic [ref=e3869]:
+              - generic [ref=e3870]:
+                - paragraph [ref=e3871]: VIBRA
+                - heading "POSTO SOL DA DUTRA" [level=3] [ref=e3872]
+                - paragraph [ref=e3873]: TREVO DE ACESSO AO POLO URBO AGRO INDUSTRIAL, PORTO REAL
+              - generic [ref=e3874]: Sem preço recente
+            - generic [ref=e3875]:
+              - generic [ref=e3876]: Localização em revisão
+              - generic [ref=e3877]: Aguardando primeiro preço
+            - generic [ref=e3878]:
+              - img [ref=e3879]
+              - generic [ref=e3882]: RODOVIA PRESIDENTE DUTRA, S/N, TREVO DE ACESSO AO POLO URBO AGRO INDUSTRIAL, PORTO REAL
+            - generic [ref=e3883]:
+              - paragraph [ref=e3884]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3885] [cursor=pointer]:
+                - /url: /enviar?stationId=41982b29-37ef-4bb2-a034-f6afcd1d97c8&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3886]
+            - generic [ref=e3889]:
+              - link "Abrir câmera" [ref=e3890] [cursor=pointer]:
+                - /url: /enviar?stationId=41982b29-37ef-4bb2-a034-f6afcd1d97c8&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3891]
+              - link "Abrir posto" [ref=e3894] [cursor=pointer]:
+                - /url: /postos/41982b29-37ef-4bb2-a034-f6afcd1d97c8?returnTo=%2F
+          - generic [ref=e3895]:
+            - generic [ref=e3896]:
+              - generic [ref=e3897]:
+                - paragraph [ref=e3898]: BANDEIRA BRANCA
+                - heading "AUTO POSTO Comercial DE QUATIS" [level=3] [ref=e3899]
+                - paragraph [ref=e3900]: BARRINHA, QUATIS
+              - generic [ref=e3901]: Sem preço recente
+            - generic [ref=e3902]:
+              - generic [ref=e3903]: Localização em revisão
+              - generic [ref=e3904]: Aguardando primeiro preço
+            - generic [ref=e3905]:
+              - img [ref=e3906]
+              - generic [ref=e3909]: AVENIDA ROBERTO SILVEIRA, 180, BARRINHA, QUATIS
+            - generic [ref=e3910]:
+              - paragraph [ref=e3911]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3912] [cursor=pointer]:
+                - /url: /enviar?stationId=cf4a98ab-5cf9-4e67-a776-f3311dbcc43f&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3913]
+            - generic [ref=e3916]:
+              - link "Abrir câmera" [ref=e3917] [cursor=pointer]:
+                - /url: /enviar?stationId=cf4a98ab-5cf9-4e67-a776-f3311dbcc43f&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3918]
+              - link "Abrir posto" [ref=e3921] [cursor=pointer]:
+                - /url: /postos/cf4a98ab-5cf9-4e67-a776-f3311dbcc43f?returnTo=%2F
+          - generic [ref=e3922]:
+            - generic [ref=e3923]:
+              - generic [ref=e3924]:
+                - paragraph [ref=e3925]: BANDEIRA BRANCA
+                - heading "POSTO Central DE QUATIS" [level=3] [ref=e3926]
+                - paragraph [ref=e3927]: CENTRO, QUATIS
+              - generic [ref=e3928]: Sem preço recente
+            - generic [ref=e3929]:
+              - generic [ref=e3930]: Localização em revisão
+              - generic [ref=e3931]: Aguardando primeiro preço
+            - generic [ref=e3932]:
+              - img [ref=e3933]
+              - generic [ref=e3936]: AVENIDA EUCLIDES ALVES GUIMARAES COTIA, S/N, CENTRO, QUATIS
+            - generic [ref=e3937]:
+              - paragraph [ref=e3938]: Este posto já está no mapa, mas ainda não recebeu preço recente aprovado.
+              - link "Abrir câmera" [ref=e3939] [cursor=pointer]:
+                - /url: /enviar?stationId=516ab80d-98a5-471c-9b07-6cff6bed742a&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3940]
+            - generic [ref=e3943]:
+              - link "Abrir câmera" [ref=e3944] [cursor=pointer]:
+                - /url: /enviar?stationId=516ab80d-98a5-471c-9b07-6cff6bed742a&returnTo=%2F#photo
+                - text: Abrir câmera
+                - img [ref=e3945]
+              - link "Abrir posto" [ref=e3948] [cursor=pointer]:
+                - /url: /postos/516ab80d-98a5-471c-9b07-6cff6bed742a?returnTo=%2F
+      - generic [ref=e3949]:
+        - generic [ref=e3950]:
+          - generic [ref=e3951]:
+            - paragraph [ref=e3952]: Atualizações recentes
+            - heading "Transparência popular" [level=2] [ref=e3953]
+          - generic [ref=e3954]: 0 itens
+        - generic [ref=e3956]:
+          - img [ref=e3958]
+          - generic [ref=e3959]:
+            - heading "Nenhuma atualização recente neste filtro." [level=3] [ref=e3960]
+            - paragraph [ref=e3961]: Ajuste o combustível, a cidade ou a janela de recência. Se quiser colaborar, envie o primeiro preço.
+          - link "Ver postos sem atualização" [ref=e3962] [cursor=pointer]:
+            - /url: /postos/sem-atualizacao
+      - generic [ref=e3963]:
+        - generic [ref=e3964]:
+          - generic [ref=e3965]:
+            - paragraph [ref=e3966]: Colaboração
+            - heading "Ajudar a base a ficar viva" [level=2] [ref=e3967]
+          - link "Ver lacunas do mapa" [ref=e3968] [cursor=pointer]:
+            - /url: /postos/sem-atualizacao
+        - generic [ref=e3969]:
+          - generic [ref=e3970]:
+            - paragraph [ref=e3971]: Há postos cadastrados sem preço recente (121 em revisão territorial).
+            - paragraph [ref=e3972]: Se você passou por algum deles, envie a primeira foto. Isso transforma lacuna em dado útil.
+          - generic [ref=e3973]:
+            - paragraph [ref=e3974]: O mapa não fica vazio quando o cadastro existe.
+            - paragraph [ref=e3975]: Cadastro territorial e preço recente são coisas diferentes. O app mostra isso sem confundir o usuário.
+        - link "Enviar preço para o mapa" [ref=e3976] [cursor=pointer]:
+          - /url: /enviar
+          - text: Enviar preço para o mapa
+          - img [ref=e3977]
+    - link "Enviar preço" [ref=e3979] [cursor=pointer]:
+      - /url: /enviar
+      - img [ref=e3980]
+      - text: Enviar preço
+    - navigation [ref=e3981]:
+      - list [ref=e3982]:
+        - listitem [ref=e3983]:
+          - link "Mapa" [ref=e3984] [cursor=pointer]:
+            - /url: /
+            - img [ref=e3985]
+            - text: Mapa
+        - listitem [ref=e3987]:
+          - link "Atualizações" [ref=e3988] [cursor=pointer]:
+            - /url: /atualizacoes
+            - img [ref=e3989]
+            - text: Atualizações
+        - listitem [ref=e3992]:
+          - link "Enviar" [ref=e3993] [cursor=pointer]:
+            - /url: /enviar
+            - img [ref=e3994]
+            - text: Enviar
+        - listitem [ref=e3997]:
+          - link "Auditoria" [ref=e3998] [cursor=pointer]:
+            - /url: /auditoria
+            - img [ref=e3999]
+            - text: Auditoria
+```

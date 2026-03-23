@@ -5,6 +5,7 @@ import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
+import { Camera, ShieldCheck, ArrowRight, Clock3 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,10 +14,15 @@ import { fuelLabels } from "@/lib/format/labels";
 import { submitPriceReportAction } from "@/app/enviar/actions";
 import { RouteAssistant } from "@/components/routes/route-assistant";
 import { completeStationInRoute, readRouteContext } from "@/lib/navigation/route-context";
+import { useGeolocation } from "@/hooks/use-geolocation";
+import { calculateDistance, formatDistance } from "@/lib/geo/distance";
 import { trackProductEvent } from "@/lib/telemetry/client";
 import { clearSubmissionDraft, loadSubmissionDraft, saveSubmissionDraft, type SubmissionDraftSnapshot, type SubmissionDraftStep, type SubmissionDraftStatus } from "@/lib/drafts/submission-draft";
 import { SubmissionQueuePanel } from "@/components/forms/submission-queue-panel";
 import { buildSubmissionQueueHref, clearSubmissionQueueForDraftKey, loadSubmissionQueue, removeSubmissionQueueEntry, upsertSubmissionQueueEntry, type SubmissionQueueEntry } from "@/lib/queue/submission-queue";
+import { useStreetMode } from "@/hooks/use-street-mode";
+import { cn } from "@/lib/utils";
+import { getStationPublicName } from "@/lib/quality/stations";
 
 const fuelOptions: FuelType[] = ["gasolina_comum", "gasolina_aditivada", "etanol", "diesel_s10", "diesel_comum", "gnv"];
 const allowedFuelSet = new Set<FuelType>(fuelOptions);
@@ -87,6 +93,7 @@ function PriceSubmitFormBody({
 }) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(submitPriceReportAction, initialState);
+  const { isStreetMode } = useStreetMode();
   const safeReturnToHref = useMemo(() => safeRoute(returnToHref), [returnToHref]);
   const draftKey = useMemo(() => createDraftKey(initialStationId), [initialStationId]);
   const initialStation = useMemo(() => stations.find((station) => station.id === initialStationId) ?? null, [initialStationId, stations]);
@@ -103,6 +110,7 @@ function PriceSubmitFormBody({
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
   const [draftPhotoMissing, setDraftPhotoMissing] = useState(false);
+  const [isSuggested, setIsSuggested] = useState(false);
   const [submittedStationId, setSubmittedStationId] = useState<string | null>(null);
   const [queueItems, setQueueItems] = useState<SubmissionQueueEntry[]>([]);
   const [isOnline, setIsOnline] = useState(true);
@@ -251,6 +259,34 @@ function PriceSubmitFormBody({
     }
   }, [initialStation, stationId, stations]);
 
+  const { coords, getLocation } = useGeolocation();
+  const [geoRequested, setGeoRequested] = useState(false);
+
+  useEffect(() => {
+    if (!coords || lockedStation || initialStation || draftRestored || geoRequested) return;
+
+    // Limit to 500m radius for suggestions
+    const MAX_SUGGESTION_DISTANCE_METERS = 500;
+    
+    let nearest: { id: string, distance: number } | null = null;
+
+    for (const s of stations) {
+      const dist = calculateDistance(coords.lat, coords.lng, s.lat, s.lng);
+      if (dist <= MAX_SUGGESTION_DISTANCE_METERS) {
+        if (!nearest || dist < nearest.distance) {
+          nearest = { id: s.id, distance: dist };
+        }
+      }
+    }
+
+    if (nearest) {
+      setStationId(nearest.id);
+      setIsSuggested(true);
+      setGeoRequested(true);
+    }
+  }, [coords, lockedStation, initialStation, draftRestored, stations, geoRequested]);
+
+
   useEffect(() => {
     if (!draftLoaded || completedRef.current) {
       return;
@@ -273,6 +309,15 @@ function PriceSubmitFormBody({
 
   const currentQueueItem = queueItems.find((item) => item.draftKey === draftKey) ?? null;
   const selectedStation = stations.find((station) => station.id === stationId) ?? stations[0] ?? null;
+
+  const { currentDistance, locationConfidence } = useMemo(() => {
+    if (!coords || !selectedStation) return { currentDistance: null, locationConfidence: "none" };
+    
+    const dist = calculateDistance(coords.lat, coords.lng, selectedStation.lat, selectedStation.lng);
+    const confidence = dist <= 200 ? "high" : "low" as "none" | "high" | "low";
+    
+    return { currentDistance: dist, locationConfidence: confidence };
+  }, [coords, selectedStation]);
 
   useEffect(() => {
     if (!state.success) {
@@ -640,7 +685,7 @@ function PriceSubmitFormBody({
     router.push(buildSubmissionQueueHref(item));
   }
 
-  function handleReviewQueueItem(item: SubmissionQueueEntry) {
+  async function handleReviewQueueItem(item: SubmissionQueueEntry) {
     router.push(buildSubmissionQueueHref(item));
   }
 
@@ -683,26 +728,52 @@ function PriceSubmitFormBody({
   return (
     <form ref={formRef} action={formAction} className="space-y-4" onSubmitCapture={() => markStarted("submit")}>
       <input type="hidden" name="website" value="" />
+      <input type="hidden" name="locationDistance" value={currentDistance?.toString() ?? ""} />
+      <input type="hidden" name="locationConfidence" value={locationConfidence} />
 
-      <div className="rounded-[24px] border border-[color:var(--color-accent)]/18 bg-[color:var(--color-accent)]/8 p-4">
+      <div className={cn("rounded-[24px] border border-[color:var(--color-accent)]/18 bg-[color:var(--color-accent)]/8 p-4", isStreetMode && "border-none bg-white/5 p-3")}>
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Modo rua</p>
-            <h3 className="mt-1 text-xl font-semibold text-white">Foto primeiro, resto rápido.</h3>
-            <p className="mt-2 text-sm text-white/62">Abra a câmera, tire a prova e complete o envio com o mínimo de toque possível.</p>
+          <div className="flex-1">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-white/40">{isStreetMode ? "Modo Rua Ativo" : "Selecione o posto"}</p>
+              {isSuggested && (
+                <p className="text-[10px] font-medium text-[color:var(--color-accent)]">📍 Sugerido por proximidade</p>
+              )}
+            </div>
+            {!coords && !lockedStation && (
+              <Button 
+                type="button" 
+                variant="ghost" 
+                className="h-6 px-2 text-[10px]"
+                onClick={() => getLocation()}
+              >
+                Ativar GPS
+              </Button>
+            )}
+            {locationConfidence === "low" && (
+              <div className={cn("mt-2 rounded-lg border border-orange-400/20 bg-orange-400/10 px-3 py-2 text-[11px] text-orange-200", isStreetMode && "mt-1")}>
+                ⚠️ <strong>Posto distante:</strong> Você está a {formatDistance(currentDistance!)} daqui.
+              </div>
+            )}
+            {!isStreetMode && (
+              <>
+                <h3 className="mt-2 text-xl font-semibold text-white">Foto primeiro, resto rápido.</h3>
+                <p className="mt-1 text-sm text-white/62">Abra a câmera, tire a prova e complete o envio com o mínimo de toque possível.</p>
+              </>
+            )}
           </div>
-          <Badge variant={state.success ? "default" : "warning"}>{state.success ? "Enviado" : compactMode ? "Compacto" : "Rápido"}</Badge>
+          <Badge variant={state.success ? "primary" : "warning"}>{state.success ? "Enviado" : isStreetMode ? "Compacto" : "Rápido"}</Badge>
         </div>
-        <div className="mt-4 flex flex-wrap gap-2 text-[11px] text-white/52">
-          <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1">1. Foto</span>
-          <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1">2. Posto</span>
-          <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1">3. Combustível</span>
-          <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1">4. Preço</span>
-          <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1">5. Enviar</span>
-          {draftRestored ? <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1">Rascunho recuperado</span> : null}
-          {draftPhotoMissing ? <span className="rounded-full border border-[color:var(--color-danger)]/30 bg-[color:var(--color-danger)]/12 px-3 py-1 text-[color:var(--color-danger)]">Foto precisa ser refeita</span> : null}
-        </div>
-        <div className="mt-4 flex flex-wrap gap-2">
+        {!isStreetMode && (
+          <div className="mt-4 flex flex-wrap gap-2 text-[11px] text-white/52">
+            <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1">1. Foto</span>
+            <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1">2. Posto</span>
+            <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1">3. Combustível</span>
+            <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1">4. Preço</span>
+            <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1">5. Enviar</span>
+          </div>
+        )}
+        <div className={cn("mt-4 flex flex-wrap gap-2", isStreetMode && "mt-2")}>
           <Button
             type="button"
             onClick={() => {
@@ -718,14 +789,15 @@ function PriceSubmitFormBody({
                   source: "camera-primary",
                   compactMode,
                   lockedStation,
+                  streetMode: isStreetMode,
                   hasPhoto: Boolean(selectedFileRef.current)
                 }
               });
               fileInputRef.current?.click();
             }}
-            className="w-full sm:w-auto"
+            className={cn("w-full sm:w-auto", isStreetMode && "h-16 text-lg font-bold shadow-2xl")}
           >
-            Tirar foto agora
+            {isStreetMode ? "ABRIR CÂMERA AGORA" : "Tirar foto agora"}
           </Button>
           <Button
             type="button"
@@ -764,7 +836,7 @@ function PriceSubmitFormBody({
             <p className="mt-1 text-white/54">Os dados que já estavam preenchidos voltaram. Se a foto não veio junto, tire outra antes de enviar.</p>
           </div>
         ) : null}
-        <p className="mt-3 text-xs leading-relaxed text-white/52">Se a conexão cair, os campos continuam na tela. Se a foto falhar, tente de novo sem refazer tudo.</p>
+        {!isStreetMode && <p className="mt-3 text-xs leading-relaxed text-white/52">Se a conexão cair, os campos continuam na tela. Se a foto falhar, tente de novo sem refazer tudo.</p>}
       </div>
 
       {queueItems.length > 0 ? (
@@ -777,20 +849,22 @@ function PriceSubmitFormBody({
         />
       ) : null}
 
-      {currentQueueItem ? (
-        <div className="rounded-[18px] border border-white/8 bg-black/20 px-4 py-3 text-sm text-white/58">
-          Seu envio anterior ficou guardado neste aparelho. Você pode reenviar agora ou revisar antes.
-        </div>
-      ) : null}
-
       {state.success ? (
-        <div className="rounded-[22px] border border-[color:var(--color-accent)]/20 bg-[color:var(--color-accent)]/12 p-4 text-sm text-white">
-          <p className="text-base font-semibold">Preço enviado. Agora está em moderação.</p>
-          <p className="mt-1 text-white/70">Você pode repetir no mesmo posto, voltar ao mapa ou abrir outro posto na rua.</p>
-          <div className="mt-3 flex flex-wrap gap-2">
+        <div className={cn("rounded-[24px] border border-green-400/20 bg-green-400/10 p-5 text-sm text-white", isStreetMode && "p-4")}>
+          <div className="flex items-start gap-3">
+            <div className="rounded-full bg-green-500/20 p-2">
+              <ShieldCheck className="h-6 w-6 text-green-400" />
+            </div>
+            <div>
+              <p className="text-lg font-bold">Show! Preço enviado.</p>
+              <p className="text-white/60">Já está na fila prioritária de moderação.</p>
+            </div>
+          </div>
+          
+          <div className="mt-6 space-y-3">
             <Button
               type="button"
-              variant="secondary"
+              className="w-full h-16 text-lg font-bold shadow-lg"
               onClick={() => {
                 void trackProductEvent({
                   eventType: "submission_series_continued",
@@ -800,29 +874,58 @@ function PriceSubmitFormBody({
                   fuelType,
                   scopeType: "submission",
                   scopeId: submittedStationId,
-                  payload: {
-                    mode: "same_station",
-                    compactMode,
-                    lockedStation,
-                    hadPhoto: Boolean(selectedFileRef.current)
-                  }
+                  payload: { mode: "same_station", streetMode: isStreetMode }
                 });
                 void resetForAnotherSubmission();
               }}
             >
-              Enviar outro preço no mesmo posto
+              ENVIAR OUTRO NESTE POSTO
             </Button>
-            {submittedStationId ? (
-              <Button type="button" variant="secondary" onClick={() => router.push((`/postos/${submittedStationId}` as Route))}>
-                Voltar ao posto
+            
+            {(() => {
+              const route = readRouteContext();
+              const nextStationId = route?.completedStationIds ? stations.find(s => !route.completedStationIds.includes(s.id) && s.id !== submittedStationId)?.id : null;
+
+              if (nextStationId && nextStationId !== submittedStationId) {
+                const nextStation = stations.find(s => s.id === nextStationId);
+                return (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full h-14 font-semibold"
+                    onClick={() => router.push((`/enviar?stationId=${nextStationId}#photo` as Route))}
+                  >
+                    IR PARA: {nextStation ? getStationPublicName(nextStation) : "PRÓXIMO POSTO"}
+                  </Button>
+                );
+              }
+              return null;
+            })()}
+
+            <div className="flex gap-2">
+              <Button 
+                type="button" 
+                variant="ghost" 
+                className="flex-1 h-12"
+                onClick={() => router.push((safeReturnToHref ?? "/") as Route)}
+              >
+                Voltar ao mapa
               </Button>
-            ) : null}
-            <Button type="button" variant="ghost" onClick={() => router.push((safeReturnToHref ?? "/") as Route)}>
-              Voltar ao mapa
-            </Button>
+              {submittedStationId && (
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  className="flex-1 h-12"
+                  onClick={() => router.push((`/postos/${submittedStationId}` as Route))}
+                >
+                  Ver posto
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="mt-6 border-t border-white/10 pt-4">
+            <p className="mb-3 text-[10px] uppercase tracking-widest text-white/40 text-center">Rota de Coleta</p>
             <RouteAssistant stations={stations} currentStationId={submittedStationId} />
           </div>
         </div>
@@ -898,7 +1001,6 @@ function PriceSubmitFormBody({
           onChange={handleFileChange}
           className="w-full rounded-[18px] border border-dashed border-white/14 bg-black/30 px-4 py-3 text-sm text-white file:mr-4 file:rounded-full file:border-0 file:bg-[color:var(--color-accent)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-black"
         />
-        <p className="text-xs text-white/46">JPG, PNG ou WEBP. Até 5 MB.</p>
       </div>
 
       {previewUrl ? (
@@ -920,7 +1022,7 @@ function PriceSubmitFormBody({
             <div className="rounded-[18px] border border-white/8 bg-white/5 px-4 py-3 text-sm text-white/72">
               <p className="font-medium text-white">{selectedStation?.name}</p>
               <p className="mt-1 text-white/54">{selectedStation?.neighborhood}, {selectedStation?.city}</p>
-              {selectedStation?.address ? <p className="mt-1 text-xs text-white/42">{selectedStation.address}</p> : null}
+              {selectedStation?.address && !isStreetMode ? <p className="mt-1 text-xs text-white/42">{selectedStation.address}</p> : null}
             </div>
           </>
         ) : (
@@ -989,31 +1091,29 @@ function PriceSubmitFormBody({
         </div>
       </div>
 
-      <details className="rounded-[22px] border border-white/8 bg-black/30 p-4 text-sm text-white/58">
-        <summary className="cursor-pointer list-none font-medium text-white/76">Apelido opcional</summary>
-        <div className="mt-4 space-y-2">
-          <label className="text-sm font-medium text-white" htmlFor="nickname">
-            Como quer aparecer, se quiser
-          </label>
-          <input
-            id="nickname"
-            name="nickname"
-            value={nickname}
-            onChange={(event) => {
-              setNickname(event.target.value);
-              markStarted("nickname", { hasValue: event.target.value.trim().length > 0 });
-            }}
-            placeholder="Ex.: Morador VR"
-            className="w-full rounded-[18px] border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none ring-0"
-          />
-        </div>
-      </details>
+      {!isStreetMode && (
+        <details className="rounded-[22px] border border-white/8 bg-black/30 p-4 text-sm text-white/58">
+          <summary className="cursor-pointer list-none font-medium text-white/76">Apelido opcional</summary>
+          <div className="mt-4 space-y-2">
+            <label className="text-sm font-medium text-white" htmlFor="nickname">
+              Como quer aparecer, se quiser
+            </label>
+            <input
+              id="nickname"
+              name="nickname"
+              value={nickname}
+              onChange={(event) => {
+                setNickname(event.target.value);
+                markStarted("nickname", { hasValue: event.target.value.trim().length > 0 });
+              }}
+              placeholder="Ex.: Morador VR"
+              className="w-full rounded-[18px] border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none ring-0"
+            />
+          </div>
+        </details>
+      )}
 
-      <div className="rounded-[18px] border border-white/8 bg-white/5 px-4 py-3 text-xs leading-relaxed text-white/56">
-        Se a conexão cair, os campos continuam na tela. Se a foto falhar, use o botão de tentar novamente sem recomeçar.
-      </div>
-
-      <Button type="submit" className="w-full" disabled={pending || !canSubmit}>
+      <Button type="submit" className={cn("w-full h-16 text-lg font-bold shadow-2xl", !canSubmit && "opacity-50")} disabled={pending || !canSubmit}>
         {pending ? "Enviando..." : `Enviar preço ${statusLabel === "foto pronta" ? "com foto pronta" : "agora"}`}
       </Button>
     </form>
@@ -1025,23 +1125,3 @@ export function PriceSubmitForm(props: PriceSubmitFormProps) {
 
   return <PriceSubmitFormBody key={`${props.initialStationId ?? "default"}-${formVersion}`} {...props} onResetRequest={() => setFormVersion((value) => value + 1)} />;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -15,12 +15,13 @@ interface StationMapShellProps {
   className?: string;
   returnToHref?: string;
   fuelFilter?: FuelFilter;
+  center?: { lat: number; lng: number } | null;
 }
 
-export function StationMapShell({ stations, className, returnToHref, fuelFilter = "all" }: StationMapShellProps) {
+export function StationMapShell({ stations, className, returnToHref, fuelFilter = "all", center }: StationMapShellProps) {
   return (
     <div className={cn("w-full", className)}>
-      <StationMap stations={stations} className={className} returnToHref={returnToHref} fuelFilter={fuelFilter} />
+      <StationMap stations={stations} className={className} returnToHref={returnToHref} fuelFilter={fuelFilter} center={center} />
     </div>
   );
 }

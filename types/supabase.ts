@@ -50,6 +50,11 @@ export interface PriceReportRow {
   moderated_by?: string | null;
   source_kind?: string;
   photo_hash?: string | null;
+  location_distance?: number | null;
+  location_confidence?: string | null;
+  reconciliation_id?: string | null;
+  is_confirmation?: boolean | null;
+  metadata?: Record<string, any> | null;
   version?: number;
 }
 

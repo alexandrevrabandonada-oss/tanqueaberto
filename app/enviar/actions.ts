@@ -260,8 +260,48 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
   const { data: publicUrl } = supabase.storage.from(REPORT_PHOTO_BUCKET).getPublicUrl(filePath);
   const timestamp = new Date().toISOString();
 
+  // Hardening: Geographic Validation
+  const distanceRaw = getString(formData, "locationDistance");
+  const distance = distanceRaw ? Number(distanceRaw) : null;
+  const locationConfidence = (getString(formData, "locationConfidence") as any) || "none";
+
+  // Hardening: Reconciliation Logic
+  const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
+  const { data: existingReports } = await supabase
+    .from("price_reports")
+    .select("reconciliation_id")
+    .eq("station_id", stationId)
+    .eq("fuel_type", fuelType)
+    .eq("price", price)
+    .eq("status", "pending")
+    .gt("created_at", sixHoursAgo)
+    .limit(1);
+
+  const reconciliationId = existingReports?.[0]?.reconciliation_id || 
+    `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  const isConfirmation = Boolean(existingReports?.[0]?.reconciliation_id);
+
+  // Hardening: Price Discrepancy Detection
+  const { data: lastApproved } = await supabase
+    .from("price_reports")
+    .select("price")
+    .eq("station_id", stationId)
+    .eq("fuel_type", fuelType)
+    .eq("status", "approved")
+    .order("reported_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  let priceDiscrepancy = false;
+  if (lastApproved) {
+    const diff = Math.abs(price - lastApproved.price) / lastApproved.price;
+    if (diff > 0.2) {
+      priceDiscrepancy = true;
+    }
+  }
+
   const priorityScore = getReportPriorityScore(
-    { fuelType, price, sourceKind: "community" },
+    { fuelType, price, sourceKind: "community", locationConfidence },
     station as any,
     { betaInviteCode: context.betaToken }
   );
@@ -281,6 +321,11 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
       status: "pending",
       source_kind: "community",
       photo_hash: photoHash,
+      location_distance: distance,
+      location_confidence: locationConfidence,
+      reconciliation_id: reconciliationId,
+      is_confirmation: isConfirmation,
+      metadata: { price_discrepancy: priceDiscrepancy },
       version: 1
     })
     .select("id")
@@ -314,7 +359,12 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
       photoHash,
       reportedAt: timestamp,
       priorityScore,
-      betaToken: context.betaToken
+      betaToken: context.betaToken,
+      locationConfidence,
+      locationDistance: distance,
+      reconciliationId,
+      isConfirmation,
+      priceDiscrepancy
     }
   });
 
@@ -330,7 +380,9 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
       reportId: report.id,
       stationName: station.name,
       nickname: nickname || null,
-      windowCount: limitCheck.attemptCount
+      windowCount: limitCheck.attemptCount,
+      locationConfidence,
+      priceDiscrepancy
     }
   });
 

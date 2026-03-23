@@ -33,7 +33,10 @@ export type ProductTelemetryEventType =
   | "route_station_skipped"
   | "route_station_arrived"
   | "route_completed"
-  | "route_abandoned";
+  | "route_abandoned"
+  | "geolocation_granted"
+  | "geolocation_denied"
+  | "geolocation_error";
 
 export interface ProductTelemetryEventInput {
   eventType: ProductTelemetryEventType;

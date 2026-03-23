@@ -36,6 +36,7 @@ export interface Station {
   curationNote?: string | null;
   coordinateReviewedAt?: string | null;
   releaseStatus?: "ready" | "validating" | "limited" | "hidden";
+  distance?: number; // In meters
   updatedAt?: string | null;
 }
 
@@ -59,6 +60,11 @@ export interface PriceReport {
   moderatedBy: string | null;
   sourceKind: "community" | "seed" | "official_reference" | "import" | "admin";
   photoHash: string | null;
+  locationDistance: number | null;
+  locationConfidence: "high" | "low" | "none" | null;
+  reconciliationId: string | null;
+  isConfirmation: boolean | null;
+  metadata: Record<string, any> | null;
   version: number;
 }
 

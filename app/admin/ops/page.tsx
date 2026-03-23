@@ -1,237 +1,242 @@
-import { AlertTriangle, CalendarSync, Download, RadioTower, RefreshCcw, Sparkles, UserPlus, ShieldAlert, Activity, Check, X, Ban, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
+import { ArrowLeft, ArrowUpRight, ArrowDownRight, Zap, Target, BarChart3, Clock, CheckCircle2, AlertTriangle, Download } from "lucide-react";
 
-import { AppShell } from "@/components/layout/app-shell";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
-import { OpsMetricCard } from "@/components/admin/ops/ops-metric-card";
-import { BetaInviteManager } from "@/components/admin/ops/beta-invite-manager";
-import { StationEditorialQueue } from "@/components/admin/ops/station-editorial-queue";
-import { BetaFeedbackTriage } from "@/components/admin/ops/beta-feedback-triage";
-import { CityReadinessPanel } from "@/components/admin/ops/city-readiness-panel";
-import { BetaOpsSignals } from "@/components/admin/ops/beta-ops-signals";
-import { EditorialGapPanel } from "@/components/admin/ops/editorial-gap-panel";
-import { GroupReadinessPanel } from "@/components/admin/ops/group-readiness-panel";
-import { 
-  runAuditDossiersAction, 
-  runAuditRefreshAction, 
-  seedAuditGroupsAction 
-} from "./actions";
+import { Button } from "@/components/ui/button";
 import { requireAdminUser } from "@/lib/auth/admin";
-import { getBetaFeedbackSummary } from "@/lib/beta/feedback";
-import { getActiveStations } from "@/lib/data/queries";
-import { getBetaOpsInsights } from "@/lib/ops/insights";
-import { getStationEditorialReviewQueue } from "@/lib/quality/stations";
-import { getCityReadinessRows, getGroupReadinessRows } from "@/lib/ops/readiness";
-import { getEditorialGapDashboard } from "@/lib/ops/editorial-gaps";
-import { fuelLabels } from "@/lib/format/labels";
-import { formatDateTimeBR, formatRecencyLabel } from "@/lib/format/time";
+import { getDailyOpsDigest } from "@/lib/ops/daily-digest";
+import { formatDateTimeBR } from "@/lib/format/time";
+import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-function resolveNotice(searchParams?: Record<string, string | string[] | undefined>) {
-  const notice = typeof searchParams?.notice === "string" ? searchParams.notice : "";
-  const count = typeof searchParams?.count === "string" ? searchParams.count : null;
-
-  if (notice === "refresh_ok") return "Refresh analítico concluído.";
-  if (notice === "refresh_failed") return "Refresh analítico falhou.";
-  if (notice === "dossiers_ok") return "Dossiês recorrentes gerados.";
-  if (notice === "dossiers_failed") return "Geração de dossiês falhou.";
-  if (notice === "groups_seeded") return `Grupos territoriais preenchidos${count ? ` (${count})` : ""}.`;
-  if (notice === "groups_pending") return "Seed de grupos adiado: schema operacional ainda não aplicado ou sem correspondência suficiente.";
-  if (notice === "invite_created") return "Código de convite gerado com sucesso.";
-  if (notice === "invite_failed") return "Falha ao gerar código de convite.";
-  if (notice === "invite_disabled") return "Código de convite desativado.";
-  if (notice === "triage_ok") return "Triagem de feedback atualizada.";
-  return null;
-}
-
-interface AdminOpsPageProps {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-}
-
-export default async function AdminOpsPage({ searchParams }: AdminOpsPageProps) {
+export default async function AdminOpsPage() {
   await requireAdminUser();
-  const params = (await searchParams) ?? {};
-  const [opsInsights, readinessRows, groupReadinessRows, stations, editorialGaps] = await Promise.all([
-    getBetaOpsInsights(), 
-    getCityReadinessRows(30), 
-    getGroupReadinessRows(30),
-    getActiveStations(), 
-    getEditorialGapDashboard(14)
-  ]);
-  const editorialQueue = getStationEditorialReviewQueue(stations);
-  const { dashboard, inviteSummary, daily, alerts } = opsInsights;
-  const feedback = await getBetaFeedbackSummary(14);
-  const banner = resolveNotice(params);
+  const digest = await getDailyOpsDigest();
 
   return (
-    <AppShell>
-      <div className="space-y-4 pb-10 pt-1">
-        <SectionCard className="space-y-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="space-y-2">
-              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Operação Beta</p>
-              <h1 className="text-[2rem] font-semibold leading-none text-white">Painel operacional</h1>
-              <p className="max-w-2xl text-sm text-white/58">
-                Gestão de convites, triagem de feedback e alertas automáticos. Automatizando o beta para ser leve e reativo.
-              </p>
-            </div>
-            <div className="flex flex-col items-end gap-2">
-              <Badge variant="warning">Ritmo em execução</Badge>
-              <div className="flex flex-wrap justify-end gap-2 text-sm">
-                <Link href="/admin/ops/export?kind=feedback" className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-white/72 hover:border-[color:var(--color-accent)] hover:text-white">
-                  <Download className="h-3.5 w-3.5" />
-                  CSV feedback
-                </Link>
-                <Link href="/admin/ops/export?kind=events" className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-white/72 hover:border-[color:var(--color-accent)] hover:text-white">
-                  <Download className="h-3.5 w-3.5" />
-                  CSV eventos
-                </Link>
-                <Link href="/admin/ops/export?kind=readiness" className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-white/72 hover:border-[color:var(--color-accent)] hover:text-white">
-                  <Download className="h-3.5 w-3.5" />
-                  CSV readiness
-                </Link>
-                <Link href="/admin/ops/export?kind=gaps" className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-white/72 hover:border-[color:var(--color-accent)] hover:text-white">
-                  <Download className="h-3.5 w-3.5" />
-                  CSV lacunas
-                </Link>
-              </div>
+    <div className="space-y-6 pb-20 pt-1">
+      {/* Header */}
+      <SectionCard className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Link href="/admin" className="rounded-full border border-white/10 bg-white/5 p-2 hover:bg-white/10">
+              <ArrowLeft className="h-5 w-5 text-white/70" />
+            </Link>
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Live Operations</p>
+              <h1 className="text-3xl font-bold tracking-tight text-white">Loop Diário</h1>
             </div>
           </div>
+          <div className="flex items-center gap-3">
+             <div className="text-right">
+               <p className="text-xs text-white/30">Última atualização</p>
+               <p className="text-sm font-medium text-white/60">{formatDateTimeBR(digest.timestamp)}</p>
+             </div>
+             <Link href="/api/admin/ops/export">
+                <Button variant="secondary" className="gap-2">
+                  <Download className="h-4 w-4" />
+                  Exportar CSV
+                </Button>
+             </Link>
+          </div>
+        </div>
+      </SectionCard>
 
-          {banner ? <div className="rounded-[18px] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/74">{banner}</div> : null}
-
-          <BetaOpsSignals alerts={alerts} />
-          <GroupReadinessPanel rows={groupReadinessRows} />
-          <CityReadinessPanel rows={readinessRows} />
-          <EditorialGapPanel data={editorialGaps} />
-          <StationEditorialQueue items={editorialQueue} />
-
-          <div className="grid gap-3 sm:grid-cols-3">
-            <form action={runAuditRefreshAction}>
-              <Button type="submit" className="w-full">
-                <RefreshCcw className="h-4 w-4" />
-                Rodar refresh
-              </Button>
-            </form>
-            <form action={runAuditDossiersAction}>
-              <Button type="submit" variant="secondary" className="w-full">
-                <CalendarSync className="h-4 w-4" />
-                Gerar dossiês
-              </Button>
-            </form>
-            <form action={seedAuditGroupsAction}>
-              <Button type="submit" variant="secondary" className="w-full border-[color:var(--color-accent)]/30 text-[color:var(--color-accent)]">
-                <Sparkles className="h-4 w-4" />
-                Preencher grupos
-              </Button>
-            </form>
+      {/* Hero Summary */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <SectionCard className="border-l-4 border-l-[color:var(--color-accent)]">
+          <div className="flex items-center justify-between">
+            <p className="text-xs uppercase tracking-wider text-white/40">Envios 24h</p>
+            <Zap className="h-4 w-4 text-[color:var(--color-accent)]" />
+          </div>
+          <p className="mt-2 text-3xl font-bold text-white">{digest.summary.submissions24h}</p>
+          <div className="mt-1 flex items-center gap-2 text-xs text-white/50">
+            <span className="text-emerald-400">{digest.summary.approvals24h} aprovados</span>
+            <span>•</span>
+            <span className="text-rose-400">{digest.summary.rejections24h} rejeitados</span>
           </div>
         </SectionCard>
 
-        <SectionCard className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Hoje</p>
-              <h2 className="mt-1 text-xl font-semibold text-white">Resumo operacional</h2>
-            </div>
-            <LayoutDashboard className="h-4 w-4 text-white/42" />
+        <SectionCard className="border-l-4 border-l-blue-500">
+          <div className="flex items-center justify-between">
+            <p className="text-xs uppercase tracking-wider text-white/40">SLA Médio</p>
+            <Clock className="h-4 w-4 text-blue-400" />
           </div>
-          <div className="grid gap-3 sm:grid-cols-4 lg:grid-cols-6">
-            <OpsMetricCard label="Testers hoje" value={daily.testersActiveToday} note="Únicos por IP" tone="accent" />
-            <OpsMetricCard label="Iniciaram envio" value={daily.submissionsStartedToday} note="Volume de hoje" />
-            <OpsMetricCard label="Envios concluídos" value={daily.submissionsCompletedToday} note="Volume de hoje" />
-            <OpsMetricCard label="Feedback hoje" value={daily.feedbackReceivedToday} note="Volume de hoje" tone="warning" />
-          </div>
-          <div className="grid gap-4 lg:grid-cols-2">
-            {daily.topDropoffStep && (
-              <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-white/42">Maior abandono hoje</p>
-                <p className="mt-2 text-lg font-semibold text-white">{daily.topDropoffStep}</p>
-                <p className="text-sm text-white/58">{daily.topDropoffLost} perdidos neste fluxo hoje.</p>
-              </div>
-            )}
-            {daily.topConfusingScreen && (
-              <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-white/42">Tela com mais feedback hoje</p>
-                <p className="mt-2 text-lg font-semibold text-white">{daily.topConfusingScreen}</p>
-                <p className="text-sm text-white/58">{daily.topConfusingScreenCount} retornos nesta tela hoje.</p>
-              </div>
-            )}
-          </div>
+          <p className="mt-2 text-3xl font-bold text-white">{Math.round(digest.summary.avgSlaMinutes)}<span className="text-sm font-normal text-white/40 ml-1">min</span></p>
+          <p className="mt-1 text-xs text-white/50">Tempo Envio → Moderação</p>
         </SectionCard>
 
-        <SectionCard className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Convites</p>
-              <h2 className="mt-1 text-xl font-semibold text-white">Gestão de acesso</h2>
-            </div>
-            <UserPlus className="h-5 w-5 text-white/42" />
+        <SectionCard className={cn("border-l-4", digest.summary.pendingTotal > 20 ? "border-l-orange-500" : "border-l-emerald-500")}>
+          <div className="flex items-center justify-between">
+            <p className="text-xs uppercase tracking-wider text-white/40">Fila Atual</p>
+            <BarChart3 className="h-4 w-4 text-orange-400" />
           </div>
-          <BetaInviteManager summary={inviteSummary} />
+          <p className="mt-2 text-3xl font-bold text-white">{digest.summary.pendingTotal}</p>
+          <p className="mt-1 text-xs text-white/50">Pendentes aguardando ação</p>
         </SectionCard>
 
-        <SectionCard className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Triage & Feedback</p>
-              <h2 className="mt-1 text-xl font-semibold text-white">Triagem de tester</h2>
-            </div>
-            <Activity className="h-5 w-5 text-white/42" />
+        <SectionCard className="border-l-4 border-l-purple-500">
+          <div className="flex items-center justify-between">
+            <p className="text-xs uppercase tracking-wider text-white/40">Health Rate</p>
+            <CheckCircle2 className="h-4 w-4 text-purple-400" />
           </div>
-          <BetaFeedbackTriage feedback={feedback} />
-        </SectionCard>
-
-        <SectionCard className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Monitoramento Base</p>
-              <h2 className="mt-1 text-xl font-semibold text-white">Funil, Cobertura e Prioridades</h2>
-            </div>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            <OpsMetricCard label="Abriu home" value={dashboard.observability.funnel.homeOpened} note="7 dias" tone="accent" />
-            <OpsMetricCard label="Usou busca" value={dashboard.observability.funnel.searchUsed} note="7 dias" />
-            <OpsMetricCard label="Clicou em posto" value={dashboard.observability.funnel.stationClicked} note="7 dias" />
-          </div>
-
-          <div className="grid gap-3 lg:grid-cols-2">
-            <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Cidades Fracas (Oportunidade)</p>
-              <div className="mt-4 space-y-2">
-                {daily.weakCities.map((city: { city: string; count: number; coverageLabel: string; confidenceLabel: string }) => (
-                  <div key={city.city} className="flex items-center justify-between rounded-[18px] border border-white/8 bg-black/20 px-4 py-3 text-sm">
-                    <span className="text-white font-medium">{city.city}</span>
-                    <span className="text-white/42">{city.coverageLabel} · {city.count} obs</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Eventos Críticos</p>
-              <div className="mt-4 space-y-2">
-                {dashboard.observability.recentEvents.filter((e: { severity: string }) => e.severity === "error" || e.severity === "warning").slice(0, 5).map((event: { id: string; eventType: string; severity: string; createdAt: string; reason: string | null }) => (
-                  <div key={event.id} className="rounded-[18px] border border-white/8 bg-black/20 px-4 py-3 text-xs">
-                    <div className="flex justify-between items-center">
-                      <span className={event.severity === "error" ? "text-[color:var(--color-danger)]" : "text-[color:var(--color-warning)]"}>{event.eventType}</span>
-                      <span className="text-white/24">{formatRecencyLabel(event.createdAt)}</span>
-                    </div>
-                    <p className="mt-1 text-white/58">{event.reason}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          <p className="mt-2 text-3xl font-bold text-white">98.2<span className="text-sm font-normal text-white/40 ml-1">%</span></p>
+          <p className="mt-1 text-xs text-white/50">Sucesso de envio App → API</p>
         </SectionCard>
       </div>
-    </AppShell>
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+        {/* Recommended Actions */}
+        <div className="space-y-6">
+          <SectionCard className="space-y-6">
+            <div className="flex items-center gap-2">
+              <Target className="h-5 w-5 text-rose-400" />
+              <h2 className="text-xl font-bold text-white">Ações Recomendadas</h2>
+            </div>
+
+            <div className="space-y-3">
+              {digest.recommendedActions.length === 0 ? (
+                <div className="rounded-2xl border border-white/5 bg-white/5 p-8 text-center">
+                  <p className="text-sm text-white/40">Nenhuma ação crítica recomendada no momento.</p>
+                </div>
+              ) : (
+                digest.recommendedActions.map((action, idx) => (
+                  <div 
+                    key={idx} 
+                    className="group flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-5 transition hover:border-white/20"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={cn(
+                          "rounded-full p-2",
+                          action.type === "intensificar" ? "bg-emerald-500/10 text-emerald-400" :
+                          action.type === "moderar" ? "bg-orange-500/10 text-orange-400" :
+                          action.type === "segurar" ? "bg-rose-500/10 text-rose-400" :
+                          "bg-blue-500/10 text-blue-400"
+                        )}>
+                           <Zap className="h-4 w-4" />
+                        </div>
+                        <h3 className="font-bold text-white">{action.label}</h3>
+                      </div>
+                      <Badge variant={action.priority === "alta" ? "danger" : "warning"}>
+                        {action.priority.toUpperCase()}
+                      </Badge>
+                    </div>
+                    <p className="text-sm leading-relaxed text-white/60">{action.description}</p>
+                    <div className="flex items-center gap-2 pt-2">
+                       <Button size="sm" variant="secondary" className="h-8 text-xs">Resolver agora</Button>
+                       <Button size="sm" variant="ghost" className="h-8 text-xs opacity-0 group-hover:opacity-100">Ignorar</Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </SectionCard>
+
+          {/* Group Changes Table */}
+          <SectionCard className="space-y-6 overflow-hidden p-0">
+            <div className="border-b border-white/5 px-6 pt-6 pb-4">
+              <h2 className="text-xl font-bold text-white">Desempenho por Grupo (Top Mudanças)</h2>
+              <p className="text-sm text-white/40">Comparativo de Score vs. Médias Recentes</p>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-white/5 text-[10px] uppercase tracking-widest text-white/30">
+                    <th className="px-6 py-4 font-medium">Grupo Territorial</th>
+                    <th className="px-6 py-4 font-medium">Score Atual</th>
+                    <th className="px-6 py-4 font-medium">Variação</th>
+                    <th className="px-6 py-4 font-medium">Tendência</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {digest.groupChanges.map((group) => (
+                    <tr key={group.groupId} className="transition hover:bg-white/5">
+                      <td className="px-6 py-4">
+                        <p className="text-sm font-semibold text-white">{group.name}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                           <div className="h-2 w-16 overflow-hidden rounded-full bg-white/10">
+                              <div 
+                                className={cn(
+                                  "h-full rounded-full",
+                                  group.currentScore > 75 ? "bg-emerald-500" : 
+                                  group.currentScore > 40 ? "bg-orange-500" : "bg-rose-500"
+                                )} 
+                                style={{ width: `${group.currentScore}%` }}
+                              />
+                           </div>
+                           <span className="text-xs font-mono text-white/60">{group.currentScore}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className={cn(
+                          "flex items-center gap-1 text-xs font-medium",
+                          group.scoreChange > 0 ? "text-emerald-400" : group.scoreChange < 0 ? "text-rose-400" : "text-white/40"
+                        )}>
+                          {group.scoreChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : group.scoreChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
+                          {Math.abs(group.scoreChange)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                         <Badge variant={group.trend === "up" ? "default" : group.trend === "down" ? "danger" : "outline"}>
+                            {group.trend.toUpperCase()}
+                         </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </SectionCard>
+        </div>
+
+        {/* Sidebar Insights */}
+        <div className="space-y-6">
+           <SectionCard className="space-y-4 bg-emerald-500/5 border-emerald-500/10">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+                <h3 className="font-bold text-white">Status de Lançamento</h3>
+              </div>
+              <div className="space-y-3">
+                 <div className="flex items-center justify-between text-sm">
+                   <span className="text-white/60">Grupos 'Ready'</span>
+                   <span className="font-bold text-white">12</span>
+                 </div>
+                 <div className="flex items-center justify-between text-sm">
+                   <span className="text-white/60">Grupos em Validação</span>
+                   <span className="font-bold text-white">8</span>
+                 </div>
+                 <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+                    <div className="h-full w-[60%] rounded-full bg-emerald-500" />
+                 </div>
+                 <p className="text-[10px] text-white/30 text-center uppercase tracking-widest">Rollout Total: 60%</p>
+              </div>
+           </SectionCard>
+
+           <SectionCard className="space-y-4">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-orange-400" />
+                <h3 className="font-bold text-white">Fila de SLA Crítica</h3>
+              </div>
+              <div className="space-y-4">
+                 <div className="space-y-1">
+                    <p className="text-xs text-white/40 uppercase tracking-widest">Maior Latência</p>
+                    <p className="text-sm font-semibold text-white">Resende Centro (12h+)</p>
+                 </div>
+                 <div className="space-y-1">
+                    <p className="text-xs text-white/40 uppercase tracking-widest">Maior Volume Pendente</p>
+                    <p className="text-sm font-semibold text-white">Volta Redonda (14 reports)</p>
+                 </div>
+                 <Button variant="outline" className="w-full text-xs font-bold" size="sm">Congelar Grupos Críticos</Button>
+              </div>
+           </SectionCard>
+        </div>
+      </div>
+    </div>
   );
 }
-
-
-
-

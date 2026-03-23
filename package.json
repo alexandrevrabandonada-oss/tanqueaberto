@@ -14,7 +14,9 @@
     "regeo:stations": "tsx scripts/regeo-station-geography.ts",
     "audit:refresh": "tsx scripts/refresh-audit-analytics.ts",
     "audit:dossiers": "tsx scripts/generate-audit-dossiers.ts",
-    "ops:seed-groups": "tsx scripts/seed-audit-groups.ts"
+    "ops:seed-groups": "tsx scripts/seed-audit-groups.ts",
+    "test:smoke": "playwright test",
+    "launch-gate": "tsx scripts/launch-gate.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
@@ -32,6 +34,7 @@
     "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4.1.12",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^22.15.3",
