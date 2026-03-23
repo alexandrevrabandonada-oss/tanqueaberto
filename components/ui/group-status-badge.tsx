@@ -1,7 +1,5 @@
-"use client";
-
 import { Badge } from "@/components/ui/badge";
-import { getStatusColor, getStatusLabel, type GroupReleaseStatus } from "@/lib/ops/release-control";
+import { getStatusColor, getStatusLabel, type GroupReleaseStatus } from "@/lib/ops/release-types";
 import { cn } from "@/lib/utils";
 
 interface GroupStatusBadgeProps {
