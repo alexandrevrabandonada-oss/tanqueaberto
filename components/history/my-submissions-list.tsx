@@ -46,7 +46,7 @@ export function MySubmissionsList() {
 
               {sub.moderationNote && (
                 <div className="mt-2 rounded-xl bg-orange-500/10 border border-orange-500/20 p-2 text-[10px] text-orange-200/80 italic">
-                  "{sub.moderationNote}"
+                  &quot;{sub.moderationNote}&quot;
                 </div>
               )}
             </div>

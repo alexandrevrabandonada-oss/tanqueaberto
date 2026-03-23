@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, ReactNode, useEffect } from "react";
+import React, { createContext, useContext, ReactNode, useEffect, useCallback } from "react";
 import { useMySubmissions } from "@/hooks/use-my-submissions";
 import { fetchReportStatuses } from "./actions";
 
@@ -13,7 +13,7 @@ const HistoryContext = createContext<HistoryContextType | null>(null);
 export function SubmissionHistoryProvider({ children }: { children: ReactNode }) {
   const history = useMySubmissions();
 
-  const syncStatuses = async () => {
+  const syncStatuses = useCallback(async () => {
     if (!history.isLoaded || history.submissions.length === 0) return;
 
     const pendingIds = history.submissions
@@ -33,7 +33,7 @@ export function SubmissionHistoryProvider({ children }: { children: ReactNode })
     } catch (e) {
       console.error("Failed to sync report statuses", e);
     }
-  };
+  }, [history]);
 
   // Sync on mount and periodically
   useEffect(() => {
@@ -42,7 +42,7 @@ export function SubmissionHistoryProvider({ children }: { children: ReactNode })
       const interval = setInterval(syncStatuses, 60000); // Every minute
       return () => clearInterval(interval);
     }
-  }, [history.isLoaded]);
+  }, [history.isLoaded, syncStatuses]);
 
   return (
     <HistoryContext.Provider value={{ ...history, syncStatuses }}>
