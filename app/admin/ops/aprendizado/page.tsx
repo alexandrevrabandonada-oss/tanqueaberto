@@ -89,6 +89,55 @@ export default async function BetaLearningPage() {
         </div>
       </div>
 
+      {/* Voz do Tester (Qualitative) */}
+      {synthesis.qualitativeFeedback && (
+        <SectionCard className="space-y-6 bg-emerald-500/5 border-emerald-500/10">
+          <div className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-emerald-400" />
+            <h2 className="text-xl font-bold text-white">Voz do Tester (Beta Qualitativo)</h2>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-4">
+              <p className="text-xs font-bold uppercase tracking-widest text-white/30">Principais Sentimentos</p>
+              <div className="flex flex-wrap gap-2">
+                {synthesis.qualitativeFeedback.commonTags.map(({ tag, count }) => (
+                  <div key={tag} className="flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5">
+                    <span className="text-xs font-bold text-emerald-400 uppercase">{tag}</span>
+                    <Badge variant="secondary" className="bg-emerald-500/20 text-emerald-400 h-4 min-w-[1.2rem] px-1 justify-center border-none">
+                      {count}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-xs font-bold uppercase tracking-widest text-white/30">Comentários em Destaque</p>
+              <div className="space-y-3">
+                {synthesis.qualitativeFeedback.topMessages.map((msg, i) => (
+                  <div key={i} className="relative rounded-2xl border border-white/5 bg-black/20 p-4 text-sm italic text-white/70">
+                    <span className="absolute -top-2 left-4 bg-zinc-900 px-2 text-[10px] not-italic text-white/30">Tester #{i+1}</span>
+                    "{msg}"
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          
+          <div className="pt-2 border-t border-white/5">
+            <div className="flex flex-wrap gap-4">
+              <div className="flex items-center gap-2 text-xs text-white/40">
+                <span className="font-bold text-emerald-400">Motivos de atrito:</span>
+                {synthesis.qualitativeFeedback.topMotives.map((m, i) => (
+                  <span key={i}>{m.otive}{i < synthesis.qualitativeFeedback!.topMotives.length - 1 ? " • " : ""}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </SectionCard>
+      )}
+
       {/* Geographic Insights */}
       <div className="grid gap-6 lg:grid-cols-[1fr_350px]">
          <SectionCard className="space-y-6">

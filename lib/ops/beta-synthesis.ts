@@ -17,6 +17,11 @@ export interface BetaSynthesis {
   };
   learningTags: string[];
   recommendations: string[];
+  qualitativeFeedback?: {
+    commonTags: Array<{ tag: string; count: number }>;
+    topMessages: string[];
+    topMotives: Array<{otive: string; count: number }>;
+  };
 }
 
 export async function getBetaSynthesis(): Promise<BetaSynthesis> {
@@ -30,17 +35,43 @@ export async function getBetaSynthesis(): Promise<BetaSynthesis> {
     .select("event_type, scope_type, city, payload, created_at, scope_id")
     .gte("created_at", yesterday.toISOString());
 
-  // 2. Fetch recent reports
+  // 2. Fetch recent reports and feedbacks
   const { data: reports } = await supabase
     .from("price_reports")
     .select("id, status, created_at")
     .gte("created_at", yesterday.toISOString());
 
+  const { data: feedbacks } = await supabase
+    .from("beta_feedback_submissions")
+    .select("message, triage_tags, triage_topic, created_at")
+    .gte("created_at", yesterday.toISOString());
+
   const auditGroups = await getAuditGroups();
 
-  // 3. Logic for Daily Summary
+  // 3. Qualitative Feedback Aggregation
+  const tagCounts = new Map<string, number>();
+  const topicCounts = new Map<string, number>();
+  const topMessages: string[] = [];
+
+  if (feedbacks) {
+    for (const f of feedbacks) {
+      if (Array.isArray(f.triage_tags)) {
+        for (const t of f.triage_tags) {
+           tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
+        }
+      }
+      if (f.triage_topic) {
+        topicCounts.set(f.triage_topic, (topicCounts.get(f.triage_topic) ?? 0) + 1);
+      }
+      if (f.message && topMessages.length < 3) {
+        topMessages.push(f.message);
+      }
+    }
+  }
+
+  // 4. Logic for Daily Summary
   const cameraEvents = events?.filter(e => e.event_type === "submission_camera_opened") ?? [];
-  const submissionEvents = events?.filter(e => e.event_type === "price_report_submitted" || e.event_type === "submission_success") ?? []; // check actual event type
+  const submissionEvents = events?.filter(e => e.event_type === "price_report_submitted" || e.event_type === "submission_success") ?? [];
   
   // Calculate average submission speed: submission_camera_opened -> price_report_submitted
   let totalSpeed = 0;
@@ -95,6 +126,17 @@ export async function getBetaSynthesis(): Promise<BetaSynthesis> {
       intensifyAreas: auditGroups.filter(g => g.releaseStatus === "validating" && successGroupSlugs.includes(g.slug)).map(g => g.name).slice(0, 2)
     },
     learningTags: tags.length > 0 ? tags : ["Estabilidade"],
-    recommendations: recommendations.length > 0 ? recommendations : ["Seguir plano de rollout atual."]
+    recommendations: recommendations.length > 0 ? recommendations : ["Seguir plano de rollout atual."],
+    qualitativeFeedback: feedbacks?.length ? {
+      commonTags: Array.from(tagCounts.entries())
+        .map(([tag, count]) => ({ tag, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5),
+      topMessages: topMessages,
+      topMotives: Array.from(topicCounts.entries())
+        .map(([otive, count]) => ({ otive, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 3)
+    } : undefined
   };
 }

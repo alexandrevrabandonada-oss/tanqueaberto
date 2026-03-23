@@ -34,6 +34,7 @@ import { useMissionContext } from "@/components/mission/mission-context";
 import { MySubmissionsList } from "@/components/history/my-submissions-list";
 import { type EffectiveGroupStatus } from "@/lib/ops/release-control";
 import { getSmartDefaultRecorte, getSmartDefaultPhrase, type SmartDefaultReason } from "@/lib/ops/smart-default";
+import { FeedbackTrigger } from "@/components/feedback/feedback-trigger";
 import type { FuelFilter, RecencyFilter } from "@/lib/filters/public";
 import type { ReportWithStation, StationWithReports } from "@/lib/types";
 
@@ -486,6 +487,13 @@ export function HomeBrowser({
                 </button>
               );
             })}
+            <FeedbackTrigger 
+              city={selectedCity} 
+              fuelType={fuelFilter} 
+              context={selectedCity ? `vendo ${selectedCity}` : "vendo todas as cidades"}
+              title="Home"
+              className="h-8 py-0 shrink-0"
+            />
           </div>
           
           <div className="flex items-center justify-between min-h-[1.5rem]">

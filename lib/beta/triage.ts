@@ -34,6 +34,17 @@ export function deriveFeedbackTags(feedbackType: string, message: string, contex
   if (/(auditoria|histórico|historico|dossi|série|serie|alerta)/.test(haystack)) tags.add("auditoria");
   if (/(velho|recente|atualiza|preço|preco)/.test(haystack)) tags.add("recência");
   if (/(confusa|confuso|não entendi|nao entendi|travou|erro)/.test(haystack)) tags.add("fluxo");
+  
+  // Novas tags operacionais
+  if (/(cobertura|vazio|falta|não tem)/.test(haystack)) tags.add("cobertura");
+  if (/(rede|conexão|sinal|internet|lent|demora)/.test(haystack)) tags.add("rede");
+  if (/(ambíguo|ambiguo|repetido|errado|outro posto|duplicad)/.test(haystack)) tags.add("posto_ambiguo");
+  if (/(foto|câmera|camera|borrad|escur)/.test(haystack)) tags.add("camera");
+  if (/(moderação|moderador|reprovado|demorado)/.test(haystack)) tags.add("moderação");
+  if (/(confusa|ux|botão|clicar|não achei|nao achei)/.test(haystack)) tags.add("ux_confusa");
+  if (/(mapa|lista|pino|sumiu)/.test(haystack)) tags.add("mapas");
+  if (/(erro|crash|travou|bug)/.test(haystack)) tags.add("erro_tecnico");
+
   if (pagePath?.startsWith("/postos")) tags.add("posto");
   if (pagePath === "/enviar") tags.add("envio");
   if (pagePath === "/auditoria") tags.add("auditoria");

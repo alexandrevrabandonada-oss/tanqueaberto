@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import type { Route } from "next";
+import { FeedbackTrigger } from "../feedback/feedback-trigger";
 
 export function MissionOverlay() {
   const { mission, progress, stats, endMission, nextStation, currentStationId } = useMissionContext();
@@ -23,6 +24,14 @@ export function MissionOverlay() {
               <span className="text-[10px] text-white/40 uppercase tracking-widest truncate">
                 {mission.groupName}
               </span>
+              <div className="h-3 w-px bg-white/10 mx-1" />
+              <FeedbackTrigger 
+                stationId={currentStationId || undefined} 
+                city={mission.groupName} 
+                context={`em missão ${mission.groupName}`} 
+                title="Sessão de Missão"
+                className="border-none bg-transparent hover:bg-white/5 h-auto py-0.5 px-1 font-bold"
+              />
             </div>
             <h3 className="text-sm font-bold text-white truncate leading-tight mt-0.5">
               {stats?.current} de {stats?.total} postos
