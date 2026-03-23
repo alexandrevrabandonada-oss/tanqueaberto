@@ -33,7 +33,7 @@ ${synthesis.recommendations.map((r, i) => `${i + 1}. ${r}`).join("\n")}
 VOZ DO TESTER:
 ${synthesis.qualitativeFeedback ? `
 - Tags: ${synthesis.qualitativeFeedback.commonTags.map(t => `${t.tag}(${t.count})`).join(", ")}
-- Motivos: ${synthesis.qualitativeFeedback.topMotives.map(m => m.otive).join(", ")}
+- Motivos: ${synthesis.qualitativeFeedback.topMotives.map(m => m.motive).join(", ")}
 - Destaques:
 ${synthesis.qualitativeFeedback.topMessages.map(m => `  > "${m}"`).join("\n")}
 ` : "Nenhum feedback qualitativo recente."}
