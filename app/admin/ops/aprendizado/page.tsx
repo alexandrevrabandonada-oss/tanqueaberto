@@ -118,7 +118,7 @@ export default async function BetaLearningPage() {
                 {synthesis.qualitativeFeedback.topMessages.map((msg, i) => (
                   <div key={i} className="relative rounded-2xl border border-white/5 bg-black/20 p-4 text-sm italic text-white/70">
                     <span className="absolute -top-2 left-4 bg-zinc-900 px-2 text-[10px] not-italic text-white/30">Tester #{i+1}</span>
-                    "{msg}"
+                    &quot;{msg}&quot;
                   </div>
                 ))}
               </div>
@@ -130,7 +130,7 @@ export default async function BetaLearningPage() {
               <div className="flex items-center gap-2 text-xs text-white/40">
                 <span className="font-bold text-emerald-400">Motivos de atrito:</span>
                 {synthesis.qualitativeFeedback.topMotives.map((m, i) => (
-                  <span key={i}>{m.otive}{i < synthesis.qualitativeFeedback!.topMotives.length - 1 ? " • " : ""}</span>
+                  <span key={i}>{m.motive}{i < synthesis.qualitativeFeedback!.topMotives.length - 1 ? " • " : ""}</span>
                 ))}
               </div>
             </div>
