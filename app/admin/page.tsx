@@ -16,6 +16,9 @@ import { formatDateTimeBR, formatRecencyLabel } from "@/lib/format/time";
 import { fuelLabels, reportStatusLabels } from "@/lib/format/labels";
 import { cn } from "@/lib/utils";
 import { Zap, Clock, AlertCircle } from "lucide-react";
+import { groupReportsForModeration } from "@/lib/ops/moderation-batching";
+import { BatchModerationPanel } from "@/components/admin/batch-moderation-panel";
+import { getActiveStations } from "@/lib/data/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -54,13 +57,16 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       ? resolvedSearchParams.status
       : "pending";
 
-  const [counts, reports, recentModerated, reviewQueue, slaStats] = await Promise.all([
+  const [counts, reports, recentModerated, reviewQueue, slaStats, stations] = await Promise.all([
     getModerationCounts(),
     getModerationReports(selectedStatus as "all" | "pending" | "approved" | "rejected" | "flagged"),
     getRecentModeratedReports(),
     getStationReviewQueue(),
-    getModerationSLAStats()
+    getModerationSLAStats(),
+    getActiveStations()
   ]);
+
+  const batches = selectedStatus === "pending" ? groupReportsForModeration(reports, stations) : [];
 
   const banner = resolveNotice(resolvedSearchParams);
 
@@ -128,6 +134,12 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           </Link>
         </div>
       </SectionCard>
+
+      {selectedStatus === "pending" && batches.length > 0 && (
+        <SectionCard className="border-white/10 bg-black/20">
+          <BatchModerationPanel batches={batches} />
+        </SectionCard>
+      )}
 
       {selectedStatus === "pending" && reports.length > 0 && (
         <SectionCard className="border-[color:var(--color-accent)]/20 bg-[color:var(--color-accent)]/5">

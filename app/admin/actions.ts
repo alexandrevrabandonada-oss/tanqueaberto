@@ -243,6 +243,18 @@ export async function moderateReportAction(formData: FormData) {
   await moderateReports(allIds, decision, moderationNote);
 }
 
+export async function moderateReportsBatchAction(formData: FormData) {
+  const reportIds = String(formData.get("reportIds") ?? "").split(",").filter(Boolean);
+  const decision = String(formData.get("decision") ?? "") as "approved" | "rejected";
+  const moderationNote = String(formData.get("moderationNote") ?? "");
+
+  if (reportIds.length === 0 || (decision !== "approved" && decision !== "rejected")) {
+    redirect(ADMIN_ROUTE);
+  }
+
+  await moderateReports(reportIds, decision, moderationNote);
+}
+
 export async function updateStationCurationAction(formData: FormData) {
   const admin = await requireAdminUser();
 
