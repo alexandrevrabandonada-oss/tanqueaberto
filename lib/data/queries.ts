@@ -130,34 +130,44 @@ export async function getHomeStations(): Promise<StationWithReports[]> {
     }));
   }
 
-  const [stations, reports, releaseSummary] = await Promise.all([
-    getActiveStations(),
-    getApprovedReports(),
-    import("@/lib/ops/release-control").then((m) => m.getTerritorialReleaseSummary())
-  ]);
+  let stationsWithStatus = stations;
 
-  // Map station to its status via group membership
-  const stationStatusMap = new Map<string, string>();
-  const { getAuditGroups, getAuditGroupMembers } = await import("@/lib/audit/groups");
-  const groups = await getAuditGroups();
+  try {
+    const releaseSummary = await import("@/lib/ops/release-control").then((m) => m.getTerritorialReleaseSummary());
+    const { getAuditGroups, getAuditGroupMembers } = await import("@/lib/audit/groups");
+    const groups = await getAuditGroups();
 
-  for (const group of groups) {
-    const members = await getAuditGroupMembers(group.id);
-    const status = releaseSummary.find((s) => s.slug === group.slug)?.status ?? "limited";
-    for (const m of members) {
-      const current = stationStatusMap.get(m.stationId);
-      if (!current || (status === "ready" && current !== "ready")) {
-        stationStatusMap.set(m.stationId, status);
+    if (groups.length > 0) {
+      // Map station to its status via group membership
+      const stationStatusMap = new Map<string, string>();
+      
+      // Fetch all members in parallel
+      const allMembersResults = await Promise.all(
+        groups.map(group => getAuditGroupMembers(group.id).then(members => ({ group, members })))
+      );
+
+      for (const { group, members } of allMembersResults) {
+        const status = releaseSummary.find((s) => s.slug === group.slug)?.status ?? "limited";
+        for (const m of members) {
+          const current = stationStatusMap.get(m.stationId);
+          // Prioritize higher status
+          const statusOrder: Record<string, number> = { ready: 0, validating: 1, limited: 2, hidden: 3 };
+          if (!current || statusOrder[status] < (statusOrder[current] ?? 99)) {
+            stationStatusMap.set(m.stationId, status);
+          }
+        }
       }
-    }
-  }
 
-  const stationsWithStatus = stations
-    .map((s) => ({
-      ...s,
-      releaseStatus: (stationStatusMap.get(s.id) as any) ?? "limited"
-    }))
-    .filter((s) => s.releaseStatus !== "hidden");
+      stationsWithStatus = stations
+        .map((s) => ({
+          ...s,
+          releaseStatus: (stationStatusMap.get(s.id) as any) ?? "limited"
+        }))
+        .filter((s) => s.releaseStatus !== "hidden");
+    }
+  } catch (err) {
+    console.error("Failed to apply territorial release control, falling back to all stations", err);
+  }
 
   const grouped = groupReportsByStation(stationsWithStatus, reports);
 
