@@ -9,10 +9,13 @@ import { Button } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
 import { requireAdminUser } from "@/lib/auth/admin";
 import { getModerationCounts, getModerationReports, getRecentModeratedReports, getStationReviewQueue } from "@/lib/data";
+import { getModerationSLAStats } from "@/lib/ops/moderation-stats";
+import { FastApprovalQueue } from "@/components/admin/fast-approval-queue";
 import { formatCurrencyBRL } from "@/lib/format/currency";
 import { formatDateTimeBR, formatRecencyLabel } from "@/lib/format/time";
 import { fuelLabels, reportStatusLabels } from "@/lib/format/labels";
 import { cn } from "@/lib/utils";
+import { Zap, Clock, AlertCircle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -51,11 +54,12 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       ? resolvedSearchParams.status
       : "pending";
 
-  const [counts, reports, recentModerated, reviewQueue] = await Promise.all([
+  const [counts, reports, recentModerated, reviewQueue, slaStats] = await Promise.all([
     getModerationCounts(),
     getModerationReports(selectedStatus as "all" | "pending" | "approved" | "rejected" | "flagged"),
     getRecentModeratedReports(),
-    getStationReviewQueue()
+    getStationReviewQueue(),
+    getModerationSLAStats()
   ]);
 
   const banner = resolveNotice(resolvedSearchParams);
@@ -90,22 +94,46 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           <Link href="/admin/ops" className="text-sm text-[color:var(--color-accent)]">
             Abrir painel operacional
           </Link>
+          <Link href={"/admin/rollout" as Route} className="text-sm text-[color:var(--color-accent)] decoration-dotted underline-offset-4 hover:underline">
+            Rollout Territorial
+          </Link>
         </div>
         <div className="grid gap-3 md:grid-cols-3">
           <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
-            <p className="text-base font-semibold text-white">Refresh e dossiês</p>
-            <p className="mt-1 text-sm text-white/54">Executa a rotina analítica e gera a memória recorrente.</p>
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-[color:var(--color-accent)]" />
+              <p className="text-base font-semibold text-white">SLA Médio</p>
+            </div>
+            <p className="mt-2 text-2xl font-bold text-white">
+              {Math.round(slaStats.avgTimeTotalMs / 60000)} <span className="text-sm font-normal text-white/40">min</span>
+            </p>
+            <p className="mt-1 text-xs text-white/54">Fast Lane: {Math.round(slaStats.avgTimePriorityMs / 60000)} min</p>
           </div>
           <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
-            <p className="text-base font-semibold text-white">Cobertura da base</p>
-            <p className="mt-1 text-sm text-white/54">Mostra onde faltam leituras, histórico e densidade.</p>
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-orange-400" />
+              <p className="text-base font-semibold text-white">Fila Pendente</p>
+            </div>
+            <p className="mt-2 text-2xl font-bold text-white">
+              {slaStats.pendingCount} <span className="text-sm font-normal text-white/40">reports</span>
+            </p>
+            <p className="mt-1 text-xs text-white/54">Mais antigo: {Math.round(slaStats.oldestPendingAgeMs / 3600000)}h atrás</p>
           </div>
-          <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
-            <p className="text-base font-semibold text-white">Prioridade de coleta</p>
-            <p className="mt-1 text-sm text-white/54">Lista os postos e corredores que pedem ativação.</p>
-          </div>
+          <Link href="/admin/ops" className="rounded-[22px] border border-white/8 bg-black/30 p-4 transition hover:bg-white/5">
+            <div className="flex items-center gap-2">
+              <Zap className="h-4 w-4 text-purple-400" />
+              <p className="text-base font-semibold text-white">Painel Operacional</p>
+            </div>
+            <p className="mt-2 text-sm text-white/54">Gerenciamento territorial e cobertura da rede.</p>
+          </Link>
         </div>
       </SectionCard>
+
+      {selectedStatus === "pending" && reports.length > 0 && (
+        <SectionCard className="border-[color:var(--color-accent)]/20 bg-[color:var(--color-accent)]/5">
+          <FastApprovalQueue reports={reports.slice(0, 10)} />
+        </SectionCard>
+      )}
 
       <SectionCard className="grid gap-3 sm:grid-cols-4">
         {[

@@ -110,8 +110,9 @@ export function mapReportsWithStations(reports: PriceReport[], stations: Station
         brand: station?.brand ?? "",
         city: station?.city ?? "",
         neighborhood: station?.neighborhood ?? ""
-      }
-    } satisfies ReportWithStation;
+      },
+      priorityScore: undefined
+    } as ReportWithStation;
   });
 }
 

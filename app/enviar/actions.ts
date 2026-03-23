@@ -10,6 +10,8 @@ import { recordPriceReportAuditEvent } from "@/lib/audit/events";
 import { buildReportPhotoPath, validateReportPhoto, REPORT_PHOTO_BUCKET } from "@/lib/upload/report-photo";
 import { NETWORK_SIM_COOKIE, getNetworkSimulationDelayMs, normalizeNetworkSimulationMode } from "@/lib/dev/network-sim";
 import { createSupabaseServiceClient } from "@/lib/supabase/admin";
+import { BETA_ACCESS_COOKIE_NAME } from "@/lib/beta/gate";
+import { getReportPriorityScore } from "@/lib/ops/moderation-priority";
 import type { FuelType } from "@/lib/types";
 
 interface SubmitState {
@@ -46,7 +48,8 @@ async function getSubmissionContext() {
     ip,
     ipHash: hashSubmissionIp(ip),
     userAgent: currentHeaders.get("user-agent") ?? null,
-    simulationMode
+    simulationMode,
+    betaToken: (await cookies()).get(BETA_ACCESS_COOKIE_NAME)?.value ?? null
   };
 }
 
@@ -257,6 +260,12 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
   const { data: publicUrl } = supabase.storage.from(REPORT_PHOTO_BUCKET).getPublicUrl(filePath);
   const timestamp = new Date().toISOString();
 
+  const priorityScore = getReportPriorityScore(
+    { fuelType, price, sourceKind: "community" },
+    station as any,
+    { betaInviteCode: context.betaToken }
+  );
+
   const { data: report, error: insertError } = await supabase
     .from("price_reports")
     .insert({
@@ -303,7 +312,9 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
       fuelType,
       sourceKind: "community",
       photoHash,
-      reportedAt: timestamp
+      reportedAt: timestamp,
+      priorityScore,
+      betaToken: context.betaToken
     }
   });
 

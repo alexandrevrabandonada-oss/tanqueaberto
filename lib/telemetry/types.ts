@@ -19,12 +19,21 @@ export type ProductTelemetryEventType =
   | "submission_queue_retried"
   | "submission_queue_completed"
   | "submission_queue_discarded"
+  | "submission_queue_recovered_success"
+  | "submission_queue_item_expired"
+  | "submission_queue_manual_retry"
+  | "submission_queue_flush_started"
   | "submission_abandoned"
   | "submission_failed"
   | "submission_accepted"
   | "audit_opened"
   | "feedback_opened"
-  | "beta_feedback_received";
+  | "beta_feedback_received"
+  | "route_started"
+  | "route_station_skipped"
+  | "route_station_arrived"
+  | "route_completed"
+  | "route_abandoned";
 
 export interface ProductTelemetryEventInput {
   eventType: ProductTelemetryEventType;

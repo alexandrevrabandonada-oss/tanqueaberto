@@ -168,6 +168,9 @@ export interface AuditStationGroup {
   description: string | null;
   groupType: AuditGroupType;
   city: string | null;
+  releaseStatus: "ready" | "validating" | "limited" | "hidden";
+  isPublished: boolean;
+  rolloutNotes: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

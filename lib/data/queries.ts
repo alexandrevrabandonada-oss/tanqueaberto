@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { assembleStationWithReports, groupReportsByStation, mapReportRow, mapReportsWithStations, mapStationRow } from "@/lib/data/mappers";
+import { getReportPriorityScore } from "@/lib/ops/moderation-priority";
 import { isPreviewFixturesEnabled, getPreviewApprovedReportsSince, getPreviewRecentCount, getPreviewRecentFeed, getPreviewStations, getPreviewStationById } from "@/lib/dev/preview-data";
 import type { Station, StationWithReports, ReportWithStation, PriceReport, ReportStatus } from "@/lib/types";
 import type { PriceReportRow, StationRow } from "@/types/supabase";
@@ -129,8 +130,47 @@ export async function getHomeStations(): Promise<StationWithReports[]> {
     }));
   }
 
-  const [stations, reports] = await Promise.all([getActiveStations(), getApprovedReports()]);
-  return groupReportsByStation(stations, reports);
+  const [stations, reports, releaseSummary] = await Promise.all([
+    getActiveStations(),
+    getApprovedReports(),
+    import("@/lib/ops/release-control").then((m) => m.getTerritorialReleaseSummary())
+  ]);
+
+  // Map station to its status via group membership
+  const stationStatusMap = new Map<string, string>();
+  const { getAuditGroups, getAuditGroupMembers } = await import("@/lib/audit/groups");
+  const groups = await getAuditGroups();
+
+  for (const group of groups) {
+    const members = await getAuditGroupMembers(group.id);
+    const status = releaseSummary.find((s) => s.slug === group.slug)?.status ?? "limited";
+    for (const m of members) {
+      const current = stationStatusMap.get(m.stationId);
+      if (!current || (status === "ready" && current !== "ready")) {
+        stationStatusMap.set(m.stationId, status);
+      }
+    }
+  }
+
+  const stationsWithStatus = stations
+    .map((s) => ({
+      ...s,
+      releaseStatus: (stationStatusMap.get(s.id) as any) ?? "limited"
+    }))
+    .filter((s) => s.releaseStatus !== "hidden");
+
+  const grouped = groupReportsByStation(stationsWithStatus, reports);
+
+  // Final sort: Ready > Validating > Limited
+  return grouped.sort((a, b) => {
+    const statusOrder: Record<string, number> = { ready: 0, validating: 1, limited: 2, hidden: 3 };
+    const orderA = statusOrder[a.releaseStatus ?? "limited"] ?? 99;
+    const orderB = statusOrder[b.releaseStatus ?? "limited"] ?? 99;
+
+    if (orderA !== orderB) return orderA - orderB;
+
+    return (b.priorityScore ?? 0) - (a.priorityScore ?? 0);
+  });
 }
 
 export async function getStationDetail(id: string): Promise<StationWithReports | null> {
@@ -199,7 +239,23 @@ export async function getModerationReports(status: ReportStatus | "all" = "pendi
     return [];
   }
 
-  return mapReportsWithStations((reportsData as PriceReportRow[]).map(mapReportRow), stations);
+  const reports = mapReportsWithStations((reportsData as PriceReportRow[]).map(mapReportRow), stations);
+
+  // Add priority score if pending
+  if (status === "pending" || status === "all") {
+    reports.forEach((report) => {
+      if (report.status === "pending") {
+        const station = stations.find((s) => s.id === report.stationId) || null;
+        report.priorityScore = getReportPriorityScore(report, station as any, { betaInviteCode: null });
+      }
+    });
+
+    if (status === "pending") {
+      reports.sort((a, b) => (b.priorityScore ?? 0) - (a.priorityScore ?? 0));
+    }
+  }
+
+  return reports;
 }
 
 export async function getRecentModeratedReports(limit = 6): Promise<ReportWithStation[]> {

@@ -35,6 +35,7 @@ export interface Station {
   visibilityStatus?: "public" | "review" | "hidden";
   curationNote?: string | null;
   coordinateReviewedAt?: string | null;
+  releaseStatus?: "ready" | "validating" | "limited" | "hidden";
   updatedAt?: string | null;
 }
 
@@ -69,4 +70,5 @@ export interface StationWithReports extends Station {
 
 export interface ReportWithStation extends PriceReport {
   station: Pick<Station, "id" | "name" | "brand" | "city" | "neighborhood">;
+  priorityScore?: number;
 }

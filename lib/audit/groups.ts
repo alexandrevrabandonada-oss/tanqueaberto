@@ -5,7 +5,7 @@ export async function getAuditGroups() {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("audit_station_groups")
-    .select("id,slug,name,description,group_type,city,is_active,created_at,updated_at")
+    .select("id,slug,name,description,group_type,city,release_status,is_published,rollout_notes,is_active,created_at,updated_at")
     .eq("is_active", true)
     .order("name", { ascending: true });
 
@@ -21,6 +21,9 @@ export async function getAuditGroups() {
     description: row.description,
     groupType: row.group_type,
     city: row.city,
+    releaseStatus: row.release_status,
+    isPublished: row.is_published,
+    rolloutNotes: row.rollout_notes,
     isActive: row.is_active,
     createdAt: row.created_at,
     updatedAt: row.updated_at
@@ -31,7 +34,7 @@ export async function getAuditGroupBySlug(slug: string): Promise<AuditStationGro
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("audit_station_groups")
-    .select("id,slug,name,description,group_type,city,is_active,created_at,updated_at")
+    .select("id,slug,name,description,group_type,city,release_status,is_published,rollout_notes,is_active,created_at,updated_at")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -49,6 +52,9 @@ export async function getAuditGroupBySlug(slug: string): Promise<AuditStationGro
     description: data.description,
     groupType: data.group_type,
     city: data.city,
+    releaseStatus: data.release_status,
+    isPublished: data.is_published,
+    rolloutNotes: data.rollout_notes,
     isActive: data.is_active,
     createdAt: data.created_at,
     updatedAt: data.updated_at

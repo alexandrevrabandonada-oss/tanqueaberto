@@ -1,8 +1,14 @@
 import type { Route } from "next";
-
 import type { FuelType } from "@/lib/types";
+import { storeQueuePhoto, getQueuePhoto, deleteQueuePhoto } from "./photo-storage";
 
-export type SubmissionQueueStatus = "pending" | "retryable" | "needs_photo";
+export type SubmissionQueueStatus = 
+  | "stored"         // Guardado localmente, aguardando primeira tentativa
+  | "ready"          // Conexão detectada, pronto para reenvio assistido
+  | "photo_required" // Falha na foto (corrompida ou deletada)
+  | "failed"         // Falha técnica persistente
+  | "success"        // Enviado com sucesso (mantido brevemente para feedback)
+  | "expired";       // Passou do TTL de 12h
 
 export interface SubmissionQueueEntry {
   id: string;
@@ -25,6 +31,7 @@ export interface SubmissionQueueEntry {
   returnToHref: string | null;
   createdAt: string;
   updatedAt: string;
+  recoveredAt?: string | null;
 }
 
 export interface SubmissionQueueEntryInput {
@@ -37,7 +44,7 @@ export interface SubmissionQueueEntryInput {
   price: string;
   nickname: string;
   status: SubmissionQueueStatus;
-  hasPhoto: boolean;
+  photo?: File | null;
   photoName?: string | null;
   photoType?: string | null;
   photoSize?: number | null;
@@ -57,10 +64,7 @@ function supportsStorage() {
 }
 
 function safeParse<T>(value: string | null): T | null {
-  if (!value) {
-    return null;
-  }
-
+  if (!value) return null;
   try {
     return JSON.parse(value) as T;
   } catch {
@@ -78,8 +82,9 @@ function normalizeEntry(entry: SubmissionQueueEntry): SubmissionQueueEntry | nul
     return null;
   }
 
-  if (!isFresh(entry.updatedAt)) {
-    return null;
+  // Items are marked as expired instead of being immediately deleted if they pass TTL
+  if (!isFresh(entry.updatedAt) && entry.status !== "expired") {
+    entry.status = "expired";
   }
 
   return {
@@ -103,19 +108,13 @@ function sortQueue(entries: SubmissionQueueEntry[]) {
 }
 
 async function readQueue(): Promise<SubmissionQueueEntry[]> {
-  if (!supportsStorage()) {
-    return [];
-  }
-
+  if (!supportsStorage()) return [];
   const parsed = safeParse<SubmissionQueueEntry[]>(window.localStorage.getItem(STORAGE_KEY)) ?? [];
   return sortQueue(parsed.map(normalizeEntry).filter((item): item is SubmissionQueueEntry => Boolean(item)));
 }
 
 async function writeQueue(entries: SubmissionQueueEntry[]) {
-  if (!supportsStorage()) {
-    return [];
-  }
-
+  if (!supportsStorage()) return [];
   const next = sortQueue(entries.map(normalizeEntry).filter((item): item is SubmissionQueueEntry => Boolean(item)));
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   return next;
@@ -129,6 +128,12 @@ export async function upsertSubmissionQueueEntry(input: SubmissionQueueEntryInpu
   const current = await readQueue();
   const timestamp = input.updatedAt ?? new Date().toISOString();
   const existing = current.find((entry) => entry.draftKey === input.draftKey);
+  
+  // Store photo in IndexedDB if provided
+  if (input.photo) {
+    await storeQueuePhoto(input.draftKey, input.photo);
+  }
+
   const nextEntry: SubmissionQueueEntry = {
     id: existing?.id ?? input.draftKey,
     draftKey: input.draftKey,
@@ -140,16 +145,17 @@ export async function upsertSubmissionQueueEntry(input: SubmissionQueueEntryInpu
     price: input.price,
     nickname: input.nickname,
     status: input.status,
-    hasPhoto: input.hasPhoto,
-    photoName: input.photoName ?? null,
-    photoType: input.photoType ?? null,
-    photoSize: input.photoSize ?? null,
+    hasPhoto: Boolean(input.photo || existing?.hasPhoto),
+    photoName: input.photoName ?? input.photo?.name ?? existing?.photoName ?? null,
+    photoType: input.photoType ?? input.photo?.type ?? existing?.photoType ?? null,
+    photoSize: input.photoSize ?? input.photo?.size ?? existing?.photoSize ?? null,
     lastErrorCode: input.lastErrorCode ?? null,
     lastErrorLabel: input.lastErrorLabel ?? null,
     attempts: input.attempts ?? existing?.attempts ?? 0,
     returnToHref: input.returnToHref ?? null,
     createdAt: existing?.createdAt ?? input.createdAt ?? timestamp,
-    updatedAt: timestamp
+    updatedAt: timestamp,
+    recoveredAt: existing?.recoveredAt
   };
 
   const next = existing ? current.map((entry) => (entry.draftKey === input.draftKey ? nextEntry : entry)) : [nextEntry, ...current];
@@ -158,12 +164,29 @@ export async function upsertSubmissionQueueEntry(input: SubmissionQueueEntryInpu
 
 export async function removeSubmissionQueueEntry(id: string) {
   const current = await readQueue();
+  const entry = current.find(e => e.id === id);
+  if (entry) {
+    await deleteQueuePhoto(entry.draftKey);
+  }
   return writeQueue(current.filter((entry) => entry.id !== id));
 }
 
 export async function clearSubmissionQueueForDraftKey(draftKey: string) {
   const current = await readQueue();
+  await deleteQueuePhoto(draftKey);
   return writeQueue(current.filter((entry) => entry.draftKey !== draftKey));
+}
+
+export async function markEntryAsSuccess(draftKey: string) {
+  const current = await readQueue();
+  const entry = current.find(e => e.draftKey === draftKey);
+  if (entry) {
+    entry.status = "success";
+    entry.updatedAt = new Date().toISOString();
+    entry.recoveredAt = entry.updatedAt;
+    await deleteQueuePhoto(draftKey);
+  }
+  return writeQueue(current);
 }
 
 export function buildSubmissionQueueHref(entry: SubmissionQueueEntry) {
@@ -173,7 +196,13 @@ export function buildSubmissionQueueHref(entry: SubmissionQueueEntry) {
 }
 
 export function getSubmissionQueueStatusLabel(status: SubmissionQueueStatus) {
-  if (status === "needs_photo") return "Foto precisa ser refeita";
-  if (status === "retryable") return "Pronto para reenviar";
-  return "Guardado neste aparelho";
+  switch (status) {
+    case "photo_required": return "Foto precisa ser refeita";
+    case "ready": return "Pronto para reenviar";
+    case "stored": return "Guardado no aparelho";
+    case "failed": return "Falha ao reenviar";
+    case "success": return "Enviado com sucesso";
+    case "expired": return "Expirado (12h)";
+    default: return "Pendente";
+  }
 }

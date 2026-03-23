@@ -9,6 +9,7 @@ import { StationMapShell } from "@/components/map/station-map-shell";
 import { FirstVisitGuide } from "@/components/onboarding/first-visit-guide";
 import { StationCard } from "@/components/station/station-card";
 import { Badge } from "@/components/ui/badge";
+import { GroupStatusBadge } from "@/components/ui/group-status-badge";
 import { ButtonLink } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
 import { EmptyStateCard } from "@/components/state/empty-state-card";
@@ -21,6 +22,8 @@ import { filterReports, filterStations, getSelectedStationReport, hasRecentStati
 import { sortStationsForPublicView } from "@/lib/filters/sort";
 import { canShowStationOnMap, getStationPublicName, hasPendingStationLocationReview } from "@/lib/quality/stations";
 import { persistHomeContext, priorityCities, readHomeContext, readLastStationContext, rememberStationVisit } from "@/lib/navigation/home-context";
+import { startRoute, readRouteContext } from "@/lib/navigation/route-context";
+import { RouteAssistant } from "@/components/routes/route-assistant";
 import type { FuelFilter, RecencyFilter } from "@/lib/filters/public";
 import type { ReportWithStation, StationWithReports } from "@/lib/types";
 
@@ -216,11 +219,16 @@ export function HomeBrowser({
           </div>
         </SectionCard>
       ) : null}
+
+      <div className="mb-4">
+        <RouteAssistant stations={stations} />
+      </div>
+
       <SectionCard className="space-y-4">
-        <div className="space-y-2">
-          <Badge>Mapa vivo</Badge>
-          <h2 className="text-[1.6rem] font-semibold leading-tight text-white">Veja o cadastro territorial e o preço recente sem misturar as duas coisas.</h2>
-          <p className="text-sm text-white/58">Busque, escolha a cidade e entenda em poucos segundos o que já está no mapa, o que já foi atualizado e o que ainda precisa de colaboração.</p>
+        <div className="space-y-1.5">
+          <Badge className="text-[10px] uppercase tracking-widest">Mapa Vivo</Badge>
+          <h2 className="text-2xl font-bold tracking-tight text-white">Transparência territorial e preço real</h2>
+          <p className="text-sm leading-relaxed text-white/40">Busque, filtre e colabore para manter o mapa vivo.</p>
         </div>
 
         <div className="flex items-center gap-3 rounded-[22px] border border-white/8 bg-black/30 px-4 py-3 text-sm text-white/50">
@@ -367,7 +375,21 @@ export function HomeBrowser({
         </div>
 
         <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-white/44">
-          <span>{orderedStations.length} postos no recorte</span>
+          <div className="flex items-center gap-3">
+            <span>{orderedStations.length} postos no recorte</span>
+            {selectedCity && !readRouteContext().active && (
+              <button 
+                type="button" 
+                onClick={() => {
+                  startRoute(selectedCity, null, fuelFilter);
+                  window.location.reload(); // Refresh to show assistant
+                }}
+                className="font-bold text-[color:var(--color-accent)] hover:underline"
+              >
+                · Iniciar Rota de Coleta
+              </button>
+            )}
+          </div>
           {hasFilters ? (
             <button type="button" onClick={resetFilters} className="text-white/60 transition hover:text-white">
               Limpar filtros
@@ -408,12 +430,17 @@ export function HomeBrowser({
         <SectionCard className="space-y-4">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Lista do recorte</p>
-              <h2 className="mt-1 text-xl font-semibold text-white">Exploração sincronizada com o mapa</h2>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Lista do recorte</p>
+              <div className="flex items-center gap-2">
+                <h2 className="mt-1 text-lg font-semibold text-white">Postos no seu filtro atual</h2>
+                {selectedCity && orderedStations.length > 0 && orderedStations[0].releaseStatus && (
+                  <GroupStatusBadge status={orderedStations[0].releaseStatus} className="mt-1" />
+                )}
+              </div>
             </div>
-            <Badge variant="outline">{summaryStations.length} visíveis agora</Badge>
+            <Badge variant="outline" className="text-[10px]">{summaryStations.length} no mapa</Badge>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {summaryStations.map((station) => {
               const latest = getSelectedStationReport(station, fuelFilter);
               const stationHref = `/postos/${station.id}?returnTo=${encodeURIComponent(contextHref)}` as Route;
@@ -425,16 +452,22 @@ export function HomeBrowser({
                     rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
                     void trackProductEvent({ eventType: "station_clicked", pagePath: contextHref, pageTitle: "Mapa vivo", stationId: station.id, city: station.city, fuelType: latest?.fuelType ?? null, scopeType: "station", scopeId: station.id, payload: { source: "recorte-lista" } });
                   }}
-                  className="flex items-center justify-between rounded-[20px] border border-white/8 bg-black/30 px-4 py-3 transition hover:border-[color:var(--color-accent)]/40"
+                  className="group flex items-center justify-between rounded-[18px] border border-white/5 bg-white/5 px-4 py-3 transition hover:border-white/12 hover:bg-white/8 active:scale-[0.99]"
                 >
-                  <div className="min-w-0">
-                    <p className="truncate font-medium text-white">{getStationPublicName(station)}</p>
-                    <p className="truncate text-sm text-white/50">
-                      {station.neighborhood}, {station.city}
+                  <div className="min-w-0 pr-4">
+                    <p className="truncate text-sm font-semibold text-white group-hover:text-[color:var(--color-accent)]">{getStationPublicName(station)}</p>
+                    <p className="truncate text-xs text-white/40">
+                      {station.neighborhood}
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
-                    <Badge variant={latest ? recencyToneToBadgeVariant(getRecencyTone(latest.reportedAt)) : "outline"}>{latest ? formatRecencyLabel(latest.reportedAt) : "Sem preço"}</Badge>
+                    {latest ? (
+                      <Badge variant={recencyToneToBadgeVariant(getRecencyTone(latest.reportedAt))} className="text-[10px]">
+                        {formatRecencyLabel(latest.reportedAt)}
+                      </Badge>
+                    ) : (
+                      <span className="text-[10px] uppercase tracking-wider text-white/24">Sem preço</span>
+                    )}
                   </div>
                 </Link>
               );
@@ -443,27 +476,21 @@ export function HomeBrowser({
         </SectionCard>
       ) : null}
 
-      <SectionCard className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-white/42">Postos visíveis</p>
-          <p className="mt-3 text-3xl font-semibold text-white">{mapStations.length}</p>
-          <p className="mt-1 text-xs text-white/44">Cadastro territorial apto ao mapa</p>
-        </div>
-        <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-white/42">Com preço recente</p>
-          <p className="mt-3 text-3xl font-semibold text-white">{stationsWithRecentPrice.length}</p>
-          <p className="mt-1 text-xs text-white/44">Atualização recente aprovada</p>
-        </div>
-        <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-white/42">Sem atualização</p>
-          <p className="mt-3 text-3xl font-semibold text-white">{stationsWithoutRecentPrice}</p>
-          <p className="mt-1 text-xs text-white/44">Cadastro visível ainda sem preço recente</p>
-        </div>
-        <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-white/42">Atualizações 24h</p>
-          <p className="mt-3 text-3xl font-semibold text-white">{recentCount}</p>
-          <p className="mt-1 text-xs text-white/44">Envios aprovados na última janela</p>
-        </div>
+      <SectionCard className="grid grid-cols-2 gap-2 p-2 sm:grid-cols-4">
+        {[
+          { label: "No Recorte", value: mapStations.length, note: "Postos visíveis" },
+          { label: "Com Preço", value: stationsWithRecentPrice.length, note: "Recentemente" },
+          { label: "Falta Atualizar", value: stationsWithoutRecentPrice, note: "Sem preço recente", tone: "warning" },
+          { label: "No Ar 24h", value: recentCount, note: "Últimos envios", tone: "accent" }
+        ].map((stat) => (
+          <div key={stat.label} className="flex flex-col rounded-[18px] border border-white/5 bg-white/5 p-4">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">{stat.label}</p>
+            <p className={`mt-1 text-2xl font-bold tracking-tighter ${stat.tone === 'accent' ? 'text-[color:var(--color-accent)]' : stat.tone === 'warning' ? 'text-orange-400' : 'text-white'}`}>
+              {stat.value}
+            </p>
+            <p className="text-[10px] text-white/20">{stat.note}</p>
+          </div>
+        ))}
       </SectionCard>
 
       <SectionCard className="space-y-4">
@@ -483,21 +510,16 @@ export function HomeBrowser({
             className="text-left"
           />
         ) : (
-          <div className="space-y-3">
+          <div className="grid gap-2 sm:grid-cols-3">
             {cheapestNow.map(({ station, report }) => (
-              <div key={report.id} className="rounded-[22px] border border-white/8 bg-black/30 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-medium text-white">{getStationPublicName(station)}</p>
-                    <p className="text-sm text-white/50">
-                      {station.neighborhood}, {station.city}
-                    </p>
-                  </div>
-                  <Badge variant={recencyToneToBadgeVariant(getRecencyTone(report.reportedAt))}>{formatRecencyLabel(report.reportedAt)}</Badge>
+              <div key={report.id} className="rounded-[18px] border border-white/5 bg-white/5 p-4 flex flex-col justify-between">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-white/30 truncate">{getStationPublicName(station)}</p>
+                  <p className="mt-1 text-2xl font-bold tracking-tight text-white">{formatCurrencyBRL(report.price)}</p>
                 </div>
-                <div className="mt-3 flex items-center justify-between">
-                  <div className="text-sm text-white/58">{fuelLabels[report.fuelType]}</div>
-                  <div className="text-2xl font-semibold text-white">{formatCurrencyBRL(report.price)}</div>
+                <div className="mt-3 flex items-center justify-between text-[10px] text-white/40">
+                  <span className="truncate">{fuelLabels[report.fuelType]}</span>
+                  <span className="shrink-0">{formatRecencyLabel(report.reportedAt)}</span>
                 </div>
               </div>
             ))}
@@ -555,7 +577,7 @@ export function HomeBrowser({
           </div>
           <Badge variant={filteredFeed.length === 0 ? "outline" : "warning"}>{filteredFeed.length} itens</Badge>
         </div>
-        <div className="space-y-3">
+        <div className="space-y-2">
           {filteredFeed.slice(0, 3).length === 0 ? (
             <EmptyStateCard
               title="Nenhuma atualização recente neste filtro."
@@ -566,24 +588,17 @@ export function HomeBrowser({
             />
           ) : (
             filteredFeed.slice(0, 3).map((report) => (
-              <div key={report.id} className="rounded-[22px] border border-white/8 bg-black/30 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-medium text-white">{getStationPublicName(report.station)}</p>
-                    <p className="text-sm text-white/50">
-                      {report.station.neighborhood}, {report.station.city}
-                    </p>
-                  </div>
-                  <Badge variant={recencyToneToBadgeVariant(getRecencyTone(report.reportedAt))}>{formatRecencyLabel(report.reportedAt)}</Badge>
+              <div key={report.id} className="flex items-center justify-between rounded-[18px] border border-white/5 bg-white/5 px-4 py-3">
+                <div className="min-w-0 pr-4">
+                  <p className="truncate text-sm font-medium text-white/80">{getStationPublicName(report.station)}</p>
+                  <p className="truncate text-[10px] text-white/30">
+                    {report.station.neighborhood} · {fuelLabels[report.fuelType]}
+                  </p>
                 </div>
-                <div className="mt-4 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm text-white/58">
-                    <Camera className="h-4 w-4 text-[color:var(--color-accent)]" />
-                    {fuelLabels[report.fuelType]}
-                  </div>
-                  <p className="text-xl font-semibold text-white">{formatCurrencyBRL(report.price)}</p>
+                <div className="flex shrink-0 flex-col items-end">
+                  <p className="text-lg font-bold text-white">{formatCurrencyBRL(report.price)}</p>
+                  <p className="text-[10px] text-white/20">{formatRecencyLabel(report.reportedAt)}</p>
                 </div>
-                <div className="mt-3 text-xs text-white/46">{formatDateTimeBR(report.reportedAt)}</div>
               </div>
             ))
           )}

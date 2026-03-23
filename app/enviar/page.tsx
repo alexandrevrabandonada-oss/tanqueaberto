@@ -7,7 +7,8 @@ import { PriceSubmitForm } from "@/components/forms/price-submit-form";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
-import { getStationOptions } from "@/lib/data";
+import { QueueAssistant } from "@/components/routes/queue-assistant";
+import { getHomeStations } from "@/lib/data";
 import type { FuelType } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +34,7 @@ function parseFuel(value: string | string[] | undefined): FuelType | undefined {
 
 export default async function SubmitPage({ searchParams }: SubmitPageProps) {
   const params = (await searchParams) ?? {};
-  const stations = await getStationOptions();
+  const stations = await getHomeStations();
   const initialStationId = firstValue(params.stationId);
   const returnToHref = safeReturnTo(params.returnTo);
   const initialStation = initialStationId ? stations.find((station) => station.id === initialStationId) ?? null : null;
@@ -42,6 +43,7 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
   return (
     <AppShell>
       <ProductEvent eventType="submit_opened" pagePath="/enviar" pageTitle="Enviar preço" />
+      <QueueAssistant />
       <SectionCard className="space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div>

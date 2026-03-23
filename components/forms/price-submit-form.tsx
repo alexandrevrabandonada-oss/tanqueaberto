@@ -8,9 +8,11 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import type { FuelType, Station } from "@/lib/types";
+import type { FuelType, StationWithReports } from "@/lib/types";
 import { fuelLabels } from "@/lib/format/labels";
 import { submitPriceReportAction } from "@/app/enviar/actions";
+import { RouteAssistant } from "@/components/routes/route-assistant";
+import { completeStationInRoute, readRouteContext } from "@/lib/navigation/route-context";
 import { trackProductEvent } from "@/lib/telemetry/client";
 import { clearSubmissionDraft, loadSubmissionDraft, saveSubmissionDraft, type SubmissionDraftSnapshot, type SubmissionDraftStep, type SubmissionDraftStatus } from "@/lib/drafts/submission-draft";
 import { SubmissionQueuePanel } from "@/components/forms/submission-queue-panel";
@@ -21,7 +23,7 @@ const allowedFuelSet = new Set<FuelType>(fuelOptions);
 const initialState = { error: null, errorCode: null, retryable: false, success: false };
 
 interface PriceSubmitFormProps {
-  stations: Station[];
+  stations: StationWithReports[];
   initialStationId?: string;
   initialFuelType?: FuelType;
   returnToHref?: string;
@@ -287,8 +289,14 @@ function PriceSubmitFormBody({
     setDraftPhotoMissing(false);
     window.sessionStorage.removeItem(draftKey);
     void clearSubmissionDraft(draftKey).catch(() => undefined);
+    
+    // Route completion
+    if (stationId) {
+      completeStationInRoute(stationId);
+    }
+
     void clearSubmissionQueueForDraftKey(draftKey)
-      .then((items) => setQueueItems(items))
+      .then((items: SubmissionQueueEntry[]) => setQueueItems(items))
       .catch(() => undefined);
     if (currentQueueItem) {
       void trackProductEvent({
@@ -364,8 +372,8 @@ function PriceSubmitFormBody({
         fuelType,
         price,
         nickname,
-        status: hasPhoto ? "pending" : "needs_photo",
-        hasPhoto,
+        status: hasPhoto ? "stored" : "photo_required",
+        photo: selectedFileRef.current,
         photoName: selectedFileRef.current?.name ?? (draftPhotoMissing ? "foto" : null),
         photoType: selectedFileRef.current?.type ?? null,
         photoSize: selectedFileRef.current?.size ?? null,
@@ -374,7 +382,7 @@ function PriceSubmitFormBody({
         attempts: retryAttemptRef.current,
         returnToHref: safeReturnToHref ?? null
       })
-        .then((items) => setQueueItems(items))
+        .then((items: SubmissionQueueEntry[]) => setQueueItems(items))
         .catch(() => undefined);
 
       void trackProductEvent({
@@ -389,7 +397,7 @@ function PriceSubmitFormBody({
         reason: "abandoned",
         payload: {
           source: "abandonment",
-          status: hasPhoto ? "pending" : "needs_photo",
+        status: hasPhoto ? "stored" : "photo_required",
           hasPhoto,
           photoMissing: draftPhotoMissing
         }
@@ -450,7 +458,16 @@ function PriceSubmitFormBody({
 
     const resolvedStation = stations.find((station) => station.id === stationId) ?? selectedStation;
     const hasPhoto = Boolean(selectedFileRef.current);
-    const nextQueueStatus = state.errorCode === "photo_missing" || !hasPhoto ? "needs_photo" : "retryable";
+    
+    // Map internal error codes to operational statuses
+    let nextQueueStatus: any = "stored";
+    if (state.errorCode === "photo_missing" || !hasPhoto) {
+      nextQueueStatus = "photo_required";
+    } else if (state.errorCode === "network_offline" || !isOnline) {
+      nextQueueStatus = "ready";
+    } else if (state.retryable) {
+      nextQueueStatus = "failed";
+    }
 
     void upsertSubmissionQueueEntry({
       draftKey,
@@ -462,7 +479,7 @@ function PriceSubmitFormBody({
       price,
       nickname,
       status: nextQueueStatus,
-      hasPhoto,
+      photo: selectedFileRef.current,
       photoName: selectedFileRef.current?.name ?? (draftPhotoMissing ? "foto" : null),
       photoType: selectedFileRef.current?.type ?? null,
       photoSize: selectedFileRef.current?.size ?? null,
@@ -802,6 +819,10 @@ function PriceSubmitFormBody({
             <Button type="button" variant="ghost" onClick={() => router.push((safeReturnToHref ?? "/") as Route)}>
               Voltar ao mapa
             </Button>
+          </div>
+
+          <div className="mt-6 border-t border-white/10 pt-4">
+            <RouteAssistant stations={stations} currentStationId={submittedStationId} />
           </div>
         </div>
       ) : null}
