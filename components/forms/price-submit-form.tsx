@@ -14,7 +14,7 @@ import { trackProductEvent } from "@/lib/telemetry/client";
 
 const fuelOptions: FuelType[] = ["gasolina_comum", "gasolina_aditivada", "etanol", "diesel_s10", "diesel_comum", "gnv"];
 
-const initialState = { error: null, success: false };
+const initialState = { error: null, errorCode: null, retryable: false, success: false };
 
 interface PriceSubmitFormProps {
   stations: Station[];
@@ -26,10 +26,15 @@ function safeRoute(value?: string): Route | null {
   return value && value.startsWith("/") ? (value as Route) : null;
 }
 
+function createDraftKey(initialStationId?: string) {
+  return `bomba-aberta:price-draft:${initialStationId ?? "default"}`;
+}
+
 export function PriceSubmitForm({ stations, initialStationId, returnToHref }: PriceSubmitFormProps) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(submitPriceReportAction, initialState);
   const safeReturnToHref = useMemo(() => safeRoute(returnToHref), [returnToHref]);
+  const draftKey = useMemo(() => createDraftKey(initialStationId), [initialStationId]);
   const defaultStationId = useMemo(() => {
     const candidate = stations.find((station) => station.id === initialStationId);
     return candidate?.id ?? stations[0]?.id ?? "";
@@ -40,9 +45,42 @@ export function PriceSubmitForm({ stations, initialStationId, returnToHref }: Pr
   const [price, setPrice] = useState("");
   const [nickname, setNickname] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const selectedFileRef = useRef<File | null>(null);
   const [submittedStationId, setSubmittedStationId] = useState<string | null>(null);
+  const [draftRestored, setDraftRestored] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const formRef = useRef<HTMLFormElement | null>(null);
   const hasStartedRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const rawDraft = window.sessionStorage.getItem(draftKey);
+    if (!rawDraft) {
+      return;
+    }
+
+    try {
+      const draft = JSON.parse(rawDraft) as Partial<{ stationId: string; fuelType: FuelType; price: string; nickname: string }>;
+      if (draft.stationId && stations.some((station) => station.id === draft.stationId)) {
+        setStationId(draft.stationId);
+      }
+      if (draft.fuelType && fuelOptions.includes(draft.fuelType)) {
+        setFuelType(draft.fuelType);
+      }
+      if (typeof draft.price === "string") {
+        setPrice(draft.price);
+      }
+      if (typeof draft.nickname === "string") {
+        setNickname(draft.nickname);
+      }
+      setDraftRestored(true);
+    } catch {
+      window.sessionStorage.removeItem(draftKey);
+    }
+  }, [draftKey, stations]);
 
   useEffect(() => {
     if (initialStationId && stations.some((station) => station.id === initialStationId)) {
@@ -56,17 +94,29 @@ export function PriceSubmitForm({ stations, initialStationId, returnToHref }: Pr
   }, [initialStationId, stations, stationId]);
 
   useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const draft = { stationId, fuelType, price, nickname };
+    window.sessionStorage.setItem(draftKey, JSON.stringify(draft));
+  }, [draftKey, stationId, fuelType, price, nickname]);
+
+  useEffect(() => {
     if (state.success) {
       setSubmittedStationId(stationId);
       setPrice("");
       setNickname("");
       setPreviewUrl(null);
+      selectedFileRef.current = null;
+      setDraftRestored(false);
+      window.sessionStorage.removeItem(draftKey);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
       router.refresh();
     }
-  }, [router, state.success, stationId]);
+  }, [draftKey, router, state.success, stationId]);
 
   useEffect(() => {
     return () => {
@@ -101,6 +151,8 @@ export function PriceSubmitForm({ stations, initialStationId, returnToHref }: Pr
       URL.revokeObjectURL(previewUrl);
     }
 
+    selectedFileRef.current = nextFile;
+
     if (!nextFile) {
       setPreviewUrl(null);
       return;
@@ -117,9 +169,10 @@ export function PriceSubmitForm({ stations, initialStationId, returnToHref }: Pr
 
   const selectedStation = stations.find((station) => station.id === stationId) ?? stations[0] ?? null;
   const stepTone = previewUrl ? "foto pronta" : stationId ? "posto escolhido" : "comece pela foto";
+  const retryableError = state.error && state.retryable;
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form ref={formRef} action={formAction} className="space-y-4" onSubmitCapture={() => markStarted("submit")}> 
       <input type="hidden" name="website" value="" />
 
       <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/52">
@@ -128,20 +181,32 @@ export function PriceSubmitForm({ stations, initialStationId, returnToHref }: Pr
         <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">3. Combustível</span>
         <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">4. Preço</span>
         <Badge variant={state.success ? "default" : "outline"}>{state.success ? "Enviado" : stepTone}</Badge>
+        {draftRestored ? <Badge variant="outline">Rascunho restaurado</Badge> : null}
       </div>
 
       {state.success ? (
         <div className="rounded-[22px] border border-[color:var(--color-accent)]/20 bg-[color:var(--color-accent)]/12 p-4 text-sm text-white">
-          <p className="text-base font-semibold">Enviado e agora em moderação.</p>
-          <p className="mt-1 text-white/70">Seu preço entrou na fila e vai aparecer quando for aprovado.</p>
+          <p className="text-base font-semibold">Preço enviado. Agora está em moderação.</p>
+          <p className="mt-1 text-white/70">Você pode enviar outro no mesmo posto ou voltar para continuar olhando o mapa.</p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Button type="button" variant="secondary" onClick={() => setPrice("")}>Enviar outro preço</Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setPrice("");
+                setNickname("");
+                setPreviewUrl(null);
+                selectedFileRef.current = null;
+                setDraftRestored(false);
+                if (fileInputRef.current) {
+                  fileInputRef.current.value = "";
+                }
+              }}
+            >
+              Enviar outro preço
+            </Button>
             {submittedStationId ? (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => router.push(safeReturnToHref ?? (`/postos/${submittedStationId}` as Route))}
-              >
+              <Button type="button" variant="secondary" onClick={() => router.push(safeReturnToHref ?? (`/postos/${submittedStationId}` as Route))}>
                 Voltar ao mapa
               </Button>
             ) : null}
@@ -149,7 +214,22 @@ export function PriceSubmitForm({ stations, initialStationId, returnToHref }: Pr
         </div>
       ) : null}
 
-      {state.error ? <div className="rounded-[18px] border border-[color:var(--color-danger)]/30 bg-[color:var(--color-danger)]/10 px-4 py-3 text-sm text-[color:var(--color-danger)]">{state.error}</div> : null}
+      {state.error ? (
+        <div className={`rounded-[18px] border px-4 py-3 text-sm ${retryableError ? "border-[color:var(--color-accent)]/24 bg-[color:var(--color-accent)]/10 text-white" : "border-[color:var(--color-danger)]/30 bg-[color:var(--color-danger)]/10 text-[color:var(--color-danger)]"}`}>
+          <p className="font-medium text-white">{state.errorCode === "network_offline" ? "Sem conexão agora." : state.errorCode === "upload_failed" ? "Falha no upload." : state.errorCode === "network_timeout" ? "A conexão demorou demais." : "Não foi possível concluir."}</p>
+          <p className="mt-1 text-white/78">{state.error}</p>
+          {retryableError ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button type="button" variant="secondary" onClick={() => formRef.current?.requestSubmit()}>
+                Tentar novamente
+              </Button>
+              <Button type="button" variant="ghost" onClick={() => fileInputRef.current?.focus()}>
+                Revisar foto
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="space-y-2" id="photo">
         <label className="text-sm font-medium text-white" htmlFor="photo-input">
@@ -257,7 +337,7 @@ export function PriceSubmitForm({ stations, initialStationId, returnToHref }: Pr
       </div>
 
       <div className="rounded-[18px] border border-white/8 bg-white/5 px-4 py-3 text-xs leading-relaxed text-white/56">
-        Se a conexão cair, basta voltar e reenviar. Os campos ficam prontos para completar de novo, sem perder a lógica do fluxo.
+        Se a conexão cair, os campos continuam na tela. Se a foto falhar, use o botão de tentar novamente sem reescrever tudo.
       </div>
 
       <Button type="submit" className="w-full" disabled={pending}>

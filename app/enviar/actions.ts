@@ -2,21 +2,36 @@
 
 import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 import { recordOperationalEvent } from "@/lib/ops/logs";
 import { checkSubmissionRateLimit, getSubmissionClientIp, hashSubmissionIp } from "@/lib/ops/rate-limit";
 import { recordPriceReportAuditEvent } from "@/lib/audit/events";
 import { buildReportPhotoPath, validateReportPhoto, REPORT_PHOTO_BUCKET } from "@/lib/upload/report-photo";
+import { NETWORK_SIM_COOKIE, getNetworkSimulationDelayMs, normalizeNetworkSimulationMode } from "@/lib/dev/network-sim";
 import { createSupabaseServiceClient } from "@/lib/supabase/admin";
 import type { FuelType } from "@/lib/types";
 
 interface SubmitState {
   error: string | null;
+  errorCode: string | null;
+  retryable: boolean;
   success: boolean;
 }
 
 const fuelTypes: FuelType[] = ["gasolina_comum", "gasolina_aditivada", "etanol", "diesel_s10", "diesel_comum", "gnv"];
+
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function failure(error: string, errorCode: string, retryable = false): SubmitState {
+  return { error, errorCode, retryable, success: false };
+}
+
+function success(): SubmitState {
+  return { error: null, errorCode: null, retryable: false, success: true };
+}
 
 function getString(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
@@ -25,10 +40,13 @@ function getString(formData: FormData, name: string) {
 async function getSubmissionContext() {
   const currentHeaders = await headers();
   const ip = getSubmissionClientIp(currentHeaders as Headers);
+  const cookieStore = await cookies();
+  const simulationMode = normalizeNetworkSimulationMode(cookieStore.get(NETWORK_SIM_COOKIE)?.value ?? null);
   return {
     ip,
     ipHash: hashSubmissionIp(ip),
-    userAgent: currentHeaders.get("user-agent") ?? null
+    userAgent: currentHeaders.get("user-agent") ?? null,
+    simulationMode
   };
 }
 
@@ -51,15 +69,15 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
       ipHash: context.ipHash,
       reason: "honeypot"
     });
-    return { error: "Não foi possível enviar agora.", success: false };
+    return failure("Não foi possível enviar agora.", "submission_blocked", false);
   }
 
   if (!stationId) {
-    return { error: "Selecione um posto.", success: false };
+    return failure("Selecione um posto.", "validation", false);
   }
 
   if (!fuelTypes.includes(fuelType)) {
-    return { error: "Selecione um combustível válido.", success: false };
+    return failure("Selecione um combustível válido.", "validation", false);
   }
 
   const price = Number(priceRaw.replace(",", "."));
@@ -73,7 +91,7 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
       ipHash: context.ipHash,
       reason: "invalid_price"
     });
-    return { error: "Informe um preço válido.", success: false };
+    return failure("Informe um preço válido.", "validation", false);
   }
 
   if (!photo || !(photo instanceof File)) {
@@ -86,7 +104,7 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
       ipHash: context.ipHash,
       reason: "missing_photo"
     });
-    return { error: "Anexe uma foto do painel ou da bomba.", success: false };
+    return failure("Anexe uma foto do painel ou da bomba.", "validation", false);
   }
 
   const validationError = validateReportPhoto(photo);
@@ -100,7 +118,7 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
       ipHash: context.ipHash,
       reason: validationError
     });
-    return { error: validationError, success: false };
+    return failure(validationError, "validation", false);
   }
 
   const supabase = createSupabaseServiceClient();
@@ -121,7 +139,43 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
       ipHash: context.ipHash,
       reason: stationError ? stationError.message : "inactive_station"
     });
-    return { error: "Escolha um posto ativo.", success: false };
+    return failure("Escolha um posto ativo.", "submission_blocked", false);
+  }
+
+  if (context.simulationMode === "offline") {
+    await delay(getNetworkSimulationDelayMs(context.simulationMode));
+    await recordOperationalEvent({
+      eventType: "submission_failed",
+      severity: "error",
+      scopeType: "submission",
+      stationId,
+      fuelType,
+      ipHash: context.ipHash,
+      city: station.city,
+      reason: "network_offline",
+      payload: { simulationMode: context.simulationMode }
+    });
+    return failure("Sem conexão agora. O envio ficou na tela; tente novamente quando a rede voltar.", "network_offline", true);
+  }
+
+  if (context.simulationMode === "timeout") {
+    await delay(getNetworkSimulationDelayMs(context.simulationMode));
+    await recordOperationalEvent({
+      eventType: "submission_failed",
+      severity: "error",
+      scopeType: "submission",
+      stationId,
+      fuelType,
+      ipHash: context.ipHash,
+      city: station.city,
+      reason: "network_timeout",
+      payload: { simulationMode: context.simulationMode }
+    });
+    return failure("A conexão demorou demais para responder. Tente novamente sem refazer o formulário.", "network_timeout", true);
+  }
+
+  if (context.simulationMode === "slow") {
+    await delay(getNetworkSimulationDelayMs(context.simulationMode));
   }
 
   const limitCheck = await checkSubmissionRateLimit({ ipHash: context.ipHash, stationId, fuelType });
@@ -151,7 +205,7 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
       }
     });
 
-    return { error: rateLimitMessage, success: false };
+    return failure(rateLimitMessage, "rate_limited", false);
   }
 
   const extension = photo.name.split(".").pop()?.toLowerCase() || "jpg";
@@ -159,6 +213,22 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
   const filePath = buildReportPhotoPath(stationId, suffix);
   const fileBuffer = Buffer.from(await photo.arrayBuffer());
   const photoHash = createHash("sha256").update(fileBuffer).digest("hex");
+
+  if (context.simulationMode === "upload_fail") {
+    await delay(getNetworkSimulationDelayMs(context.simulationMode));
+    await recordOperationalEvent({
+      eventType: "upload_failed",
+      severity: "error",
+      scopeType: "submission",
+      stationId,
+      fuelType,
+      ipHash: context.ipHash,
+      city: station.city,
+      reason: "simulated_upload_failure",
+      payload: { simulationMode: context.simulationMode, filePath }
+    });
+    return failure("A foto não subiu neste teste. O resto do formulário ficou salvo na tela. Tente novamente.", "upload_failed", true);
+  }
 
   const { error: uploadError } = await supabase.storage.from(REPORT_PHOTO_BUCKET).upload(filePath, fileBuffer, {
     contentType: photo.type,
@@ -180,7 +250,7 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
         filePath
       }
     });
-    return { error: "Não foi possível enviar a foto agora.", success: false };
+    return failure("Não foi possível enviar a foto agora. A parte preenchida ficou aqui; tente novamente sem recomeçar.", "upload_failed", true);
   }
 
   const { data: publicUrl } = supabase.storage.from(REPORT_PHOTO_BUCKET).getPublicUrl(filePath);
@@ -221,7 +291,7 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
         photoHash
       }
     });
-    return { error: "Não foi possível salvar o envio agora.", success: false };
+    return failure("Não foi possível salvar o envio agora. Tente novamente sem refazer o formulário.", "submission_failed", true);
   }
 
   await recordPriceReportAuditEvent({
@@ -258,7 +328,7 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
   revalidatePath("/admin");
   revalidatePath("/auditoria");
 
-  return { error: null, success: true };
+  return success();
 }
 
 

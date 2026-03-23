@@ -3,6 +3,7 @@ import { Flame, MapPinned, MessageSquareMore } from "lucide-react";
 
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { BrandMark } from "@/components/brand/brand-mark";
+import { PwaStatusStrip } from "@/components/pwa/pwa-status-strip";
 import { Fab } from "@/components/ui/fab";
 import { brand } from "@/styles/design-tokens";
 import { isBetaClosed } from "@/lib/beta/gate";
@@ -47,6 +48,7 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         </div>
       ) : null}
+      <PwaStatusStrip />
       <main className="relative z-10 flex-1 space-y-5">{children}</main>
       <Fab />
       <BottomNav />
