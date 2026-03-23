@@ -23,8 +23,7 @@ import { formatDateTimeBR } from "@/lib/format/time";
 import { formatRecencyLabel, getRecencyTone, recencyToneToBadgeVariant } from "@/lib/format/time";
 import { fuelLabels, publicFuelFilters, recencyFilters } from "@/lib/format/labels";
 import { filterReports, filterStations, getSelectedStationReport, hasRecentStationPriceForFilter, type StationPresenceFilter } from "@/lib/filters/public";
-import { sortStationsForPublicView }
- from "@/lib/filters/sort";
+import { sortStationsForPublicView } from "@/lib/filters/sort";
 import { canShowStationOnMap, getStationPublicName, hasPendingStationLocationReview } from "@/lib/quality/stations";
 import { persistHomeContext, priorityCities, readHomeContext, readLastStationContext, rememberStationVisit } from "@/lib/navigation/home-context";
 import { startRoute, readRouteContext } from "@/lib/navigation/route-context";
@@ -32,6 +31,7 @@ import { RouteAssistant } from "@/components/routes/route-assistant";
 import { useStreetMode } from "@/hooks/use-street-mode";
 import { useMissionContext } from "@/components/mission/mission-context";
 import { MySubmissionsList } from "@/components/history/my-submissions-list";
+import { RecorteActivityWidget } from "@/components/home/recorte-activity-widget";
 import { type EffectiveGroupStatus } from "@/lib/ops/release-control";
 import { getSmartDefaultRecorte, getSmartDefaultPhrase, type SmartDefaultReason } from "@/lib/ops/smart-default";
 import { FeedbackTrigger } from "@/components/feedback/feedback-trigger";
@@ -198,6 +198,7 @@ export function HomeBrowser({
   }, [selectedCity, territorialSummary]);
 
   const expansionSignal = useMemo(() => {
+    if (!selectedReadiness) return null;
     const opsState = (selectedReadiness as any).operationalState;
     switch (opsState) {
       case "beta_open": return { text: "Recorte forte e validado.", icon: "✨" };
@@ -400,6 +401,16 @@ export function HomeBrowser({
       <div className="mb-6">
         <MySubmissionsList />
       </div>
+
+      {selectedCity && (
+        <div className="mb-6">
+          <RecorteActivityWidget 
+            city={selectedCity} 
+            groupSlug={selectedReadiness?.slug} 
+            isReady={selectedReadiness?.status === "ready"}
+          />
+        </div>
+      )}
 
       <SectionCard className={cn("space-y-4", isStreetMode && "space-y-2 py-3")}>
         {/* Smart Default Contextual Message */}
