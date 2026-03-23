@@ -130,6 +130,7 @@ export async function getHomeStations(): Promise<StationWithReports[]> {
     }));
   }
 
+  const [stations, reports] = await Promise.all([getActiveStations(), getApprovedReports()]);
   let stationsWithStatus = stations;
 
   try {
