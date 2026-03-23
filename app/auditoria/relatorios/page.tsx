@@ -22,11 +22,19 @@ export default async function AuditReportsPage() {
     <AppShell>
       <SectionCard className="space-y-4">
         <div className="space-y-2">
-          <Badge>Dossiês recorrentes</Badge>
+          <Badge>Beta fechado · memória pública</Badge>
           <h1 className="text-[2rem] font-semibold leading-none text-white">Relatórios gerados</h1>
           <p className="max-w-2xl text-sm text-white/62">
-            Aqui ficam os dossiês cívicos produzidos por rotina, com leitura pública, observações persistidas e trilha para apuração editorial.
+            Dossiês cívicos e alertas persistidos em linguagem pública. Se você quer comparar rápido, comece pela cidade; se quer aprofundar, abra a metodologia.
           </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <ButtonLink href="/auditoria" variant="secondary">
+            Voltar para a auditoria
+          </ButtonLink>
+          <ButtonLink href="/auditoria/comparar" variant="secondary">
+            Comparar cidades
+          </ButtonLink>
         </div>
         <div className="flex items-center gap-3 rounded-[22px] border border-white/8 bg-black/30 px-4 py-3 text-sm text-white/50">
           <CalendarRange className="h-4 w-4 text-[color:var(--color-accent)]" />

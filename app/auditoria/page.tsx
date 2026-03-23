@@ -44,65 +44,103 @@ export default async function AuditOverviewPage({ searchParams }: AuditOverviewP
   return (
     <AppShell>
       <ProductEvent eventType="audit_opened" pagePath="/auditoria" pageTitle="Auditoria pública" />
+
       <SectionCard className="space-y-5">
         <div className="space-y-2">
-          <Badge>Observatório público</Badge>
+          <Badge>Beta fechado · observatório público</Badge>
           <h1 className="text-[2rem] font-semibold leading-none text-white">Auditoria pública e histórico longo</h1>
           <p className="max-w-2xl text-sm text-white/62">
-            Monitoramento popular com série histórica, trilha de prova e indicadores de padrão. Isso não conclui cartel ou fraude. É subsídio técnico para apuração.
+            Aqui você vê como os preços vêm se movendo no recorte escolhido. A leitura ainda está em formação em parte da base, então vale interpretar com cautela.
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2 text-xs text-white/52">
-          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-2">Cobertura {Math.round(overview.summary.coverageRatio * 100)}%</span>
-          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-2">Confiança {overview.summary.confidenceLabel}</span>
-          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-2">Tendência {overview.summary.trend}</span>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
+            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Cobertura inicial</p>
+            <p className="mt-2 text-lg font-semibold text-white">{Math.round(overview.summary.coverageRatio * 100)}%</p>
+            <p className="mt-1 text-sm text-white/54">Parte da base ainda está em formação.</p>
+          </div>
+          <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
+            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Leitura em formação</p>
+            <p className="mt-2 text-lg font-semibold text-white">{overview.summary.confidenceLabel}</p>
+            <p className="mt-1 text-sm text-white/54">Quanto mais massa, mais firme fica a leitura.</p>
+          </div>
+          <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
+            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Interpretar com cautela</p>
+            <p className="mt-2 text-lg font-semibold text-white">{overview.summary.trend}</p>
+            <p className="mt-1 text-sm text-white/54">Os indícios ajudam; sozinhos não fecham conclusão.</p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3 rounded-[22px] border border-white/8 bg-black/30 px-4 py-3 text-sm text-white/50">
-          <BarChart3 className="h-4 w-4 text-[color:var(--color-accent)]" />
-          <span>Panorama do período e do combustível selecionado. Use os filtros para entender cobertura e confiança antes de comparar cidades.</span>
+        <div className="flex flex-wrap gap-2">
+          <ButtonLink href="/" variant="secondary">
+            Voltar ao mapa
+          </ButtonLink>
+          <ButtonLink href="/atualizacoes" variant="secondary">
+            Ver atualizações
+          </ButtonLink>
+          <ButtonLink href="/auditoria/metodologia" variant="secondary">
+            Ver metodologia
+          </ButtonLink>
+        </div>
+      </SectionCard>
+
+      <SectionCard className="space-y-4">
+        <div className="flex items-start gap-3 rounded-[22px] border border-white/8 bg-black/30 p-4 text-sm text-white/60">
+          <BarChart3 className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--color-accent)]" />
+          <div className="space-y-1">
+            <p className="font-medium text-white">Como ler este painel</p>
+            <p>1. Veja a cobertura e a confiança primeiro.</p>
+            <p>2. Use o combustível e o período para comparar sem forçar leitura em base curta.</p>
+            <p>3. Se os dados estiverem vazios, isso pode significar só que ainda não há massa suficiente.</p>
+          </div>
         </div>
 
-        <div className="space-y-3">
-          <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
-            {publicFuelFilters.filter((item) => item.value !== "all").map((item) => {
-              const href = (`/auditoria?fuel=${item.value}&days=${days}` as Route);
-              const active = fuelType === item.value;
-              return (
+        <details className="group rounded-[22px] border border-white/8 bg-black/30 p-4">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium text-white/80">
+            Ajustar combustível e período
+            <span className="text-white/42 transition group-open:rotate-180">⌄</span>
+          </summary>
+          <div className="mt-4 space-y-3">
+            <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+              {publicFuelFilters.filter((item) => item.value !== "all").map((item) => {
+                const href = (`/auditoria?fuel=${item.value}&days=${days}` as Route);
+                const active = fuelType === item.value;
+                return (
+                  <Link
+                    key={item.value}
+                    href={href}
+                    className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${
+                      active ? "bg-[color:var(--color-accent)] text-black" : "border border-white/10 bg-white/5 text-white/66"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+              {auditWindowFilters.map((item) => (
                 <Link
                   key={item.value}
-                  href={href}
+                  href={`/auditoria?fuel=${fuelType}&days=${item.value}` as Route}
                   className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${
-                    active ? "bg-[color:var(--color-accent)] text-black" : "border border-white/10 bg-white/5 text-white/66"
+                    days === item.value ? "bg-white text-black" : "border border-white/10 bg-white/5 text-white/66"
                   }`}
                 >
                   {item.label}
                 </Link>
-              );
-            })}
+              ))}
+            </div>
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
-            {auditWindowFilters.map((item) => (
-              <Link
-                key={item.value}
-                href={`/auditoria?fuel=${fuelType}&days=${item.value}` as Route}
-                className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${
-                  days === item.value ? "bg-white text-black" : "border border-white/10 bg-white/5 text-white/66"
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
-        </div>
+        </details>
       </SectionCard>
 
-      <SectionCard className="space-y-3">
+      <SectionCard className="space-y-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Dossiês recorrentes</p>
-            <h2 className="mt-1 text-xl font-semibold text-white">Comparação, relatórios e memória pública</h2>
+            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Atalhos</p>
+            <h2 className="mt-1 text-xl font-semibold text-white">Dossiês, leitura municipal e memória pública</h2>
           </div>
           <BarChart3 className="h-5 w-5 text-[color:var(--color-accent)]" />
         </div>
@@ -117,7 +155,7 @@ export default async function AuditOverviewPage({ searchParams }: AuditOverviewP
           </Link>
           <Link href="/auditoria/metodologia" className="rounded-[22px] border border-white/8 bg-black/30 p-4 transition hover:border-white/18">
             <p className="text-base font-semibold text-white">Metodologia</p>
-            <p className="mt-1 text-sm text-white/54">Entender cobertura, confiança e o que é indício.</p>
+            <p className="mt-1 text-sm text-white/54">Ler a regra do jogo antes de comparar.</p>
           </Link>
         </div>
       </SectionCard>
@@ -132,16 +170,35 @@ export default async function AuditOverviewPage({ searchParams }: AuditOverviewP
           <p className="mt-3 text-3xl font-semibold text-white">{overview.summary.stations}</p>
         </div>
         <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-white/42">Mínimo / máximo</p>
-          <p className="mt-3 text-2xl font-semibold text-white">
-            {overview.summary.minPrice ? formatCurrencyBRL(overview.summary.minPrice) : "-"} <span className="text-white/42">/</span> {overview.summary.maxPrice ? formatCurrencyBRL(overview.summary.maxPrice) : "-"}
-          </p>
+          <p className="text-xs uppercase tracking-[0.2em] text-white/42">Cobertura</p>
+          <p className="mt-3 text-3xl font-semibold text-white">{Math.round(overview.summary.coverageRatio * 100)}%</p>
         </div>
         <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-white/42">Mediana</p>
-          <p className="mt-3 text-3xl font-semibold text-white">{overview.summary.medianPrice ? formatCurrencyBRL(overview.summary.medianPrice) : "-"}</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-white/42">Confiança</p>
+          <p className="mt-3 text-3xl font-semibold text-white">{overview.summary.confidenceLabel}</p>
         </div>
       </SectionCard>
+
+      <details className="group rounded-[22px] border border-white/8 bg-black/30 p-4">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium text-white/80">
+          Ver detalhes técnicos
+          <span className="text-white/42 transition group-open:rotate-180">⌄</span>
+        </summary>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-[18px] border border-white/8 bg-black/20 p-4">
+            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Mínimo</p>
+            <p className="mt-2 text-xl font-semibold text-white">{overview.summary.minPrice ? formatCurrencyBRL(overview.summary.minPrice) : "-"}</p>
+          </div>
+          <div className="rounded-[18px] border border-white/8 bg-black/20 p-4">
+            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Máximo</p>
+            <p className="mt-2 text-xl font-semibold text-white">{overview.summary.maxPrice ? formatCurrencyBRL(overview.summary.maxPrice) : "-"}</p>
+          </div>
+          <div className="rounded-[18px] border border-white/8 bg-black/20 p-4">
+            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Mediana</p>
+            <p className="mt-2 text-xl font-semibold text-white">{overview.summary.medianPrice ? formatCurrencyBRL(overview.summary.medianPrice) : "-"}</p>
+          </div>
+        </div>
+      </details>
 
       <SectionCard className="space-y-4">
         <div className="flex items-center justify-between gap-3">
@@ -253,9 +310,3 @@ export default async function AuditOverviewPage({ searchParams }: AuditOverviewP
     </AppShell>
   );
 }
-
-
-
-
-
-

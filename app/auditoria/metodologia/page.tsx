@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { Badge } from "@/components/ui/badge";
+import { ButtonLink } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
 import { auditMethodologyPoints } from "@/lib/audit/methodology";
 
@@ -10,7 +11,17 @@ export default function AuditMethodologyPage() {
         <div className="space-y-2">
           <Badge>Metodologia pública</Badge>
           <h1 className="text-[2rem] font-semibold leading-none text-white">Como ler a auditoria</h1>
-          <p className="max-w-2xl text-sm text-white/62">Essa página explica a regra do jogo: de onde vêm os dados, o que entra na série e o que nunca deve ser tratado como conclusão automática.</p>
+          <p className="max-w-2xl text-sm text-white/62">
+            Esta é a regra do jogo em linguagem simples: de onde vêm os dados, o que entra na série e por que o painel pede cautela em parte da base.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <ButtonLink href="/auditoria" variant="secondary">
+            Voltar para a auditoria
+          </ButtonLink>
+          <ButtonLink href="/" variant="secondary">
+            Abrir o mapa
+          </ButtonLink>
         </div>
       </SectionCard>
 
