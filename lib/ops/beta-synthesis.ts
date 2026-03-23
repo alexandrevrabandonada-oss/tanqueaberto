@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getAuditGroups } from "@/lib/audit/groups";
 import { detectActiveAlerts, type OperationalAlert } from "./alerts";
+import { getRolloutRecommendations, type RolloutRecommendation } from "./rollout-engine";
 
 export interface BetaSynthesis {
   timestamp: string;
@@ -24,6 +25,7 @@ export interface BetaSynthesis {
     topMotives: Array<{ motive: string; count: number }>;
   };
   activeAlerts: OperationalAlert[];
+  rolloutRecommendations: RolloutRecommendation[];
 }
 
 export async function getBetaSynthesis(): Promise<BetaSynthesis> {
@@ -140,6 +142,7 @@ export async function getBetaSynthesis(): Promise<BetaSynthesis> {
         .sort((a, b) => b.count - a.count)
         .slice(0, 3)
     } : undefined,
-    activeAlerts: await detectActiveAlerts()
+    activeAlerts: await detectActiveAlerts(),
+    rolloutRecommendations: await getRolloutRecommendations()
   };
 }

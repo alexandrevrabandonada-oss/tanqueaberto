@@ -27,7 +27,16 @@ export async function getTerritorialReleaseSummary(): Promise<EffectiveGroupStat
         gapItem?.recommendation === "vale pedir coleta já" ? "ready" :
         gapItem?.recommendation === "pode esperar" ? "validating" : "limited";
 
-      const status = (group.releaseStatus as GroupReleaseStatus) || suggestedStatus;
+      // Mapeamento do novo estado operacional para o status clássico
+      const opsState = (group as any).operationalState;
+      const statusFromOps: GroupReleaseStatus | null = 
+        opsState === 'beta_open' ? 'ready' :
+        opsState === 'monitoring' ? 'validating' :
+        opsState === 'limited_test' ? 'limited' :
+        opsState === 'rollback' ? 'limited' :
+        opsState === 'closed' ? 'hidden' : null;
+
+      const status = statusFromOps || (group.releaseStatus as GroupReleaseStatus) || suggestedStatus;
       const isPublished = typeof group.isPublished === "boolean" ? group.isPublished : (status !== "limited" && status !== "hidden");
 
       return {
@@ -35,9 +44,10 @@ export async function getTerritorialReleaseSummary(): Promise<EffectiveGroupStat
         name: group.name,
         status,
         isPublished,
-        isOverride: Boolean(group.releaseStatus),
+        isOverride: Boolean(group.releaseStatus || opsState),
         score: gapItem?.score ?? 0,
-        recommendation: gapItem?.recommendation ?? "precisa revisar base primeiro"
+        recommendation: gapItem?.recommendation ?? "precisa revisar base primeiro",
+        operationalState: opsState
       };
     });
   } catch (error) {

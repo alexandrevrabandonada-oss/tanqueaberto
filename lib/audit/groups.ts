@@ -5,7 +5,7 @@ export async function getAuditGroups() {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("audit_station_groups")
-    .select("id,slug,name,description,group_type,city,release_status,is_published,rollout_notes,is_active,created_at,updated_at")
+    .select("id,slug,name,description,group_type,city,release_status,is_published,rollout_notes,operational_state,recommended_state,is_active,created_at,updated_at")
     .eq("is_active", true)
     .order("name", { ascending: true });
 
@@ -26,7 +26,9 @@ export async function getAuditGroups() {
     rolloutNotes: row.rollout_notes,
     isActive: row.is_active,
     createdAt: row.created_at,
-    updatedAt: row.updated_at
+    updatedAt: row.updated_at,
+    operationalState: row.operational_state,
+    recommendedState: row.recommended_state
   }));
 }
 
@@ -34,7 +36,7 @@ export async function getAuditGroupBySlug(slug: string): Promise<AuditStationGro
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("audit_station_groups")
-    .select("id,slug,name,description,group_type,city,release_status,is_published,rollout_notes,is_active,created_at,updated_at")
+    .select("id,slug,name,description,group_type,city,release_status,is_published,rollout_notes,operational_state,recommended_state,is_active,created_at,updated_at")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -57,7 +59,9 @@ export async function getAuditGroupBySlug(slug: string): Promise<AuditStationGro
     rolloutNotes: data.rollout_notes,
     isActive: data.is_active,
     createdAt: data.created_at,
-    updatedAt: data.updated_at
+    updatedAt: data.updated_at,
+    operationalState: data.operational_state,
+    recommendedState: data.recommended_state
   };
 }
 

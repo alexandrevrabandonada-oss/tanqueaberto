@@ -198,12 +198,22 @@ export function HomeBrowser({
   }, [selectedCity, territorialSummary]);
 
   const expansionSignal = useMemo(() => {
-    if (!selectedReadiness) return null;
-    switch (selectedReadiness.status) {
-      case "ready": return { text: "Este recorte já está forte.", icon: "✨" };
-      case "validating": return { text: "Recorte em validação técnica.", icon: "🧪" };
-      case "limited": return { text: "Aqui sua contribuição é especialmente útil.", icon: "🧱" };
-      default: return null;
+    const opsState = (selectedReadiness as any).operationalState;
+    switch (opsState) {
+      case "beta_open": return { text: "Recorte forte e validado.", icon: "✨" };
+      case "monitoring": return { text: "Monitoramento intensivo ativo.", icon: "🔍" };
+      case "rollback": return { text: "Recorte em manutenção operacional.", icon: "🛠️" };
+      case "limited_test": return { text: "Sua contribuição é especialmente útil aqui.", icon: "🧱" };
+      case "closed": return { text: "Recorte em fase preliminar.", icon: "🌑" };
+      default: {
+        // Fallback for groups without opsState yet
+        switch (selectedReadiness.status) {
+          case "ready": return { text: "Este recorte já está forte.", icon: "✨" };
+          case "validating": return { text: "Recorte em validação técnica.", icon: "🧪" };
+          case "limited": return { text: "Sua contribuição é útil aqui.", icon: "🧱" };
+          default: return null;
+        }
+      }
     }
   }, [selectedReadiness]);
 
@@ -262,9 +272,16 @@ export function HomeBrowser({
         return a.distance - b.distance;
       }
 
-      const statusOrder: Record<string, number> = { ready: 0, validating: 1, limited: 2, hidden: 3 };
-      const orderA = statusOrder[a.releaseStatus ?? "limited"] ?? 99;
-      const orderB = statusOrder[b.releaseStatus ?? "limited"] ?? 99;
+      const statusOrder: Record<string, number> = { 
+        beta_open: 0, monitoring: 1, ready: 2, validating: 3, 
+        limited_test: 4, rollback: 5, limited: 6, closed: 7, hidden: 8 
+      };
+      
+      const opsA = (a as any).operationalState;
+      const opsB = (b as any).operationalState;
+      
+      const orderA = statusOrder[opsA || a.releaseStatus || "limited"] ?? 99;
+      const orderB = statusOrder[opsB || b.releaseStatus || "limited"] ?? 99;
       if (orderA !== orderB) return orderA - orderB;
       
       return (b.priorityScore ?? 0) - (a.priorityScore ?? 0);

@@ -171,6 +171,8 @@ export interface AuditStationGroup {
   releaseStatus: "ready" | "validating" | "limited" | "hidden";
   isPublished: boolean;
   rolloutNotes: string | null;
+  operationalState?: 'closed' | 'limited_test' | 'beta_open' | 'monitoring' | 'rollback';
+  recommendedState?: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

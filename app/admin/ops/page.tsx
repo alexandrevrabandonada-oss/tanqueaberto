@@ -8,6 +8,7 @@ import { requireAdminUser } from "@/lib/auth/admin";
 import { getDailyOpsDigest } from "@/lib/ops/daily-digest";
 import { formatDateTimeBR } from "@/lib/format/time";
 import { getBetaSynthesis } from "@/lib/ops/beta-synthesis";
+import { RolloutApproval } from "@/components/admin/rollout-approval";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -143,6 +144,8 @@ export default async function AdminOpsPage() {
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         {/* Recommended Actions */}
         <div className="space-y-6">
+          <RolloutApproval recommendations={synthesis.rolloutRecommendations} />
+          
           <SectionCard className="space-y-6">
             <div className="flex items-center gap-2">
               <Target className="h-5 w-5 text-rose-400" />
