@@ -33,6 +33,7 @@ import { useStreetMode } from "@/hooks/use-street-mode";
 import { useMissionContext } from "@/components/mission/mission-context";
 import { MySubmissionsList } from "@/components/history/my-submissions-list";
 import { type EffectiveGroupStatus } from "@/lib/ops/release-control";
+import { getSmartDefaultRecorte, getSmartDefaultPhrase, type SmartDefaultReason } from "@/lib/ops/smart-default";
 import type { FuelFilter, RecencyFilter } from "@/lib/filters/public";
 import type { ReportWithStation, StationWithReports } from "@/lib/types";
 
@@ -105,7 +106,9 @@ export function HomeBrowser({
   initialPresenceFilter = "all"
 }: HomeBrowserProps) {
   const [query, setQuery] = useState(initialQuery);
-  const [selectedCity, setSelectedCity] = useState(initialCity);
+  const [selectedCity, setSelectedCity] = useState(initialCity || "");
+  const [defaultSelectionReason, setDefaultSelectionReason] = useState<string | null>(null);
+  const defaultApplied = useRef(false);
   const [fuelFilter, setFuelFilter] = useState<FuelFilter>(initialFuelFilter);
   const [recencyFilter, setRecencyFilter] = useState<RecencyFilter>(initialRecencyFilter);
   const [presenceFilter, setPresenceFilter] = useState<StationPresenceFilter>(initialPresenceFilter);
@@ -121,16 +124,48 @@ export function HomeBrowser({
     void trackProductEvent({ eventType: "home_opened", pagePath: "/", pageTitle: "Mapa vivo", scopeType: "page", scopeId: "/", payload: { streetMode: isStreetMode } });
   }, [isStreetMode]);
 
+  const { mission, isLoaded: missionLoaded } = useMissionContext();
+
   useEffect(() => {
+    if (!missionLoaded) return; // Wait for mission to load from storage
+    if (defaultApplied.current) return; // Only apply once on mount
+
     const storedContext = readHomeContext();
     const storedLastStation = readLastStationContext();
+    
+    // Determine the smart default if no city is in URL
+    if (!initialCity) {
+      const smartResult = getSmartDefaultRecorte(
+        territorialSummary,
+        storedContext.city || null,
+        mission,
+        coords,
+        stations
+      );
+
+      if (smartResult.city && smartResult.reason !== "fallback") {
+        setSelectedCity(smartResult.city);
+        setDefaultSelectionReason(getSmartDefaultPhrase(smartResult));
+        
+        void trackProductEvent({
+          eventType: "territorial_default_applied" as any,
+          pagePath: "/",
+          pageTitle: "Mapa vivo",
+          city: smartResult.city,
+          payload: {
+            reason: smartResult.reason,
+            status: smartResult.status
+          }
+        });
+      } else if (storedContext.city) {
+         setSelectedCity(storedContext.city);
+      }
+    } else {
+      setSelectedCity(initialCity);
+    }
 
     if (!initialQuery && storedContext.query) {
       setQuery(storedContext.query);
-    }
-
-    if (!initialCity && storedContext.city) {
-      setSelectedCity(storedContext.city);
     }
 
     if (initialFuelFilter === "all" && storedContext.fuelFilter && storedContext.fuelFilter !== "all") {
@@ -149,8 +184,9 @@ export function HomeBrowser({
       setLastStation(storedLastStation);
     }
 
+    defaultApplied.current = true;
     setIsHydrated(true);
-  }, [initialCity, initialFuelFilter, initialPresenceFilter, initialQuery, initialRecencyFilter]);
+  }, [initialCity, initialFuelFilter, initialPresenceFilter, initialQuery, initialRecencyFilter, territorialSummary, mission, missionLoaded, coords, stations]);
 
   const selectedReadiness = useMemo(() => {
     if (!selectedCity || !Array.isArray(territorialSummary)) return null;
@@ -348,6 +384,23 @@ export function HomeBrowser({
       </div>
 
       <SectionCard className={cn("space-y-4", isStreetMode && "space-y-2 py-3")}>
+        {/* Smart Default Contextual Message */}
+        {defaultSelectionReason && (
+          <div className="mx-1 -mt-2 mb-2 flex items-center justify-between rounded-full bg-emerald-500/10 px-4 py-2 border border-emerald-500/20 animate-in fade-in slide-in-from-top-2">
+            <div className="flex items-center gap-2">
+              <div className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">
+                {defaultSelectionReason}
+              </span>
+            </div>
+            <button 
+              onClick={() => setDefaultSelectionReason(null)}
+              className="text-[10px] font-bold text-emerald-400/50 hover:text-emerald-400"
+            >
+              TROCAR
+            </button>
+          </div>
+        )}
         {!isStreetMode && (
           <div className="space-y-1.5">
             <Badge className="text-[10px] uppercase tracking-widest">Mapa Vivo</Badge>
@@ -398,7 +451,10 @@ export function HomeBrowser({
             <div className="h-4 w-px shrink-0 bg-white/10" />
             <button
               type="button"
-              onClick={() => setSelectedCity("")}
+              onClick={() => {
+                setSelectedCity("");
+                setDefaultSelectionReason(null);
+              }}
               className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${
                 selectedCity === "" ? "bg-[color:var(--color-accent)] text-black" : "border border-white/10 bg-white/5 text-white/66"
               }`}
@@ -411,7 +467,10 @@ export function HomeBrowser({
                 <button
                   key={city}
                   type="button"
-                  onClick={() => setSelectedCity(city)}
+                  onClick={() => {
+                    setSelectedCity(city);
+                    setDefaultSelectionReason(null);
+                  }}
                   className={`flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${
                     selectedCity.localeCompare(city, "pt-BR") === 0 ? "bg-white text-black" : "border border-white/10 bg-white/5 text-white/66 hover:bg-white/10"
                   }`}
@@ -526,7 +585,10 @@ export function HomeBrowser({
                   <div className="relative">
                     <select
                       value={selectedCity && !priorityCities.some((city) => city.localeCompare(selectedCity, "pt-BR") === 0) ? selectedCity : ""}
-                      onChange={(event) => setSelectedCity(event.target.value)}
+                      onChange={(event) => {
+                        setSelectedCity(event.target.value);
+                        setDefaultSelectionReason(null);
+                      }}
                       className="w-full appearance-none rounded-[16px] border border-white/8 bg-black/45 px-3 py-3 pr-10 text-sm text-white outline-none transition focus:border-[color:var(--color-accent)]"
                     >
                       <option value="" className="bg-zinc-900 text-white">Selecionar cidade</option>
@@ -596,8 +658,8 @@ export function HomeBrowser({
         </SectionCard>
       ) : null}
 
-      <SectionCard className="space-y-3 overflow-hidden p-0">
-        <div className="border-b border-white/8 px-5 pt-5">
+      <SectionCard className="sticky top-0 z-30 space-y-4 rounded-b-[32px] border-none bg-black/60 pt-6 backdrop-blur-xl shadow-2xl">
+        <div className="flex items-center gap-3 px-5">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-white/42">Mapa vivo</p>
