@@ -45,6 +45,11 @@ const stations: StationWithReports[] = [
         moderatedBy: null,
         sourceKind: "community",
         photoHash: null,
+        locationDistance: null,
+        locationConfidence: "high",
+        reconciliationId: null,
+        isConfirmation: false,
+        metadata: {},
         version: 1
       }
     ],
@@ -108,6 +113,11 @@ const stations: StationWithReports[] = [
         moderatedBy: null,
         sourceKind: "community",
         photoHash: null,
+        locationDistance: null,
+        locationConfidence: "high",
+        reconciliationId: null,
+        isConfirmation: false,
+        metadata: {},
         version: 1
       }
     ],
@@ -151,6 +161,11 @@ const stations: StationWithReports[] = [
         moderatedBy: null,
         sourceKind: "community",
         photoHash: null,
+        locationDistance: null,
+        locationConfidence: "high",
+        reconciliationId: null,
+        isConfirmation: false,
+        metadata: {},
         version: 1
       }
     ],
@@ -180,6 +195,11 @@ const feed: ReportWithStation[] = [
     moderatedBy: null,
     sourceKind: "community",
     photoHash: null,
+    locationDistance: null,
+    locationConfidence: "high",
+    reconciliationId: null,
+    isConfirmation: false,
+    metadata: {},
     version: 1,
     station: {
       id: "preview-vr-centro",
@@ -209,6 +229,11 @@ const feed: ReportWithStation[] = [
     moderatedBy: null,
     sourceKind: "community",
     photoHash: null,
+    locationDistance: null,
+    locationConfidence: "high",
+    reconciliationId: null,
+    isConfirmation: false,
+    metadata: {},
     version: 1,
     station: {
       id: "preview-resende-paraiso",
