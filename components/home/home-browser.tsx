@@ -694,7 +694,7 @@ export function HomeBrowser({
         </SectionCard>
       ) : null}
 
-      <SectionCard className="sticky top-0 z-30 space-y-4 rounded-b-[32px] border-none bg-black/60 pt-6 backdrop-blur-xl shadow-2xl">
+      <SectionCard className="space-y-4 border-white/8 bg-black/60 pt-6 shadow-2xl">
         <div className="flex items-center gap-3 px-5">
           <div className="flex items-center justify-between gap-3">
             <div>
