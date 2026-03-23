@@ -1,5 +1,5 @@
 const SCREEN_MATCHERS: Array<{ value: string; patterns: RegExp[] }> = [
-  { value: "home", patterns: [/^\/$/, /\/\?/, /mapa|home|recorte/i] },
+  { value: "home", patterns: [/^\/$/, /\/?/, /mapa|home|recorte/i] },
   { value: "posto", patterns: [/\/postos\/[^/]+/i] },
   { value: "envio", patterns: [/\/enviar/i] },
   { value: "auditoria", patterns: [/\/auditoria/i] },
@@ -39,6 +39,13 @@ export function deriveFeedbackTags(feedbackType: string, message: string, contex
   if (pagePath === "/auditoria") tags.add("auditoria");
 
   return Array.from(tags).slice(0, 5);
+}
+
+export function deriveFeedbackPriority(feedbackType: string, message: string, tags: string[], topic: string) {
+  const haystack = `${feedbackType} ${message} ${tags.join(" ")} ${topic}`.toLowerCase();
+  if (/(travou|erro|falha|bug|quebrou|não abre|nao abre|upload|perdeu foto|perdeu conexao|perdeu conexão)/.test(haystack)) return "alta";
+  if (/(envio|mapa|busca|filtro|auditoria|confusa|confuso|não entendi|nao entendi|faltou posto|faltou preço|faltou preco)/.test(haystack)) return "media";
+  return feedbackType === "problema" ? "media" : "baixa";
 }
 
 export function deriveFeedbackStatus(feedbackType: string, message: string) {

@@ -13,6 +13,8 @@ export interface BetaFeedbackItem {
   fuelType: string | null;
   status: string;
   screenGroup: string;
+  triageTopic: string;
+  triagePriority: string;
   triageStatus: string;
   triageTags: string[];
   createdAt: string;
@@ -22,6 +24,8 @@ export interface BetaFeedbackSummary {
   total: number;
   byType: Array<{ feedbackType: string; count: number }>;
   byScreen: Array<{ screenGroup: string; count: number }>;
+  byTopic: Array<{ triageTopic: string; count: number }>;
+  byPriority: Array<{ triagePriority: string; count: number }>;
   byStatus: Array<{ triageStatus: string; count: number }>;
   byTag: Array<{ tag: string; count: number }>;
   byPage: Array<{ pagePath: string; count: number }>;
@@ -43,6 +47,8 @@ function toFeedbackItem(row: Record<string, unknown>): BetaFeedbackItem {
     fuelType: row.fuel_type ? String(row.fuel_type) : null,
     status: String(row.status),
     screenGroup: row.screen_group ? String(row.screen_group) : "outros",
+    triageTopic: row.triage_topic ? String(row.triage_topic) : "outros",
+    triagePriority: row.triage_priority ? String(row.triage_priority) : "media",
     triageStatus: row.triage_status ? String(row.triage_status) : String(row.status),
     triageTags: Array.isArray(row.triage_tags) ? row.triage_tags.map((item) => String(item)) : [],
     createdAt: String(row.created_at)
@@ -53,7 +59,7 @@ export async function getRecentBetaFeedback(limit = 12): Promise<BetaFeedbackIte
   const supabase = createSupabaseServiceClient();
   const { data, error } = await supabase
     .from("beta_feedback_submissions")
-    .select("id,feedback_type,message,page_path,page_title,page_context,tester_nickname,station_id,city,fuel_type,status,screen_group,triage_status,triage_tags,created_at")
+    .select("id,feedback_type,message,page_path,page_title,page_context,tester_nickname,station_id,city,fuel_type,status,screen_group,triage_topic,triage_priority,triage_status,triage_tags,created_at")
     .order("created_at", { ascending: false })
     .limit(limit);
 
@@ -70,7 +76,7 @@ export async function getBetaFeedbackSummary(days = 14): Promise<BetaFeedbackSum
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
   const { data, error } = await supabase
     .from("beta_feedback_submissions")
-    .select("id,feedback_type,message,page_path,page_title,page_context,tester_nickname,station_id,city,fuel_type,status,screen_group,triage_status,triage_tags,created_at")
+    .select("id,feedback_type,message,page_path,page_title,page_context,tester_nickname,station_id,city,fuel_type,status,screen_group,triage_topic,triage_priority,triage_status,triage_tags,created_at")
     .gte("created_at", since)
     .order("created_at", { ascending: false });
 
@@ -80,6 +86,8 @@ export async function getBetaFeedbackSummary(days = 14): Promise<BetaFeedbackSum
       total: 0,
       byType: [],
       byScreen: [],
+      byTopic: [],
+      byPriority: [],
       byStatus: [],
       byTag: [],
       byPage: [],
@@ -91,6 +99,8 @@ export async function getBetaFeedbackSummary(days = 14): Promise<BetaFeedbackSum
   const recent = data.map((row) => toFeedbackItem(row as Record<string, unknown>));
   const byTypeMap = new Map<string, number>();
   const byScreenMap = new Map<string, number>();
+  const byTopicMap = new Map<string, number>();
+  const byPriorityMap = new Map<string, number>();
   const byStatusMap = new Map<string, number>();
   const byTagMap = new Map<string, number>();
   const byPageMap = new Map<string, number>();
@@ -99,6 +109,8 @@ export async function getBetaFeedbackSummary(days = 14): Promise<BetaFeedbackSum
   for (const item of recent) {
     byTypeMap.set(item.feedbackType, (byTypeMap.get(item.feedbackType) ?? 0) + 1);
     byScreenMap.set(item.screenGroup, (byScreenMap.get(item.screenGroup) ?? 0) + 1);
+    byTopicMap.set(item.triageTopic, (byTopicMap.get(item.triageTopic) ?? 0) + 1);
+    byPriorityMap.set(item.triagePriority, (byPriorityMap.get(item.triagePriority) ?? 0) + 1);
     byStatusMap.set(item.triageStatus, (byStatusMap.get(item.triageStatus) ?? 0) + 1);
     byPageMap.set(item.pagePath, (byPageMap.get(item.pagePath) ?? 0) + 1);
     if (item.city) {
@@ -116,6 +128,12 @@ export async function getBetaFeedbackSummary(days = 14): Promise<BetaFeedbackSum
       .sort((left, right) => right.count - left.count),
     byScreen: Array.from(byScreenMap.entries())
       .map(([screenGroup, count]) => ({ screenGroup, count }))
+      .sort((left, right) => right.count - left.count),
+    byTopic: Array.from(byTopicMap.entries())
+      .map(([triageTopic, count]) => ({ triageTopic, count }))
+      .sort((left, right) => right.count - left.count),
+    byPriority: Array.from(byPriorityMap.entries())
+      .map(([triagePriority, count]) => ({ triagePriority, count }))
       .sort((left, right) => right.count - left.count),
     byStatus: Array.from(byStatusMap.entries())
       .map(([triageStatus, count]) => ({ triageStatus, count }))

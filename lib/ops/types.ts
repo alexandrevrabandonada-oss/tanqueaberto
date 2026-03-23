@@ -61,6 +61,7 @@ export interface OperationalEventItem {
   scopeType: string | null;
   scopeId: string | null;
   actorEmail: string | null;
+  ipHash: string | null;
   stationId: string | null;
   reportId: string | null;
   city: string | null;
@@ -117,6 +118,29 @@ export interface OperationalTelemetry {
   recentAdminActions: AdminActionLogItem[];
 }
 
+export interface BetaOpsAlert {
+  kind: string;
+  title: string;
+  description: string;
+  severity: "info" | "warning" | "danger";
+  city?: string | null;
+  screen?: string | null;
+  count?: number | null;
+}
+
+export interface BetaOpsDailySummary {
+  testersActiveToday: number;
+  submissionsStartedToday: number;
+  submissionsCompletedToday: number;
+  feedbackReceivedToday: number;
+  topDropoffStep: string | null;
+  topDropoffLost: number;
+  topConfusingScreen: string | null;
+  topConfusingScreenCount: number;
+  weakCities: Array<{ city: string; count: number; coverageLabel: string; confidenceLabel: string }>;
+  topPriorityTargets: Array<{ stationName: string; city: string; reason: string }>;
+}
+
 export interface OpsDashboard {
   recentRuns: OpsJobRun[];
   lastRefresh: OpsJobRun | null;
@@ -134,3 +158,4 @@ export interface OpsDashboard {
     emptyGroups: number;
   };
 }
+

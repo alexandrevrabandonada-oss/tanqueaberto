@@ -12,13 +12,8 @@ export function getBetaInviteCode() {
   return String(process.env.BETA_INVITE_CODE ?? "").trim();
 }
 
-export function isBetaAccessTokenValid(token: string | undefined | null) {
-  const inviteCode = getBetaInviteCode();
-  if (!inviteCode || !token) {
-    return false;
-  }
-
-  return token.trim() === inviteCode;
+export function normalizeBetaInviteCode(code: string) {
+  return code.trim().toUpperCase().replace(/\s+/g, "");
 }
 
 export function getSafeBetaNextPath(nextValue: string | null | undefined) {

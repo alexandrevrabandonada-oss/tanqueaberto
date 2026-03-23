@@ -1,69 +1,7 @@
 import { createSupabaseServiceClient } from "@/lib/supabase/admin";
 import { getActiveStations } from "@/lib/data/queries";
 import type { FuelType } from "@/lib/types";
-
-export interface OperationalEventItem {
-  id: string;
-  eventType: string;
-  severity: "info" | "warning" | "error";
-  scopeType: string | null;
-  scopeId: string | null;
-  actorEmail: string | null;
-  stationId: string | null;
-  reportId: string | null;
-  city: string | null;
-  fuelType: string | null;
-  reason: string | null;
-  payload: Record<string, unknown>;
-  createdAt: string;
-}
-
-export interface AdminActionLogItem {
-  id: string;
-  actionKind: string;
-  actorId: string | null;
-  actorEmail: string | null;
-  targetType: string | null;
-  targetId: string | null;
-  note: string | null;
-  payload: Record<string, unknown>;
-  createdAt: string;
-}
-
-export interface ProductFunnelSummary {
-  homeOpened: number;
-  searchUsed: number;
-  stationClicked: number;
-  submitOpened: number;
-  submissionStarted: number;
-  submissionAccepted: number;
-  submissionFailed: number;
-  auditOpened: number;
-  feedbackOpened: number;
-  feedbackReceived: number;
-  dropoffBetweenSteps: Array<{ from: string; to: string; lost: number; rate: number }>;
-}
-
-export interface OperationalTelemetry {
-  summary: {
-    submissions: number;
-    approvals: number;
-    rejections: number;
-    blockedSubmissions: number;
-    uploadErrors: number;
-    authErrors: number;
-    cronErrors: number;
-    manualRuns: number;
-    cityVolume: number;
-    fuelVolume: number;
-  };
-  byCity: Array<{ city: string; count: number; approved: number; pending: number; rejected: number }>;
-  byFuel: Array<{ fuelType: FuelType; count: number; approved: number; pending: number; rejected: number }>;
-  topScreens: Array<{ screen: string; count: number; lastAt: string }>;
-  funnel: ProductFunnelSummary;
-  recentEvents: OperationalEventItem[];
-  recentAdminActions: AdminActionLogItem[];
-}
+import type { AdminActionLogItem, OperationalEventItem, OperationalTelemetry, ProductFunnelSummary } from "./types";
 
 function toEventItem(row: Record<string, unknown>): OperationalEventItem {
   return {
@@ -73,6 +11,7 @@ function toEventItem(row: Record<string, unknown>): OperationalEventItem {
     scopeType: row.scope_type ? String(row.scope_type) : null,
     scopeId: row.scope_id ? String(row.scope_id) : null,
     actorEmail: row.actor_email ? String(row.actor_email) : null,
+    ipHash: row.ip_hash ? String(row.ip_hash) : null,
     stationId: row.station_id ? String(row.station_id) : null,
     reportId: row.report_id ? String(row.report_id) : null,
     city: row.city ? String(row.city) : null,
@@ -169,7 +108,7 @@ export async function getOperationalTelemetry(days = 7): Promise<OperationalTele
 
   const [submissionsResult, operationalResult, adminResult, jobsResult] = await Promise.all([
     supabase.from("price_reports").select("id,status,station_id,fuel_type,created_at").gte("created_at", since),
-    supabase.from("operational_events").select("id,event_type,severity,scope_type,scope_id,actor_email,station_id,report_id,city,fuel_type,reason,payload,created_at").gte("created_at", since).order("created_at", { ascending: false }),
+    supabase.from("operational_events").select("id,event_type,severity,scope_type,scope_id,actor_email,ip_hash,station_id,report_id,city,fuel_type,reason,payload,created_at").gte("created_at", since).order("created_at", { ascending: false }),
     supabase.from("admin_action_logs").select("id,action_kind,actor_id,actor_email,target_type,target_id,note,payload,created_at").gte("created_at", since).order("created_at", { ascending: false }).limit(20),
     supabase.from("ops_job_runs").select("status,cadence").gte("started_at", since)
   ]);

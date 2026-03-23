@@ -7,7 +7,7 @@ import { recordOperationalEvent } from "@/lib/ops/logs";
 import { getSafeBetaNextPath, isBetaClosed } from "@/lib/beta/gate";
 import { hasBetaAccessFromCookies } from "@/lib/beta/session";
 import { createSupabaseServiceClient } from "@/lib/supabase/admin";
-import { deriveFeedbackScreen, deriveFeedbackStatus, deriveFeedbackTags, deriveFeedbackTopic } from "@/lib/beta/triage";
+import { deriveFeedbackPriority, deriveFeedbackScreen, deriveFeedbackStatus, deriveFeedbackTags, deriveFeedbackTopic } from "@/lib/beta/triage";
 
 export interface BetaFeedbackState {
   error: string | null;
@@ -44,7 +44,9 @@ export async function submitBetaFeedbackAction(_prevState: BetaFeedbackState, fo
   const screenGroup = deriveFeedbackScreen(pagePath, pageTitle);
   const triageTags = deriveFeedbackTags(feedbackType, message, context, pagePath);
   const triageStatus = deriveFeedbackStatus(feedbackType, message);
-  const topic = deriveFeedbackTopic(feedbackType, message, context);
+  const triageTopic = deriveFeedbackTopic(feedbackType, message, context);
+  const triagePriority = deriveFeedbackPriority(feedbackType, message, triageTags, triageTopic);
+  const topic = triageTopic;
 
   const supabase = createSupabaseServiceClient();
   const { error } = await supabase.from("beta_feedback_submissions").insert({
@@ -59,6 +61,8 @@ export async function submitBetaFeedbackAction(_prevState: BetaFeedbackState, fo
     fuel_type: fuelType || null,
     status: "new",
     screen_group: screenGroup,
+    triage_topic: triageTopic,
+    triage_priority: triagePriority,
     triage_tags: triageTags,
     triage_status: triageStatus
   });
@@ -77,6 +81,7 @@ export async function submitBetaFeedbackAction(_prevState: BetaFeedbackState, fo
         stationId,
         screenGroup,
         topic,
+        triagePriority,
         triageTags
       }
     });
@@ -99,6 +104,7 @@ export async function submitBetaFeedbackAction(_prevState: BetaFeedbackState, fo
       message,
       screenGroup,
       topic,
+      triagePriority,
       triageStatus,
       triageTags
     }
@@ -108,4 +114,3 @@ export async function submitBetaFeedbackAction(_prevState: BetaFeedbackState, fo
   revalidatePath("/admin");
   return { error: null, success: true };
 }
-

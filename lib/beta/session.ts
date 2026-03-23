@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 
-import { BETA_ACCESS_COOKIE_NAME, getBetaInviteCode, isBetaAccessTokenValid, isBetaClosed } from "./gate";
+import { BETA_ACCESS_COOKIE_NAME, getBetaInviteCode, isBetaClosed } from "./gate";
+import { isBetaAccessTokenValid } from "./access";
 
 export async function hasBetaAccessFromCookies() {
   if (!isBetaClosed()) {
@@ -8,12 +9,12 @@ export async function hasBetaAccessFromCookies() {
   }
 
   const cookieStore = await cookies();
-  return isBetaAccessTokenValid(cookieStore.get(BETA_ACCESS_COOKIE_NAME)?.value ?? null);
+  return await isBetaAccessTokenValid(cookieStore.get(BETA_ACCESS_COOKIE_NAME)?.value ?? null);
 }
 
-export async function setBetaAccessCookie() {
+export async function setBetaAccessCookie(token?: string | null) {
   const cookieStore = await cookies();
-  const inviteCode = getBetaInviteCode();
+  const inviteCode = String(token ?? getBetaInviteCode()).trim();
 
   cookieStore.set(BETA_ACCESS_COOKIE_NAME, inviteCode, {
     httpOnly: true,

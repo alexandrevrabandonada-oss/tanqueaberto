@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 
 import { getCurrentAdminUser } from "@/lib/auth/admin";
 import { getBetaFeedbackSummary } from "@/lib/beta/feedback";
+import { getBetaInviteCodes } from "@/lib/beta/invites";
+import { getBetaOpsInsights } from "@/lib/ops/insights";
 import { getOperationalTelemetry } from "@/lib/ops/observability";
 
 function csvEscape(value: unknown) {
@@ -84,11 +86,58 @@ export async function GET(request: Request) {
     });
   }
 
+  if (kind === "ops") {
+    const insights = await getBetaOpsInsights();
+    const rows = [
+      { section: "daily", metric: "testers_active_today", value: insights.daily.testersActiveToday },
+      { section: "daily", metric: "submissions_started_today", value: insights.daily.submissionsStartedToday },
+      { section: "daily", metric: "submissions_completed_today", value: insights.daily.submissionsCompletedToday },
+      { section: "daily", metric: "feedback_received_today", value: insights.daily.feedbackReceivedToday },
+      { section: "daily", metric: "top_dropoff_step", value: insights.daily.topDropoffStep ?? "" },
+      { section: "daily", metric: "top_dropoff_lost", value: insights.daily.topDropoffLost },
+      { section: "daily", metric: "top_confusing_screen", value: insights.daily.topConfusingScreen ?? "" },
+      { section: "daily", metric: "top_confusing_screen_count", value: insights.daily.topConfusingScreenCount },
+      ...insights.alerts.map((alert) => ({ section: "alert", metric: alert.kind, value: alert.description }))
+    ];
+
+    return new NextResponse(toCsv(rows), {
+      headers: {
+        "content-type": "text/csv; charset=utf-8",
+        "content-disposition": 'attachment; filename="bomba-aberta-ops-summary.csv"'
+      }
+    });
+  }
+
+  if (kind === "invites") {
+    const invites = await getBetaInviteCodes(Number.isFinite(days) ? days : 25);
+    const rows = invites.map((item) => ({
+      code: item.code,
+      batch_label: item.batchLabel,
+      batch_note: item.batchNote ?? "",
+      tester_note: item.testerNote ?? "",
+      is_active: item.isActive,
+      use_count: item.useCount,
+      max_uses: item.maxUses,
+      expires_at: item.expiresAt ?? "",
+      last_used_at: item.lastUsedAt ?? "",
+      created_at: item.createdAt
+    }));
+
+    return new NextResponse(toCsv(rows), {
+      headers: {
+        "content-type": "text/csv; charset=utf-8",
+        "content-disposition": 'attachment; filename="bomba-aberta-beta-invites.csv"'
+      }
+    });
+  }
+
   const feedback = await getBetaFeedbackSummary(Number.isFinite(days) ? days : 14);
   const rows = feedback.recent.map((item) => ({
     created_at: item.createdAt,
     feedback_type: item.feedbackType,
     triage_status: item.triageStatus,
+    triage_topic: item.triageTopic,
+    triage_priority: item.triagePriority,
     screen_group: item.screenGroup,
     tags: item.triageTags.join(" | "),
     page_path: item.pagePath,

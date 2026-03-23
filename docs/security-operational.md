@@ -56,22 +56,24 @@ Se os erros de auth subirem, revisar allowlist, credenciais e expiração de ses
 ## Beta fechado
 
 - O acesso público pode ser bloqueado com `NEXT_PUBLIC_BETA_CLOSED=1`.
-- O convite é simples e usa o código em `BETA_INVITE_CODE`.
-- O cookie de acesso do beta libera as rotas públicas enquanto o beta estiver fechado.
-- O feedback dos testers entra em `beta_feedback_submissions` e aparece no painel `/admin/ops`.
+- Os convites agora podem ser gerenciados no painel `/admin/ops`, com criação, expiração, desativação e uso por código.
+- O cookie de acesso do beta libera as rotas públicas enquanto o beta estiver fechado, mas a validação final continua no servidor.
+- O feedback dos testers entra em `beta_feedback_submissions` com `triage_topic`, `triage_priority` e `triage_status`.
 - A home mostra claramente que o produto está em beta fechado e aponta para feedback e lacunas.
 
 ## Como convidar testers
 
-1. Gere o código de convite e distribua apenas para o grupo pequeno de testes.
-2. Envie a URL do domínio real.
-3. O tester abre `/beta`, insere o código e ganha acesso.
-4. O acesso expira depois de 14 dias, ou quando o cookie for apagado.
+1. Abra `/admin/ops`.
+2. Gere um novo código no bloco de convites beta.
+3. Defina lote, usos máximos e expiração se necessário.
+4. Envie a URL do domínio real com o código para o grupo pequeno de testes.
+5. O tester abre `/beta`, insere o código e ganha acesso.
 
 ## Como acompanhar lacunas
 
-- Use o painel `/admin/ops` para ver cidades frágeis, postos sem preço recente e combustíveis com baixa massa.
-- Use o bloco de feedback beta para ver os temas mais recorrentes.
+- Use o bloco de sinais internos para ver testers ativos, envios iniciados/concluídos, feedbacks novos e alertas.
+- Use a triagem de feedback para enxergar tema repetido, cidade, prioridade e status de leitura.
+- Use os exports CSV de `feedback`, `events`, `ops` e `invites` quando precisar abrir os dados fora do app.
 - Priorize Volta Redonda, Barra Mansa e Barra do Piraí antes de ampliar o grupo.
 
 ## Quando sair do beta fechado
