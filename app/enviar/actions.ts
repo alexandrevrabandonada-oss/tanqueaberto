@@ -104,7 +104,7 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
       ipHash: context.ipHash,
       reason: "missing_photo"
     });
-    return failure("Anexe uma foto do painel ou da bomba.", "validation", false);
+    return failure("A foto não foi anexada ou se perdeu. Tire outra antes de enviar.", "photo_missing", false);
   }
 
   const validationError = validateReportPhoto(photo);
@@ -236,6 +236,7 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
   });
 
   if (uploadError) {
+    const uploadInterrupted = /abort|interrupt|network|fetch/i.test(uploadError.message);
     await recordOperationalEvent({
       eventType: "upload_failed",
       severity: "error",
@@ -250,7 +251,7 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
         filePath
       }
     });
-    return failure("Não foi possível enviar a foto agora. A parte preenchida ficou aqui; tente novamente sem recomeçar.", "upload_failed", true);
+    return failure(uploadInterrupted ? "O envio da foto foi interrompido no meio do caminho. Tente reenviar sem recomeçar." : "Não foi possível enviar a foto agora. A parte preenchida ficou aqui; tente novamente sem recomeçar.", uploadInterrupted ? "upload_interrupted" : "upload_failed", true);
   }
 
   const { data: publicUrl } = supabase.storage.from(REPORT_PHOTO_BUCKET).getPublicUrl(filePath);

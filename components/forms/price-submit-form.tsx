@@ -12,13 +12,11 @@ import type { FuelType, Station } from "@/lib/types";
 import { fuelLabels } from "@/lib/format/labels";
 import { submitPriceReportAction } from "@/app/enviar/actions";
 import { trackProductEvent } from "@/lib/telemetry/client";
+import { clearSubmissionDraft, loadSubmissionDraft, saveSubmissionDraft, type SubmissionDraftSnapshot, type SubmissionDraftStep, type SubmissionDraftStatus } from "@/lib/drafts/submission-draft";
 
 const fuelOptions: FuelType[] = ["gasolina_comum", "gasolina_aditivada", "etanol", "diesel_s10", "diesel_comum", "gnv"];
 const allowedFuelSet = new Set<FuelType>(fuelOptions);
-
 const initialState = { error: null, errorCode: null, retryable: false, success: false };
-
-type SubmissionStep = "photo" | "station" | "fuel" | "price" | "nickname" | "submit";
 
 interface PriceSubmitFormProps {
   stations: Station[];
@@ -35,14 +33,43 @@ function createDraftKey(initialStationId?: string) {
   return `bomba-aberta:price-draft:${initialStationId ?? "default"}`;
 }
 
-function buildSubmitStepPayload(step: SubmissionStep, compactMode: boolean, lockedStation: boolean, hasPhoto: boolean, selectedStationId: string | null) {
+function buildStepPayload(step: SubmissionDraftStep, compactMode: boolean, lockedStation: boolean, hasPhoto: boolean, selectedStationId: string | null) {
+  return { step, compactMode, lockedStation, hasPhoto, selectedStationId };
+}
+
+function buildDraftSnapshot(input: {
+  key: string;
+  stationId: string;
+  fuelType: FuelType;
+  price: string;
+  nickname: string;
+  lastStep: SubmissionDraftStep;
+  status: SubmissionDraftStatus;
+  photo: File | null;
+}) {
   return {
-    step,
-    compactMode,
-    lockedStation,
-    hasPhoto,
-    selectedStationId
-  };
+    key: input.key,
+    stationId: input.stationId,
+    fuelType: input.fuelType,
+    price: input.price,
+    nickname: input.nickname,
+    status: input.status,
+    lastStep: input.lastStep,
+    updatedAt: new Date().toISOString(),
+    photoName: input.photo?.name ?? null,
+    photoType: input.photo?.type ?? null,
+    photoSize: input.photo?.size ?? null,
+    photo: input.photo
+  } satisfies SubmissionDraftSnapshot;
+}
+
+function isPhotoMetadataPresent(snapshot: Partial<SubmissionDraftSnapshot>) {
+  return Boolean(snapshot.photoName || snapshot.photoType || snapshot.photoSize);
+}
+
+function getPhotoName(photoType?: string | null, fallbackName = "foto") {
+  const suffix = photoType?.split("/")[1] ?? "jpg";
+  return `${fallbackName}.${suffix}`;
 }
 
 function PriceSubmitFormBody({
@@ -69,7 +96,9 @@ function PriceSubmitFormBody({
   const [price, setPrice] = useState("");
   const [nickname, setNickname] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [draftLoaded, setDraftLoaded] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
+  const [draftPhotoMissing, setDraftPhotoMissing] = useState(false);
   const [submittedStationId, setSubmittedStationId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const priceInputRef = useRef<HTMLInputElement | null>(null);
@@ -77,26 +106,29 @@ function PriceSubmitFormBody({
   const hasStartedRef = useRef(false);
   const completedRef = useRef(false);
   const abandonmentSentRef = useRef(false);
-  const currentStepRef = useRef<SubmissionStep | null>(null);
+  const currentStepRef = useRef<SubmissionDraftStep | null>(null);
   const telemetryContextRef = useRef({ stationId: stationId || null, fuelType, compactMode, lockedStation });
   const formRef = useRef<HTMLFormElement | null>(null);
+  const restoredDraftTrackedRef = useRef(false);
+  const lastFailureKeyRef = useRef<string | null>(null);
+  const retryAttemptRef = useRef(0);
 
   useEffect(() => {
     telemetryContextRef.current = { stationId: stationId || null, fuelType, compactMode, lockedStation };
   }, [compactMode, fuelType, lockedStation, stationId]);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
+    let active = true;
 
-    const rawDraft = window.sessionStorage.getItem(draftKey);
-    if (!rawDraft) {
-      return;
-    }
+    void (async () => {
+      try {
+        const draft = await loadSubmissionDraft(draftKey);
+        if (!active || !draft) {
+          setDraftLoaded(true);
+          return;
+        }
 
-    try {
-      const draft = JSON.parse(rawDraft) as Partial<{ stationId: string; fuelType: FuelType; price: string; nickname: string }>;
+
       if (draft.stationId && stations.some((station) => station.id === draft.stationId)) {
         setStationId(draft.stationId);
       }
@@ -109,11 +141,70 @@ function PriceSubmitFormBody({
       if (typeof draft.nickname === "string") {
         setNickname(draft.nickname);
       }
+
+      if (draft.photo && draft.photo instanceof Blob) {
+        const restoredFile = new File([draft.photo], getPhotoName(draft.photoType, draft.photoName ?? "foto"), {
+          type: draft.photoType ?? draft.photo.type ?? "image/jpeg",
+          lastModified: new Date(draft.updatedAt).getTime()
+        });
+        selectedFileRef.current = restoredFile;
+        const objectUrl = URL.createObjectURL(restoredFile);
+        setPreviewUrl(objectUrl);
+        setDraftPhotoMissing(false);
+      } else if (isPhotoMetadataPresent(draft)) {
+        setDraftPhotoMissing(true);
+      }
+
       setDraftRestored(true);
-    } catch {
-      window.sessionStorage.removeItem(draftKey);
-    }
-  }, [draftKey, stations]);
+      setDraftLoaded(true);
+
+        if (!restoredDraftTrackedRef.current) {
+        restoredDraftTrackedRef.current = true;
+        void trackProductEvent({
+          eventType: "submission_draft_restored",
+          pagePath: "/enviar",
+          pageTitle: "Enviar preço",
+          stationId: draft.stationId || null,
+          fuelType: draft.fuelType,
+          scopeType: "submission",
+          scopeId: draft.stationId || null,
+          payload: {
+            lastStep: draft.lastStep,
+            status: draft.status,
+            hasPhoto: Boolean(draft.photo),
+            ageMs: Date.now() - new Date(draft.updatedAt).getTime(),
+            compactMode,
+            lockedStation
+          }
+        });
+      }
+
+        if (!draft.photo && isPhotoMetadataPresent(draft)) {
+        void trackProductEvent({
+          eventType: "submission_photo_lost",
+          pagePath: "/enviar",
+          pageTitle: "Enviar preço",
+          stationId: draft.stationId || null,
+          fuelType: draft.fuelType,
+          scopeType: "submission",
+          scopeId: draft.stationId || null,
+          payload: {
+            lastStep: draft.lastStep,
+            compactMode,
+            lockedStation,
+            source: "restore_missing_photo"
+          }
+        });
+      }
+      } catch {
+        setDraftLoaded(true);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [compactMode, draftKey, lockedStation, stations]);
 
   useEffect(() => {
     if (initialStation) {
@@ -127,13 +218,24 @@ function PriceSubmitFormBody({
   }, [initialStation, stationId, stations]);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
+    if (!draftLoaded || completedRef.current) {
       return;
     }
 
-    const draft = { stationId, fuelType, price, nickname };
-    window.sessionStorage.setItem(draftKey, JSON.stringify(draft));
-  }, [draftKey, fuelType, nickname, price, stationId]);
+    const status: SubmissionDraftStatus = pending ? "submitting" : state.error ? "failed" : "in_progress";
+    const snapshot = buildDraftSnapshot({
+      key: draftKey,
+      stationId,
+      fuelType,
+      price,
+      nickname,
+      lastStep: currentStepRef.current ?? "photo",
+      status,
+      photo: selectedFileRef.current
+    });
+
+    void saveSubmissionDraft(snapshot).catch(() => undefined);
+  }, [draftKey, draftLoaded, fuelType, nickname, pending, price, stationId, state.error]);
 
   useEffect(() => {
     if (!state.success) {
@@ -147,7 +249,9 @@ function PriceSubmitFormBody({
     setPreviewUrl(null);
     selectedFileRef.current = null;
     setDraftRestored(false);
+    setDraftPhotoMissing(false);
     window.sessionStorage.removeItem(draftKey);
+    void clearSubmissionDraft(draftKey).catch(() => undefined);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -181,7 +285,8 @@ function PriceSubmitFormBody({
           lastStep: currentStepRef.current,
           compactMode: telemetryContextRef.current.compactMode,
           lockedStation: telemetryContextRef.current.lockedStation,
-          hasPhoto: Boolean(selectedFileRef.current)
+          hasPhoto: Boolean(selectedFileRef.current),
+          photoMissing: draftPhotoMissing
         }
       });
     };
@@ -193,9 +298,36 @@ function PriceSubmitFormBody({
       window.removeEventListener("pagehide", sendAbandonment);
       window.removeEventListener("beforeunload", sendAbandonment);
     };
-  }, []);
+  }, [draftPhotoMissing]);
 
-  function markStarted(step: SubmissionStep, extra?: Record<string, unknown>) {
+  useEffect(() => {
+    if (!state.error || state.errorCode === lastFailureKeyRef.current) {
+      return;
+    }
+
+    lastFailureKeyRef.current = state.errorCode;
+    void trackProductEvent({
+      eventType: "submission_failed",
+      pagePath: "/enviar",
+      pageTitle: "Enviar preço",
+      stationId: telemetryContextRef.current.stationId,
+      fuelType: telemetryContextRef.current.fuelType,
+      scopeType: "submission",
+      scopeId: telemetryContextRef.current.stationId,
+      reason: state.errorCode,
+      payload: {
+        retryable: state.retryable,
+        message: state.error,
+        step: currentStepRef.current,
+        compactMode: telemetryContextRef.current.compactMode,
+        lockedStation: telemetryContextRef.current.lockedStation,
+        hasPhoto: Boolean(selectedFileRef.current),
+        photoMissing: draftPhotoMissing
+      }
+    });
+  }, [draftPhotoMissing, state.error, state.errorCode, state.retryable]);
+
+  function markStarted(step: SubmissionDraftStep, extra?: Record<string, unknown>) {
     hasStartedRef.current = true;
     currentStepRef.current = step;
     void trackProductEvent({
@@ -207,24 +339,30 @@ function PriceSubmitFormBody({
       scopeType: "submission",
       scopeId: stationId || null,
       payload: {
-        ...buildSubmitStepPayload(step, compactMode, lockedStation, Boolean(selectedFileRef.current), stationId || null),
+        ...buildStepPayload(step, compactMode, lockedStation, Boolean(selectedFileRef.current), stationId || null),
         ...extra
       }
     });
   }
 
-  function resetForAnotherSubmission() {
+  async function resetForAnotherSubmission() {
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-    window.sessionStorage.removeItem(draftKey);
     completedRef.current = false;
     abandonmentSentRef.current = false;
+    setDraftRestored(false);
+    setDraftPhotoMissing(false);
+    setPreviewUrl(null);
+    selectedFileRef.current = null;
+    await clearSubmissionDraft(draftKey).catch(() => undefined);
+    window.sessionStorage.removeItem(draftKey);
     onResetRequest();
   }
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const nextFile = event.target.files?.[0] ?? null;
+    const isRestored = draftRestored || draftPhotoMissing;
 
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
@@ -243,6 +381,25 @@ function PriceSubmitFormBody({
     }
 
     markStarted("photo", { fileType: nextFile.type, fileSize: nextFile.size });
+    if (isRestored) {
+      void trackProductEvent({
+        eventType: "submission_photo_reselected",
+        pagePath: "/enviar",
+        pageTitle: "Enviar preço",
+        stationId: stationId || null,
+        fuelType,
+        scopeType: "submission",
+        scopeId: stationId || null,
+        payload: {
+          source: draftPhotoMissing ? "missing_photo" : "restored_draft",
+          fileType: nextFile.type,
+          fileSize: nextFile.size,
+          compactMode,
+          lockedStation
+        }
+      });
+    }
+    setDraftPhotoMissing(false);
     setPreviewUrl(URL.createObjectURL(nextFile));
     if (priceInputRef.current) {
       priceInputRef.current.focus();
@@ -273,17 +430,29 @@ function PriceSubmitFormBody({
           <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1">3. Combustível</span>
           <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1">4. Preço</span>
           <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1">5. Enviar</span>
-          {draftRestored ? <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1">Rascunho restaurado</span> : null}
+          {draftRestored ? <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1">Rascunho recuperado</span> : null}
+          {draftPhotoMissing ? <span className="rounded-full border border-[color:var(--color-danger)]/30 bg-[color:var(--color-danger)]/12 px-3 py-1 text-[color:var(--color-danger)]">Foto precisa ser refeita</span> : null}
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           <Button type="button" onClick={() => fileInputRef.current?.click()} className="w-full sm:w-auto">
             Tirar foto agora
           </Button>
           <Button type="button" variant="secondary" onClick={() => fileInputRef.current?.click()} className="w-full sm:w-auto">
-            Enviar foto da câmera
+            Abrir câmera
           </Button>
         </div>
-        <p className="mt-3 text-xs leading-relaxed text-white/52">Se a conexão cair, os campos ficam na tela. Se a foto falhar, tente de novo sem refazer tudo.</p>
+        {draftRestored ? (
+          <div className="mt-3 rounded-[18px] border border-white/8 bg-black/30 p-3 text-sm text-white/66">
+            <div className="flex items-center justify-between gap-3">
+              <p className="font-medium text-white">Continuar envio salvo</p>
+              <Button type="button" variant="ghost" onClick={() => fileInputRef.current?.click()}>
+                {draftPhotoMissing ? "Refazer foto" : "Continuar"}
+              </Button>
+            </div>
+            <p className="mt-1 text-white/54">Os dados que já estavam preenchidos voltaram. Se a foto não veio junto, tire outra antes de enviar.</p>
+          </div>
+        ) : null}
+        <p className="mt-3 text-xs leading-relaxed text-white/52">Se a conexão cair, os campos continuam na tela. Se a foto falhar, tente de novo sem refazer tudo.</p>
       </div>
 
       {state.success ? (
@@ -291,7 +460,7 @@ function PriceSubmitFormBody({
           <p className="text-base font-semibold">Preço enviado. Agora está em moderação.</p>
           <p className="mt-1 text-white/70">Você pode voltar ao posto, seguir para o mapa ou mandar outro preço se ainda estiver no local.</p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Button type="button" variant="secondary" onClick={resetForAnotherSubmission}>
+            <Button type="button" variant="secondary" onClick={() => { void resetForAnotherSubmission(); }}>
               Enviar outro preço
             </Button>
             {submittedStationId ? (
@@ -305,11 +474,50 @@ function PriceSubmitFormBody({
 
       {state.error ? (
         <div className={`rounded-[18px] border px-4 py-3 text-sm ${retryableError ? "border-[color:var(--color-accent)]/24 bg-[color:var(--color-accent)]/10 text-white" : "border-[color:var(--color-danger)]/30 bg-[color:var(--color-danger)]/10 text-[color:var(--color-danger)]"}`}>
-          <p className="font-medium text-white">{state.errorCode === "network_offline" ? "Sem conexão agora." : state.errorCode === "upload_failed" ? "Falha no upload." : state.errorCode === "network_timeout" ? "A conexão demorou demais." : state.errorCode === "rate_limited" ? "Muitas tentativas em pouco tempo." : "Não foi possível concluir."}</p>
+          <p className="font-medium text-white">
+            {state.errorCode === "network_offline"
+              ? "Sem conexão agora."
+              : state.errorCode === "network_timeout"
+                ? "A conexão demorou demais."
+                : state.errorCode === "upload_failed"
+                  ? "Falha no upload."
+                  : state.errorCode === "upload_interrupted"
+                    ? "A foto foi interrompida no meio do caminho."
+                    : state.errorCode === "photo_missing"
+                      ? "A foto não foi recuperada."
+                      : state.errorCode === "rate_limited"
+                        ? "Muitas tentativas em pouco tempo."
+                        : "Não foi possível concluir."}
+          </p>
           <p className="mt-1 text-white/78">{state.error}</p>
           {retryableError ? (
             <div className="mt-3 flex flex-wrap gap-2">
-              <Button type="button" variant="secondary" onClick={() => formRef.current?.requestSubmit()}>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  retryAttemptRef.current += 1;
+                  void trackProductEvent({
+                    eventType: "submission_retry_clicked",
+                    pagePath: "/enviar",
+                    pageTitle: "Enviar preço",
+                    stationId: telemetryContextRef.current.stationId,
+                    fuelType: telemetryContextRef.current.fuelType,
+                    scopeType: "submission",
+                    scopeId: telemetryContextRef.current.stationId,
+                    payload: {
+                      retryAttempt: retryAttemptRef.current,
+                      reason: state.errorCode,
+                      lastStep: currentStepRef.current,
+                      compactMode: telemetryContextRef.current.compactMode,
+                      lockedStation: telemetryContextRef.current.lockedStation,
+                      hasPhoto: Boolean(selectedFileRef.current),
+                      photoMissing: draftPhotoMissing
+                    }
+                  });
+                  formRef.current?.requestSubmit();
+                }}
+              >
                 Tentar novamente
               </Button>
               <Button type="button" variant="ghost" onClick={() => fileInputRef.current?.click()}>
@@ -425,7 +633,7 @@ function PriceSubmitFormBody({
         </div>
       </div>
 
-      <details className={`rounded-[22px] border border-white/8 bg-black/30 p-4 text-sm text-white/58 ${compactMode ? "" : ""}`}>
+      <details className="rounded-[22px] border border-white/8 bg-black/30 p-4 text-sm text-white/58">
         <summary className="cursor-pointer list-none font-medium text-white/76">Apelido opcional</summary>
         <div className="mt-4 space-y-2">
           <label className="text-sm font-medium text-white" htmlFor="nickname">
@@ -446,7 +654,7 @@ function PriceSubmitFormBody({
       </details>
 
       <div className="rounded-[18px] border border-white/8 bg-white/5 px-4 py-3 text-xs leading-relaxed text-white/56">
-        Se a conexão cair, os campos continuam na tela. Se a foto falhar, use o botão de tentar novamente sem reescrever tudo.
+        Se a conexão cair, os campos continuam na tela. Se a foto falhar, use o botão de tentar novamente sem recomeçar.
       </div>
 
       <Button type="submit" className="w-full" disabled={pending || !canSubmit}>
@@ -458,5 +666,6 @@ function PriceSubmitFormBody({
 
 export function PriceSubmitForm(props: PriceSubmitFormProps) {
   const [formVersion, setFormVersion] = useState(0);
-  return <PriceSubmitFormBody key={formVersion} {...props} onResetRequest={() => setFormVersion((value) => value + 1)} />;
+
+  return <PriceSubmitFormBody key={`${props.initialStationId ?? "default"}-${formVersion}`} {...props} onResetRequest={() => setFormVersion((value) => value + 1)} />;
 }
