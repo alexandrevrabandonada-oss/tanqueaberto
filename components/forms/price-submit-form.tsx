@@ -25,6 +25,9 @@ import { useMissionContext } from "@/components/mission/mission-context";
 import { cn } from "@/lib/utils";
 import { getStationPublicName } from "@/lib/quality/stations";
 import { useSubmissionHistory } from "@/components/history/submission-history-context";
+import { analyzePhotoQuality, type PhotoQualityResult } from "@/lib/camera/quality-analyzer";
+import { processImageForUpload } from "@/lib/camera/image-processor";
+import { AlertTriangle, CheckCircle2, Loader2, Sparkles } from "lucide-react";
 
 const fuelOptions: FuelType[] = ["gasolina_comum", "gasolina_aditivada", "etanol", "diesel_s10", "diesel_comum", "gnv"];
 const allowedFuelSet = new Set<FuelType>(fuelOptions);
@@ -148,6 +151,8 @@ function PriceSubmitFormBody({
   const formRef = useRef<HTMLFormElement | null>(null);
   const restoredDraftTrackedRef = useRef(false);
   const lastFailureKeyRef = useRef<string | null>(null);
+  const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
+  const [qualityResult, setQualityResult] = useState<PhotoQualityResult | null>(null);
   const retryAttemptRef = useRef(0);
   const lastQueuedFailureSignatureRef = useRef<string | null>(null);
   const lastQueuedAbandonmentSignatureRef = useRef<string | null>(null);
@@ -678,7 +683,7 @@ function PriceSubmitFormBody({
     onResetRequest();
   }
 
-  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const nextFile = event.target.files?.[0] ?? null;
     const isRestored = draftRestored || draftPhotoMissing;
 
@@ -686,41 +691,69 @@ function PriceSubmitFormBody({
       URL.revokeObjectURL(previewUrl);
     }
 
-    selectedFileRef.current = nextFile;
-
     if (!nextFile) {
+      selectedFileRef.current = null;
       setPreviewUrl(null);
+      setQualityResult(null);
       return;
     }
 
     if (!nextFile.type.startsWith("image/")) {
+      selectedFileRef.current = null;
       setPreviewUrl(null);
+      setQualityResult(null);
       return;
     }
 
-    markStarted("photo", { fileType: nextFile.type, fileSize: nextFile.size });
-    if (isRestored) {
-      void trackProductEvent({
-        eventType: "submission_photo_reselected",
-        pagePath: "/enviar",
-        pageTitle: "Enviar preço",
-        stationId: stationId || null,
-        fuelType,
-        scopeType: "submission",
-        scopeId: stationId || null,
-        payload: {
-          source: draftPhotoMissing ? "missing_photo" : "restored_draft",
-          fileType: nextFile.type,
-          fileSize: nextFile.size,
-          compactMode,
-          lockedStation
-        }
+    setIsProcessingPhoto(true);
+    setQualityResult(null);
+
+    try {
+      // 1. Processar/Comprimir
+      const processed = await processImageForUpload(nextFile);
+      selectedFileRef.current = processed;
+      
+      // 2. Analisar qualidade
+      const quality = await analyzePhotoQuality(processed);
+      setQualityResult(quality);
+
+      markStarted("photo", { 
+        fileType: processed.type, 
+        fileSize: processed.size,
+        qualityScore: quality.score,
+        qualityWarnings: quality.warnings
       });
-    }
-    setDraftPhotoMissing(false);
-    setPreviewUrl(URL.createObjectURL(nextFile));
-    if (priceInputRef.current) {
-      priceInputRef.current.focus();
+
+      if (isRestored) {
+        void trackProductEvent({
+          eventType: "submission_photo_reselected",
+          pagePath: "/enviar",
+          pageTitle: "Enviar preço",
+          stationId: stationId || null,
+          fuelType,
+          scopeType: "submission",
+          scopeId: stationId || null,
+          payload: {
+            source: draftPhotoMissing ? "missing_photo" : "restored_draft",
+            fileType: processed.type,
+            fileSize: processed.size,
+            qualityScore: quality.score,
+            compactMode,
+            lockedStation
+          }
+        });
+      }
+
+      setDraftPhotoMissing(false);
+      setPreviewUrl(URL.createObjectURL(processed));
+      
+      if (priceInputRef.current) {
+        priceInputRef.current.focus();
+      }
+    } catch (err) {
+      console.error("Erro ao processar foto:", err);
+    } finally {
+      setIsProcessingPhoto(false);
     }
   }
 
@@ -1114,9 +1147,70 @@ function PriceSubmitFormBody({
         />
       </div>
 
-      {previewUrl ? (
-        <div className="overflow-hidden rounded-[22px] border border-white/8 bg-black/30">
-          <img src={previewUrl} alt="Pré-visualização da foto enviada" className="h-52 w-full object-cover" />
+      {isProcessingPhoto && (
+        <div className="flex h-32 items-center justify-center rounded-[22px] border border-dashed border-white/20 bg-black/20">
+          <div className="flex flex-col items-center gap-2">
+            <Loader2 className="h-6 w-6 animate-spin text-[color:var(--color-accent)]" />
+            <p className="text-xs font-medium text-white/50 uppercase tracking-widest">Otimizando evidência...</p>
+          </div>
+        </div>
+      )}
+
+      {previewUrl && !isProcessingPhoto ? (
+        <div className="group relative overflow-hidden rounded-[22px] border border-white/12 bg-black/40 shadow-2xl transition-all hover:border-[color:var(--color-accent)]/30">
+          <img src={previewUrl} alt="Pré-visualização da foto enviada" className="h-64 w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+          
+          {/* Overlay de Qualidade */}
+          <div className="absolute inset-x-0 top-0 flex items-start justify-between bg-gradient-to-b from-black/80 via-black/40 to-transparent p-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                {qualityResult?.isGood ? (
+                  <Badge variant="accent" className="gap-1.5 py-1 pr-3">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    FOTO NÍTIDA
+                  </Badge>
+                ) : qualityResult ? (
+                   <Badge variant="warning" className="gap-1.5 py-1 pr-3 bg-orange-500/20 text-orange-400 border-orange-500/30">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    ATENÇÃO À QUALIDADE
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="animate-pulse">ANALISANDO...</Badge>
+                )}
+              </div>
+              {qualityResult && !qualityResult.isGood && (
+                 <div className="flex flex-wrap gap-1">
+                    {qualityResult.warnings.map(w => (
+                      <span key={w} className="rounded-full bg-black/60 px-2 py-0.5 text-[9px] font-bold text-white/80 uppercase tracking-wider backdrop-blur-sm">
+                        {w.replace('_', ' ')}
+                      </span>
+                    ))}
+                 </div>
+              )}
+            </div>
+            
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => fileInputRef.current?.click()}
+              className="h-8 rounded-full border-white/10 bg-white/10 px-3 text-[10px] font-bold text-white backdrop-blur-md hover:bg-white/20"
+            >
+              REFAZER FOTO
+            </Button>
+          </div>
+
+          {!qualityResult?.isGood && qualityResult && (
+             <div className="absolute inset-x-0 bottom-0 bg-orange-500/90 p-3 backdrop-blur-md">
+                <div className="flex items-center gap-3">
+                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/20">
+                      <Sparkles className="h-4 w-4 text-white" />
+                   </div>
+                   <p className="text-[11px] font-bold leading-tight text-white uppercase tracking-tight">
+                      {qualityResult.warnings.includes('MUITO_ESCURA') ? 'ESSA FOTO ESTÁ MEIO ESCURA. TALVEZ SEJA MELHOR TIRAR OUTRA COM MAIS LUZ.' : 'A FOTO PARECE MEIO RUIM. SE POSSÍVEL, TENTE UMA MAIS NÍTIDA PARA FACILITAR A MODERAÇÃO.'}
+                   </p>
+                </div>
+             </div>
+          )}
         </div>
       ) : null}
 
