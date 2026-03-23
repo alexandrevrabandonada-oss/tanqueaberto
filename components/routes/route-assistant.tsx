@@ -14,6 +14,8 @@ import { useGeolocation } from "@/hooks/use-geolocation";
 import { formatDistance } from "@/lib/geo/distance";
 import { trackProductEvent } from "@/lib/telemetry/client";
 import { getStationPublicName } from "@/lib/quality/stations";
+import { Navigation } from "lucide-react";
+import { openExternalNavigation } from "@/lib/navigation/external-maps";
 import type { StationWithReports } from "@/lib/types";
 
 // Note: Consistent naming.
@@ -149,7 +151,24 @@ export function RouteAssistant({ stations, currentStationId = null }: RouteAssis
         </Link>
         <Button 
           variant="secondary" 
-          className="h-12 w-12 rounded-full p-0"
+          className="h-12 flex-1 font-bold"
+          onClick={() => {
+            const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            openExternalNavigation(isMobile ? "waze" : "google", {
+              lat: nextStation.lat,
+              lng: nextStation.lng,
+              stationId: nextStation.id,
+              stationName: getStationPublicName(nextStation),
+              source: "route_assistant"
+            });
+          }}
+        >
+          <Navigation className="h-5 w-5" />
+          Navegar
+        </Button>
+        <Button 
+          variant="secondary" 
+          className="h-12 w-12 rounded-full p-0 flex-shrink-0"
           onClick={handleSkip}
           title="Pular este posto"
         >

@@ -43,7 +43,9 @@ export type ProductTelemetryEventType =
   | "mission_station_completed"
   | "mission_station_skipped"
   | "field_quality_warning_shown"
-  | "submission_quality_flagged";
+  | "submission_quality_flagged"
+  | "external_navigation_opened"
+  | "return_after_navigation";
 
 export interface ProductTelemetryEventInput {
   eventType: ProductTelemetryEventType;

@@ -14,6 +14,9 @@ import { getStationPublicName, hasPendingStationLocationReview } from "@/lib/qua
 import { rememberStationVisit } from "@/lib/navigation/home-context";
 import { GroupStatusBadge } from "@/components/ui/group-status-badge";
 import { formatDistance } from "@/lib/geo/distance";
+import { Navigation } from "lucide-react";
+import { openExternalNavigation } from "@/lib/navigation/external-maps";
+import { Button } from "@/components/ui/button";
 import type { FuelType, PriceReport, StationWithReports } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -121,6 +124,8 @@ export function StationCard({ station, fuelFilter = "all", returnToHref, isStree
         </div>
       )}
 
+
+
       <div className="flex items-center gap-2">
         <ButtonLink
           href={sendHref}
@@ -133,6 +138,26 @@ export function StationCard({ station, fuelFilter = "all", returnToHref, isStree
           <Camera className={cn("h-4 w-4", isStreetMode && "h-5 w-5")} />
           {isStreetMode ? "ENVIAR PREÇO" : "Abrir câmera"}
         </ButtonLink>
+        
+        <Button
+          variant="secondary"
+          className={cn("px-4", isStreetMode && "h-14 font-bold")}
+          onClick={() => {
+            // Default to Waze on mobile, Google on desktop/etc
+            const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            openExternalNavigation(isMobile ? "waze" : "google", {
+              lat: station.lat,
+              lng: station.lng,
+              stationId: station.id,
+              stationName: getStationPublicName(station),
+              source: "station_card"
+            });
+          }}
+        >
+          <Navigation className={cn("h-4 w-4", isStreetMode && "h-5 w-5")} />
+          {isStreetMode ? "COMO CHEGAR" : "Navegar"}
+        </Button>
+
         {!isStreetMode && (
           <Link
             href={stationHref}

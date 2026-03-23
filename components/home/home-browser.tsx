@@ -1,7 +1,7 @@
 "use client";
 
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, Camera, Clock3, Search, SlidersHorizontal, Star, X, Zap } from "lucide-react";
+import { ArrowRight, Camera, Clock3, Navigation, Search, SlidersHorizontal, Star, X, Zap } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
 
@@ -28,6 +28,7 @@ import { canShowStationOnMap, getStationPublicName, hasPendingStationLocationRev
 import { persistHomeContext, priorityCities, readHomeContext, readLastStationContext, rememberStationVisit } from "@/lib/navigation/home-context";
 import { startRoute, readRouteContext } from "@/lib/navigation/route-context";
 import { RouteAssistant } from "@/components/routes/route-assistant";
+import { getNavigationHandoff, clearNavigationHandoff, type ExternalNavigationOptions } from "@/lib/navigation/external-maps";
 import { useStreetMode } from "@/hooks/use-street-mode";
 import { useNetworkHardening } from "@/hooks/use-network-hardening";
 import { useMissionContext } from "@/components/mission/mission-context";
@@ -122,6 +123,29 @@ export function HomeBrowser({
   const { isLowPerf, effectiveType } = useNetworkHardening();
   const { isStreetMode, toggleStreetMode, recentIds, favoriteIds, toggleFavorite, isFavorite } = useStreetMode();
   const { startMission } = useMissionContext();
+  const [navHandoff, setNavHandoff] = useState<any>(null);
+
+  useEffect(() => {
+    const checkHandoff = () => {
+      const data = getNavigationHandoff();
+      if (data) {
+        setNavHandoff(data);
+      }
+    };
+
+    // Check on mount
+    checkHandoff();
+
+    // Check on return
+    window.addEventListener("focus", checkHandoff);
+    window.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") checkHandoff();
+    });
+
+    return () => {
+      window.removeEventListener("focus", checkHandoff);
+    };
+  }, []);
 
   useEffect(() => {
     void trackProductEvent({ eventType: "home_opened", pagePath: "/", pageTitle: "Mapa vivo", scopeType: "page", scopeId: "/", payload: { streetMode: isStreetMode } });
@@ -348,6 +372,62 @@ export function HomeBrowser({
       <div className="mb-4">
         <RouteAssistant stations={stations} />
       </div>
+
+      {navHandoff && (
+        <div className="mb-6 flex animate-in fade-in slide-in-from-top-4 duration-500 flex-col gap-3 rounded-[24px] border border-[color:var(--color-accent)]/30 bg-[color:var(--color-accent)]/10 p-4 shadow-xl backdrop-blur-md">
+           <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--color-accent)]/20">
+                    <Navigation className="h-4 w-4 text-[color:var(--color-accent)]" />
+                 </div>
+                 <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[color:var(--color-accent)]">De volta ao app</p>
+                    <p className="text-sm font-bold text-white leading-tight">Chegou ao {navHandoff.stationName}?</p>
+                 </div>
+              </div>
+              <button 
+                onClick={() => {
+                  setNavHandoff(null);
+                  clearNavigationHandoff();
+                }}
+                className="text-white/20 hover:text-white"
+              >
+                 <X className="h-5 w-5" />
+              </button>
+           </div>
+           
+           <div className="flex gap-2">
+              <ButtonLink
+                href={(`/enviar?stationId=${navHandoff.stationId}#photo` as Route)}
+                onClick={() => {
+                  void trackProductEvent({
+                    eventType: "return_after_navigation",
+                    pagePath: "/",
+                    pageTitle: "Home",
+                    stationId: navHandoff.stationId,
+                    payload: { action: "open_camera", source: navHandoff.source }
+                  });
+                  setNavHandoff(null);
+                  clearNavigationHandoff();
+                }}
+                className="flex-1 h-12 text-xs font-black bg-[color:var(--color-accent)] text-black"
+              >
+                 <Camera className="h-4 w-4" />
+                 ABRIR CÂMERA AGORA
+              </ButtonLink>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setNavHandoff(null);
+                  clearNavigationHandoff();
+                }}
+                className="h-12 px-6 text-xs font-bold"
+              >
+                 Ainda não
+              </Button>
+           </div>
+        </div>
+      )}
 
       {isLowPerf && (
         <div className="mb-4 flex items-center gap-3 rounded-[22px] border border-orange-500/30 bg-orange-500/10 px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-orange-400">
