@@ -45,7 +45,9 @@ export type ProductTelemetryEventType =
   | "field_quality_warning_shown"
   | "submission_quality_flagged"
   | "external_navigation_opened"
-  | "return_after_navigation";
+  | "return_after_navigation"
+  | "territorial_landing_visited"
+  | "territorial_entry_from_landing";
 
 export interface ProductTelemetryEventInput {
   eventType: ProductTelemetryEventType;

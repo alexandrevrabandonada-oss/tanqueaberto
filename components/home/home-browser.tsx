@@ -148,8 +148,20 @@ export function HomeBrowser({
   }, []);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    if (ref === "city_page" && initialCity) {
+      void trackProductEvent({
+        eventType: "territorial_entry_from_landing" as any,
+        pagePath: "/",
+        pageTitle: "Mapa vivo",
+        scopeType: "city",
+        scopeId: initialCity,
+        payload: { city: initialCity, source: "city_page" }
+      });
+    }
     void trackProductEvent({ eventType: "home_opened", pagePath: "/", pageTitle: "Mapa vivo", scopeType: "page", scopeId: "/", payload: { streetMode: isStreetMode } });
-  }, [isStreetMode]);
+  }, [isStreetMode, initialCity]);
 
   const { mission, isLoaded: missionLoaded } = useMissionContext();
 
