@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getAuditGroups } from "@/lib/audit/groups";
+import { detectActiveAlerts, type OperationalAlert } from "./alerts";
 
 export interface BetaSynthesis {
   timestamp: string;
@@ -20,8 +21,9 @@ export interface BetaSynthesis {
   qualitativeFeedback?: {
     commonTags: Array<{ tag: string; count: number }>;
     topMessages: string[];
-    topMotives: Array<{otive: string; count: number }>;
+    topMotives: Array<{ motive: string; count: number }>;
   };
+  activeAlerts: OperationalAlert[];
 }
 
 export async function getBetaSynthesis(): Promise<BetaSynthesis> {
@@ -134,9 +136,10 @@ export async function getBetaSynthesis(): Promise<BetaSynthesis> {
         .slice(0, 5),
       topMessages: topMessages,
       topMotives: Array.from(topicCounts.entries())
-        .map(([otive, count]) => ({ otive, count }))
+        .map(([motive, count]) => ({ motive, count }))
         .sort((a, b) => b.count - a.count)
         .slice(0, 3)
-    } : undefined
+    } : undefined,
+    activeAlerts: await detectActiveAlerts()
   };
 }

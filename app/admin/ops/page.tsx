@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, ArrowUpRight, ArrowDownRight, Zap, Target, BarChart3, Clock, CheckCircle2, AlertTriangle, Download, ShieldAlert } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, ArrowDownRight, Zap, Target, BarChart3, Clock, CheckCircle2, AlertTriangle, Download, ShieldAlert, AlertOctagon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { SectionCard } from "@/components/ui/section-card";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { requireAdminUser } from "@/lib/auth/admin";
 import { getDailyOpsDigest } from "@/lib/ops/daily-digest";
 import { formatDateTimeBR } from "@/lib/format/time";
+import { getBetaSynthesis } from "@/lib/ops/beta-synthesis";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +15,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminOpsPage() {
   await requireAdminUser();
   const digest = await getDailyOpsDigest();
+  const synthesis = await getBetaSynthesis();
 
   return (
     <div className="space-y-6 pb-20 pt-1">
@@ -98,6 +100,45 @@ export default async function AdminOpsPage() {
           <p className="mt-1 text-xs text-white/50">Sucesso de envio App → API</p>
         </SectionCard>
       </div>
+
+      {/* Alertas de Regressão */}
+      {synthesis.activeAlerts.length > 0 && (
+        <SectionCard className="border-l-4 border-l-rose-500 bg-rose-500/5">
+          <div className="flex items-center gap-3">
+            <AlertOctagon className="h-6 w-6 text-rose-400 animate-pulse" />
+            <div>
+              <h2 className="text-xl font-bold text-white">Alertas de Regressão Ativos</h2>
+              <p className="text-sm text-white/40">Problemas detectados que exigem atenção imediata da operação.</p>
+            </div>
+          </div>
+          
+          <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {synthesis.activeAlerts.map((alert, idx) => (
+              <div key={idx} className={cn(
+                "rounded-2xl border p-4 space-y-2",
+                alert.severity === 'critical' ? "bg-rose-500/10 border-rose-500/20" : "bg-orange-500/10 border-orange-500/20"
+              )}>
+                <div className="flex items-center justify-between">
+                  <Badge variant={alert.severity === 'critical' ? 'danger' : 'warning'} className="text-[9px]">
+                    {alert.alertKind.toUpperCase()}
+                  </Badge>
+                  <span className="text-[10px] text-white/30 font-mono">#{idx+1}</span>
+                </div>
+                <h3 className="font-bold text-white text-sm">{alert.message}</h3>
+                {alert.suggestedAction && (
+                  <p className="text-xs text-white/60 leading-relaxed italic">Sugestão: {alert.suggestedAction}</p>
+                )}
+                <div className="flex items-center justify-between pt-2">
+                   <div className="text-[10px] text-white/30">
+                      Detectado em {alert.city || "Global"}
+                   </div>
+                   <Button variant="ghost" className="h-6 px-2 text-[10px] hover:bg-white/5">Ignorar</Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         {/* Recommended Actions */}
