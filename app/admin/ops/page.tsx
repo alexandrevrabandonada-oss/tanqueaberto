@@ -8,9 +8,11 @@ import { SectionCard } from "@/components/ui/section-card";
 import { OpsMetricCard } from "@/components/admin/ops/ops-metric-card";
 import { BetaInviteManager } from "@/components/admin/ops/beta-invite-manager";
 import { StationEditorialQueue } from "@/components/admin/ops/station-editorial-queue";
+import { BetaFeedbackTriage } from "@/components/admin/ops/beta-feedback-triage";
 import { CityReadinessPanel } from "@/components/admin/ops/city-readiness-panel";
 import { BetaOpsSignals } from "@/components/admin/ops/beta-ops-signals";
-import { BetaFeedbackTriage } from "@/components/admin/ops/beta-feedback-triage";
+import { EditorialGapPanel } from "@/components/admin/ops/editorial-gap-panel";
+import { GroupReadinessPanel } from "@/components/admin/ops/group-readiness-panel";
 import { 
   runAuditDossiersAction, 
   runAuditRefreshAction, 
@@ -21,7 +23,8 @@ import { getBetaFeedbackSummary } from "@/lib/beta/feedback";
 import { getActiveStations } from "@/lib/data/queries";
 import { getBetaOpsInsights } from "@/lib/ops/insights";
 import { getStationEditorialReviewQueue } from "@/lib/quality/stations";
-import { getCityReadinessRows } from "@/lib/ops/readiness";
+import { getCityReadinessRows, getGroupReadinessRows } from "@/lib/ops/readiness";
+import { getEditorialGapDashboard } from "@/lib/ops/editorial-gaps";
 import { fuelLabels } from "@/lib/format/labels";
 import { formatDateTimeBR, formatRecencyLabel } from "@/lib/format/time";
 
@@ -51,7 +54,13 @@ interface AdminOpsPageProps {
 export default async function AdminOpsPage({ searchParams }: AdminOpsPageProps) {
   await requireAdminUser();
   const params = (await searchParams) ?? {};
-  const [opsInsights, readinessRows, stations] = await Promise.all([getBetaOpsInsights(), getCityReadinessRows(30), getActiveStations()]);
+  const [opsInsights, readinessRows, groupReadinessRows, stations, editorialGaps] = await Promise.all([
+    getBetaOpsInsights(), 
+    getCityReadinessRows(30), 
+    getGroupReadinessRows(30),
+    getActiveStations(), 
+    getEditorialGapDashboard(14)
+  ]);
   const editorialQueue = getStationEditorialReviewQueue(stations);
   const { dashboard, inviteSummary, daily, alerts } = opsInsights;
   const feedback = await getBetaFeedbackSummary(14);
@@ -84,6 +93,10 @@ export default async function AdminOpsPage({ searchParams }: AdminOpsPageProps) 
                   <Download className="h-3.5 w-3.5" />
                   CSV readiness
                 </Link>
+                <Link href="/admin/ops/export?kind=gaps" className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-white/72 hover:border-[color:var(--color-accent)] hover:text-white">
+                  <Download className="h-3.5 w-3.5" />
+                  CSV lacunas
+                </Link>
               </div>
             </div>
           </div>
@@ -91,7 +104,9 @@ export default async function AdminOpsPage({ searchParams }: AdminOpsPageProps) 
           {banner ? <div className="rounded-[18px] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/74">{banner}</div> : null}
 
           <BetaOpsSignals alerts={alerts} />
+          <GroupReadinessPanel rows={groupReadinessRows} />
           <CityReadinessPanel rows={readinessRows} />
+          <EditorialGapPanel data={editorialGaps} />
           <StationEditorialQueue items={editorialQueue} />
 
           <div className="grid gap-3 sm:grid-cols-3">
@@ -216,3 +231,7 @@ export default async function AdminOpsPage({ searchParams }: AdminOpsPageProps) 
     </AppShell>
   );
 }
+
+
+
+

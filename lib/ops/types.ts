@@ -3,7 +3,22 @@ export type OpsCadence = "manual" | "cron_daily" | "cron_weekly" | "cron_monthly
 export type OpsJobStatus = "running" | "success" | "failed";
 
 export type CityReadinessTrafficLight = "green" | "yellow" | "red";
-export type CityReadinessRecommendation = "segurar" | "testar pequeno" | "pronta para ampliar";
+export type CityReadinessRecommendation =
+  | "segurar"
+  | "testar pequeno"
+  | "pronta para ampliar"
+  | "pronto para teste na rua"
+  | "testar com 2 ou 3 pessoas"
+  | "segurar e densificar base"
+  | "revisar cadastro antes";
+
+export interface GroupReadinessRow extends Omit<CityReadinessRow, "city" | "citySlug"> {
+  groupId: string;
+  groupName: string;
+  groupSlug: string;
+  groupType: string;
+  city: string | null;
+}
 
 export interface CityReadinessRow {
   city: string;
