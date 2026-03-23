@@ -13,6 +13,8 @@ import { fuelLabels } from "@/lib/format/labels";
 import { submitPriceReportAction } from "@/app/enviar/actions";
 import { trackProductEvent } from "@/lib/telemetry/client";
 import { clearSubmissionDraft, loadSubmissionDraft, saveSubmissionDraft, type SubmissionDraftSnapshot, type SubmissionDraftStep, type SubmissionDraftStatus } from "@/lib/drafts/submission-draft";
+import { SubmissionQueuePanel } from "@/components/forms/submission-queue-panel";
+import { buildSubmissionQueueHref, clearSubmissionQueueForDraftKey, loadSubmissionQueue, removeSubmissionQueueEntry, upsertSubmissionQueueEntry, type SubmissionQueueEntry } from "@/lib/queue/submission-queue";
 
 const fuelOptions: FuelType[] = ["gasolina_comum", "gasolina_aditivada", "etanol", "diesel_s10", "diesel_comum", "gnv"];
 const allowedFuelSet = new Set<FuelType>(fuelOptions);
@@ -100,6 +102,8 @@ function PriceSubmitFormBody({
   const [draftRestored, setDraftRestored] = useState(false);
   const [draftPhotoMissing, setDraftPhotoMissing] = useState(false);
   const [submittedStationId, setSubmittedStationId] = useState<string | null>(null);
+  const [queueItems, setQueueItems] = useState<SubmissionQueueEntry[]>([]);
+  const [isOnline, setIsOnline] = useState(true);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const priceInputRef = useRef<HTMLInputElement | null>(null);
   const selectedFileRef = useRef<File | null>(null);
@@ -112,10 +116,38 @@ function PriceSubmitFormBody({
   const restoredDraftTrackedRef = useRef(false);
   const lastFailureKeyRef = useRef<string | null>(null);
   const retryAttemptRef = useRef(0);
+  const lastQueuedFailureSignatureRef = useRef<string | null>(null);
+  const lastQueuedAbandonmentSignatureRef = useRef<string | null>(null);
 
   useEffect(() => {
     telemetryContextRef.current = { stationId: stationId || null, fuelType, compactMode, lockedStation };
   }, [compactMode, fuelType, lockedStation, stationId]);
+
+  useEffect(() => {
+    let active = true;
+
+    void loadSubmissionQueue()
+      .then((items) => {
+        if (active) {
+          setQueueItems(items);
+        }
+      })
+      .catch(() => undefined);
+
+    const syncOnlineState = () => {
+      setIsOnline(typeof navigator !== "undefined" ? navigator.onLine : true);
+    };
+
+    syncOnlineState();
+    window.addEventListener("online", syncOnlineState);
+    window.addEventListener("offline", syncOnlineState);
+
+    return () => {
+      active = false;
+      window.removeEventListener("online", syncOnlineState);
+      window.removeEventListener("offline", syncOnlineState);
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -237,6 +269,9 @@ function PriceSubmitFormBody({
     void saveSubmissionDraft(snapshot).catch(() => undefined);
   }, [draftKey, draftLoaded, fuelType, nickname, pending, price, stationId, state.error]);
 
+  const currentQueueItem = queueItems.find((item) => item.draftKey === draftKey) ?? null;
+  const selectedStation = stations.find((station) => station.id === stationId) ?? stations[0] ?? null;
+
   useEffect(() => {
     if (!state.success) {
       return;
@@ -252,11 +287,33 @@ function PriceSubmitFormBody({
     setDraftPhotoMissing(false);
     window.sessionStorage.removeItem(draftKey);
     void clearSubmissionDraft(draftKey).catch(() => undefined);
+    void clearSubmissionQueueForDraftKey(draftKey)
+      .then((items) => setQueueItems(items))
+      .catch(() => undefined);
+    if (currentQueueItem) {
+      void trackProductEvent({
+        eventType: "submission_queue_completed",
+        pagePath: "/enviar",
+        pageTitle: "Enviar preço",
+        stationId: currentQueueItem.stationId,
+        city: currentQueueItem.city,
+        fuelType: currentQueueItem.fuelType,
+        scopeType: "submission",
+        scopeId: currentQueueItem.stationId,
+        payload: {
+          draftKey: currentQueueItem.draftKey,
+          hasPhoto: currentQueueItem.hasPhoto,
+          status: currentQueueItem.status
+        }
+      });
+    }
+    lastQueuedFailureSignatureRef.current = null;
+    lastQueuedAbandonmentSignatureRef.current = null;
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
     router.refresh();
-  }, [draftKey, router, state.success, stationId]);
+  }, [currentQueueItem, draftKey, router, state.success, stationId]);
 
   useEffect(() => {
     return () => {
@@ -273,8 +330,9 @@ function PriceSubmitFormBody({
       }
 
       abandonmentSentRef.current = true;
+      const hasPhoto = Boolean(selectedFileRef.current);
       void trackProductEvent({
-        eventType: "submission_abandoned",
+        eventType: hasPhoto ? "submission_abandoned_after_photo" : "submission_abandoned_before_photo",
         pagePath: "/enviar",
         pageTitle: "Enviar preço",
         stationId: telemetryContextRef.current.stationId,
@@ -285,7 +343,54 @@ function PriceSubmitFormBody({
           lastStep: currentStepRef.current,
           compactMode: telemetryContextRef.current.compactMode,
           lockedStation: telemetryContextRef.current.lockedStation,
-          hasPhoto: Boolean(selectedFileRef.current),
+          hasPhoto,
+          photoMissing: draftPhotoMissing
+        }
+      });
+
+      const queuedSignature = [draftKey, "abandonment", hasPhoto ? "photo" : "no-photo", price.trim(), fuelType, stationId || ""].join(":");
+      if (lastQueuedAbandonmentSignatureRef.current === queuedSignature) {
+        return;
+      }
+      lastQueuedAbandonmentSignatureRef.current = queuedSignature;
+
+      const resolvedStation = stations.find((station) => station.id === stationId) ?? selectedStation;
+      void upsertSubmissionQueueEntry({
+        draftKey,
+        stationId: resolvedStation?.id ?? stationId,
+        stationName: resolvedStation ? (resolvedStation.name || resolvedStation.brand || "Posto") : "Posto",
+        city: resolvedStation?.city ?? "",
+        neighborhood: resolvedStation?.neighborhood ?? null,
+        fuelType,
+        price,
+        nickname,
+        status: hasPhoto ? "pending" : "needs_photo",
+        hasPhoto,
+        photoName: selectedFileRef.current?.name ?? (draftPhotoMissing ? "foto" : null),
+        photoType: selectedFileRef.current?.type ?? null,
+        photoSize: selectedFileRef.current?.size ?? null,
+        lastErrorCode: "abandoned",
+        lastErrorLabel: "Envio interrompido antes de concluir.",
+        attempts: retryAttemptRef.current,
+        returnToHref: safeReturnToHref ?? null
+      })
+        .then((items) => setQueueItems(items))
+        .catch(() => undefined);
+
+      void trackProductEvent({
+        eventType: "submission_queue_added",
+        pagePath: "/enviar",
+        pageTitle: "Enviar preço",
+        stationId: telemetryContextRef.current.stationId,
+        city: resolvedStation?.city ?? null,
+        fuelType: telemetryContextRef.current.fuelType,
+        scopeType: "submission",
+        scopeId: telemetryContextRef.current.stationId,
+        reason: "abandoned",
+        payload: {
+          source: "abandonment",
+          status: hasPhoto ? "pending" : "needs_photo",
+          hasPhoto,
           photoMissing: draftPhotoMissing
         }
       });
@@ -298,7 +403,7 @@ function PriceSubmitFormBody({
       window.removeEventListener("pagehide", sendAbandonment);
       window.removeEventListener("beforeunload", sendAbandonment);
     };
-  }, [draftPhotoMissing]);
+  }, [draftKey, draftPhotoMissing, fuelType, nickname, price, safeReturnToHref, selectedStation, stationId, stations]);
 
   useEffect(() => {
     if (!state.error || state.errorCode === lastFailureKeyRef.current) {
@@ -326,6 +431,83 @@ function PriceSubmitFormBody({
       }
     });
   }, [draftPhotoMissing, state.error, state.errorCode, state.retryable]);
+
+  useEffect(() => {
+    if (!state.error || !draftLoaded) {
+      return;
+    }
+
+    const shouldQueue = state.retryable || state.errorCode === "photo_missing" || state.errorCode === "network_offline" || state.errorCode === "network_timeout" || state.errorCode === "upload_failed" || state.errorCode === "upload_interrupted";
+    if (!shouldQueue) {
+      return;
+    }
+
+    const queuedSignature = [draftKey, state.errorCode ?? "error", state.retryable ? "retryable" : "final", Boolean(selectedFileRef.current) ? "photo" : "no-photo", price.trim(), fuelType, stationId || ""].join(":");
+    if (lastQueuedFailureSignatureRef.current === queuedSignature) {
+      return;
+    }
+    lastQueuedFailureSignatureRef.current = queuedSignature;
+
+    const resolvedStation = stations.find((station) => station.id === stationId) ?? selectedStation;
+    const hasPhoto = Boolean(selectedFileRef.current);
+    const nextQueueStatus = state.errorCode === "photo_missing" || !hasPhoto ? "needs_photo" : "retryable";
+
+    void upsertSubmissionQueueEntry({
+      draftKey,
+      stationId: resolvedStation?.id ?? stationId,
+      stationName: resolvedStation ? (resolvedStation.name || resolvedStation.brand || "Posto") : "Posto",
+      city: resolvedStation?.city ?? "",
+      neighborhood: resolvedStation?.neighborhood ?? null,
+      fuelType,
+      price,
+      nickname,
+      status: nextQueueStatus,
+      hasPhoto,
+      photoName: selectedFileRef.current?.name ?? (draftPhotoMissing ? "foto" : null),
+      photoType: selectedFileRef.current?.type ?? null,
+      photoSize: selectedFileRef.current?.size ?? null,
+      lastErrorCode: state.errorCode,
+      lastErrorLabel: state.error,
+      attempts: retryAttemptRef.current,
+      returnToHref: safeReturnToHref ?? null
+    })
+      .then((items) => setQueueItems(items))
+      .catch(() => undefined);
+
+    void trackProductEvent({
+      eventType: "submission_queue_added",
+      pagePath: "/enviar",
+      pageTitle: "Enviar preço",
+      stationId: telemetryContextRef.current.stationId,
+      city: resolvedStation?.city ?? null,
+      fuelType: telemetryContextRef.current.fuelType,
+      scopeType: "submission",
+      scopeId: telemetryContextRef.current.stationId,
+      reason: state.errorCode,
+      payload: {
+        source: "failure",
+        status: nextQueueStatus,
+        hasPhoto,
+        photoMissing: draftPhotoMissing,
+        retryable: state.retryable,
+        message: state.error
+      }
+    });
+  }, [
+    draftKey,
+    draftLoaded,
+    draftPhotoMissing,
+    fuelType,
+    nickname,
+    price,
+    safeReturnToHref,
+    selectedStation,
+    stationId,
+    stations,
+    state.error,
+    state.errorCode,
+    state.retryable
+  ]);
 
   function markStarted(step: SubmissionDraftStep, extra?: Record<string, unknown>) {
     hasStartedRef.current = true;
@@ -406,10 +588,79 @@ function PriceSubmitFormBody({
     }
   }
 
-  const selectedStation = stations.find((station) => station.id === stationId) ?? stations[0] ?? null;
   const canSubmit = Boolean(selectedStation && selectedFileRef.current && price.trim() && fuelType);
   const retryableError = state.error && state.retryable;
   const statusLabel = previewUrl ? "foto pronta" : selectedStation ? "posto pronto" : "comece pela foto";
+
+  async function refreshQueueItems() {
+    const items = await loadSubmissionQueue().catch(() => [] as SubmissionQueueEntry[]);
+    setQueueItems(items);
+  }
+
+  async function handleRetryQueueItem(item: SubmissionQueueEntry) {
+    void trackProductEvent({
+      eventType: "submission_queue_retried",
+      pagePath: "/enviar",
+      pageTitle: "Enviar preço",
+      stationId: item.stationId,
+      city: item.city,
+      fuelType: item.fuelType,
+      scopeType: "submission",
+      scopeId: item.stationId,
+      payload: {
+        draftKey: item.draftKey,
+        hasPhoto: item.hasPhoto,
+        status: item.status
+      }
+    });
+
+    if (item.draftKey === draftKey && isOnline && canSubmit && selectedFileRef.current) {
+      formRef.current?.requestSubmit();
+      return;
+    }
+
+    router.push(buildSubmissionQueueHref(item));
+  }
+
+  function handleReviewQueueItem(item: SubmissionQueueEntry) {
+    router.push(buildSubmissionQueueHref(item));
+  }
+
+  async function handleDiscardQueueItem(item: SubmissionQueueEntry) {
+    void trackProductEvent({
+      eventType: "submission_queue_discarded",
+      pagePath: "/enviar",
+      pageTitle: "Enviar preço",
+      stationId: item.stationId,
+      city: item.city,
+      fuelType: item.fuelType,
+      scopeType: "submission",
+      scopeId: item.stationId,
+      payload: {
+        draftKey: item.draftKey,
+        hasPhoto: item.hasPhoto,
+        status: item.status
+      }
+    });
+
+    await removeSubmissionQueueEntry(item.id).catch(() => undefined);
+    await clearSubmissionDraft(item.draftKey).catch(() => undefined);
+    window.sessionStorage.removeItem(item.draftKey);
+    if (item.draftKey === draftKey) {
+      completedRef.current = false;
+      setPrice("");
+      setNickname("");
+      setPreviewUrl(null);
+      selectedFileRef.current = null;
+      setDraftRestored(false);
+      setDraftPhotoMissing(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      onResetRequest();
+    }
+    await refreshQueueItems();
+  }
 
   return (
     <form ref={formRef} action={formAction} className="space-y-4" onSubmitCapture={() => markStarted("submit")}>
@@ -434,10 +685,53 @@ function PriceSubmitFormBody({
           {draftPhotoMissing ? <span className="rounded-full border border-[color:var(--color-danger)]/30 bg-[color:var(--color-danger)]/12 px-3 py-1 text-[color:var(--color-danger)]">Foto precisa ser refeita</span> : null}
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
-          <Button type="button" onClick={() => fileInputRef.current?.click()} className="w-full sm:w-auto">
+          <Button
+            type="button"
+            onClick={() => {
+              void trackProductEvent({
+                eventType: "submission_camera_opened",
+                pagePath: "/enviar",
+                pageTitle: "Enviar preço",
+                stationId: stationId || null,
+                fuelType,
+                scopeType: "submission",
+                scopeId: stationId || null,
+                payload: {
+                  source: "camera-primary",
+                  compactMode,
+                  lockedStation,
+                  hasPhoto: Boolean(selectedFileRef.current)
+                }
+              });
+              fileInputRef.current?.click();
+            }}
+            className="w-full sm:w-auto"
+          >
             Tirar foto agora
           </Button>
-          <Button type="button" variant="secondary" onClick={() => fileInputRef.current?.click()} className="w-full sm:w-auto">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              void trackProductEvent({
+                eventType: "submission_camera_opened",
+                pagePath: "/enviar",
+                pageTitle: "Enviar preço",
+                stationId: stationId || null,
+                fuelType,
+                scopeType: "submission",
+                scopeId: stationId || null,
+                payload: {
+                  source: "camera-secondary",
+                  compactMode,
+                  lockedStation,
+                  hasPhoto: Boolean(selectedFileRef.current)
+                }
+              });
+              fileInputRef.current?.click();
+            }}
+            className="w-full sm:w-auto"
+          >
             Abrir câmera
           </Button>
         </div>
@@ -455,19 +749,59 @@ function PriceSubmitFormBody({
         <p className="mt-3 text-xs leading-relaxed text-white/52">Se a conexão cair, os campos continuam na tela. Se a foto falhar, tente de novo sem refazer tudo.</p>
       </div>
 
+      {queueItems.length > 0 ? (
+        <SubmissionQueuePanel
+          items={queueItems}
+          online={isOnline}
+          onRetry={handleRetryQueueItem}
+          onReview={handleReviewQueueItem}
+          onDiscard={handleDiscardQueueItem}
+        />
+      ) : null}
+
+      {currentQueueItem ? (
+        <div className="rounded-[18px] border border-white/8 bg-black/20 px-4 py-3 text-sm text-white/58">
+          Seu envio anterior ficou guardado neste aparelho. Você pode reenviar agora ou revisar antes.
+        </div>
+      ) : null}
+
       {state.success ? (
         <div className="rounded-[22px] border border-[color:var(--color-accent)]/20 bg-[color:var(--color-accent)]/12 p-4 text-sm text-white">
           <p className="text-base font-semibold">Preço enviado. Agora está em moderação.</p>
-          <p className="mt-1 text-white/70">Você pode voltar ao posto, seguir para o mapa ou mandar outro preço se ainda estiver no local.</p>
+          <p className="mt-1 text-white/70">Você pode repetir no mesmo posto, voltar ao mapa ou abrir outro posto na rua.</p>
           <div className="mt-3 flex flex-wrap gap-2">
-            <Button type="button" variant="secondary" onClick={() => { void resetForAnotherSubmission(); }}>
-              Enviar outro preço
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                void trackProductEvent({
+                  eventType: "submission_series_continued",
+                  pagePath: "/enviar",
+                  pageTitle: "Enviar preço",
+                  stationId: submittedStationId,
+                  fuelType,
+                  scopeType: "submission",
+                  scopeId: submittedStationId,
+                  payload: {
+                    mode: "same_station",
+                    compactMode,
+                    lockedStation,
+                    hadPhoto: Boolean(selectedFileRef.current)
+                  }
+                });
+                void resetForAnotherSubmission();
+              }}
+            >
+              Enviar outro preço no mesmo posto
             </Button>
             {submittedStationId ? (
-              <Button type="button" variant="secondary" onClick={() => router.push(safeReturnToHref ?? (`/postos/${submittedStationId}` as Route))}>
+              <Button type="button" variant="secondary" onClick={() => router.push((`/postos/${submittedStationId}` as Route))}>
                 Voltar ao posto
               </Button>
             ) : null}
+            <Button type="button" variant="ghost" onClick={() => router.push((safeReturnToHref ?? "/") as Route)}>
+              Voltar ao mapa
+            </Button>
           </div>
         </div>
       ) : null}
@@ -669,3 +1003,23 @@ export function PriceSubmitForm(props: PriceSubmitFormProps) {
 
   return <PriceSubmitFormBody key={`${props.initialStationId ?? "default"}-${formVersion}`} {...props} onResetRequest={() => setFormVersion((value) => value + 1)} />;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

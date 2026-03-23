@@ -1,6 +1,6 @@
 import type { Route } from "next";
 import Link from "next/link";
-import { Clock3, MapPin } from "lucide-react";
+import { Camera, Clock3, MapPin } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { trackProductEvent } from "@/lib/telemetry/client";
@@ -85,24 +85,39 @@ export function StationCard({ station, fuelFilter = "all", returnToHref }: Stati
             className="w-full"
             onClick={() => {
               rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
-              void trackProductEvent({ eventType: "submit_opened", pagePath: sendHref, pageTitle: getStationPublicName(station), stationId: station.id, city: station.city, fuelType: null, scopeType: "submission", scopeId: station.id, payload: { source: "station-card-send" } });
+              void trackProductEvent({ eventType: "camera_opened_from_station", pagePath: sendHref, pageTitle: getStationPublicName(station), stationId: station.id, city: station.city, fuelType: null, scopeType: "submission", scopeId: station.id, payload: { source: "station-card-send", compactMode: true } });
             }}
           >
-            Enviar o primeiro preço
+            Abrir câmera
+            <Camera className="h-4 w-4" />
           </ButtonLink>
         </div>
       )}
 
-      <Link
-        href={stationHref}
-        onClick={() => {
-          rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
-          void trackProductEvent({ eventType: "station_clicked", pagePath: stationHref, pageTitle: getStationPublicName(station), stationId: station.id, city: station.city, fuelType: latest?.fuelType ?? null, scopeType: "station", scopeId: station.id, payload: { source: "station-card-open" } });
-        }}
-        className="inline-flex items-center justify-center rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-white transition hover:border-[color:var(--color-accent)] hover:text-[color:var(--color-accent)]"
-      >
-        Abrir posto
-      </Link>
+      <div className="flex flex-wrap gap-2">
+        <ButtonLink
+          href={sendHref}
+          className="flex-1"
+          onClick={() => {
+            rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
+            void trackProductEvent({ eventType: "camera_opened_from_station", pagePath: sendHref, pageTitle: getStationPublicName(station), stationId: station.id, city: station.city, fuelType: latest?.fuelType ?? null, scopeType: "submission", scopeId: station.id, payload: { source: "station-card-bottom", compactMode: true } });
+          }}
+        >
+          Abrir câmera
+          <Camera className="h-4 w-4" />
+        </ButtonLink>
+        <Link
+          href={stationHref}
+          onClick={() => {
+            rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
+            void trackProductEvent({ eventType: "station_clicked", pagePath: stationHref, pageTitle: getStationPublicName(station), stationId: station.id, city: station.city, fuelType: latest?.fuelType ?? null, scopeType: "station", scopeId: station.id, payload: { source: "station-card-open" } });
+          }}
+          className="inline-flex items-center justify-center rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-white transition hover:border-[color:var(--color-accent)] hover:text-[color:var(--color-accent)]"
+        >
+          Abrir posto
+        </Link>
+      </div>
     </SectionCard>
   );
 }
+

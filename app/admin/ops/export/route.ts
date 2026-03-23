@@ -5,6 +5,7 @@ import { getBetaFeedbackSummary } from "@/lib/beta/feedback";
 import { getBetaInviteCodes } from "@/lib/beta/invites";
 import { getBetaOpsInsights } from "@/lib/ops/insights";
 import { getCityReadinessRows } from "@/lib/ops/readiness";
+import { buildEditorialGapCsvRows, getEditorialGapDashboard } from "@/lib/ops/editorial-gaps";
 import { getOperationalTelemetry } from "@/lib/ops/observability";
 
 function csvEscape(value: unknown) {
@@ -159,6 +160,18 @@ export async function GET(request: Request) {
     });
   }
 
+  if (kind === "gaps") {
+    const data = await getEditorialGapDashboard(Number.isFinite(days) ? days : 14);
+    const rows = buildEditorialGapCsvRows(data);
+
+    return new NextResponse(toCsv(rows as Array<Record<string, unknown>>), {
+      headers: {
+        "content-type": "text/csv; charset=utf-8",
+        "content-disposition": 'attachment; filename="bomba-aberta-gaps.csv"'
+      }
+    });
+  }
+
   const feedback = await getBetaFeedbackSummary(Number.isFinite(days) ? days : 14);
   const rows = feedback.recent.map((item) => ({
     created_at: item.createdAt,
@@ -184,3 +197,5 @@ export async function GET(request: Request) {
     }
   });
 }
+
+

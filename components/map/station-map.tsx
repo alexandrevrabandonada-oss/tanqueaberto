@@ -145,9 +145,12 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
                     <Link
                       href={sendHref}
                       className="text-xs font-semibold text-zinc-900 underline"
-                      onClick={() => rememberStationVisit({ id: station.id, name: displayName, city: station.city })}
+                      onClick={() => {
+                        rememberStationVisit({ id: station.id, name: displayName, city: station.city });
+                        void trackProductEvent({ eventType: "camera_opened_from_station", pagePath: sendHref, pageTitle: displayName, stationId: station.id, city: station.city, fuelType: selectedReportForStation?.fuelType ?? null, scopeType: "submission", scopeId: station.id, payload: { source: "map-popup", compactMode: true } });
+                      }}
                     >
-                      Enviar preço
+                      Abrir câmera
                     </Link>
                   </div>
                 </div>
@@ -201,10 +204,10 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
                   className="flex-1"
                   onClick={() => {
                     rememberStationVisit({ id: selectedStation.id, name: selectedStationName, city: selectedStation.city });
-                    void trackProductEvent({ eventType: "submit_opened", pagePath: getSendHref(selectedStation.id, returnToHref, fuelFilter), pageTitle: selectedStationName, stationId: selectedStation.id, city: selectedStation.city, fuelType: selectedReport?.fuelType ?? null, scopeType: "submission", scopeId: selectedStation.id, payload: { source: "map-card-send" } });
+                    void trackProductEvent({ eventType: "camera_opened_from_station", pagePath: getSendHref(selectedStation.id, returnToHref, fuelFilter), pageTitle: selectedStationName, stationId: selectedStation.id, city: selectedStation.city, fuelType: selectedReport?.fuelType ?? null, scopeType: "submission", scopeId: selectedStation.id, payload: { source: "map-card-send", compactMode: true } });
                   }}
                 >
-                  Enviar preço agora
+                  Abrir câmera
                 </ButtonLink>
               </div>
             </div>
@@ -221,3 +224,4 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
     </div>
   );
 }
+

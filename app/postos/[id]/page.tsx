@@ -14,6 +14,7 @@ import { HistoryChart } from "@/components/audit/history-chart";
 import { getStationDetail } from "@/lib/data";
 import { getStationAuditDetail } from "@/lib/audit/queries";
 import { getStationMarketPresence, getStationMarketPresenceLabel, getStationPublicName, hasPendingStationLocationReview } from "@/lib/quality/stations";
+import { trackProductEvent } from "@/lib/telemetry/client";
 import { fuelLabels } from "@/lib/format/labels";
 import { formatDateTimeBR, formatRecencyLabel, getRecencyTone, recencyToneToBadgeVariant } from "@/lib/format/time";
 import { formatCurrencyBRL } from "@/lib/format/currency";
@@ -115,9 +116,25 @@ export default async function StationPage({ params, searchParams }: StationPageP
           )}
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
-          <ButtonLink href={sendPriceHref} className="w-full">
-            Enviar novo preço
-            <ArrowRight className="h-4 w-4" />
+          <ButtonLink
+            href={sendPriceHref}
+            className="w-full"
+            onClick={() => {
+              void trackProductEvent({
+                eventType: "camera_opened_from_station",
+                pagePath: sendPriceHref,
+                pageTitle: getStationPublicName(station),
+                stationId: station.id,
+                city: station.city,
+                fuelType: selectedFuel,
+                scopeType: "submission",
+                scopeId: station.id,
+                payload: { source: "station-page-top", compactMode: true }
+              });
+            }}
+          >
+            Abrir câmera
+            <Camera className="h-4 w-4" />
           </ButtonLink>
           <ButtonLink href="/postos/sem-atualizacao" variant="secondary" className="w-full">
             Ver lacunas do mapa
@@ -242,6 +259,10 @@ export default async function StationPage({ params, searchParams }: StationPageP
     </AppShell>
   );
 }
+
+
+
+
 
 
 
