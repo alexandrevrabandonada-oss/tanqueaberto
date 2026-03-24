@@ -6,6 +6,8 @@ import { trackProductEvent } from "@/lib/telemetry/client";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+import { type OperationalKillSwitches } from "@/lib/ops/kill-switches";
+
 interface SurfaceItem {
   id: string;
   type: SurfaceType;
@@ -16,13 +18,21 @@ interface SurfaceItem {
 interface SurfaceOrchestratorProps {
   surfaces: SurfaceItem[];
   onDismiss?: (id: string) => void;
+  killSwitches?: Partial<OperationalKillSwitches>;
 }
 
-export function SurfaceOrchestrator({ surfaces, onDismiss }: SurfaceOrchestratorProps) {
+export function SurfaceOrchestrator({ surfaces, onDismiss, killSwitches }: SurfaceOrchestratorProps) {
   const [minimized, setMinimized] = useState<Record<string, boolean>>({});
   
-  const activeIds = surfaces.map(s => s.id);
-  const topTypes = getTopSurfaces(surfaces.map(s => s.type), 2);
+  const filteredSurfaces = surfaces.filter(s => {
+    if (killSwitches?.disable_heavy_territorial_widgets && s.type === "INFO_NOTICE") {
+      return false;
+    }
+    return true;
+  });
+
+  const activeIds = filteredSurfaces.map(s => s.id);
+  const topTypes = getTopSurfaces(filteredSurfaces.map(s => s.type), 2);
   
   // Track impressions
   useEffect(() => {
@@ -37,9 +47,9 @@ export function SurfaceOrchestrator({ surfaces, onDismiss }: SurfaceOrchestrator
     });
   }, [topTypes.join(",")]);
 
-  if (surfaces.length === 0) return null;
+  if (filteredSurfaces.length === 0) return null;
 
-  const topSurfaces = surfaces
+  const topSurfaces = filteredSurfaces
     .filter(s => topTypes.includes(s.type))
     .sort((a, b) => SURFACE_PRIORITIES[b.type] - SURFACE_PRIORITIES[a.type]);
 

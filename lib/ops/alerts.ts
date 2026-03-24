@@ -111,6 +111,52 @@ export async function detectActiveAlerts(): Promise<OperationalAlert[]> {
     }
   }
 
+  // 4. Regression Alerts (Performance Latency)
+  const { data: latencyEvents } = await supabase
+    .from("operational_events")
+    .select("event_type, created_at, payload")
+    .in("event_type", ["submission_camera_opened", "submission_success"])
+    .gte("created_at", recentWindow.toISOString());
+
+  if (latencyEvents && latencyEvents.length > 5) {
+    // Calcular tempo médio entre câmera aberta e sucesso nas últimas 4h
+    // (Para simplificar, pareamos eventos próximos no tempo)
+    const completions = latencyEvents.filter(e => e.event_type === "submission_success");
+    if (completions.length >= 3) {
+      // Regra simples: se houver sucesso, mas o volume de falhas/abandonos for anômalo
+      const cameras = latencyEvents.filter(e => e.event_type === "submission_camera_opened").length;
+      const dropRate = (cameras - completions.length) / cameras;
+
+      if (dropRate > 0.8) { // 80% de abandono
+        alerts.push({
+          alertKind: 'performance',
+          severity: 'critical',
+          status: 'active',
+          message: `Regressão de Fluxo: ${Math.round(dropRate * 100)}% de abandono de câmera nas últimas 4h.`,
+          payload: { dropRate, cameras, completions: completions.length }
+        });
+      }
+    }
+  }
+
+  // 5. Local Queue Pressure
+  const { data: queueEvents } = await supabase
+    .from("operational_events")
+    .select("id")
+    .eq("event_type", "submission_queue_added")
+    .gte("created_at", new Date(now.getTime() - 1 * 60 * 60 * 1000).toISOString()); // 1h
+
+  if (queueEvents && queueEvents.length > 15) {
+      alerts.push({
+        alertKind: 'performance',
+        severity: 'warning',
+        status: 'active',
+        message: `Pico de Fila Local: ${queueEvents.length} envios acumulados na última hora.`,
+        suggestedAction: "Verificar se há instabilidade no endpoint de upload ou rede.",
+        payload: { count: queueEvents.length }
+      });
+  }
+
   return alerts;
 }
 

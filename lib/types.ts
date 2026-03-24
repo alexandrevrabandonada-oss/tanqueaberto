@@ -54,6 +54,7 @@ export interface PriceReport {
   rejectedAt: string | null;
   createdAt: string;
   reporterNickname: string | null;
+  ipHash: string | null;
   status: ReportStatus;
   moderationNote: string | null;
   moderationReason: string | null;
@@ -77,4 +78,6 @@ export interface StationWithReports extends Station {
 export interface ReportWithStation extends PriceReport {
   station: Pick<Station, "id" | "name" | "brand" | "city" | "neighborhood">;
   priorityScore?: number;
+  collectorTrustScore?: number;
+  collectorTrustStage?: "new" | "trusted" | "review_needed" | "blocked";
 }

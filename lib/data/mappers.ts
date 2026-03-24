@@ -50,6 +50,7 @@ function mapReportRow(row: PriceReportRow): PriceReport {
     rejectedAt: row.rejected_at ?? null,
     createdAt: row.created_at,
     reporterNickname: row.reporter_nickname,
+    ipHash: row.ip_hash ?? null,
     status: row.status,
     moderationNote: row.moderation_note,
     moderationReason: row.moderation_reason ?? null,

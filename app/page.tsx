@@ -2,6 +2,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { HomeBrowser } from "@/components/home/home-browser";
 import { getHomeStations, getRecentApprovedCount, getRecentFeed } from "@/lib/data";
 import { getTerritorialReleaseSummary } from "@/lib/ops/release-control";
+import { getKillSwitches } from "@/lib/ops/kill-switches";
 import { isBetaClosed } from "@/lib/beta/gate";
 import type { FuelFilter, RecencyFilter, StationPresenceFilter } from "@/lib/filters/public";
 
@@ -37,15 +38,16 @@ function parseCity(value: string | string[] | undefined) {
 
 export default async function HomePage({ searchParams }: HomePageProps) {
   const params = (await searchParams) ?? {};
-  const [stations, feed, recentCount, territorialSummary] = await Promise.all([
+  const [stations, feed, recentCount, territorialSummary, killSwitches] = await Promise.all([
     getHomeStations(), 
     getRecentFeed(), 
     getRecentApprovedCount(),
-    getTerritorialReleaseSummary()
+    getTerritorialReleaseSummary(),
+    getKillSwitches()
   ]);
 
   return (
-    <AppShell>
+    <AppShell killSwitches={killSwitches}>
       <HomeBrowser
         stations={stations}
         feed={feed}
@@ -57,6 +59,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         initialFuelFilter={parseFuel(params.fuel)}
         initialRecencyFilter={parseRecency(params.recency)}
         initialPresenceFilter={parsePresence(params.presence)}
+        killSwitches={killSwitches}
       />
     </AppShell>
   );

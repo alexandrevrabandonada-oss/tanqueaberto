@@ -103,6 +103,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           <Link href={"/admin/rollout" as Route} className="text-sm text-[color:var(--color-accent)] decoration-dotted underline-offset-4 hover:underline">
             Rollout Territorial
           </Link>
+          <Link href={"/admin/ops/collectors" as Route} className="text-sm text-[color:var(--color-accent)] decoration-dotted underline-offset-4 hover:underline">
+            Reputação de Coletores
+          </Link>
         </div>
         <div className="grid gap-3 md:grid-cols-3">
           <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">

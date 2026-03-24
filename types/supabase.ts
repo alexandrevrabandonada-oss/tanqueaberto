@@ -44,6 +44,7 @@ export interface PriceReportRow {
   rejected_at?: string | null;
   created_at: string;
   reporter_nickname: string | null;
+  ip_hash: string | null;
   status: "pending" | "approved" | "rejected" | "flagged";
   moderation_note: string | null;
   moderation_reason?: string | null;

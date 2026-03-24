@@ -16,9 +16,18 @@ export function MissionStartButton({
   groupName, 
   stationIds, 
   children,
-  variant = "accent" 
-}: MissionStartButtonProps) {
+  variant = "accent",
+  killSwitches
+}: MissionStartButtonProps & { killSwitches?: { disable_mission_mode: boolean } }) {
   const { startMission } = useMissionContext();
+
+  if (killSwitches?.disable_mission_mode) {
+    return (
+      <Button variant="secondary" disabled className="opacity-50 grayscale cursor-not-allowed">
+        Operação Suspensa
+      </Button>
+    );
+  }
 
   return (
     <Button

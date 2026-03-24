@@ -8,11 +8,14 @@ import { Fab } from "@/components/ui/fab";
 import { brand } from "@/styles/design-tokens";
 import { isBetaClosed } from "@/lib/beta/gate";
 
+import { type OperationalKillSwitches } from "@/lib/ops/kill-switches";
+
 interface AppShellProps {
   children: React.ReactNode;
+  killSwitches?: Partial<OperationalKillSwitches>;
 }
 
-export function AppShell({ children }: AppShellProps) {
+export function AppShell({ children, killSwitches }: AppShellProps) {
   const betaClosed = isBetaClosed();
 
   return (
@@ -35,7 +38,7 @@ export function AppShell({ children }: AppShellProps) {
         </div>
       </header>
       {betaClosed ? (
-        <div className="relative z-10 mb-4 rounded-[22px] border border-[color:var(--color-accent)]/20 bg-[color:var(--color-accent)]/10 px-4 py-3 text-sm text-white/78 backdrop-blur-md">
+        <div className="relative z-10 mb-4 rounded-[22px] border border-[color:var(--color-accent)]/20 bg-[color:var(--color-accent)]/10 px-4 py-3 text-sm text-white/72 backdrop-blur-md">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-[11px] uppercase tracking-[0.2em] text-white/46">Beta fechado</p>
@@ -48,7 +51,7 @@ export function AppShell({ children }: AppShellProps) {
           </div>
         </div>
       ) : null}
-      <PwaStatusStrip />
+      <PwaStatusStrip killSwitches={killSwitches} />
       <main className="relative z-10 flex-1 space-y-5">{children}</main>
       <Fab />
       <BottomNav />

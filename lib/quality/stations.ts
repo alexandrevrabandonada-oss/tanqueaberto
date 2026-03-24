@@ -274,6 +274,36 @@ export function hasRecentStationPrice(station: Pick<StationWithReports, "latestR
   return getStationMarketPresence(station) === "recent";
 }
 
+export type StationStatus = "active" | "stale" | "drifting" | "incipient";
+
+export function getStationStatus(station: StationWithReports): StationStatus {
+  const latest = station.latestReports[0];
+  
+  if (!latest) {
+    return "incipient";
+  }
+
+  const presence = getStationMarketPresence(station);
+  if (presence === "recent") {
+    return "active";
+  }
+
+  if (station.latestReports.length < 3) {
+     return "drifting";
+  }
+
+  return "stale";
+}
+
+export function getStationStatusLabel(status: StationStatus) {
+  switch (status) {
+    case "active": return "Preço Reconhecido";
+    case "stale": return "Precisa de Atualização";
+    case "drifting": return "Em Formação";
+    case "incipient": return "Aguardando Primeiros Dados";
+  }
+}
+
 export function getStationMarketPresenceLabel(station: Pick<StationWithReports, "latestReports">) {
   const presence = getStationMarketPresence(station);
 

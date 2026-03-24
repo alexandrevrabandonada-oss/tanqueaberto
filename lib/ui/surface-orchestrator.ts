@@ -1,6 +1,7 @@
 export type SurfaceType = 
   | "CRITICAL_ALERT" 
   | "CONTEXT_HANDOFF" 
+  | "OPERATIONAL_RETENTION"
   | "ONBOARDING" 
   | "ACTION_PROMPT" 
   | "INFO_NOTICE";
@@ -13,6 +14,7 @@ export interface SurfacePriority {
 export const SURFACE_PRIORITIES: Record<SurfaceType, number> = {
   CRITICAL_ALERT: 100,  // Conexão offline, erro fatal
   CONTEXT_HANDOFF: 80, // Volta de navegação externa
+  OPERATIONAL_RETENTION: 70, // Retomada de missão, Pendência offline
   ONBOARDING: 60,      // Guia de primeira visita
   ACTION_PROMPT: 40,   // Instalar PWA, Missão sugerida
   INFO_NOTICE: 20      // Beta fechado, Aviso territorial

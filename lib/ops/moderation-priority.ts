@@ -55,9 +55,13 @@ export function getReportPriorityScore(
     score -= 50; // Very heavy penalty for reused photos
   }
 
-  // 8. Price Conflict (Hardening)
-  if (report.metadata?.is_price_conflict) {
-    score -= 30; // Penalty for conflicting with a very recent different price
+  // 8. Collector Trust Score (New)
+  if (context.reporterTrustScore !== undefined) {
+    if (context.reporterTrustScore >= 80) {
+      score += 40; // Trusted collectors get fast lane priority
+    } else if (context.reporterTrustScore < 40) {
+      score -= 30; // Suspicious or low-volume collectors are deprioritized
+    }
   }
 
   return Math.max(-100, Math.min(100, score));

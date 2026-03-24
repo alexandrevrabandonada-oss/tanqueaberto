@@ -42,6 +42,9 @@ import { type ReportWithStation, StationWithReports } from "@/lib/types";
 import { SurfaceOrchestrator } from "@/components/layout/surface-orchestrator";
 import { type SurfaceType } from "@/lib/ui/surface-orchestrator";
 import { InstallPromptCard } from "./install-prompt-card";
+import { useOperationalFocus } from "@/hooks/use-operational-focus";
+import { useRetentionSurfaces } from "@/components/layout/retention-hub";
+import { type OperationalKillSwitches } from "@/lib/ops/kill-switches";
 
 interface HomeBrowserProps {
   stations: StationWithReports[];
@@ -54,6 +57,7 @@ interface HomeBrowserProps {
   initialFuelFilter?: FuelFilter;
   initialRecencyFilter?: RecencyFilter;
   initialPresenceFilter?: StationPresenceFilter;
+  killSwitches?: Partial<OperationalKillSwitches>;
 }
 
 function buildContextHref(query: string, city: string, fuelFilter: FuelFilter, recencyFilter: RecencyFilter, presenceFilter: StationPresenceFilter) {
@@ -109,7 +113,8 @@ export function HomeBrowser({
   initialCity = "",
   initialFuelFilter = "all",
   initialRecencyFilter = "all",
-  initialPresenceFilter = "all"
+  initialPresenceFilter = "all",
+  killSwitches
 }: HomeBrowserProps) {
   const [query, setQuery] = useState(initialQuery);
   const [selectedCity, setSelectedCity] = useState(initialCity || "");
@@ -126,6 +131,8 @@ export function HomeBrowser({
   const { isLowPerf, effectiveType } = useNetworkHardening();
   const { isStreetMode, toggleStreetMode, recentIds, favoriteIds, toggleFavorite, isFavorite } = useStreetMode();
   const { startMission } = useMissionContext();
+  const { focus, updateTownFocus } = useOperationalFocus();
+  const retentionSurfaces = useRetentionSurfaces();
   const [navHandoff, setNavHandoff] = useState<any>(null);
 
   useEffect(() => {
@@ -367,6 +374,9 @@ export function HomeBrowser({
 
   // 1. Gather all potential surfaces for orchestration
   const surfaces = [];
+
+  // Add retention surfaces first
+  retentionSurfaces.forEach(s => surfaces.push(s));
 
   if (isLowPerf) {
     surfaces.push({
@@ -630,6 +640,7 @@ export function HomeBrowser({
                   onClick={() => {
                     setSelectedCity(city);
                     setDefaultSelectionReason(null);
+                    updateTownFocus(city, city);
                   }}
                   className={`flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${
                     selectedCity.localeCompare(city, "pt-BR") === 0 ? "bg-white text-black" : "border border-white/10 bg-white/5 text-white/66 hover:bg-white/10"

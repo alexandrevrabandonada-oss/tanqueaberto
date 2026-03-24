@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import Image from "next/image";
-import { Check, X, Zap, ChevronRight, ChevronLeft } from "lucide-react";
+import { Check, X, Zap, ChevronRight, ChevronLeft, ShieldCheck, ShieldAlert, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
@@ -167,8 +167,25 @@ export function FastApprovalQueue({ reports }: FastApprovalQueueProps) {
 
         <div className="flex items-center justify-between p-4">
           <div className="space-y-1">
-            <div className="text-xs text-white/40">
+            <div className="flex items-center gap-2 text-xs text-white/40">
               Enviado {formatRecencyLabel(currentReport.reportedAt)} por <span className="text-white/60">{currentReport.reporterNickname || "Anônimo"}</span>
+              {currentReport.collectorTrustStage && (
+                <div className="flex items-center gap-1">
+                   {currentReport.collectorTrustStage === 'trusted' ? (
+                     <Badge variant="outline" className="h-4 border-green-500/20 text-green-400 gap-1 px-1 text-[9px]">
+                       <ShieldCheck className="h-2.5 w-2.5" /> CONFIAVEL
+                     </Badge>
+                   ) : currentReport.collectorTrustStage === 'new' ? (
+                     <Badge variant="outline" className="h-4 border-blue-500/20 text-blue-400 px-1 text-[9px]">
+                       NOVO
+                     </Badge>
+                   ) : (
+                     <Badge variant="outline" className="h-4 border-orange-500/20 text-orange-400 gap-1 px-1 text-[9px]">
+                       <ShieldAlert className="h-2.5 w-2.5" /> REVISAR
+                     </Badge>
+                   )}
+                </div>
+              )}
             </div>
             {currentGroup.confirmations.length > 0 && (
               <div className="flex items-center gap-1.5 text-[10px] text-[color:var(--color-accent)] font-medium">

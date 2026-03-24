@@ -252,12 +252,44 @@ export async function getModerationReports(status: ReportStatus | "all" = "pendi
 
   const reports = mapReportsWithStations((reportsData as PriceReportRow[]).map(mapReportRow), stations);
 
+  // Fetch collector trust for these reports
+  const collectorKeys = reports
+    .filter(r => r.reporterNickname || r.ipHash)
+    .map(r => ({ nickname: r.reporterNickname || "", ip_hash: r.ipHash || "" }));
+  
+  const trustMap = new Map<string, { score: number, stage: any }>();
+  if (collectorKeys.length > 0) {
+    // We can't easily do multiple composite keys in one .in(), so we fetch all likely matches or chunk it
+    const nicknames = Array.from(new Set(collectorKeys.map(k => k.nickname)));
+    const ipHashes = Array.from(new Set(collectorKeys.map(k => k.ip_hash)));
+
+    const { data: trustData } = await supabase
+      .from("collector_trust")
+      .select("nickname,ip_hash,score,trust_stage")
+      .or(`nickname.in.(${nicknames.map(n => `"${n}"`).join(",")}),ip_hash.in.(${ipHashes.map(h => `"${h}"`).join(",")})`);
+
+    if (trustData) {
+      for (const t of trustData) {
+        trustMap.set(`${t.nickname}:${t.ip_hash}`, { score: t.score, stage: t.trust_stage });
+      }
+    }
+  }
+
   // Add priority score if pending
   if (status === "pending" || status === "all") {
     reports.forEach((report) => {
+      const trust = trustMap.get(`${report.reporterNickname || ""}:${report.ipHash || ""}`);
+      if (trust) {
+        report.collectorTrustScore = trust.score;
+        report.collectorTrustStage = trust.stage;
+      }
+
       if (report.status === "pending") {
         const station = stations.find((s) => s.id === report.stationId) || null;
-        report.priorityScore = getReportPriorityScore(report, station as any, { betaInviteCode: null });
+        report.priorityScore = getReportPriorityScore(report, station as any, { 
+          betaInviteCode: null,
+          reporterTrustScore: report.collectorTrustScore
+        });
       }
     });
 
@@ -339,8 +371,19 @@ export async function getStationReviewQueue(limit = 12): Promise<Station[]> {
   return (data as StationRow[]).map(mapStationRow);
 }
 
+export async function getCollectorTrustList(limit = 100) {
+  const supabase = await createSupabaseServerClient();
+  
+  const { data, error } = await supabase
+    .from('collector_trust')
+    .select('*')
+    .order('score', { ascending: false })
+    .limit(limit);
 
+  if (error || !data) {
+    console.error("Failed to load collector trust list", error);
+    return [];
+  }
 
-
-
-
+  return data;
+}

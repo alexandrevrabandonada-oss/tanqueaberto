@@ -7,6 +7,7 @@ import type { Route } from "next";
 import { recordAdminActionLog, recordOperationalEvent } from "@/lib/ops/logs";
 import { requireAdminUser } from "@/lib/auth/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { updateCollectorScore } from "@/lib/ops/collector-trust";
 
 export interface AdminLoginState {
   error: string | null;
@@ -130,11 +131,16 @@ async function moderateReports(reportIds: string[], decision: "approved" | "reje
   const admin = await requireAdminUser();
   const supabase = await createSupabaseServerClient();
 
-  const { data: report, error: reportError } = await supabase.from("price_reports").select("id,station_id,version,fuel_type,price,reported_at").in("id", reportIds).limit(1).maybeSingle();
+  const { data: reports, error: reportError } = await supabase
+    .from("price_reports")
+    .select("id,station_id,version,fuel_type,price,reported_at,reporter_nickname,ip_hash")
+    .in("id", reportIds);
 
-  if (reportError || !report) {
+  if (reportError || !reports || reports.length === 0) {
     redirect(ADMIN_ROUTE);
   }
+
+  const report = reports[0];
 
   const now = new Date().toISOString();
   const note = moderationNote?.trim() || normalizeNotice(decision);
@@ -183,6 +189,17 @@ async function moderateReports(reportIds: string[], decision: "approved" | "reje
       }
     });
     redirect(ADMIN_ROUTE);
+  }
+
+  // Update collector trust score for each report moderated
+  try {
+    const trustAction = decision === "approved" ? "approve" : "reject";
+    const trustUpdates = reports.map((r) => 
+      updateCollectorScore(r.reporter_nickname, r.ip_hash, trustAction, note)
+    );
+    await Promise.all(trustUpdates);
+  } catch (err) {
+    console.error("Failed to update collector trust scores:", err);
   }
 
   await recordAdminActionLog({

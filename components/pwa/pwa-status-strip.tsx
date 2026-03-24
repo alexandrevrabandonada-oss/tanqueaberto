@@ -6,6 +6,8 @@ import { Download, RotateCcw, WifiOff, WifiHigh, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getNetworkSimulationLabel, normalizeNetworkSimulationMode, type NetworkSimulationMode, NETWORK_SIM_COOKIE } from "@/lib/dev/network-sim";
+import { useOperationalFocus } from "@/hooks/use-operational-focus";
+import { useMissionContext } from "@/components/mission/mission-context";
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -50,12 +52,15 @@ function getConnectionInfo(): ConnectionInfo {
   return { online: navigator.onLine, poor, label: connection?.effectiveType ?? "" };
 }
 
-export function PwaStatusStrip() {
+export function PwaStatusStrip({ killSwitches }: { killSwitches?: any }) {
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [updateReady, setUpdateReady] = useState(false);
   const [connection, setConnection] = useState<ConnectionInfo>(() => getConnectionInfo());
   const [simulationMode, setSimulationMode] = useState<NetworkSimulationMode>("normal");
+  
+  const { mission } = useMissionContext();
+  const { pendingSubmissionsCount } = useOperationalFocus();
 
   const simulationLabel = useMemo(() => getNetworkSimulationLabel(simulationMode), [simulationMode]);
 
@@ -153,7 +158,7 @@ export function PwaStatusStrip() {
 
   const showOffline = !connection.online || simulationMode === "offline";
   const showPoorConnection = !showOffline && (connection.poor || simulationMode === "slow" || simulationMode === "timeout");
-  const showInstall = !isInstalled && Boolean(installPrompt);
+  const showInstall = !isInstalled && Boolean(installPrompt) && !killSwitches?.disable_pwa_prompts;
   const devMode = process.env.NODE_ENV !== "production";
 
   const updateBanner = updateReady ? (
@@ -189,7 +194,14 @@ export function PwaStatusStrip() {
     <div className="flex items-center justify-between gap-3 rounded-[18px] border border-white/8 bg-white/5 px-4 py-3 text-sm text-white/78 backdrop-blur-md">
       <div className="flex items-center gap-2">
         <Download className="h-4 w-4 text-[color:var(--color-accent)]" />
-        <span>Instale o app para abrir mais rápido e voltar com um toque.</span>
+        <span>
+          {mission 
+            ? "Instale o app para nunca perder o progresso da sua missão." 
+            : pendingSubmissionsCount > 0
+              ? `Instale agora para garantir o envio dos seus ${pendingSubmissionsCount} preços.`
+              : "Instale o app para abrir mais rápido e voltar com um toque."
+          }
+        </span>
       </div>
       <Button type="button" variant="secondary" className="h-9 px-3 py-2 text-xs" onClick={() => void installApp()}>
         Instalar

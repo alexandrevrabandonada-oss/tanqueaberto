@@ -349,6 +349,7 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
       submitted_at: timestamp,
       reported_at: timestamp,
       reporter_nickname: nickname || null,
+      ip_hash: context.ipHash,
       status: potentialPhotoReuse ? "flagged" : "pending",
       source_kind: "community",
       photo_hash: photoHash,
