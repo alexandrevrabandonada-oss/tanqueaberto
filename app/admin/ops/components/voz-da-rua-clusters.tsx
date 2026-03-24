@@ -1,3 +1,5 @@
+"use client";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Copy, AlertCircle, CheckCircle2, Info, Zap, XCircle } from "lucide-react";
