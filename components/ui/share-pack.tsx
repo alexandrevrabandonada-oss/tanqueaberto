@@ -11,9 +11,14 @@ interface SharePackProps {
   name: string;
   slug?: string;
   className?: string;
+  details?: {
+    price?: string;
+    fuel?: string;
+    recency?: string;
+  };
 }
 
-export function SharePack({ type, id, name, slug, className }: SharePackProps) {
+export function SharePack({ type, id, name, slug, className, details }: SharePackProps) {
   const [copied, setCopied] = useState(false);
 
   const getUrl = () => {
@@ -29,9 +34,15 @@ export function SharePack({ type, id, name, slug, className }: SharePackProps) {
   };
 
   const getMessage = () => {
-    if (type === "station") return `Confira o preço de hoje no posto ${name} no Bomba Aberta:`;
+    if (type === "station") {
+      const { price, fuel, recency } = details || {};
+      if (price && fuel) {
+        return `Confira o preço real no ${name}: R$ ${price} (${fuel}). Foto de ${recency || 'hoje'}. Veja no Bomba Aberta:`;
+      }
+      return `Confira o preço de hoje no ${name} no Bomba Aberta:`;
+    }
     if (type === "city") return `Veja como está a cobertura de preços em ${name} no Bomba Aberta:`;
-    if (type === "group") return `Acompanhe o corredor ${name} no Bomba Aberta:`;
+    if (type === "group") return `Acompanhe o radar de preços no corredor ${name}:`;
     return `Confira o Bomba Aberta:`;
   };
 

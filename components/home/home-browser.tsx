@@ -53,6 +53,8 @@ import { type RecorteActivity } from "@/lib/ops/recorte-activity";
 import { getUtilityStatusAction } from "@/app/actions/user";
 import { type UtilityRole } from "@/lib/ops/collector-trust";
 import { QuickActionGroup, QuickActionButton } from "@/components/ui/quick-action";
+import { OperationalMemoryBar } from "./operational-memory-bar";
+import { useOperationalMemory } from "@/hooks/use-operational-memory";
 
 interface HomeBrowserProps {
   stations: StationWithReports[];
@@ -140,6 +142,10 @@ export function HomeBrowser({
 }: HomeBrowserProps) {
   const [showShareWelcome, setShowShareWelcome] = useState(false);
   const [shareContext, setShareContext] = useState<string | null>(null);
+  const [isHeroCollapsed, setIsHeroCollapsed] = useState(false);
+  const { mission, startMission, isLoaded: missionLoaded } = useMissionContext();
+  const missionActive = !!mission;
+  const heroRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState(initialQuery);
   const [selectedCity, setSelectedCity] = useState(initialCity || "");
   const [defaultSelectionReason, setDefaultSelectionReason] = useState<string | null>(null);
@@ -154,13 +160,26 @@ export function HomeBrowser({
   const { coords, loading: geoLoading, error: geoError, getLocation } = useGeolocation();
   const { isLowPerf, effectiveType } = useNetworkHardening();
   const { isStreetMode, toggleStreetMode, recentIds, favoriteIds, toggleFavorite, isFavorite } = useStreetMode();
-  const { mission, startMission, isLoaded: missionLoaded } = useMissionContext();
   const { reporterNickname } = useMySubmissions();
-  const { focus, updateTownFocus } = useOperationalFocus();
+  const { focus, updateTownFocus, updateSuggestedStation } = useOperationalFocus();
+  const { addRecentCut } = useOperationalMemory();
   const retentionSurfaces = useRetentionSurfaces();
   const [navHandoff, setNavHandoff] = useState<any>(null);
   const [role, setRole] = useState<UtilityRole | null>(null);
   const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const handleScroll = () => {
+      // Collapse hero after 120px of scroll
+      const shouldCollapse = window.scrollY > 120;
+      if (shouldCollapse !== isHeroCollapsed) {
+        setIsHeroCollapsed(shouldCollapse);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [isHeroCollapsed]);
 
   useEffect(() => {
     async function loadRole() {
@@ -390,6 +409,18 @@ export function HomeBrowser({
     }
   }, [initialCity]);
 
+  useEffect(() => {
+    if (initialCity && isHydrated) {
+      addRecentCut({ type: 'city', id: initialCity, name: initialCity });
+    }
+    if (initialGroupId && isHydrated) {
+      const group = territorialSummary.find(s => s.id === initialGroupId);
+      if (group) {
+        addRecentCut({ type: 'group', id: initialGroupId, name: group.name });
+      }
+    }
+  }, [initialCity, initialGroupId, territorialSummary, addRecentCut, isHydrated]);
+
   const filteredStations = useMemo(
     () => filterStations(stationsWithDistances, deferredQuery, selectedCity, fuelFilter, recencyFilter, presenceFilter),
     [deferredQuery, fuelFilter, presenceFilter, recencyFilter, selectedCity, stationsWithDistances]
@@ -466,6 +497,12 @@ export function HomeBrowser({
         scopeType: "share" as any,
         payload: { type, contextName }
       });
+      
+      void trackProductEvent({
+        eventType: "first_fold_action" as any,
+        pagePath: "/",
+        payload: { type: "share_entry", context: contextName }
+      });
     }
   }, [searchParams]);
 
@@ -476,6 +513,21 @@ export function HomeBrowser({
     setRecencyFilter("all");
     setPresenceFilter("all");
   };
+
+  // [Modo Foco] Update suggested station for beginners based on current recorte
+  useEffect(() => {
+    if (role === 'iniciante' && isHydrated && orderedStations.length > 0) {
+      const bestCandidate = orderedStations[0];
+      const currentSuggested = focus.suggestedStation;
+      
+      if (bestCandidate.id !== currentSuggested?.id) {
+        updateSuggestedStation({ 
+          id: bestCandidate.id, 
+          name: getStationPublicName(bestCandidate) 
+        });
+      }
+    }
+  }, [role, isHydrated, orderedStations, focus.suggestedStation?.id, updateSuggestedStation]);
 
   // 1. Gather all potential surfaces for orchestration
   const surfaces: Array<{ id: string; type: SurfaceType; content: React.ReactNode; isDismissible?: boolean }> = [];
@@ -580,10 +632,17 @@ export function HomeBrowser({
       result = result.filter(s => s.id !== 'pwa-install' && s.id !== 'beta-closed');
     }
 
-    // If Senior, prioritize Pulse and Gaps (handled by layout below)
+    // [Modo Foco] If Mission is active, suppress almost everything except Critical status
+    if (missionActive) {
+      result = result.filter(s => 
+        s.type === ("CRITICAL_ALERT" as SurfaceType) || 
+        s.id.includes("mission") || 
+        s.id.includes("pending")
+      );
+    }
     
     return result;
-  }, [surfaces, role]);
+  }, [surfaces, role, missionActive]);
 
   if (defaultSelectionReason) {
     surfaces.push({
@@ -733,10 +792,17 @@ export function HomeBrowser({
         </div>
       )}
 
-      <SectionCard className={cn("space-y-4", (isStreetMode || mission) && "space-y-2 py-3", isLowPerf && "low-perf-mode shadow-none border-white/5")}>
-        {/* Surfaces orchestrated elsewhere now */}
-        {!isStreetMode && !mission && (
-          <div className="space-y-1.5">
+      <SectionCard 
+        className={cn(
+          "space-y-4 transition-all duration-500", 
+          (isStreetMode || missionActive || isHeroCollapsed) && "space-y-2 py-3", 
+          isLowPerf && "low-perf-mode shadow-none border-white/5",
+          (isHeroCollapsed || missionActive) && "sticky top-0 z-40 bg-black/80 backdrop-blur-xl border-white/10 rounded-t-none -mx-4 px-4 shadow-2xl"
+        )}
+      >
+        {/* Adaptive Heading */}
+        {!isStreetMode && !missionActive && !isHeroCollapsed && (
+          <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-500">
             <Badge className="text-[10px] uppercase tracking-widest">Mapa Vivo {role === 'senior' && "· Senior"}</Badge>
             <h2 className="text-2xl font-bold tracking-tight text-white">Transparência territorial e preço real</h2>
             <p className="text-sm leading-relaxed text-white/40">Busque, filtre e colabore para manter o mapa vivo.</p>
@@ -874,6 +940,12 @@ export function HomeBrowser({
                   startMission(selectedReadiness?.slug || "general", selectedReadiness?.name || selectedCity, cityStationIds);
                   
                   void trackProductEvent({
+                    eventType: "first_fold_action" as any,
+                    pagePath: "/",
+                    payload: { type: "mission_start", city: selectedCity }
+                  });
+
+                  void trackProductEvent({
                     eventType: "mission_start_from_home_cta" as any,
                     pagePath: "/",
                     pageTitle: "Home",
@@ -889,17 +961,23 @@ export function HomeBrowser({
             )}
           </div>
 
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className={cn("grid gap-3 transition-all duration-500", (isHeroCollapsed || missionActive) ? "h-0 overflow-hidden opacity-0 pointer-events-none mb-0" : "grid-cols-1 md:grid-cols-3")}>
             <FilterSelect
               label="Combustível"
               value={fuelFilter}
-              onChange={(value) => setFuelFilter(value as FuelFilter)}
+              onChange={(value) => {
+                setFuelFilter(value as FuelFilter);
+                void trackProductEvent({ eventType: "first_fold_action" as any, pagePath: "/", payload: { type: "filter_fuel", value } });
+              }}
               options={publicFuelFilters.map((item) => ({ value: item.value, label: item.label }))}
             />
             <FilterSelect
               label="Recência"
               value={recencyFilter}
-              onChange={(value) => setRecencyFilter(value as RecencyFilter)}
+              onChange={(value) => {
+                setRecencyFilter(value as RecencyFilter);
+                void trackProductEvent({ eventType: "first_fold_action" as any, pagePath: "/", payload: { type: "filter_recency", value } });
+              }}
               options={recencyFilters.map((item) => ({ value: item.value, label: item.label }))}
             />
             <div className="space-y-2 rounded-[22px] border border-white/8 bg-black/30 px-4 py-3 text-sm text-white/58">
@@ -912,7 +990,10 @@ export function HomeBrowser({
                   <button
                     key={item.value}
                     type="button"
-                    onClick={() => setPresenceFilter(item.value)}
+                    onClick={() => {
+                      setPresenceFilter(item.value);
+                      void trackProductEvent({ eventType: "first_fold_action" as any, pagePath: "/", payload: { type: "filter_presence", value: item.value } });
+                    }}
                     className={`rounded-[16px] px-3 py-3 text-xs font-semibold transition ${
                       presenceFilter === item.value ? "bg-white text-black" : "border border-white/10 bg-white/5 text-white/66"
                     }`}
@@ -924,7 +1005,7 @@ export function HomeBrowser({
             </div>
           </div>
 
-          <details className="rounded-[22px] border border-white/8 bg-white/5 px-4 py-3 text-sm text-white/58">
+          <details className={cn("rounded-[22px] border border-white/8 bg-white/5 px-4 py-3 text-sm text-white/58 transition-all", (isHeroCollapsed || missionActive) && "hidden")}>
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-white/76">
               <span className="inline-flex items-center gap-2 font-medium">
                 <SlidersHorizontal className="h-4 w-4 text-[color:var(--color-accent)]" />
@@ -990,7 +1071,13 @@ export function HomeBrowser({
                    const stationIds = orderedStations.map(s => s.id);
                    const missionName = selectedCity || "Personalizada";
                    startMission(selectedCity || "custom", missionName, stationIds);
-                 }}
+                  
+                  void trackProductEvent({
+                    eventType: "first_fold_action" as any,
+                    pagePath: "/",
+                    payload: { type: "mission_start_list", city: selectedCity }
+                  });
+                }}
                  className="font-bold text-yellow-400 hover:underline"
                >
                  · Iniciar Missão de Rua
@@ -1001,6 +1088,13 @@ export function HomeBrowser({
                 type="button" 
                 onClick={() => {
                   startRoute(selectedCity, null, fuelFilter);
+                  
+                  void trackProductEvent({
+                    eventType: "first_fold_action" as any,
+                    pagePath: "/",
+                    payload: { type: "route_start", city: selectedCity }
+                  });
+
                   window.location.reload(); // Refresh to show assistant
                 }}
                 className="font-bold text-[color:var(--color-accent)] hover:underline"
@@ -1030,7 +1124,9 @@ export function HomeBrowser({
         </SectionCard>
       ) : null}
 
-      <SectionCard className="space-y-4 border-white/8 bg-black/60 pt-6 shadow-2xl">
+      <OperationalMemoryBar />
+
+      <SectionCard className="space-y-4 shadow-xl shadow-black/20">
         <div className="flex items-center gap-3 px-5">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -1103,8 +1199,12 @@ export function HomeBrowser({
                         variant="primary"
                         isStreetMode={isStreetMode}
                         href={getSendHref(station.id, contextHref, fuelFilter)}
-                        className="h-9 w-9 p-0 min-w-0"
-                        showLabel={false}
+                        className={cn(
+                          "h-9 min-w-0 transition-all", 
+                          (isStreetMode || role === 'iniciante') ? "w-auto px-3" : "w-9 p-0"
+                        )}
+                        showLabel={isStreetMode || role === 'iniciante'}
+                        layout={(isStreetMode || role === 'iniciante') ? 'horizontal' : 'vertical'}
                         onClick={() => {
                           rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
                           void trackProductEvent({ 
@@ -1116,7 +1216,11 @@ export function HomeBrowser({
                             fuelType: latest?.fuelType ?? null, 
                             scopeType: "submission", 
                             scopeId: station.id, 
-                            payload: { source: "home_list", action: "photo" } 
+                            payload: { 
+                              source: "home_list", 
+                              action: "photo",
+                              labelMode: (isStreetMode || role === 'iniciante') ? "text" : "icon"
+                            } 
                           });
                         }}
                       />
@@ -1126,8 +1230,12 @@ export function HomeBrowser({
                         label="Rota"
                         variant="secondary"
                         isStreetMode={isStreetMode}
-                        className="h-9 w-9 p-0 min-w-0"
-                        showLabel={false}
+                        className={cn(
+                          "h-9 min-w-0 transition-all", 
+                          (isStreetMode || role === 'iniciante') ? "w-auto px-3" : "w-9 p-0"
+                        )}
+                        showLabel={isStreetMode || role === 'iniciante'}
+                        layout={(isStreetMode || role === 'iniciante') ? 'horizontal' : 'vertical'}
                         onClick={() => {
                           const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
                           import("@/lib/navigation/external-maps").then(({ openExternalNavigation }) => {
@@ -1138,36 +1246,50 @@ export function HomeBrowser({
                               stationName: getStationPublicName(station),
                               source: "home_list"
                             });
+
+                            void trackProductEvent({ 
+                              eventType: "quick_action_clicked" as any, 
+                              pagePath: "/", 
+                              pageTitle: "Home", 
+                              stationId: station.id,
+                              payload: { 
+                                method: isMobile ? "waze" : "google",
+                                labelMode: (isStreetMode || role === 'iniciante') ? "text" : "icon",
+                                action: "route"
+                              }
+                            });
                           });
                         }}
                       />
 
                       <QuickActionButton
-                        icon={Info}
+                        icon={ArrowRight}
                         label="Ver"
-                        variant="outline"
+                        variant="secondary"
                         isStreetMode={isStreetMode}
-                        href={getStationHref(station.id, contextHref)}
-                        className="h-9 w-9 p-0 min-w-0"
-                        showLabel={false}
+                        href={stationHref}
+                        className={cn(
+                          "h-9 min-w-0 transition-all", 
+                          (isStreetMode || role === 'iniciante') ? "w-auto px-3" : "w-9 p-0"
+                        )}
+                        showLabel={isStreetMode || role === 'iniciante'}
+                        layout={(isStreetMode || role === 'iniciante') ? 'horizontal' : 'vertical'}
                         onClick={() => {
                           rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
                           void trackProductEvent({ 
-                            eventType: "station_clicked", 
-                            pagePath: getStationHref(station.id, contextHref), 
-                            pageTitle: getStationPublicName(station), 
-                            stationId: station.id, 
-                            city: station.city, 
-                            fuelType: latest?.fuelType ?? null, 
-                            scopeType: "station", 
-                            scopeId: station.id, 
-                            payload: { source: "home_list", action: "details" } 
+                            eventType: "quick_action_clicked" as any, 
+                            pagePath: "/", 
+                            pageTitle: "Home", 
+                            stationId: station.id,
+                            payload: { 
+                              action: "details",
+                              labelMode: (isStreetMode || role === 'iniciante') ? "text" : "icon"
+                            }
                           });
                         }}
                       />
                     </QuickActionGroup>
 
-                    <ArrowRight className="h-4 w-4 text-white/20 transition group-hover:translate-x-1 group-hover:text-white" />
                   </div>
                 </Link>
               );

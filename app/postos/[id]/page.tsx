@@ -17,13 +17,14 @@ import { getStationDetail } from "@/lib/data";
 import { getStationAuditDetail } from "@/lib/audit/queries";
 import { getKillSwitches } from "@/lib/ops/kill-switches";
 import { 
-  getStationMarketPresence, 
-  getStationMarketPresenceLabel, 
-  getStationPublicName, 
-  hasPendingStationLocationReview,
   getStationStatus,
-  getStationStatusLabel
+  getStationStatusLabel,
+  getStationMarketPresence,
+  getStationPublicName,
+  getStationMarketPresenceLabel,
+  hasPendingStationLocationReview
 } from "@/lib/quality/stations";
+import { Navigation, Target } from "lucide-react";
 import { trackProductEvent } from "@/lib/telemetry/client";
 import { fuelLabels } from "@/lib/format/labels";
 import { formatDateTimeBR, formatRecencyLabel, getRecencyTone, recencyToneToBadgeVariant } from "@/lib/format/time";
@@ -43,7 +44,11 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
   const name = getStationPublicName(station);
   const latest = station.latestReports[0];
+  const presence = getStationMarketPresence(station);
+  const isStale = presence === "stale" || presence === "none";
+  
   const priceLabel = latest ? ` | ${formatCurrencyBRL(latest.price)} (${fuelLabels[latest.fuelType]})` : "";
+  const recencyLabel = latest ? formatRecencyLabel(latest.reportedAt) : "";
   
   const ogParams = new URLSearchParams({
     type: "station",
@@ -51,14 +56,18 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     city: `${station.neighborhood}, ${station.city}`,
     price: latest ? latest.price.toFixed(2).replace('.', ',') : "",
     fuel: latest ? fuelLabels[latest.fuelType] : "",
+    recency: recencyLabel,
+    isStale: isStale ? "true" : "false",
   });
 
   return {
     title: `${name}${priceLabel} | Bomba Aberta`,
-    description: `Veja preços reais, prova de vida e histórico de ${name} em ${station.neighborhood}, ${station.city}. Dados validados pela comunidade.`,
+    description: latest 
+      ? `Preço real: ${formatCurrencyBRL(latest.price)} (${fuelLabels[latest.fuelType]}). Prova de vida de ${recencyLabel} em ${station.neighborhood}, ${station.city}.`
+      : `Veja preços e prova de vida em ${station.neighborhood}, ${station.city}. Ajude a completar este recorte!`,
     openGraph: {
       title: `${name}${priceLabel}`,
-      description: `Preço real e prova de vida em ${station.neighborhood}, ${station.city}.`,
+      description: latest ? `Foto real de ${recencyLabel}.` : `Aguardando atualização.`,
       images: [
         {
           url: `/api/og/territorial?${ogParams.toString()}`,
@@ -140,13 +149,34 @@ export default async function StationPage({ params, searchParams }: StationPageP
       />
       <RememberStationVisit stationId={id} stationName={publicName} city={station.city} />
       
+      {/* Public Entry Telemetry */}
+      {query.ref === 'share_station' && (
+        <ProductEvent 
+          eventType="public_station_view"
+          pagePath={"/postos/" + id} 
+          pageTitle={publicName} 
+          stationId={id} 
+          payload={{ source: 'share' }}
+        />
+      )}
+      
       <SectionCard className="space-y-5">
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <ButtonLink href={backHref} variant="secondary" className="h-9 px-3">
               <ArrowLeft className="h-4 w-4" /> Voltar ao mapa
             </ButtonLink>
-            <SharePack type="station" id={id} name={publicName} className="w-[200px]" />
+            <SharePack 
+              type="station" 
+              id={id} 
+              name={publicName} 
+              className="w-[200px]" 
+              details={{
+                price: latest ? latest.price.toFixed(2).replace('.', ',') : undefined,
+                fuel: latest ? fuelLabels[latest.fuelType] : undefined,
+                recency: latest ? formatRecencyLabel(latest.reportedAt) : undefined
+              }}
+            />
           </div>
 
           <div className="space-y-2">
@@ -170,13 +200,22 @@ export default async function StationPage({ params, searchParams }: StationPageP
               <MapPinned className="h-4 w-4 text-[color:var(--color-accent)]" />
               <span>{station.neighborhood}, {station.city}</span>
             </div>
+            <div className="pt-1 flex gap-2">
+              <ButtonLink 
+                href={`/cidade/${station.city.toLowerCase().replace(/\s+/g, '-').normalize('NFD').replace(/[\u0300-\u036f]/g, '')}` as Route} 
+                variant="ghost" 
+                className="h-7 px-0 text-[10px] font-bold text-white/30 hover:text-blue-400"
+              >
+                VER TODA A CIDADE <ArrowRight className="h-3 w-3" />
+              </ButtonLink>
+            </div>
           </div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
           <ButtonLink
             href={sendPriceHref}
-            className="w-full bg-[color:var(--color-accent)] text-black font-bold h-12"
+            className="w-full bg-[color:var(--color-accent)] text-black font-black h-12 text-sm italic tracking-tight"
             onClick={() => {
               void trackProductEvent({
                 eventType: "camera_opened_from_station",
@@ -192,11 +231,51 @@ export default async function StationPage({ params, searchParams }: StationPageP
             <Camera className="h-5 w-5" />
             ATUALIZAR PREÇO AGORA
           </ButtonLink>
-          <ButtonLink href="/postos/sem-atualizacao" variant="secondary" className="w-full h-12">
-            <Info className="h-4 w-4" /> Ver lacunas do mapa
-          </ButtonLink>
+          <a
+            href={`https://www.google.com/maps/dir/?api=1&destination=${station.lat},${station.lng}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => {
+              void trackProductEvent({
+                eventType: "station_action_click" as any,
+                pagePath: "/postos/" + id,
+                stationId: id,
+                payload: { action: 'route_google_maps' }
+              });
+            }}
+            className="flex items-center justify-center gap-2 w-full h-12 rounded-2xl bg-white/5 border border-white/10 text-white font-bold text-sm hover:bg-white/10 transition-all"
+          >
+            <Navigation className="h-4 w-4 text-blue-400" />
+            COMO CHEGAR
+          </a>
         </div>
       </SectionCard>
+
+      {/* [GAPS] Lacuna Útil / Módulo de Engajamento */}
+      {(stationStatus === 'stale' || stationStatus === 'incipient') && (
+        <SectionCard className="bg-orange-600/10 border-orange-500/20 p-5">
+           <div className="flex items-start gap-4">
+              <div className="rounded-full bg-orange-500/20 p-2.5">
+                 <Target className="h-5 w-5 text-orange-400" />
+              </div>
+              <div className="flex-1">
+                 <h3 className="text-sm font-black text-white uppercase italic tracking-tight">O mapa precisa de você</h3>
+                 <p className="text-xs text-white/60 mt-1 leading-relaxed">
+                   {stationStatus === 'stale' 
+                     ? "O preço deste posto foi atualizado há muito tempo. Sua colaboração é essencial para manter o radar preciso."
+                     : "Ainda não temos provas de vida validadas para este posto. Seja o primeiro a registrar a realidade aqui!"}
+                 </p>
+                 <ButtonLink 
+                   href={sendPriceHref} 
+                   variant="secondary" 
+                   className="mt-4 h-9 text-[10px] font-black border-orange-500/30 text-orange-400"
+                 >
+                    CONTRIBUIR AGORA
+                 </ButtonLink>
+              </div>
+           </div>
+        </SectionCard>
+      )}
 
       {/* Proof of Life / Main Evidence */}
       {latest ? (

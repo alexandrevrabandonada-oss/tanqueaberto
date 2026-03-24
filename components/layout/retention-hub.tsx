@@ -16,7 +16,9 @@ import { useEffect, useState } from "react";
 import type { UtilityRole, CollectorTrust } from "@/lib/ops/collector-trust";
 import { SubmissionStatusLine } from "@/components/history/submission-status-line";
 import { formatRecencyLabel } from "@/lib/format/time";
-import { Trophy, Target, Zap } from "lucide-react";
+import { Trophy, Target, Zap, Clock3 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useOperationalMemory } from "@/hooks/use-operational-memory";
 
 export interface RetentionSurfaceItem {
   id: string;
@@ -27,6 +29,7 @@ export interface RetentionSurfaceItem {
 export function useRetentionSurfaces() {
   const router = useRouter();
   const { focus, pendingSubmissionsCount } = useOperationalFocus();
+  const { memory } = useOperationalMemory();
   const { mission, stats, progress } = useMissionContext();
   const { reporterNickname, submissions } = useMySubmissions();
   const [trust, setTrust] = useState<CollectorTrust | null>(null);
@@ -47,6 +50,73 @@ export function useRetentionSurfaces() {
   }, [reporterNickname, mission, pendingSubmissionsCount]);
 
   const surfaces: RetentionSurfaceItem[] = [];
+
+  // --- PRIORIDADE 0: ATIVAÇÃO DE INICIANTE (FUNIL 1.0) ---
+  const isTrueBeginner = role === 'iniciante' && submissions.length === 0;
+  
+  if (isTrueBeginner && focus.suggestedStation) {
+    surfaces.push({
+      id: "retention_beginner_activation",
+      type: "ACTION_PROMPT",
+      content: (
+        <div className="flex flex-col gap-4 rounded-[28px] bg-blue-600/10 border border-blue-500/20 p-5 shadow-lg shadow-blue-500/5">
+           <div className="flex justify-between items-start">
+              <div className="flex items-center gap-3">
+                 <div className="rounded-full bg-blue-500/20 p-2">
+                   <Sparkles className="h-4 w-4 text-blue-400" />
+                 </div>
+                 <div>
+                   <p className="text-sm font-bold text-white uppercase italic tracking-tight">Sua Primeira Missão</p>
+                   <p className="text-xs text-white/50">Ative seu status de colaborador real.</p>
+                 </div>
+              </div>
+           </div>
+
+           <div className="rounded-2xl bg-white/[0.03] border border-white/5 p-4">
+              <p className="text-[10px] font-black uppercase text-white/30 tracking-widest mb-1.5">Posto Sugerido</p>
+              <h4 className="text-sm font-bold text-white mb-1">{focus.suggestedStation.name}</h4>
+              <p className="text-[10px] text-blue-400/80 font-bold uppercase tracking-tighter flex items-center gap-1">
+                <Target className="h-3 w-3" /> Maior lacuna de dados no seu recorte
+              </p>
+           </div>
+
+           <div className="space-y-3">
+              <div className="flex justify-between items-center px-1">
+                 <p className="text-[9px] font-black uppercase text-white/20 tracking-[0.2em]">Sua Jornada</p>
+                 <p className="text-[9px] font-mono text-blue-400/60">{focus.lastTownSlug ? "66%" : "33%"} CONCLUÍDO</p>
+              </div>
+              <div className="flex gap-1.5 h-1">
+                 <div className="flex-1 rounded-full bg-blue-500" />
+                 <div className={cn("flex-1 rounded-full", focus.lastTownSlug ? "bg-blue-500" : "bg-white/10")} />
+                 <div className="flex-1 rounded-full bg-white/10" />
+              </div>
+              <div className="flex justify-between text-[8px] font-bold uppercase tracking-widest text-white/30 px-0.5">
+                 <span className="text-blue-400">Perfil</span>
+                 <span>Cidade</span>
+                 <span>Envio</span>
+              </div>
+           </div>
+
+           <button 
+             onClick={() => {
+               void trackProductEvent({ 
+                 eventType: "hub_activation_click" as any, 
+                 pagePath: "/",
+                 scopeType: "activation", 
+                 scopeId: focus.suggestedStation?.id,
+                 payload: { stationName: focus.suggestedStation?.name }
+               });
+               router.push(`/enviar?stationId=${focus.suggestedStation?.id}#photo` as Route);
+             }}
+             className="w-full h-14 rounded-2xl bg-white text-black font-black uppercase italic text-sm tracking-wide active:scale-95 transition-all shadow-xl shadow-white/5 flex items-center justify-center gap-2"
+           >
+              Iniciar Coleta Agora
+              <ArrowRight className="h-4 w-4" />
+           </button>
+        </div>
+      )
+    });
+  }
 
   useEffect(() => {
     if (surfaces.length > 0) {
@@ -245,6 +315,43 @@ if (lastSub) {
             className="rounded-full bg-purple-500/20 p-2 hover:bg-purple-500/30 transition-colors"
           >
              <ArrowRight className="h-4 w-4 text-purple-400" />
+          </button>
+        </div>
+      )
+    });
+  }
+
+  // --- PRIORIDADE 5: ATALHOS DO DIA (MEMÓRIA CURTA) ---
+  const recentStation = memory.recentStations[0];
+  if (!mission && recentStation && submissions[0]?.stationId !== recentStation.id) {
+    surfaces.push({
+      id: "retention_daily_shortcut_station",
+      type: "OPERATIONAL_RETENTION",
+      content: (
+        <div className="flex items-center justify-between gap-3 rounded-2xl bg-white/5 border border-white/10 p-4">
+          <div className="flex items-center gap-3">
+             <div className="rounded-full bg-orange-400/10 p-2">
+               <Clock3 className="h-4 w-4 text-orange-400" />
+             </div>
+              <div>
+                <p className="text-sm font-bold text-white uppercase italic tracking-tight">Retomar onde parou</p>
+                <p className="text-[10px] text-white/50">{recentStation.name}</p>
+              </div>
+          </div>
+          <button 
+            onClick={() => {
+              void trackProductEvent({ 
+                eventType: "memory_shortcut_click" as any, 
+                pagePath: "/",
+                scopeType: "retention", 
+                scopeId: "station_resume",
+                payload: { stationId: recentStation.id }
+              });
+              router.push(`/postos/${recentStation.id}` as Route);
+            }}
+            className="rounded-full bg-white/10 p-2 hover:bg-white/20 transition-colors"
+          >
+             <ArrowRight className="h-4 w-4 text-white" />
           </button>
         </div>
       )

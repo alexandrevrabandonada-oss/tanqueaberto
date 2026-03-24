@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 
 import { rememberStationVisit } from "@/lib/navigation/home-context";
+import { useOperationalMemory } from "@/hooks/use-operational-memory";
 
 interface RememberStationVisitProps {
   stationId: string;
@@ -11,9 +12,12 @@ interface RememberStationVisitProps {
 }
 
 export function RememberStationVisit({ stationId, stationName, city }: RememberStationVisitProps) {
+  const { addRecentStation } = useOperationalMemory();
+  
   useEffect(() => {
     rememberStationVisit({ id: stationId, name: stationName, city });
-  }, [city, stationId, stationName]);
+    addRecentStation({ id: stationId, name: stationName });
+  }, [city, stationId, stationName, addRecentStation]);
 
   return null;
 }

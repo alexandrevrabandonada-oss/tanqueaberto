@@ -76,7 +76,13 @@ export type ProductTelemetryEventType =
   | "hub_retention_view"
   | "hub_continuity_action"
   | "territorial_shared"
-  | "share_link_opened";
+  | "share_link_opened"
+  | "first_fold_action"
+  | "hub_activation_click"
+  | "first_submission_milestone"
+  | "public_station_view"
+  | "station_action_click"
+  | "memory_shortcut_click";
 
 export interface ProductTelemetryEventInput {
   eventType: ProductTelemetryEventType;

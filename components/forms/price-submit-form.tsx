@@ -5,7 +5,7 @@ import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
-import { Camera, ShieldCheck, ArrowRight, Clock3 } from "lucide-react";
+import { Camera, ShieldCheck, ArrowRight, Clock3, Trophy, Target, Zap } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +31,7 @@ import { AlertTriangle, CheckCircle2, Loader2, Sparkles, MessageCircleQuestion }
 import { ContextualFeedback } from "@/components/feedback/contextual-feedback";
 import { submitContextualFeedbackAction } from "@/app/hub/feedback-actions";
 import { consumeHubAttribution } from "@/lib/telemetry/attribution";
+import { useMySubmissions } from "@/hooks/use-my-submissions";
 
 const fuelOptions: FuelType[] = ["gasolina_comum", "gasolina_aditivada", "etanol", "diesel_s10", "diesel_comum", "gnv"];
 const allowedFuelSet = new Set<FuelType>(fuelOptions);
@@ -104,6 +105,7 @@ function PriceSubmitFormBody({
   const { isStreetMode } = useStreetMode();
   const { mission, nextStation } = useMissionContext();
   const { addSubmission } = useSubmissionHistory();
+  const { submissions } = useMySubmissions();
   const safeReturnToHref = useMemo(() => safeRoute(returnToHref), [returnToHref]);
   const draftKey = useMemo(() => createDraftKey(initialStationId), [initialStationId]);
 
@@ -143,6 +145,18 @@ function PriceSubmitFormBody({
           submittedAt: new Date().toISOString(),
           reporterNickname: nickname || null
         });
+
+        // Activation Milestone (Iniciante -> Ativo)
+        if (submissions.length === 0) {
+          void trackProductEvent({
+            eventType: "first_submission_milestone" as any,
+            pagePath: "/enviar",
+            pageTitle: "Enviar preço",
+            stationId: station.id,
+            fuelType,
+            payload: { source: "activation_funnel" }
+          });
+        }
 
         // Hub Conversion Tracking
         if (consumeHubAttribution()) {

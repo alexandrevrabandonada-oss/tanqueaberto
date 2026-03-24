@@ -9,6 +9,7 @@ export interface OperationalFocusState {
   lastTownName: string | null;
   lastViewedAt: string | null;
   hasSeenWelcome: boolean;
+  suggestedStation?: { id: string; name: string } | null;
 }
 
 const STORAGE_KEY = "bomba-aberta:operational-focus";
@@ -23,6 +24,7 @@ export function useOperationalFocus() {
     lastTownName: null,
     lastViewedAt: null,
     hasSeenWelcome: false,
+    suggestedStation: null,
   });
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -39,6 +41,7 @@ export function useOperationalFocus() {
           if (age > FOCUS_EXPIRY_MS) {
             parsed.lastTownSlug = null;
             parsed.lastTownName = null;
+            parsed.suggestedStation = null;
           }
         }
         
@@ -66,6 +69,14 @@ export function useOperationalFocus() {
     }));
   }, []);
 
+  const updateSuggestedStation = useCallback((station: { id: string; name: string } | null) => {
+    setFocus(prev => {
+      // Avoid infinite loop if same station
+      if (prev.suggestedStation?.id === station?.id) return prev;
+      return { ...prev, suggestedStation: station };
+    });
+  }, []);
+
   const markWelcomeSeen = useCallback(() => {
     setFocus(prev => ({ ...prev, hasSeenWelcome: true }));
   }, []);
@@ -78,6 +89,7 @@ export function useOperationalFocus() {
     mission,
     pendingSubmissionsCount,
     updateTownFocus,
+    updateSuggestedStation,
     markWelcomeSeen
   };
 }

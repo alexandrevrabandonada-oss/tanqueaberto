@@ -15,14 +15,15 @@ export async function GET(req: NextRequest) {
     // Station direct params
     const price = searchParams.get("price");
     const fuel = searchParams.get("fuel");
-    const photo = searchParams.get("photo");
+    const recency = searchParams.get("recency");
+    const isStale = searchParams.get("isStale") === "true";
     
     // Territorial params
     const score = searchParams.get("score");
     const stage = searchParams.get("stage") || "médio";
 
     // Colors & Styles
-    const accentColor = "#FFD700"; // Bomba Gold
+    const accentColor = isStale ? "#FFA500" : "#FFD700"; // Orange if stale, Gold if fresh
 
     return new ImageResponse(
       (
@@ -86,9 +87,11 @@ export async function GET(req: NextRequest) {
           </div>
 
           {/* Footer Proof of Life / Call to Action */}
-          <div style={{ marginTop: "auto", display: "flex", alignItems: "center", gap: "10px", opacity: 0.4 }}>
-             <div style={{ fontSize: "12px", fontWeight: "bold", textTransform: "uppercase", letterSpacing: "1px" }}>
-               {type === "station" ? "Prova de Vida Validada por Foto Real" : "Dados Auditados pela Comunidade Local"}
+          <div style={{ marginTop: "auto", display: "flex", alignItems: "center", gap: "10px", opacity: 0.6 }}>
+             <div style={{ fontSize: "14px", fontWeight: "900", textTransform: "uppercase", letterSpacing: "2px", color: isStale ? "#FFA500" : "#fff" }}>
+               {type === "station" 
+                 ? (recency ? `PROVA DE VIDA: ${recency}` : "Aguardando Foto Real") 
+                 : "Dados Auditados pela Comunidade Local"}
              </div>
           </div>
         </div>
