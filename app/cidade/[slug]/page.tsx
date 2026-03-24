@@ -12,6 +12,7 @@ import { getCityReadinessRows } from "@/lib/ops/readiness";
 import { SectionCard } from "@/components/ui/section-card";
 import { Badge } from "@/components/ui/badge";
 import { ReadinessBadge } from "@/components/home/readiness-badge";
+import { SharePack } from "@/components/ui/share-pack";
 import { ButtonLink } from "@/components/ui/button";
 import { CityPageTelemetry } from "@/components/territorial/city-page-telemetry";
 import { formatCurrencyBRL } from "@/lib/format/currency";
@@ -27,16 +28,42 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { slug } = await params;
   const cityName = resolveCityFromSlug(slug);
-
   if (!cityName) return { title: "Cidade não encontrada" };
+
+  const [stations, releaseSummary] = await Promise.all([
+    getActiveStations(),
+    getTerritorialReleaseSummary()
+  ]);
+
+  const cityStations = stations.filter(s => s.city.toUpperCase() === cityName.toUpperCase());
+  const cityRelease = releaseSummary.find(s => s.name.toUpperCase() === cityName.toUpperCase());
+  const status = cityRelease?.status || "limited";
+  const stage = cityRelease?.publicStage || "closed";
+  
+  // Estimate score based on status for OG (simplified)
+  const score = status === "ready" ? 95 : status === "validating" ? 65 : 35;
+
+  const ogParams = new URLSearchParams({
+    type: "city",
+    name: cityName,
+    score: score.toString(),
+    stage: stage.replace('_', ' '),
+  });
 
   return {
     title: `Preço do Combustível em ${cityName} - Bomba Aberta`,
     description: `Acompanhe em tempo real a cobertura e os preços de combustíveis em ${cityName}. Colabore com a comunidade do Bomba Aberta.`,
     openGraph: {
       title: `Bomba Aberta - ${cityName}`,
-      description: `Estado da cobertura de postos em ${cityName}. Entre e colabore.`,
+      description: `Estado da cobertura de postos em ${cityName}. ${cityStations.length} postos mapeados. Entre e colabore.`,
       type: "website",
+      images: [
+        {
+          url: `/api/og/territorial?${ogParams.toString()}`,
+          width: 1200,
+          height: 630,
+        }
+      ],
     }
   };
 }
@@ -118,6 +145,7 @@ export default async function CityPage({ params }: CityPageProps) {
                 {template.cta}
                 <ArrowRight className="h-4 w-4" />
              </ButtonLink>
+             <SharePack type="city" id={slug} slug={slug} name={cityName} className="w-[200px]" />
           </div>
         </div>
       </div>

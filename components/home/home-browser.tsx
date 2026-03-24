@@ -1,7 +1,8 @@
 "use client";
 
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, Camera, Clock3, Navigation, Search, SlidersHorizontal, Star, X, Zap } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { ArrowRight, Camera, Clock3, Info, Navigation, Search, SlidersHorizontal, Star, X, Zap, Sparkles } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
 
@@ -44,10 +45,14 @@ import { type SurfaceType } from "@/lib/ui/surface-orchestrator";
 import { InstallPromptCard } from "./install-prompt-card";
 import { useOperationalFocus } from "@/hooks/use-operational-focus";
 import { useRetentionSurfaces } from "@/components/layout/retention-hub";
+import { useMySubmissions } from "@/hooks/use-my-submissions";
 import { type OperationalKillSwitches } from "@/lib/ops/kill-switches";
 import { RecortePulseWidget } from "./recorte-pulse-widget";
 import { getRecortePulseAction } from "@/app/actions/pulse";
 import { type RecorteActivity } from "@/lib/ops/recorte-activity";
+import { getUtilityStatusAction } from "@/app/actions/user";
+import { type UtilityRole } from "@/lib/ops/collector-trust";
+import { QuickActionGroup, QuickActionButton } from "@/components/ui/quick-action";
 
 interface HomeBrowserProps {
   stations: StationWithReports[];
@@ -133,6 +138,8 @@ export function HomeBrowser({
   initialPresenceFilter = "all",
   killSwitches
 }: HomeBrowserProps) {
+  const [showShareWelcome, setShowShareWelcome] = useState(false);
+  const [shareContext, setShareContext] = useState<string | null>(null);
   const [query, setQuery] = useState(initialQuery);
   const [selectedCity, setSelectedCity] = useState(initialCity || "");
   const [defaultSelectionReason, setDefaultSelectionReason] = useState<string | null>(null);
@@ -148,9 +155,20 @@ export function HomeBrowser({
   const { isLowPerf, effectiveType } = useNetworkHardening();
   const { isStreetMode, toggleStreetMode, recentIds, favoriteIds, toggleFavorite, isFavorite } = useStreetMode();
   const { mission, startMission, isLoaded: missionLoaded } = useMissionContext();
+  const { reporterNickname } = useMySubmissions();
   const { focus, updateTownFocus } = useOperationalFocus();
   const retentionSurfaces = useRetentionSurfaces();
   const [navHandoff, setNavHandoff] = useState<any>(null);
+  const [role, setRole] = useState<UtilityRole | null>(null);
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    async function loadRole() {
+      const result = await getUtilityStatusAction(reporterNickname, null);
+      if (result) setRole(result.status.role);
+    }
+    loadRole();
+  }, [reporterNickname]);
 
   useEffect(() => {
     const checkHandoff = () => {
@@ -205,7 +223,8 @@ export function HomeBrowser({
           scopeId: initialGroupId,
           payload: { 
             groupName: groupInfo.name,
-            stationsCount: initialGroupStationIds.length
+            stationsCount: initialGroupStationIds.length,
+            defaultReason: defaultSelectionReason
           }
         });
       }
@@ -266,6 +285,10 @@ export function HomeBrowser({
       setPresenceFilter(storedContext.presenceFilter);
     }
 
+    if (storedContext.isStreetMode !== undefined && storedContext.isStreetMode !== isStreetMode) {
+      if (storedContext.isStreetMode) toggleStreetMode();
+    }
+
     if (storedLastStation) {
       setLastStation(storedLastStation);
     }
@@ -316,7 +339,7 @@ export function HomeBrowser({
       return;
     }
 
-    persistHomeContext({ query, city: selectedCity, fuelFilter, recencyFilter, presenceFilter });
+    persistHomeContext({ query, city: selectedCity, fuelFilter, recencyFilter, presenceFilter, isStreetMode });
     
     if (selectedCity && isHydrated) {
       void trackProductEvent({
@@ -428,6 +451,24 @@ export function HomeBrowser({
   const mapStations = visibleStations;
   const summaryStations = orderedStations.slice(0, 6);
 
+  useEffect(() => {
+    const ref = searchParams.get("ref");
+    if (ref && ref.startsWith("share_")) {
+      const type = ref.replace("share_", "");
+      const contextName = searchParams.get("city") || searchParams.get("groupId") || "um amigo";
+      
+      setShareContext(contextName);
+      setShowShareWelcome(true);
+      
+      void trackProductEvent({
+        eventType: "share_link_opened" as any,
+        pagePath: "/",
+        scopeType: "share" as any,
+        payload: { type, contextName }
+      });
+    }
+  }, [searchParams]);
+
   const resetFilters = () => {
     setQuery("");
     setSelectedCity("");
@@ -437,7 +478,7 @@ export function HomeBrowser({
   };
 
   // 1. Gather all potential surfaces for orchestration
-  const surfaces = [];
+  const surfaces: Array<{ id: string; type: SurfaceType; content: React.ReactNode; isDismissible?: boolean }> = [];
 
   // Add retention surfaces first
   retentionSurfaces.forEach(s => surfaces.push(s));
@@ -528,6 +569,22 @@ export function HomeBrowser({
     content: <InstallPromptCard />
   });
 
+  // 2. Adaptive Filtering and Sorting of Surfaces
+  const orchestratedSurfaces = useMemo(() => {
+    let result = [...surfaces];
+    
+    // If it's a NEW user, prioritize Onboarding (handled by FirstVisitGuide) 
+    // and keep surfaces light.
+    if (role === 'iniciante') {
+      // Remove less urgent prompts for beginners to avoid noise
+      result = result.filter(s => s.id !== 'pwa-install' && s.id !== 'beta-closed');
+    }
+
+    // If Senior, prioritize Pulse and Gaps (handled by layout below)
+    
+    return result;
+  }, [surfaces, role]);
+
   if (defaultSelectionReason) {
     surfaces.push({
       id: "smart-default",
@@ -557,7 +614,7 @@ export function HomeBrowser({
       
       <div className="mb-6">
         <SurfaceOrchestrator 
-           surfaces={surfaces} 
+           surfaces={orchestratedSurfaces} 
            onDismiss={(id) => {
              if (id === "beta-closed") { /* potential local storage toggle */ }
            }}
@@ -578,8 +635,20 @@ export function HomeBrowser({
         </Button>
       </div>
 
-      {(recentIds.length > 0 || favoriteIds.length > 0) && (
-        <SectionCard className="mb-4 space-y-4 p-5 border-white/10 bg-white/5">
+      {/* 4. Home Main Action & Quick Access (Adaptive) */}
+      {!mission && (recentIds.length > 0 || favoriteIds.length > 0) && (
+        <SectionCard 
+          className="mb-4 space-y-4 p-5 border-white/10 bg-white/5"
+          onClick={() => {
+            void trackProductEvent({
+              eventType: "home_block_interacted",
+              pagePath: "/",
+              scopeType: "block",
+              scopeId: "quick_access",
+              payload: { role: role || 'unknown' }
+            });
+          }}
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Zap className="h-3 w-3 text-[color:var(--color-accent)]" />
@@ -639,7 +708,18 @@ export function HomeBrowser({
         </SectionCard>
       )}
 
-      <div className="mb-6">
+      <div 
+        className="mb-6"
+        onClick={() => {
+          void trackProductEvent({
+            eventType: "home_block_interacted",
+            pagePath: "/",
+            scopeType: "block",
+            scopeId: "my_submissions",
+            payload: { role: role || 'unknown' }
+          });
+        }}
+      >
         <MySubmissionsList />
       </div>
 
@@ -653,11 +733,11 @@ export function HomeBrowser({
         </div>
       )}
 
-      <SectionCard className={cn("space-y-4", isStreetMode && "space-y-2 py-3", isLowPerf && "low-perf-mode shadow-none border-white/5")}>
+      <SectionCard className={cn("space-y-4", (isStreetMode || mission) && "space-y-2 py-3", isLowPerf && "low-perf-mode shadow-none border-white/5")}>
         {/* Surfaces orchestrated elsewhere now */}
-        {!isStreetMode && (
+        {!isStreetMode && !mission && (
           <div className="space-y-1.5">
-            <Badge className="text-[10px] uppercase tracking-widest">Mapa Vivo</Badge>
+            <Badge className="text-[10px] uppercase tracking-widest">Mapa Vivo {role === 'senior' && "· Senior"}</Badge>
             <h2 className="text-2xl font-bold tracking-tight text-white">Transparência territorial e preço real</h2>
             <p className="text-sm leading-relaxed text-white/40">Busque, filtre e colabore para manter o mapa vivo.</p>
           </div>
@@ -722,9 +802,23 @@ export function HomeBrowser({
                   key={city}
                   type="button"
                   onClick={() => {
+                    const oldCity = selectedCity;
                     setSelectedCity(city);
                     setDefaultSelectionReason(null);
                     updateTownFocus(city, city);
+                    
+                    if (defaultSelectionReason && oldCity !== city) {
+                      void trackProductEvent({
+                        eventType: "territorial_default_rejected" as any,
+                        pagePath: "/",
+                        pageTitle: "Home",
+                        city: city,
+                        payload: { 
+                          previousCity: oldCity,
+                          reason: defaultSelectionReason
+                        }
+                      });
+                    }
                   }}
                   className={`flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${
                     selectedCity.localeCompare(city, "pt-BR") === 0 ? "bg-white text-black" : "border border-white/10 bg-white/5 text-white/66 hover:bg-white/10"
@@ -778,6 +872,16 @@ export function HomeBrowser({
                   );
                   const cityStationIds = cityStations.map(s => s.id);
                   startMission(selectedReadiness?.slug || "general", selectedReadiness?.name || selectedCity, cityStationIds);
+                  
+                  void trackProductEvent({
+                    eventType: "mission_start_from_home_cta" as any,
+                    pagePath: "/",
+                    pageTitle: "Home",
+                    payload: { 
+                      city: selectedCity,
+                      defaultReason: defaultSelectionReason
+                    }
+                  });
                 }}
               >
                 Missão Coleta
@@ -982,23 +1086,49 @@ export function HomeBrowser({
                       </span>
                     )}
                     
-                    <div className="flex items-center gap-1">
-                      <ButtonLink
+                    <QuickActionGroup 
+                      className="p-0 border-none bg-transparent gap-1.5"
+                      onMisclick={() => {
+                        void trackProductEvent({ 
+                          eventType: "quick_action_misclick" as any, 
+                          pagePath: contextHref, 
+                          pageTitle: getStationPublicName(station), 
+                          stationId: station.id 
+                        });
+                      }}
+                    >
+                      <QuickActionButton
+                        icon={Camera}
+                        label="Foto"
+                        variant="primary"
+                        isStreetMode={isStreetMode}
                         href={getSendHref(station.id, contextHref, fuelFilter)}
-                        className="h-9 w-9 p-0 rounded-xl bg-white text-black hover:bg-white/90"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void trackProductEvent({ eventType: "camera_opened_from_station", pagePath: contextHref, pageTitle: "Lista", stationId: station.id, payload: { source: "home_list_quick", action: "camera" } });
+                        className="h-9 w-9 p-0 min-w-0"
+                        showLabel={false}
+                        onClick={() => {
+                          rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
+                          void trackProductEvent({ 
+                            eventType: "camera_opened_from_station", 
+                            pagePath: getSendHref(station.id, contextHref, fuelFilter), 
+                            pageTitle: getStationPublicName(station), 
+                            stationId: station.id, 
+                            city: station.city, 
+                            fuelType: latest?.fuelType ?? null, 
+                            scopeType: "submission", 
+                            scopeId: station.id, 
+                            payload: { source: "home_list", action: "photo" } 
+                          });
                         }}
-                      >
-                        <Camera className="h-4 w-4" />
-                      </ButtonLink>
-
-                      <button
-                        className="h-9 w-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
+                      />
+                      
+                      <QuickActionButton
+                        icon={Navigation}
+                        label="Rota"
+                        variant="secondary"
+                        isStreetMode={isStreetMode}
+                        className="h-9 w-9 p-0 min-w-0"
+                        showLabel={false}
+                        onClick={() => {
                           const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
                           import("@/lib/navigation/external-maps").then(({ openExternalNavigation }) => {
                             openExternalNavigation(isMobile ? "waze" : "google", {
@@ -1006,14 +1136,36 @@ export function HomeBrowser({
                               lng: station.lng,
                               stationId: station.id,
                               stationName: getStationPublicName(station),
-                              source: "home_list_quick"
+                              source: "home_list"
                             });
                           });
                         }}
-                      >
-                        <Navigation className="h-4 w-4 text-[color:var(--color-accent)]" />
-                      </button>
-                    </div>
+                      />
+
+                      <QuickActionButton
+                        icon={Info}
+                        label="Ver"
+                        variant="outline"
+                        isStreetMode={isStreetMode}
+                        href={getStationHref(station.id, contextHref)}
+                        className="h-9 w-9 p-0 min-w-0"
+                        showLabel={false}
+                        onClick={() => {
+                          rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
+                          void trackProductEvent({ 
+                            eventType: "station_clicked", 
+                            pagePath: getStationHref(station.id, contextHref), 
+                            pageTitle: getStationPublicName(station), 
+                            stationId: station.id, 
+                            city: station.city, 
+                            fuelType: latest?.fuelType ?? null, 
+                            scopeType: "station", 
+                            scopeId: station.id, 
+                            payload: { source: "home_list", action: "details" } 
+                          });
+                        }}
+                      />
+                    </QuickActionGroup>
 
                     <ArrowRight className="h-4 w-4 text-white/20 transition group-hover:translate-x-1 group-hover:text-white" />
                   </div>

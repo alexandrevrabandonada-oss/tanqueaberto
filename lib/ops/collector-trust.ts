@@ -227,9 +227,12 @@ export async function updateCollectorScore(
 }
 
 /**
- * Mapeia o estado técnico para uma função de utilidade cívica
+ * Mapeia o estado técnico para uma função de utilidade cívica com próximos passos contextuais
  */
-export function getUtilityStatus(trust: CollectorTrust): UtilityStatus {
+export function getUtilityStatus(
+  trust: CollectorTrust, 
+  context?: { hasMission?: boolean; hasPending?: boolean }
+): UtilityStatus {
   if (trust.trustStage === 'bloqueado') {
     return {
       role: 'bloqueado',
@@ -245,7 +248,9 @@ export function getUtilityStatus(trust: CollectorTrust): UtilityStatus {
       role: 'revisão',
       label: 'Em Verificação',
       description: 'Estamos validando a precisão dos seus primeiros envios.',
-      nextStep: 'Continue coletando com atenção às fotos e preços.',
+      nextStep: context?.hasPending 
+        ? 'Sincronize seus envios pendentes para avaliação.'
+        : 'Continue coletando com atenção às fotos e preços.',
       color: 'amber'
     };
   }
@@ -256,7 +261,9 @@ export function getUtilityStatus(trust: CollectorTrust): UtilityStatus {
       role: 'senior',
       label: 'Mantenedor Senior',
       description: 'Você é um pilar da rede. Suas confirmações têm peso imediato.',
-      nextStep: 'Focar em lacunas de dados críticas (High Priority Gaps).',
+      nextStep: context?.hasMission 
+        ? 'Continue sua missão para manter a cobertura territorial.'
+        : 'Focar em lacunas de dados críticas (High Priority Gaps).',
       color: 'indigo'
     };
   }
@@ -267,7 +274,9 @@ export function getUtilityStatus(trust: CollectorTrust): UtilityStatus {
       role: 'ativo',
       label: 'Colaborador Ativo',
       description: 'Sua regularidade mantém o mapa atualizado e confiável.',
-      nextStep: 'Complete uma missão de grupo para ganhar mais score.',
+      nextStep: context?.hasMission 
+        ? 'Finalize sua missão ativa para subir de nível.'
+        : 'Complete uma missão de grupo para ganhar mais score.',
       color: 'green'
     };
   }
@@ -277,7 +286,9 @@ export function getUtilityStatus(trust: CollectorTrust): UtilityStatus {
     role: 'iniciante',
     label: 'Coletor Iniciante',
     description: 'Começando a jornada de transparência territorial.',
-    nextStep: 'Realize seu primeiro envio para validar o status.',
+    nextStep: context?.hasMission
+      ? 'Complete sua primeira missão para validar seu status.'
+      : 'Realize seu primeiro envio para validar o status.',
     color: 'blue'
   };
 }

@@ -135,19 +135,19 @@ export function StationCard({ station, fuelFilter = "all", returnToHref, isStree
       >
         <QuickActionButton
           icon={Camera}
-          label={isStreetMode ? "Câmera" : "Abrir câmera"}
+          label="Foto"
           variant="primary"
           isStreetMode={isStreetMode}
           href={sendHref}
           onClick={() => {
             rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
-            void trackProductEvent({ eventType: "camera_opened_from_station", pagePath: sendHref, pageTitle: getStationPublicName(station), stationId: station.id, city: station.city, fuelType: latest?.fuelType ?? null, scopeType: "submission", scopeId: station.id, payload: { source: "station_card", streetMode: isStreetMode } });
+            void trackProductEvent({ eventType: "camera_opened_from_station", pagePath: sendHref, pageTitle: getStationPublicName(station), stationId: station.id, city: station.city, fuelType: latest?.fuelType ?? null, scopeType: "submission", scopeId: station.id, payload: { source: "station_card", streetMode: isStreetMode, action: "photo" } });
           }}
         />
         
         <QuickActionButton
           icon={Navigation}
-          label={isStreetMode ? "Caminho" : "Navegar"}
+          label="Rota"
           variant="secondary"
           isStreetMode={isStreetMode}
           onClick={() => {
@@ -164,7 +164,7 @@ export function StationCard({ station, fuelFilter = "all", returnToHref, isStree
 
         <QuickActionButton
           icon={Info}
-          label="Visualizar"
+          label="Ver"
           variant="outline"
           isStreetMode={isStreetMode}
           href={stationHref}

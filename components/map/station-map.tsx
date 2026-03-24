@@ -175,10 +175,10 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
                       className="text-xs font-semibold text-zinc-900 underline"
                       onClick={() => {
                         rememberStationVisit({ id: station.id, name: displayName, city: station.city });
-                        void trackProductEvent({ eventType: "camera_opened_from_station", pagePath: sendHref, pageTitle: displayName, stationId: station.id, city: station.city, fuelType: selectedReportForStation?.fuelType ?? null, scopeType: "submission", scopeId: station.id, payload: { source: "map-popup", compactMode: true } });
+                        void trackProductEvent({ eventType: "camera_opened_from_station", pagePath: sendHref, pageTitle: displayName, stationId: station.id, city: station.city, fuelType: selectedReportForStation?.fuelType ?? null, scopeType: "submission", scopeId: station.id, payload: { source: "map-popup", compactMode: true, action: "photo" } });
                       }}
                     >
-                      Abrir câmera
+                      Foto
                     </Link>
                   </div>
                 </div>
@@ -234,7 +234,7 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
               >
                 <QuickActionButton
                   icon={Camera}
-                  label="Câmera"
+                  label="Foto"
                   variant="primary"
                   isStreetMode={true}
                   href={getSendHref(selectedStation.id, returnToHref, fuelFilter)}
@@ -249,14 +249,14 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
                       fuelType: selectedReport?.fuelType ?? null, 
                       scopeType: "submission", 
                       scopeId: selectedStation.id, 
-                      payload: { source: "map_sheet", action: "camera" } 
+                      payload: { source: "map_sheet", action: "photo" } 
                     });
                   }}
                 />
 
                 <QuickActionButton
                   icon={Navigation}
-                  label="Caminho"
+                  label="Rota"
                   variant="secondary"
                   isStreetMode={true}
                   onClick={() => {
@@ -275,7 +275,7 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
 
                 <QuickActionButton
                   icon={Info}
-                  label="Detalhes"
+                  label="Ver"
                   variant="outline"
                   isStreetMode={true}
                   href={getStationHref(selectedStation.id, returnToHref)}

@@ -12,6 +12,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
 import { HistoryChart } from "@/components/audit/history-chart";
 import { Metadata } from "next";
+import { SharePack } from "@/components/ui/share-pack";
 import { getStationDetail } from "@/lib/data";
 import { getStationAuditDetail } from "@/lib/audit/queries";
 import { getKillSwitches } from "@/lib/ops/kill-switches";
@@ -43,6 +44,14 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const name = getStationPublicName(station);
   const latest = station.latestReports[0];
   const priceLabel = latest ? ` | ${formatCurrencyBRL(latest.price)} (${fuelLabels[latest.fuelType]})` : "";
+  
+  const ogParams = new URLSearchParams({
+    type: "station",
+    name,
+    city: `${station.neighborhood}, ${station.city}`,
+    price: latest ? latest.price.toFixed(2).replace('.', ',') : "",
+    fuel: latest ? fuelLabels[latest.fuelType] : "",
+  });
 
   return {
     title: `${name}${priceLabel} | Bomba Aberta`,
@@ -50,7 +59,13 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     openGraph: {
       title: `${name}${priceLabel}`,
       description: `Preço real e prova de vida em ${station.neighborhood}, ${station.city}.`,
-      images: latest ? [latest.photoUrl] : [],
+      images: [
+        {
+          url: `/api/og/territorial?${ogParams.toString()}`,
+          width: 1200,
+          height: 630,
+        }
+      ],
     }
   };
 }
@@ -87,47 +102,6 @@ function formatTrend(previous: number, current: number) {
   return delta > 0 ? `Subiu ${absolute}` : `Caiu ${absolute}`;
 }
 
-function ShareButton({ id, name, city }: { id: string, name: string, city: string }) {
-  const handleShare = async () => {
-    const shareData = {
-      title: `${name} | Bomba Aberta`,
-      text: `Confira preços reais e prova de vida do posto ${name} em ${city}.`,
-      url: window.location.href,
-    };
-
-    try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-        void trackProductEvent({
-          eventType: "station_page_shared",
-          pagePath: window.location.pathname,
-          pageTitle: document.title,
-          stationId: id,
-          payload: { method: "native" }
-        });
-      } else {
-        await navigator.clipboard.writeText(window.location.href);
-        alert("Link copiado para a área de transferência!");
-        void trackProductEvent({
-          eventType: "station_page_shared",
-          pagePath: window.location.pathname,
-          pageTitle: document.title,
-          stationId: id,
-          payload: { method: "clipboard" }
-        });
-      }
-    } catch (err) {
-      console.error("Error sharing:", err);
-    }
-  };
-
-  return (
-    <Button variant="secondary" onClick={handleShare} className="gap-2">
-      <Share2 className="h-4 w-4" />
-      Compartilhar
-    </Button>
-  );
-}
 
 export default async function StationPage({ params, searchParams }: StationPageProps) {
   const { id } = await params;
@@ -172,7 +146,7 @@ export default async function StationPage({ params, searchParams }: StationPageP
             <ButtonLink href={backHref} variant="secondary" className="h-9 px-3">
               <ArrowLeft className="h-4 w-4" /> Voltar ao mapa
             </ButtonLink>
-            <ShareButton id={id} name={publicName} city={station.city} />
+            <SharePack type="station" id={id} name={publicName} className="w-[200px]" />
           </div>
 
           <div className="space-y-2">

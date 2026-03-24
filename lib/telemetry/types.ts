@@ -69,7 +69,14 @@ export type ProductTelemetryEventType =
   | "operational_action_executed"
   | "report_cycle_submitted"
   | "report_cycle_moderated"
-  | "report_cycle_visible";
+  | "report_cycle_visible"
+  | "home_block_interacted"
+  | "territorial_default_rejected"
+  | "quick_action_executed"
+  | "hub_retention_view"
+  | "hub_continuity_action"
+  | "territorial_shared"
+  | "share_link_opened";
 
 export interface ProductTelemetryEventInput {
   eventType: ProductTelemetryEventType;

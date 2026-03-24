@@ -11,6 +11,7 @@ export interface HomeContextSnapshot {
   fuelFilter: FuelFilter;
   recencyFilter: RecencyFilter;
   presenceFilter: StationPresenceFilter;
+  isStreetMode?: boolean;
 }
 
 export interface LastStationSnapshot {
@@ -59,7 +60,8 @@ export function readHomeContext(): Partial<HomeContextSnapshot> {
     city: typeof parsed.city === "string" ? parsed.city : "",
     fuelFilter: parsed.fuelFilter,
     recencyFilter: parsed.recencyFilter,
-    presenceFilter: parsed.presenceFilter
+    presenceFilter: parsed.presenceFilter,
+    isStreetMode: parsed.isStreetMode
   };
 }
 
@@ -93,7 +95,8 @@ export function rememberStationVisit(station: LastStationSnapshot) {
       city: station.city || currentHome.city || "",
       fuelFilter: currentHome.fuelFilter ?? "all",
       recencyFilter: currentHome.recencyFilter ?? "all",
-      presenceFilter: currentHome.presenceFilter ?? "all"
+      presenceFilter: currentHome.presenceFilter ?? "all",
+      isStreetMode: currentHome.isStreetMode ?? false
     })
   );
 }

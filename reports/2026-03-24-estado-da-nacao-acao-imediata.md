@@ -1,38 +1,22 @@
-# Relatório Estado da Nação — Ação Imediata
-## Foco: Ver -> Decidir -> Agir (Março 2026)
+# Estado da Nação — Ação Imediata 2.0
 
-Este relatório detalha a implementação da camada de ação imediata, reduzindo a fricção entre a visualização de um posto e a execução da coleta ou navegação.
+## Objetivos Alcançados
+Reduzimos a carga cognitiva do coletor ao interagir com o app em ambiente de rua, tornando os gestos de coleta e navegação instintivos.
 
----
+## 1. Verbos de Ação Pura
+Substituímos ícones genéricos e labels longos por verbos de comando direto:
+- **"FOTO"**: Substitui "Câmera" ou "Abrir câmera". É o CTA principal, focado no envio.
+- **"ROTA"**: Substitui "Navegar" ou "Caminho". Focado em deslocamento.
+- **"VER"**: Substitui "Visualizar" ou "Detalhes". Focado em consulta profunda.
 
-## 1. Bottom Sheet Imersivo no Mapa
-O antigo card estático de "Pin Tocado" foi substituído por uma **Bottom Sheet imersiva**:
-- **Design de Execução**: Agora, ao tocar em um pin, o painel sobe com CTAs gigantes para Câmera e Navegação.
-- **Micro-interações**: Transição suave (`transition-transform`) e foco visual no preço e combustível.
-- **Ações Unificadas**: Um único lugar para Agir (Câmera), Chegar (GPS) ou Estudar (Detalhes).
+## 2. Unificação de Interface (Mapa & Lista)
+- A lista de postos na Home agora utiliza exatamente os mesmos componentes de ação do Mapa.
+- Isso garante que a memória muscular do usuário funcione da mesma forma em qualquer superfície do app.
+- feedback visual de toque (haptic-like scaling + brightness) foi intensificado para confirmar a ação mesmo sob luz solar forte.
 
-## 2. Quick Actions na Lista do Recorte
-A lista simplificada de postos na Home deixou de ser apenas um link:
-- **Atalhos Laterais**: Cada item da lista agora possui botões de Câmera e GPS acessíveis com um toque, sem precisar entrar na página do posto.
-- **Zonas de Toque Inteligentes**: O link principal continua levando aos detalhes, mas a zona de ação foi priorizada para o polegar do coletor em campo.
-
-## 3. Telemetria por Superfície (ROI de Usabilidade)
-Implementamos a atribuição de fonte (`source`) em todos os CTAs principais:
-- **`map_sheet`**: Ações vindas do mapa.
-- **`home_list_quick`**: Ações vindas da lista simplificada.
-- **`station_card`**: Ações vindas do card completo.
-- Isso permitirá ao time de Ops entender se o coletor prefere a "caça pelo mapa" ou a "caça pela lista".
-
-## 4. Consistência Visual e Operacional
-- Unificação de ícones (`lucide-react`): Câmera para coleta, Navegação para GPS, Info para detalhes.
-- Melhoria no **Modo Rua**: Altura de botão aumentada para 56px (h-14) para facilitar o uso com luvas ou em movimento.
+## 3. Telemetria de Precisão
+- Implementamos o evento `quick_action_executed` para rastrear a origem do clique (mapa vs lista) e o tipo de ação.
+- Agora podemos medir qual superfície é mais eficiente para converter o usuário em um envio de preço.
 
 ---
-
-## Conclusão Operacional
-Com estas mudanças, o tempo entre "ver um posto" e "abrir a câmera" foi reduzido drasticamente. O mapa e a lista agora são ferramentas de **ação direta**, transformando o Bomba Aberta em um console de execução territorial de alto desempenho.
-
----
-**Gerado em:** 24 de Março de 2026
-**Responsável:** Antigravity (Advanced Agentic AI)
-*Bomba Aberta — Menos Passivo, Mais Ativo.*
+*Relatório focado em instinto, velocidade e redução de misclick.*

@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 import { type Route } from "next";
 import { QuickActionGroup, QuickActionButton } from "@/components/ui/quick-action";
 import { GroupTelemetry } from "@/components/grupo/group-telemetry";
+import { SharePack } from "@/components/ui/share-pack";
 
 interface GroupPageProps {
   params: Promise<{ slug: string }>;
@@ -56,6 +57,14 @@ export async function generateMetadata(
   const stage = groupRelease?.publicStage || "closed";
   const score = readiness?.score ?? 0;
 
+  const ogParams = new URLSearchParams({
+    type: "group",
+    name: group.name,
+    city: group.city || "",
+    score: score.toString(),
+    stage: stage.replace('_', ' '),
+  });
+
   return {
     title: `${group.name} - Cobertura Bomba Aberta`,
     description: `Acompanhe o estágio da coleta (${stage}) e preços reais no corredor ${group.name}. Score de prontidão: ${score}%.`,
@@ -65,7 +74,7 @@ export async function generateMetadata(
       type: "website",
       images: [
         {
-          url: `/api/og/group?slug=${slug}&score=${score}&stage=${stage}`,
+          url: `/api/og/territorial?${ogParams.toString()}`,
           width: 1200,
           height: 630,
           alt: `Bomba Aberta - ${group.name}`
@@ -245,20 +254,7 @@ export default async function GroupPage({ params }: GroupPageProps) {
                <p className="text-xs text-blue-100/60 leading-relaxed">
                  Compartilhe este corredor com outros motoristas da região para aumentar a densidade de preços.
                </p>
-               <button 
-                onClick={() => {
-                  if (typeof navigator !== 'undefined' && navigator.share) {
-                    navigator.share({
-                      title: `Bomba Aberta - ${group.name}`,
-                      text: `Veja como está a cobertura de preços em ${group.name}.`,
-                      url: window.location.href
-                    });
-                  }
-                }}
-                className="text-[10px] font-bold text-blue-400 uppercase tracking-widest hover:text-blue-300"
-               >
-                 COPIAR LINK DE GRUPO
-               </button>
+               <SharePack type="group" id={group.id} slug={slug} name={group.name} />
             </div>
           </div>
 

@@ -23,8 +23,8 @@ export const QuickActionButton = React.forwardRef<HTMLButtonElement, QuickAction
         <Icon className={cn("shrink-0", isStreetMode ? "h-5 w-5" : "h-4 w-4")} />
         {showLabel && (
           <span className={cn(
-            "font-black tracking-tighter uppercase italic leading-none",
-            isStreetMode ? "text-xs" : "text-[10px]"
+            "font-black tracking-widest uppercase italic leading-none",
+            isStreetMode ? "text-[10px]" : "text-[9px]"
           )}>
             {label}
           </span>
@@ -33,8 +33,8 @@ export const QuickActionButton = React.forwardRef<HTMLButtonElement, QuickAction
     );
 
     const baseStyles = cn(
-      "flex flex-col items-center justify-center gap-1.5 rounded-2xl transition-all active:scale-[0.96]",
-      isStreetMode ? "h-16 w-full" : "h-12 px-4",
+      "flex flex-col items-center justify-center gap-1.5 rounded-2xl transition-all active:scale-[0.92] active:brightness-110",
+      isStreetMode ? "h-16 w-full" : "h-14 px-4 min-w-[70px]",
       variant === 'primary' && "bg-white text-black hover:bg-white/90",
       variant === 'secondary' && "bg-white/5 border border-white/10 text-white hover:bg-white/10",
       variant === 'accent' && "bg-[color:var(--color-accent)] text-black hover:opacity-90",
