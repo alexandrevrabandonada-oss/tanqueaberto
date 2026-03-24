@@ -3,7 +3,7 @@
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Clock3, Map, Send, ShieldAlert } from "lucide-react";
+import { Clock3, Map, Send, UserCircle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -11,7 +11,7 @@ const items: Array<{ href: Route; label: string; icon: React.ComponentType<{ cla
   { href: "/", label: "Mapa", icon: Map },
   { href: "/atualizacoes", label: "Atualizações", icon: Clock3 },
   { href: "/enviar", label: "Enviar", icon: Send },
-  { href: "/auditoria" as Route, label: "Auditoria", icon: ShieldAlert }
+  { href: "/hub" as Route, label: "Meu Hub", icon: UserCircle }
 ];
 
 export function BottomNav() {
