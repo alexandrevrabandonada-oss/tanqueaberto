@@ -137,7 +137,8 @@ function PriceSubmitFormBody({
           fuelType,
           price,
           status: "pending",
-          submittedAt: new Date().toISOString()
+          submittedAt: new Date().toISOString(),
+          reporterNickname: nickname || null
         });
       }
     }

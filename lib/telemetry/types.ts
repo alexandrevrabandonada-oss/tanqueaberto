@@ -49,7 +49,8 @@ export type ProductTelemetryEventType =
   | "territorial_landing_visited"
   | "territorial_entry_from_landing"
   | "station_page_shared"
-  | "station_evidence_viewed";
+  | "station_evidence_viewed"
+  | "hub_opened";
 
 export interface ProductTelemetryEventInput {
   eventType: ProductTelemetryEventType;

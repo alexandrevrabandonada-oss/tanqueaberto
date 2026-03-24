@@ -13,6 +13,7 @@ export interface MySubmission {
   submittedAt: string;
   updatedAt: string;
   moderationNote?: string | null;
+  reporterNickname?: string | null;
 }
 
 const STORAGE_KEY = "bomba-aberta:my-submissions";
@@ -57,6 +58,7 @@ export function useMySubmissions() {
     submissions,
     addSubmission,
     updateSubmissionStatus,
+    reporterNickname: submissions[0]?.reporterNickname ?? null,
     isLoaded
   };
 }
