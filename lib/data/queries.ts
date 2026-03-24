@@ -2,6 +2,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { assembleStationWithReports, groupReportsByStation, mapReportRow, mapReportsWithStations, mapStationRow } from "@/lib/data/mappers";
 import { getReportPriorityScore } from "@/lib/ops/moderation-priority";
 import { isPreviewFixturesEnabled, getPreviewApprovedReportsSince, getPreviewRecentCount, getPreviewRecentFeed, getPreviewStations, getPreviewStationById } from "@/lib/dev/preview-data";
+import { getTerritorialReleaseSummary } from "@/lib/ops/release-control";
+import { getAuditGroups, getAuditGroupMembers } from "@/lib/audit/groups";
 import type { Station, StationWithReports, ReportWithStation, PriceReport, ReportStatus } from "@/lib/types";
 import type { PriceReportRow, StationRow } from "@/types/supabase";
 
@@ -134,24 +136,27 @@ export async function getHomeStations(): Promise<StationWithReports[]> {
   let stationsWithStatus = stations;
 
   try {
-    const releaseSummary = await import("@/lib/ops/release-control").then((m) => m.getTerritorialReleaseSummary());
-    const { getAuditGroups, getAuditGroupMembers } = await import("@/lib/audit/groups");
+    const releaseSummary = await getTerritorialReleaseSummary();
     const groups = await getAuditGroups();
 
-    if (groups.length > 0) {
+    if (groups && groups.length > 0) {
       // Map station to its status via group membership
       const stationStatusMap = new Map<string, string>();
       
       // Fetch all members in parallel
       const allMembersResults = await Promise.all(
-        groups.map(group => getAuditGroupMembers(group.id).then(members => ({ group, members })))
+        groups.map(group => getAuditGroupMembers(group.id).catch(() => []).then(members => ({ group, members })))
       );
 
       for (const { group, members } of allMembersResults) {
-        const status = releaseSummary.find((s) => s.slug === group.slug)?.status ?? "limited";
+        if (!group) continue;
+        const summary = releaseSummary.find((s) => s.slug === group.slug);
+        const status = summary?.status ?? "limited";
+        
         for (const m of members) {
+          if (!m.stationId) continue;
           const current = stationStatusMap.get(m.stationId);
-          // Prioritize higher status
+          // Prioritize higher status (ready is highest, hidden is lowest)
           const statusOrder: Record<string, number> = { ready: 0, validating: 1, limited: 2, hidden: 3 };
           if (!current || statusOrder[status] < (statusOrder[current] ?? 99)) {
             stationStatusMap.set(m.stationId, status);
