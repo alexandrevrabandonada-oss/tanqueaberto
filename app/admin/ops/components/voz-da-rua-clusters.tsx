@@ -1,18 +1,77 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Copy, AlertCircle, CheckCircle2, Info } from "lucide-react";
+import { Copy, AlertCircle, CheckCircle2, Info, Zap, XCircle } from "lucide-react";
+import { useState, useTransition } from "react";
 import type { FeedbackCluster } from "@/lib/ops/feedback-clustering";
 import { generateCopiableSummary } from "@/lib/ops/feedback-clustering";
+import { executeOperationalAction } from "../actions";
+import { trackProductEvent } from "@/lib/telemetry/client";
+import { useEffect } from "react";
 
 interface VozDaRuaClustersProps {
   clusters: FeedbackCluster[];
 }
 
 export function VozDaRuaClusters({ clusters }: VozDaRuaClustersProps) {
+  const [isPending, startTransition] = useTransition();
+  const [executedIds, setExecutedIds] = useState<string[]>([]);
+  const [ignoredIds, setIgnoredIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    clusters.forEach(cluster => {
+      if (cluster.suggestedActionData.type !== 'NONE') {
+        void trackProductEvent({
+          eventType: "operational_action_proposed",
+          pagePath: "/admin/ops",
+          scopeType: "cluster",
+          scopeId: cluster.id,
+          payload: { type: cluster.suggestedActionData.type, motif: cluster.motif }
+        });
+      }
+    });
+  }, [clusters]);
+
   const handleCopySummary = () => {
     const text = generateCopiableSummary(clusters);
     navigator.clipboard.writeText(text);
     alert("Resumo copiado para a área de transferência!");
+  };
+
+  const handleExecute = (cluster: FeedbackCluster) => {
+    if (!window.confirm(`Deseja executar a ação: "${cluster.suggestedActionData.label}"?`)) return;
+
+    startTransition(async () => {
+       void trackProductEvent({
+        eventType: "operational_action_accepted",
+        pagePath: "/admin/ops",
+        scopeType: "cluster",
+        scopeId: cluster.id,
+        payload: { type: cluster.suggestedActionData.type }
+      });
+
+      const result = await executeOperationalAction(
+        cluster.suggestedActionData.type,
+        cluster.suggestedActionData.params,
+        cluster.motif
+      );
+
+      if (result.success) {
+        setExecutedIds(prev => [...prev, cluster.id]);
+      } else {
+        alert(`Erro ao executar ação: ${result.error}`);
+      }
+    });
+  };
+
+  const handleIgnore = (cluster: FeedbackCluster) => {
+    setIgnoredIds(prev => [...prev, cluster.id]);
+    void trackProductEvent({
+      eventType: "operational_action_ignored",
+      pagePath: "/admin/ops",
+      scopeType: "cluster",
+      scopeId: cluster.id,
+      payload: { type: cluster.suggestedActionData.type }
+    });
   };
 
   if (clusters.length === 0) {
@@ -86,6 +145,42 @@ export function VozDaRuaClusters({ clusters }: VozDaRuaClustersProps) {
                     <p className="text-sm font-semibold text-white leading-tight">{cluster.suggestedAction}</p>
                   </div>
                 </div>
+                
+                {cluster.suggestedActionData.type !== 'NONE' && !executedIds.includes(cluster.id) && !ignoredIds.includes(cluster.id) && (
+                  <div className="mt-4 flex gap-2">
+                    <Button 
+                      onClick={() => handleExecute(cluster)}
+                      disabled={isPending}
+                      className="flex-1 bg-[color:var(--color-accent)] text-black font-bold h-9 hover:bg-[color:var(--color-accent)]/10 px-4"
+                    >
+                      <Zap className="h-3.5 w-3.5 mr-2" />
+                      EXECUTAR
+                    </Button>
+                    <Button 
+                      variant="secondary"
+                      onClick={() => handleIgnore(cluster)}
+                      disabled={isPending}
+                      className="bg-white/5 border-white/10 h-9 px-4"
+                    >
+                      <XCircle className="h-3.5 w-3.5 mr-2" />
+                      IGNORAR
+                    </Button>
+                  </div>
+                )}
+
+                {executedIds.includes(cluster.id) && (
+                  <div className="mt-4 flex items-center gap-2 text-[color:var(--color-accent)] bg-black/40 p-2 rounded-xl border border-[color:var(--color-accent)]/20">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">AÇÃO EXECUTADA</span>
+                  </div>
+                )}
+                
+                {ignoredIds.includes(cluster.id) && (
+                  <div className="mt-4 flex items-center gap-2 text-white/30 bg-white/5 p-2 rounded-xl border border-white/10">
+                    <Info className="h-4 w-4" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">SUGESTÃO IGNORADA</span>
+                  </div>
+                )}
               </div>
             </div>
 

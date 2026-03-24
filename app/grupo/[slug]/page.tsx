@@ -31,6 +31,8 @@ import { fuelLabels } from "@/lib/format/labels";
 import { getStationPublicName } from "@/lib/quality/stations";
 import { cn } from "@/lib/utils";
 import { type Route } from "next";
+import { QuickActionGroup, QuickActionButton } from "@/components/ui/quick-action";
+import { GroupTelemetry } from "@/components/grupo/group-telemetry";
 
 interface GroupPageProps {
   params: Promise<{ slug: string }>;
@@ -45,13 +47,30 @@ export async function generateMetadata(
 
   if (!group) return { title: "Grupo não encontrado" };
 
+  const [releaseSummary, readinessRows] = await Promise.all([
+    getTerritorialReleaseSummary(),
+    getGroupReadinessRows(30)
+  ]);
+  const groupRelease = releaseSummary.find(s => s.slug === group.slug);
+  const readiness = readinessRows.find(r => r.groupSlug === group.slug);
+  const stage = groupRelease?.publicStage || "closed";
+  const score = readiness?.score ?? 0;
+
   return {
     title: `${group.name} - Cobertura Bomba Aberta`,
-    description: `Acompanhe o estágio da coleta e preços reais no corredor ${group.name} (${group.city}). Colabore com o Bomba Aberta.`,
+    description: `Acompanhe o estágio da coleta (${stage}) e preços reais no corredor ${group.name}. Score de prontidão: ${score}%.`,
     openGraph: {
       title: `Bomba Aberta - ${group.name}`,
-      description: `Estado da cobertura de postos em ${group.name}. Veja a prova de vida e colabore.`,
+      description: `Estado da cobertura em ${group.name}. Veja a prova de vida e colabore para atingir os 100%.`,
       type: "website",
+      images: [
+        {
+          url: `/api/og/group?slug=${slug}&score=${score}&stage=${stage}`,
+          width: 1200,
+          height: 630,
+          alt: `Bomba Aberta - ${group.name}`
+        }
+      ]
     }
   };
 }
@@ -123,38 +142,47 @@ export default async function GroupPage({ params }: GroupPageProps) {
 
   return (
     <div className="min-h-screen bg-[#050505] text-white selection:bg-[color:var(--color-accent)] selection:text-black">
+      <GroupTelemetry groupId={group.id} groupName={group.name} city={group.city as string} stage={stage} score={score} />
+      
       {/* Hero / Header */}
-      <div className="relative border-b border-white/5 bg-gradient-to-b from-white/[0.03] to-transparent px-6 pb-12 pt-20">
-        <div className="absolute inset-x-0 -top-20 -z-10 flex justify-center blur-[80px]">
-          <div className="h-[300px] w-[500px] rounded-full bg-[color:var(--color-accent)]/5" />
+      <div className="relative border-b border-white/5 bg-gradient-to-b from-white/[0.03] to-transparent px-6 pb-14 pt-24 sm:pb-20 sm:pt-32">
+        <div className="absolute inset-x-0 -top-20 -z-10 flex justify-center blur-[120px]">
+          <div className="h-[400px] w-[600px] rounded-full bg-[color:var(--color-accent)]/10" />
         </div>
 
         <div className="mx-auto max-w-4xl">
-           <div className="flex flex-col items-center text-center space-y-6">
-              <div className="flex items-center gap-2">
-                 <Badge variant="outline" className="border-white/10 bg-white/5 text-[9px] uppercase tracking-widest px-3">
+           <div className="flex flex-col items-center text-center space-y-8">
+              <div className="flex items-center gap-3">
+                 <Badge variant="outline" className="border-white/10 bg-white/5 text-[10px] font-black uppercase tracking-[0.2em] px-4 py-1">
                    {group.city}
                  </Badge>
-                 <Badge variant="accent" className="text-[9px] uppercase tracking-widest px-3">
+                 <Badge variant="accent" className="text-[10px] font-black uppercase tracking-[0.2em] px-4 py-1 shadow-lg shadow-[color:var(--color-accent)]/10">
                    {template.badge}
                  </Badge>
               </div>
               
-              <h1 className="text-4xl font-black tracking-tight sm:text-6xl text-white">
-                {group.name}
-              </h1>
+              <div className="space-y-4">
+                <h1 className="text-5xl font-black tracking-tighter sm:text-7xl lg:text-8xl text-white uppercase italic">
+                  {group.name}
+                </h1>
+                <div className="flex items-center justify-center gap-4 text-white/40">
+                  <div className="h-px w-12 bg-white/10" />
+                  <span className="text-xs font-black uppercase tracking-[0.3em]">Corredor Territorial</span>
+                  <div className="h-px w-12 bg-white/10" />
+                </div>
+              </div>
               
-              <p className="max-w-xl text-balance text-base text-white/50 sm:text-lg">
+              <p className="max-w-2xl text-pretty text-lg font-medium text-white/50 sm:text-xl leading-relaxed">
                 {group.description || template.desc}
               </p>
 
-              <div className="flex flex-wrap justify-center gap-3 pt-4">
+              <div className="flex flex-wrap justify-center gap-4 pt-6">
                  <ButtonLink 
                    href={`/?groupId=${group.id}&ref=group_page&city=${encodeURIComponent(group.city as string)}` as Route}
-                   className="h-14 px-8 text-sm font-black uppercase tracking-widest bg-[color:var(--color-accent)] text-black shadow-xl shadow-[color:var(--color-accent)]/10"
+                   className="h-16 px-10 text-base font-black uppercase tracking-widest bg-white text-black shadow-2xl hover:bg-white/90 transition-all active:scale-95 whitespace-nowrap"
                  >
                     {template.cta}
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    <ArrowRight className="ml-3 h-5 w-5" />
                  </ButtonLink>
               </div>
            </div>
@@ -166,38 +194,48 @@ export default async function GroupPage({ params }: GroupPageProps) {
           
           {/* Coluna Lateral: Status e Missão */}
           <div className="lg:col-span-4 space-y-6">
-            <SectionCard className="border-white/5 bg-white/[0.02] p-6 space-y-6">
-               <div className="space-y-4">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-white/30">Readiness Territorial</p>
-                  <div className="flex items-center justify-between bg-black/40 p-3 rounded-2xl border border-white/5">
-                     <div className="flex items-center gap-3">
-                        <ReadinessBadge status={readiness?.trafficLight as any || "red"} />
-                        <span className="text-xs font-bold text-white/80">Score: {score}%</span>
-                     </div>
-                     <Badge variant="outline" className="text-[9px] border-white/10 uppercase">
-                        {stage.replace('_', ' ')}
+             <SectionCard className="border-white/5 bg-white/[0.02] p-8 space-y-8">
+                <div className="space-y-6">
+                   <div className="flex items-center justify-between">
+                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Prontidão Territorial</p>
+                     <Badge variant="outline" className="h-5 text-[9px] border-white/10 uppercase font-black tracking-tighter">
+                        SCORE: {score}%
                      </Badge>
-                  </div>
-               </div>
+                   </div>
+                   
+                   <div className="flex items-center gap-4 bg-black/40 p-4 rounded-3xl border border-white/5">
+                      <ReadinessBadge status={readiness?.trafficLight as any || "red"} className="h-10 w-10 shrink-0" />
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Estágio Atual</p>
+                        <p className="text-lg font-black text-white uppercase italic">{stage.replace('_', ' ')}</p>
+                      </div>
+                   </div>
+                </div>
 
-               <div className="pt-6 border-t border-white/5 space-y-4">
-                  <div className="flex items-center gap-2 text-[color:var(--color-accent)]">
-                     <suggestedMission.icon className="h-4 w-4" />
-                     <p className="text-[10px] font-black uppercase tracking-widest">{suggestedMission.title}</p>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-white leading-tight">{suggestedMission.desc}</h3>
-                    <ButtonLink 
-                      href={`/enviar?groupId=${group.id}&ref=group_mission` as Route}
-                      variant="secondary"
-                      className="mt-4 w-full h-12 text-xs font-bold uppercase tracking-widest border-white/10 hover:bg-white/10"
-                    >
-                      <Camera className="mr-2 h-4 w-4" />
-                      {suggestedMission.action}
-                    </ButtonLink>
-                  </div>
-               </div>
-            </SectionCard>
+                <div className="pt-8 border-t border-white/5 space-y-6">
+                   <div className="flex items-center gap-2 text-[color:var(--color-accent)]">
+                      <suggestedMission.icon className="h-4 w-4" />
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em]">{suggestedMission.title}</p>
+                   </div>
+                   <div className="space-y-5">
+                     <h3 className="text-xl font-bold text-white leading-tight tracking-tight">{suggestedMission.desc}</h3>
+                     
+                     <QuickActionGroup 
+                       className="bg-black/40 border border-white/5 p-2 grid-cols-1"
+                       onMisclick={() => {}}
+                     >
+                       <QuickActionButton
+                         icon={Camera}
+                         label={suggestedMission.action}
+                         variant="accent"
+                         isStreetMode={true}
+                         href={`/enviar?groupId=${group.id}&ref=group_mission` as Route}
+                         onClick={() => {}}
+                       />
+                     </QuickActionGroup>
+                   </div>
+                </div>
+             </SectionCard>
 
             <div className="rounded-[28px] border border-blue-500/10 bg-blue-500/5 p-6 space-y-3">
                <div className="flex items-center gap-2 text-blue-400">
@@ -209,7 +247,7 @@ export default async function GroupPage({ params }: GroupPageProps) {
                </p>
                <button 
                 onClick={() => {
-                  if (navigator.share) {
+                  if (typeof navigator !== 'undefined' && navigator.share) {
                     navigator.share({
                       title: `Bomba Aberta - ${group.name}`,
                       text: `Veja como está a cobertura de preços em ${group.name}.`,
@@ -228,52 +266,77 @@ export default async function GroupPage({ params }: GroupPageProps) {
           <div className="lg:col-span-8 space-y-8">
              
              {/* Prova de Vida */}
-             <div className="space-y-4">
-                <h2 className="text-sm font-black uppercase tracking-[0.2em] text-white/30 flex items-center gap-2">
-                   <Clock className="h-4 w-4" />
-                   Prova de Vida (Atividade Recente)
-                </h2>
-                <div className="relative overflow-hidden rounded-[32px] border border-white/5 bg-white/[0.01]">
+             <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                   <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      Prova de Vida (Realtime)
+                   </h2>
+                   {recentReports.length > 0 && <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />}
+                </div>
+                
+                <div className="grid gap-6">
                    {recentReports.length > 0 ? (
-                      <div className="divide-y divide-white/5">
+                      <div className="space-y-3">
                         {recentReports.map((report) => {
                           const station = stations.find(s => s.id === report.stationId);
                           return (
-                            <div key={report.id} className="flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors">
-                               <div className="flex items-center gap-4">
-                                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
+                            <div key={report.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-[32px] border border-white/5 bg-white/[0.02] p-5 hover:border-white/10 transition-all">
+                               <div className="flex items-center gap-5">
+                                  <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-[20px] border border-white/10 bg-white/5">
                                      {report.photoUrl ? (
-                                        <Image src={report.photoUrl} alt="Report" width={40} height={40} className="h-full w-full object-cover" />
+                                        <Image src={report.photoUrl} alt="Report" fill className="object-cover" />
                                      ) : (
-                                        <Camera className="h-4 w-4 text-white/20" />
+                                        <div className="flex h-full w-full items-center justify-center">
+                                          <Camera className="h-6 w-6 text-white/10" />
+                                        </div>
                                      )}
+                                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                                     <div className="absolute bottom-2 left-0 right-0 text-center">
+                                        <Badge variant="outline" className="text-[7px] h-3 px-1 border-white/20 bg-black/40 text-white/60">FOTO REAL</Badge>
+                                     </div>
                                   </div>
                                   <div>
-                                     <p className="text-sm font-bold text-white/90">
-                                       {getStationPublicName(station as any)}
-                                     </p>
-                                     <div className="flex items-center gap-2 mt-0.5">
-                                        <Badge variant="outline" className="text-[9px] h-4 border-white/5 text-emerald-400">
+                                     <p className="text-base font-black text-white tracking-tight uppercase italic">{getStationPublicName(station as any)}</p>
+                                     <div className="flex items-center gap-3 mt-1.5">
+                                        <p className="text-xl font-black text-[color:var(--color-accent)] italic">R$ {report.price.toFixed(2).replace('.', ',')}</p>
+                                        <Badge variant="outline" className="text-[9px] h-4 border-white/10 bg-white/5 text-white/50 uppercase font-black">
                                           {fuelLabels[report.fuelType]}
                                         </Badge>
-                                        <span className="text-[10px] text-white/30">Há {new Date(report.reportedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                      </div>
                                   </div>
                                </div>
-                               <div className="text-right">
-                                  <p className="text-sm font-black text-white italic">R$ {report.price.toFixed(2).replace('.', ',')}</p>
-                                  <p className="text-[9px] text-white/20 uppercase font-bold">{report.reporterNickname || 'Coletor'}</p>
+                               <div className="flex items-center justify-between sm:flex-col sm:items-end gap-1 px-1 sm:px-0">
+                                  <div className="flex items-center gap-2 text-[10px] text-white/30 font-bold uppercase tracking-wider">
+                                     <Clock className="h-3 w-3" />
+                                     Há {new Date(report.reportedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </div>
+                                  <p className="text-[10px] text-white/20 uppercase font-black tracking-widest">{report.reporterNickname || 'Coletor'}</p>
                                </div>
                             </div>
                           );
                         })}
+                        
+                        <div className="flex justify-center pt-2">
+                           <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/10">Base Territorial Confirmada</p>
+                        </div>
                       </div>
                    ) : (
-                      <div className="p-12 text-center space-y-3">
-                         <div className="mx-auto h-12 w-12 rounded-full bg-white/5 flex items-center justify-center text-white/20">
+                      <div className="p-16 text-center space-y-4 border border-dashed border-white/5 rounded-[40px] bg-white/[0.01]">
+                         <div className="mx-auto h-14 w-14 rounded-full bg-white/5 flex items-center justify-center text-white/10">
                             <Zap className="h-6 w-6" />
                          </div>
-                         <p className="text-sm text-white/40 italic">Nenhuma atividade recente confirmada neste grupo.</p>
+                         <div className="max-w-xs mx-auto">
+                            <p className="text-base font-bold text-white/40">Radar silenciando</p>
+                            <p className="text-xs text-white/20 mt-1">Ninguém enviou preços neste corredor recentemente. Seja o primeiro a iluminar.</p>
+                         </div>
+                         <ButtonLink 
+                           href={`/enviar?groupId=${group.id}&ref=empty_group_landing` as Route}
+                           variant="secondary"
+                           className="mt-4 h-12 rounded-2xl border-white/10 hover:bg-white/5 text-white/40 text-[10px] font-black uppercase tracking-widest"
+                         >
+                           ATIVAR RADAR AGORA
+                         </ButtonLink>
                       </div>
                    )}
                 </div>

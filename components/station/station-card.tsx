@@ -16,9 +16,10 @@ import { GroupStatusBadge } from "@/components/ui/group-status-badge";
 import { formatDistance } from "@/lib/geo/distance";
 import { Navigation } from "lucide-react";
 import { openExternalNavigation } from "@/lib/navigation/external-maps";
-import { Button } from "@/components/ui/button";
 import type { FuelType, PriceReport, StationWithReports } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { QuickActionGroup, QuickActionButton } from "@/components/ui/quick-action";
+import { Info } from "lucide-react";
 
 interface StationCardProps {
   station: StationWithReports;
@@ -67,9 +68,10 @@ export function StationCard({ station, fuelFilter = "all", returnToHref, isStree
           {onFavoriteToggle && (
             <button 
               onClick={(e) => { e.preventDefault(); onFavoriteToggle(); }}
-              className={cn("mt-1 shrink-0 p-1", isFavorite ? "text-yellow-400" : "text-white/20")}
+              className={cn("mt-1 shrink-0 p-3 -m-2", isFavorite ? "text-yellow-400" : "text-white/20")}
+              aria-label={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
             >
-              <Star className={cn("h-4 w-4", isFavorite && "fill-current")} />
+              <Star className={cn("h-5 w-5", isFavorite && "fill-current")} />
             </button>
           )}
           <div className="min-w-0">
@@ -126,24 +128,29 @@ export function StationCard({ station, fuelFilter = "all", returnToHref, isStree
 
 
 
-      <div className="flex items-center gap-2">
-        <ButtonLink
+      <QuickActionGroup 
+        onMisclick={() => {
+          void trackProductEvent({ eventType: "quick_action_misclick" as any, pagePath: stationHref, pageTitle: getStationPublicName(station), stationId: station.id });
+        }}
+      >
+        <QuickActionButton
+          icon={Camera}
+          label={isStreetMode ? "Câmera" : "Abrir câmera"}
+          variant="primary"
+          isStreetMode={isStreetMode}
           href={sendHref}
-          className={cn("flex-1", isStreetMode && "h-14 text-base font-bold")}
           onClick={() => {
             rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
             void trackProductEvent({ eventType: "camera_opened_from_station", pagePath: sendHref, pageTitle: getStationPublicName(station), stationId: station.id, city: station.city, fuelType: latest?.fuelType ?? null, scopeType: "submission", scopeId: station.id, payload: { source: "station_card", streetMode: isStreetMode } });
           }}
-        >
-          <Camera className={cn("h-4 w-4", isStreetMode && "h-5 w-5")} />
-          {isStreetMode ? "ENVIAR PREÇO" : "Abrir câmera"}
-        </ButtonLink>
+        />
         
-        <Button
+        <QuickActionButton
+          icon={Navigation}
+          label={isStreetMode ? "Caminho" : "Navegar"}
           variant="secondary"
-          className={cn("px-4", isStreetMode && "h-14 font-bold")}
+          isStreetMode={isStreetMode}
           onClick={() => {
-            // Default to Waze on mobile, Google on desktop/etc
             const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
             openExternalNavigation(isMobile ? "waze" : "google", {
               lat: station.lat,
@@ -153,24 +160,20 @@ export function StationCard({ station, fuelFilter = "all", returnToHref, isStree
               source: "station_card"
             });
           }}
-        >
-          <Navigation className={cn("h-4 w-4", isStreetMode && "h-5 w-5")} />
-          {isStreetMode ? "COMO CHEGAR" : "Navegar"}
-        </Button>
+        />
 
-        {!isStreetMode && (
-          <Link
-            href={stationHref}
-            onClick={() => {
-              rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
-              void trackProductEvent({ eventType: "station_clicked", pagePath: stationHref, pageTitle: getStationPublicName(station), stationId: station.id, city: station.city, fuelType: latest?.fuelType ?? null, scopeType: "station", scopeId: station.id, payload: { source: "station-card-open" } });
-            }}
-            className="inline-flex h-12 items-center justify-center rounded-full border border-white/10 px-6 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/5 active:scale-[0.98]"
-          >
-            Ver detalhes
-          </Link>
-        )}
-      </div>
+        <QuickActionButton
+          icon={Info}
+          label="Visualizar"
+          variant="outline"
+          isStreetMode={isStreetMode}
+          href={stationHref}
+          onClick={() => {
+            rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
+            void trackProductEvent({ eventType: "station_clicked", pagePath: stationHref, pageTitle: getStationPublicName(station), stationId: station.id, city: station.city, fuelType: latest?.fuelType ?? null, scopeType: "station", scopeId: station.id, payload: { source: "station-card-open" } });
+          }}
+        />
+      </QuickActionGroup>
     </SectionCard>
   );
 }

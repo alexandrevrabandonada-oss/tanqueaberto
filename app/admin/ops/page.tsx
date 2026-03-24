@@ -39,6 +39,7 @@ import { OperationalSynthesis } from "@/components/admin/command/operational-syn
 import { type AuditStationGroup } from "@/lib/audit/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { VozDaRuaClusters } from "./components/voz-da-rua-clusters";
+import { CycleLatencySummary } from "./components/cycle-latency-summary";
 import { Badge } from "@/components/ui/badge";
 import { Copy } from "lucide-react";
 
@@ -164,6 +165,10 @@ export default async function OpsDashboardPage() {
                   );
                 })}
               </div>
+          </div>
+
+          <div className="bg-[#111] border border-white/5 rounded-2xl p-4">
+             <CycleLatencySummary />
           </div>
 
           <div className="bg-[#111] border border-white/5 rounded-2xl p-4">

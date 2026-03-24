@@ -1,6 +1,6 @@
 import { type RecorteActivity } from "./recorte-activity";
 
-export type SmartActionKind = 'MISSION' | 'GAP_HUNT' | 'REDUCE_SILENCE' | 'MOVE_TO_HOTSPOT' | 'CHECK_RECENT_STATION';
+export type SmartActionKind = 'MISSION' | 'GAP_HUNT' | 'REDUCE_SILENCE' | 'MOVE_TO_HOTSPOT' | 'CHECK_RECENT_STATION' | 'FIRST_STEP' | 'EXPLORE_TERRITORY';
 
 export interface SmartAction {
   kind: SmartActionKind;
@@ -11,7 +11,19 @@ export interface SmartAction {
   icon: string;
 }
 
-export function getSuggestedCollectorAction(city: string, activity: RecorteActivity): SmartAction {
+export function getSuggestedCollectorAction(city: string, activity: RecorteActivity, collectorStats?: { totalReports: number }): SmartAction {
+  // 0. Heurística para Coletores Novos (Onboarding por Ação)
+  if (!collectorStats || collectorStats.totalReports === 0) {
+    return {
+      kind: 'FIRST_STEP',
+      label: "Iluminar meu Primeiro Posto",
+      description: "Escolha um posto próximo no mapa e traga a primeira luz para este território.",
+      link: "/",
+      priority: 'high',
+      icon: 'Zap'
+    };
+  }
+
   // Heurísticas de Smart Action
   
   // 1. Prioridade Máxima: Área com pouquíssima cobertura

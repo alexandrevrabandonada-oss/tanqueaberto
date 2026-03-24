@@ -5,10 +5,11 @@ import type { Route } from "next";
 import Link from "next/link";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
-import { Info, Navigation, Camera } from "lucide-react";
+import { Info, Navigation, Camera, LucideIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
+import { QuickActionGroup, QuickActionButton } from "@/components/ui/quick-action";
 import type { StationWithReports } from "@/lib/types";
 import { fuelLabels } from "@/lib/format/labels";
 import { canShowStationOnMap, getStationPublicName, hasPendingStationLocationReview } from "@/lib/quality/stations";
@@ -220,10 +221,23 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
-                <ButtonLink
+              <QuickActionGroup 
+                className="bg-white/5 border border-white/5"
+                onMisclick={() => {
+                   void trackProductEvent({ 
+                     eventType: "quick_action_misclick" as any, 
+                     pagePath: returnToHref ?? "/", 
+                     pageTitle: selectedStationName, 
+                     stationId: selectedStation.id 
+                   });
+                }}
+              >
+                <QuickActionButton
+                  icon={Camera}
+                  label="Câmera"
+                  variant="primary"
+                  isStreetMode={true}
                   href={getSendHref(selectedStation.id, returnToHref, fuelFilter)}
-                  className="flex flex-col h-16 gap-1 rounded-2xl bg-white text-black hover:bg-white/90"
                   onClick={() => {
                     rememberStationVisit({ id: selectedStation.id, name: selectedStationName, city: selectedStation.city });
                     void trackProductEvent({ 
@@ -238,12 +252,13 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
                       payload: { source: "map_sheet", action: "camera" } 
                     });
                   }}
-                >
-                  <Camera className="w-5 h-5" />
-                  <span className="text-[9px] font-black uppercase tracking-tighter">Câmera</span>
-                </ButtonLink>
+                />
 
-                <button
+                <QuickActionButton
+                  icon={Navigation}
+                  label="Caminho"
+                  variant="secondary"
+                  isStreetMode={true}
                   onClick={() => {
                     const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
                     import("@/lib/navigation/external-maps").then(({ openExternalNavigation }) => {
@@ -256,16 +271,14 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
                       });
                     });
                   }}
-                  className="flex flex-col items-center justify-center h-16 gap-1 rounded-2xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors"
-                >
-                  <Navigation className="w-5 h-5 text-[color:var(--color-accent)]" />
-                  <span className="text-[9px] font-black uppercase tracking-tighter">Navegar</span>
-                </button>
+                />
 
-                <ButtonLink
+                <QuickActionButton
+                  icon={Info}
+                  label="Detalhes"
+                  variant="outline"
+                  isStreetMode={true}
                   href={getStationHref(selectedStation.id, returnToHref)}
-                  variant="secondary"
-                  className="flex flex-col h-16 gap-1 rounded-2xl border border-white/10"
                   onClick={() => {
                     rememberStationVisit({ id: selectedStation.id, name: selectedStationName, city: selectedStation.city });
                     void trackProductEvent({ 
@@ -280,11 +293,8 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
                       payload: { source: "map_sheet", action: "details" } 
                     });
                   }}
-                >
-                  <Info className="w-5 h-5" />
-                  <span className="text-[9px] font-black uppercase tracking-tighter">Detalhes</span>
-                </ButtonLink>
-              </div>
+                />
+              </QuickActionGroup>
             </div>
           ) : (
             <div className="flex items-center justify-between text-xs font-bold text-white/40 uppercase tracking-widest py-1">

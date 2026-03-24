@@ -8,6 +8,7 @@ export interface HubConversionMetrics {
   conversionRate: number;
   clickBreakdown: Record<string, number>;
   missionResumptionRate: number;
+  emptyStateActionRate: number;
 }
 
 export async function getHubConversionMetrics(): Promise<HubConversionMetrics> {
@@ -27,6 +28,7 @@ export async function getHubConversionMetrics(): Promise<HubConversionMetrics> {
     conversions: 0,
     missionsStarted: 0,
     missionsResumed: 0,
+    emptyStateClicks: 0,
     clickTypes: {} as Record<string, number>
   };
 
@@ -37,6 +39,7 @@ export async function getHubConversionMetrics(): Promise<HubConversionMetrics> {
       stats.clicks++;
       const action = (e.payload as any)?.payload?.action || 'unknown';
       stats.clickTypes[action] = (stats.clickTypes[action] || 0) + 1;
+      if (action.includes('empty_state')) stats.emptyStateClicks++;
     }
     if (kind === 'hub_conversion_success') stats.conversions++;
     if (kind === 'mission_started') stats.missionsStarted++;
@@ -50,6 +53,7 @@ export async function getHubConversionMetrics(): Promise<HubConversionMetrics> {
     ctr: stats.opens ? (stats.clicks / stats.opens) * 100 : 45,
     conversionRate: stats.clicks ? (stats.conversions / stats.clicks) * 100 : 26,
     clickBreakdown: stats.clickTypes,
-    missionResumptionRate: stats.missionsStarted ? (stats.missionsResumed / stats.missionsStarted) * 100 : 60
+    missionResumptionRate: stats.missionsStarted ? (stats.missionsResumed / stats.missionsStarted) * 100 : 60,
+    emptyStateActionRate: stats.opens ? (stats.emptyStateClicks / stats.opens) * 100 : 0
   };
 }

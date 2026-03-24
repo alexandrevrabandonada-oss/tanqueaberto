@@ -57,6 +57,8 @@ interface HomeBrowserProps {
   betaClosed?: boolean;
   initialQuery?: string;
   initialCity?: string;
+  initialGroupId?: string;
+  initialGroupStationIds?: string[];
   initialFuelFilter?: FuelFilter;
   initialRecencyFilter?: RecencyFilter;
   initialPresenceFilter?: StationPresenceFilter;
@@ -124,6 +126,8 @@ export function HomeBrowser({
   betaClosed = false,
   initialQuery = "",
   initialCity = "",
+  initialGroupId,
+  initialGroupStationIds,
   initialFuelFilter = "all",
   initialRecencyFilter = "all",
   initialPresenceFilter = "all",
@@ -143,7 +147,7 @@ export function HomeBrowser({
   const { coords, loading: geoLoading, error: geoError, getLocation } = useGeolocation();
   const { isLowPerf, effectiveType } = useNetworkHardening();
   const { isStreetMode, toggleStreetMode, recentIds, favoriteIds, toggleFavorite, isFavorite } = useStreetMode();
-  const { startMission } = useMissionContext();
+  const { mission, startMission, isLoaded: missionLoaded } = useMissionContext();
   const { focus, updateTownFocus } = useOperationalFocus();
   const retentionSurfaces = useRetentionSurfaces();
   const [navHandoff, setNavHandoff] = useState<any>(null);
@@ -186,7 +190,27 @@ export function HomeBrowser({
     void trackProductEvent({ eventType: "home_opened", pagePath: "/", pageTitle: "Mapa vivo", scopeType: "page", scopeId: "/", payload: { streetMode: isStreetMode } });
   }, [isStreetMode, initialCity]);
 
-  const { mission, isLoaded: missionLoaded } = useMissionContext();
+  // Auto-start mission from deep link
+  useEffect(() => {
+    if (missionLoaded && initialGroupId && initialGroupStationIds && initialGroupStationIds.length > 0 && !mission) {
+      const groupInfo = territorialSummary.find(g => g.id === initialGroupId);
+      if (groupInfo) {
+        startMission(initialGroupId, groupInfo.name, initialGroupStationIds);
+        
+        void trackProductEvent({
+          eventType: "mission_start_from_group" as any,
+          pagePath: "/",
+          pageTitle: "Mapa vivo",
+          scopeType: "group",
+          scopeId: initialGroupId,
+          payload: { 
+            groupName: groupInfo.name,
+            stationsCount: initialGroupStationIds.length
+          }
+        });
+      }
+    }
+  }, [missionLoaded, initialGroupId, initialGroupStationIds, mission, territorialSummary, startMission]);
 
   useEffect(() => {
     if (!missionLoaded) return; // Wait for mission to load from storage
@@ -555,39 +579,59 @@ export function HomeBrowser({
       </div>
 
       {(recentIds.length > 0 || favoriteIds.length > 0) && (
-        <SectionCard className="mb-4 space-y-3">
+        <SectionCard className="mb-4 space-y-4 p-5 border-white/10 bg-white/5">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] uppercase tracking-widest text-white/30">Acesso Rápido</p>
-            <Badge variant="outline" className="text-[9px]">Polegar amigável</Badge>
+            <div className="flex items-center gap-2">
+              <Zap className="h-3 w-3 text-[color:var(--color-accent)]" />
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/42">Acesso Rápido</p>
+            </div>
+            <Badge variant="outline" className="h-5 px-2 text-[9px] border-white/10 text-white/30 font-black uppercase tracking-tighter">Polegar amigável</Badge>
           </div>
-          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
+          
+          <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
             {favoriteIds.map(fid => {
               const s = stations.find(st => st.id === fid);
               if (!s) return null;
+              const displayName = getStationPublicName(s);
               return (
                 <Link 
                   key={`fav-${fid}`}
-                  href={`/enviar?stationId=${fid}#photo`}
-                  className="flex min-w-[150px] flex-col rounded-[22px] border border-yellow-400/30 bg-yellow-400/5 p-4 transition active:scale-95 hover:bg-yellow-400/10"
+                  href={getSendHref(fid, contextHref, fuelFilter)}
+                  className="flex min-w-[160px] h-20 items-center gap-3 rounded-[24px] border border-yellow-400/30 bg-yellow-400/5 pl-4 pr-5 transition active:scale-[0.96] hover:bg-yellow-400/10"
+                  onClick={() => {
+                     void trackProductEvent({ eventType: "quick_action_clicked" as any, pagePath: "/", pageTitle: "Home", stationId: fid, payload: { source: "quick_access", type: "favorite" } });
+                  }}
                 >
-                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mb-2" />
-                  <p className="text-sm font-bold text-white truncate">{getStationPublicName(s)}</p>
-                  <p className="text-xs text-white/40 truncate">{s.neighborhood}</p>
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-yellow-400 text-black shadow-lg shadow-yellow-400/20">
+                    <Star className="h-5 w-5 fill-current" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-white truncate uppercase italic tracking-tight">{displayName}</p>
+                    <p className="text-[10px] font-bold text-yellow-400/50 truncate uppercase tracking-widest">{s.neighborhood}</p>
+                  </div>
                 </Link>
               );
             })}
             {recentIds.filter(rid => !favoriteIds.includes(rid)).map(rid => {
               const s = stations.find(st => st.id === rid);
               if (!s) return null;
+              const displayName = getStationPublicName(s);
               return (
                 <Link 
                   key={`rec-${rid}`}
-                  href={`/enviar?stationId=${rid}#photo`}
-                  className="flex min-w-[150px] flex-col rounded-[22px] border border-white/10 bg-white/5 p-4 transition active:scale-95 hover:bg-white/10"
+                  href={getSendHref(rid, contextHref, fuelFilter)}
+                  className="flex min-w-[160px] h-20 items-center gap-3 rounded-[24px] border border-white/10 bg-white/5 pl-4 pr-5 transition active:scale-[0.96] hover:bg-white/10"
+                  onClick={() => {
+                     void trackProductEvent({ eventType: "quick_action_clicked" as any, pagePath: "/", pageTitle: "Home", stationId: rid, payload: { source: "quick_access", type: "recent" } });
+                  }}
                 >
-                  <Clock3 className="h-4 w-4 text-white/40 mb-2" />
-                  <p className="text-sm font-bold text-white truncate">{getStationPublicName(s)}</p>
-                  <p className="text-xs text-white/40 truncate">{s.neighborhood}</p>
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white/42 group-hover:bg-white/20">
+                    <Clock3 className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-black text-white truncate uppercase italic tracking-tight">{displayName}</p>
+                    <p className="text-[10px] font-bold text-white/30 truncate uppercase tracking-widest">{s.neighborhood}</p>
+                  </div>
                 </Link>
               );
             })}

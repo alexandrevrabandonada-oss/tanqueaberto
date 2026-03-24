@@ -10,6 +10,8 @@ import { getRolloutRecommendations } from "@/lib/ops/rollout-engine";
 import { getActiveActionableAlerts } from "@/lib/ops/alerts";
 import { getRecorteActivity } from "@/lib/ops/recorte-activity";
 import { generateOperationalSynthesis, type OperationalSynthesis } from "@/lib/ops/feedback-analyzer";
+import { type OperationalActionType } from "@/lib/ops/feedback-clustering";
+import { calculateCycleLatencyMetrics, type CycleLatencyMetrics } from "@/lib/ops/cycle-latency";
 
 export async function toggleKillSwitchAction(key: keyof OperationalKillSwitches, value: boolean) {
   const result = await updateKillSwitch(key, value, "admin_dashboard");
@@ -381,4 +383,96 @@ export async function getOperationalSynthesisAction(): Promise<OperationalSynthe
   const activity = await getRecorteActivity("all");
 
   return generateOperationalSynthesis(feedback || [], activity);
+}
+
+export async function executeOperationalAction(
+  type: OperationalActionType,
+  params: Record<string, any>,
+  reason: string
+) {
+  const supabase = createSupabaseServiceClient();
+  
+  try {
+    switch (type) {
+      case 'REVISE_STATION':
+        if (!params.stationId) return { success: false, error: "Missing stationId" };
+        await supabase
+          .from("stations")
+          .update({ 
+            visibility_status: 'review_required',
+            curation_note: `Revisão solicitada via Voz da Rua: ${reason}`,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", params.stationId);
+        break;
+
+      case 'HOLD_ROLLOUT':
+        if (!params.groupSlug) return { success: false, error: "Missing groupSlug" };
+        const group = await getAuditGroupBySlug(params.groupSlug);
+        if (group) {
+          await supabase
+            .from("audit_station_groups")
+            .update({ 
+              release_status: 'limited',
+              operational_state: 'rollback',
+              rollout_notes: `Rollback preventivo via Voz da Rua: ${reason}`,
+              updated_at: new Date().toISOString()
+            })
+            .eq("slug", params.groupSlug);
+          
+          await supabase.from("territorial_rollout_logs").insert({
+            group_id: group.id,
+            previous_state: group.releaseStatus,
+            new_state: 'limited',
+            change_kind: 'system_recommendation',
+            reason: `Aceite de cluster Voz da Rua: ${reason}`,
+            payload: { type, params }
+          });
+        }
+        break;
+
+      case 'ADJUST_RADIUS':
+        // Mocking for now as we don't have a global config table exposed here, 
+        // but we record the event for engineering.
+        await recordOperationalEvent({
+          eventType: "system_config_recommendation",
+          scopeType: "system",
+          reason: `Ajuste de raio sugerido para ${params.city}: ${reason}`,
+          payload: { type, params }
+        });
+        break;
+
+      case 'NOTIFY_TEAM':
+        await recordOperationalEvent({
+          eventType: "operational_alert_escalated",
+          scopeType: "system",
+          reason: `Escalação via Voz da Rua: ${reason}`,
+          payload: { type, params }
+        });
+        break;
+        
+      default:
+        return { success: false, error: "Unsupported action type" };
+    }
+
+    await recordOperationalEvent({
+      eventType: "operational_action_executed",
+      scopeType: "system",
+      reason: `Ação ${type} executada via Voz da Rua: ${reason}`,
+      payload: { type, params }
+    });
+
+    revalidatePath("/admin/ops");
+    revalidatePath("/admin/command-center");
+    revalidatePath("/");
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error("Failed to execute operational action", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getCycleLatencyMetricsAction(): Promise<CycleLatencyMetrics> {
+  return calculateCycleLatencyMetrics();
 }

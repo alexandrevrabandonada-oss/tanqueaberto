@@ -42,7 +42,12 @@ export function MySubmissionsList() {
                 </div>
               </div>
 
-              <SubmissionStatusLine status={sub.status} className="mt-1" />
+              <SubmissionStatusLine 
+                status={sub.status} 
+                submittedAt={sub.submittedAt}
+                moderatedAt={sub.status !== 'pending' ? sub.updatedAt : null}
+                className="mt-1" 
+              />
 
               {sub.moderationNote && (
                 <div className="mt-2 rounded-xl bg-orange-500/10 border border-orange-500/20 p-2 text-[10px] text-orange-200/80 italic">

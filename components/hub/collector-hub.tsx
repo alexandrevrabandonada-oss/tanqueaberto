@@ -21,6 +21,7 @@ import type { CollectorTrust } from "@/lib/ops/collector-trust";
 import type { CollectorTerritorialImpact } from "@/lib/ops/recorte-activity";
 import { recordHubInteraction } from "@/lib/telemetry/attribution";
 import { RetomadaBloco } from "./retomada-bloco";
+import { HubActivationHero } from "./hub-activation-hero";
 
 interface CollectorHubProps {
   stations: StationWithReports[];
@@ -72,18 +73,31 @@ export function CollectorHub({ stations }: CollectorHubProps) {
   const localCount = localItems.length;
   const hasErrors = localItems.some(s => s.status === "failed" || s.status === "photo_required" || s.status === "expired");
 
+  const isNewCollector = (trust?.missionsCompleted || 0) === 0 && approvedCount === 0;
+  const isZeroState = isNewCollector && !mission && localCount === 0;
+  const isInactiveVeteran = !isNewCollector && !mission && localCount === 0 && approvedCount > 0;
+
   // Determine city context for Proof of Life
-  const defaultCity = stations.length > 0 ? stations[0].city : "Resende"; // Fallback to a known city
+  const defaultCity = stations.length > 0 ? stations[0].city : "Resende";
 
   return (
     <div className="space-y-6">
+      {/* 1. Hero de Ativação (Estado Zero) */}
+      {isZeroState ? (
+        <HubActivationHero type="NEW_COLLECTOR" />
+      ) : isInactiveVeteran ? (
+        <HubActivationHero type="INACTIVE_VETERAN" />
+      ) : null}
+
       {/* Cycle Line */}
-      <CycleDash 
-        approvedCount={approvedCount}
-        pendingCount={pendingCount}
-        localCount={localCount}
-        hasMission={!!mission}
-      />
+      {!isZeroState && (
+        <CycleDash 
+          approvedCount={approvedCount}
+          pendingCount={pendingCount}
+          localCount={localCount}
+          hasMission={!!mission}
+        />
+      )}
 
       {/* Retomada de Fluxo (Prioridade Máxima) */}
       {hasErrors ? (
@@ -105,7 +119,9 @@ export function CollectorHub({ stations }: CollectorHubProps) {
           count={localCount}
           href="/enviar"
         />
-      ) : null}
+      ) : !isZeroState && !isInactiveVeteran && (
+         <HubActivationHero type="EMPTY_QUEUE" />
+      )}
 
       {/* Hub 2.0: Recommendations & Smart Actions */}
       {reporterNickname && (
@@ -134,13 +150,17 @@ export function CollectorHub({ stations }: CollectorHubProps) {
           hasMission={!!mission}
           approvedCount={approvedCount}
           hasErrors={hasErrors}
+          totalReports={trust?.missionsCompleted || 0}
         />
         
         {mission && (
           <MissionCard mission={mission} stats={missionStats} stations={stations} />
         )}
 
-        <HubRecents stations={stations} />
+        {/* Só mostrar recentes se houver dados ou não for estado zero absoluto */}
+        {!isZeroState && (
+          <HubRecents stations={stations} />
+        )}
 
         <SubmissionStatus 
           submissions={submissions} 

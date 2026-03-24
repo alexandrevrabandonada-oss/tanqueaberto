@@ -3,6 +3,7 @@ import { HomeBrowser } from "@/components/home/home-browser";
 import { getHomeStations, getRecentApprovedCount, getRecentFeed } from "@/lib/data";
 import { getTerritorialReleaseSummary } from "@/lib/ops/release-control";
 import { getKillSwitches } from "@/lib/ops/kill-switches";
+import { getAuditGroupMembers } from "@/lib/audit/groups";
 import { isBetaClosed } from "@/lib/beta/gate";
 import type { FuelFilter, RecencyFilter, StationPresenceFilter } from "@/lib/filters/public";
 
@@ -38,6 +39,8 @@ function parseCity(value: string | string[] | undefined) {
 
 export default async function HomePage({ searchParams }: HomePageProps) {
   const params = (await searchParams) ?? {};
+  const groupId = firstValue(params.groupId);
+  
   const [stations, feed, recentCount, territorialSummary, killSwitches] = await Promise.all([
     getHomeStations(), 
     getRecentFeed(), 
@@ -45,6 +48,12 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     getTerritorialReleaseSummary(),
     getKillSwitches()
   ]);
+
+  let initialGroupStationIds: string[] = [];
+  if (groupId) {
+    const members = await getAuditGroupMembers(groupId);
+    initialGroupStationIds = members.map(m => m.stationId);
+  }
 
   return (
     <AppShell killSwitches={killSwitches}>
@@ -56,6 +65,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         betaClosed={isBetaClosed()}
         initialQuery={firstValue(params.q)}
         initialCity={parseCity(params.city)}
+        initialGroupId={groupId}
+        initialGroupStationIds={initialGroupStationIds}
         initialFuelFilter={parseFuel(params.fuel)}
         initialRecencyFilter={parseRecency(params.recency)}
         initialPresenceFilter={parsePresence(params.presence)}

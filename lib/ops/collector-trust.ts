@@ -16,6 +16,16 @@ export interface CollectorTrust {
   lastReportAt?: string | null;
 }
 
+export type UtilityRole = 'iniciante' | 'ativo' | 'senior' | 'revisão' | 'bloqueado';
+
+export interface UtilityStatus {
+  role: UtilityRole;
+  label: string;
+  description: string;
+  nextStep: string;
+  color: string;
+}
+
 /**
  * Define o estágio de confiança baseado no score e volume real
  */
@@ -214,4 +224,60 @@ export async function updateCollectorScore(
       signals
     }
   });
+}
+
+/**
+ * Mapeia o estado técnico para uma função de utilidade cívica
+ */
+export function getUtilityStatus(trust: CollectorTrust): UtilityStatus {
+  if (trust.trustStage === 'bloqueado') {
+    return {
+      role: 'bloqueado',
+      label: 'Acesso Restrito',
+      description: 'Sua conta está sob análise devido a envios inconsistentes.',
+      nextStep: 'Aguarde a revisão da moderação.',
+      color: 'red'
+    };
+  }
+
+  if (trust.trustStage === 'em_revisão' || trust.score < 50) {
+    return {
+      role: 'revisão',
+      label: 'Em Verificação',
+      description: 'Estamos validando a precisão dos seus primeiros envios.',
+      nextStep: 'Continue coletando com atenção às fotos e preços.',
+      color: 'amber'
+    };
+  }
+
+  // SENIOR: Alta confiança + volume + missões
+  if (trust.trustStage === 'muito_confiável' || (trust.approvedReports >= 20 && trust.streakDays >= 3)) {
+    return {
+      role: 'senior',
+      label: 'Mantenedor Senior',
+      description: 'Você é um pilar da rede. Suas confirmações têm peso imediato.',
+      nextStep: 'Focar em lacunas de dados críticas (High Priority Gaps).',
+      color: 'indigo'
+    };
+  }
+
+  // ATIVO: Já conhece o fluxo e tem constância
+  if (trust.approvedReports >= 5 || trust.streakDays >= 2) {
+    return {
+      role: 'ativo',
+      label: 'Colaborador Ativo',
+      description: 'Sua regularidade mantém o mapa atualizado e confiável.',
+      nextStep: 'Complete uma missão de grupo para ganhar mais score.',
+      color: 'green'
+    };
+  }
+
+  // INICIANTE: Primeiros passos
+  return {
+    role: 'iniciante',
+    label: 'Coletor Iniciante',
+    description: 'Começando a jornada de transparência territorial.',
+    nextStep: 'Realize seu primeiro envio para validar o status.',
+    color: 'blue'
+  };
 }

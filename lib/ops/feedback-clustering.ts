@@ -1,5 +1,18 @@
 import type { FeedbackIssueCategory } from "./feedback-analyzer";
 
+export type OperationalActionType = 
+  | 'REVISE_STATION' 
+  | 'HOLD_ROLLOUT' 
+  | 'ADJUST_RADIUS' 
+  | 'NOTIFY_TEAM' 
+  | 'NONE';
+
+export interface StructuredOperationalAction {
+  type: OperationalActionType;
+  label: string;
+  params: Record<string, any>;
+}
+
 export interface FeedbackCluster {
   id: string;
   motif: string;
@@ -10,6 +23,7 @@ export interface FeedbackCluster {
   tags: string[];
   recentMessages: string[];
   suggestedAction: string;
+  suggestedActionData: StructuredOperationalAction;
   priority: 'baixa' | 'media' | 'alta';
 }
 
@@ -52,6 +66,7 @@ export function clusterFeedbacks(feedbacks: any[]): FeedbackCluster[] {
         tags: [],
         recentMessages: [],
         suggestedAction: getActionForMotif(motif, f),
+        suggestedActionData: getStructuredActionForMotif(motif, f),
         priority: getPriorityForMotif(motif)
       };
     }
@@ -103,23 +118,59 @@ function generateClusterKey(f: any, motif: FeedbackMotif): string {
 }
 
 function getActionForMotif(motif: FeedbackMotif, f: any): string {
+  return getStructuredActionForMotif(motif, f).label;
+}
+
+function getStructuredActionForMotif(motif: FeedbackMotif, f: any): StructuredOperationalAction {
   switch (motif) {
     case 'POSTO_AMBIGUO':
-      return "Auditar coordenadas do posto e validar no Google Maps/Street View.";
+      return {
+        type: 'REVISE_STATION',
+        label: "Auditar coordenadas do posto e validar no mapa.",
+        params: { stationId: f.station_id, city: f.city }
+      };
     case 'CAMERA_FOTO':
-      return "Revisar logs de processamento de imagem e latência de upload de assets.";
+      return {
+        type: 'NOTIFY_TEAM',
+        label: "Alertar time de Eng sobre latência de assets.",
+        params: { screen: f.screen_group }
+      };
     case 'REDE_LATENCIA':
-      return "Verificar estabilidade do endpoint de submissão em áreas de baixa latência.";
+      return {
+        type: 'NOTIFY_TEAM',
+        label: "Verificar estabilidade de rede por região.",
+        params: { city: f.city }
+      };
     case 'MISSAO_RUIM':
-      return "Reavaliar o raio de proximidade e a ordem dos postos na rota sugerida.";
+      return {
+        type: 'ADJUST_RADIUS',
+        label: "Aumentar raio de detecção para mitigar erro de GPS.",
+        params: { city: f.city }
+      };
     case 'RECORTE_FRACO':
-      return "Aumentar densidade de postos no recorte ou incentivar cadastro de novos pins.";
+      return {
+        type: 'HOLD_ROLLOUT',
+        label: "Retroceder estágio (Rollback) por falta de densidade.",
+        params: { groupSlug: f.page_context?.includes('group:') ? f.page_context.split(':')[1] : null, city: f.city }
+      };
     case 'MODERACAO_LENTA':
-      return "Alocar mais time de moderação ou revisar regras de aprovação automática.";
+      return {
+        type: 'NOTIFY_TEAM',
+        label: "Escalar fila de moderação para este território.",
+        params: { city: f.city }
+      };
     case 'UX_CONFUSA':
-      return "Realizar teste de usabilidade no fluxo específico de feedback.";
+      return {
+        type: 'NOTIFY_TEAM',
+        label: "Sinalizar atrito de UX para revisão de design.",
+        params: { screen: f.screen_group }
+      };
     default:
-      return "Monitorar evolução do sentimento do coletor.";
+      return {
+        type: 'NONE',
+        label: "Monitorar evolução do sentimento do coletor.",
+        params: {}
+      };
   }
 }
 

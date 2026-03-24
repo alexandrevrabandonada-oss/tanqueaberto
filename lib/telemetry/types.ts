@@ -58,7 +58,18 @@ export type ProductTelemetryEventType =
   | "hub_conversion_success"
   | "rollout_recommendation_accepted"
   | "rollout_recommendation_rejected"
-  | "rollout_manual_override";
+  | "rollout_manual_override"
+  | "quick_action_misclick"
+  | "group_landing_view"
+  | "group_conversion_start"
+  | "mission_start_from_group"
+  | "operational_action_proposed"
+  | "operational_action_accepted"
+  | "operational_action_ignored"
+  | "operational_action_executed"
+  | "report_cycle_submitted"
+  | "report_cycle_moderated"
+  | "report_cycle_visible";
 
 export interface ProductTelemetryEventInput {
   eventType: ProductTelemetryEventType;

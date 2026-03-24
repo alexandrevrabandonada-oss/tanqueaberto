@@ -6,6 +6,7 @@ import { type GroupReleaseStatus, type PublicOpeningStage } from "./release-type
 export { type GroupReleaseStatus };
 
 export interface EffectiveGroupStatus {
+  id: string;
   slug: string;
   name: string;
   status: GroupReleaseStatus;
@@ -55,6 +56,7 @@ export async function getTerritorialReleaseSummary(): Promise<EffectiveGroupStat
         status === "limited" ? "restricted_beta" : "closed";
 
       return {
+        id: group.id,
         slug: group.slug,
         name: group.name,
         status,
