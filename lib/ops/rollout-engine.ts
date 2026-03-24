@@ -1,138 +1,137 @@
 import { createSupabaseServiceClient } from "@/lib/supabase/admin";
-import { getAuditGroups } from "@/lib/audit/groups";
-
-export type TerritorialOperationalState = 'closed' | 'limited_test' | 'beta_open' | 'monitoring' | 'rollback';
+import { getAuditGroups, getAuditGroupMembers } from "@/lib/audit/groups";
+import { type AuditStationGroup } from "@/lib/audit/types";
 
 export interface RolloutRecommendation {
-  groupId: string;
+  slug: string;
   name: string;
-  currentState: TerritorialOperationalState;
-  recommendedState: TerritorialOperationalState;
+  currentStatus: AuditStationGroup["releaseStatus"];
+  suggestedStatus: AuditStationGroup["releaseStatus"];
   reason: string;
+  confidence: number;
   metrics: {
-    submissions7d: number;
-    approvals7d: number;
-    abandonmentRatio: number;
-    errorRate: number;
+    approvedCount: number;
+    abandonmentRate: number;
+    slaHours: number;
+    coveragePct: number;
   };
 }
 
-export async function getRolloutRecommendations(): Promise<RolloutRecommendation[]> {
+export async function generateGroupRecommendations(): Promise<RolloutRecommendation[]> {
   const supabase = createSupabaseServiceClient();
-  const auditGroups = await getAuditGroups();
-  const now = new Date();
-  const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
-
+  const groups = await getAuditGroups();
   const recommendations: RolloutRecommendation[] = [];
 
-  for (const group of auditGroups) {
-    // 1. Fetch metrics for this group
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+
+  for (const group of groups) {
+    // 1. Fetch Metrics for this group
+    // In a real scenario, we'd have a more efficient way to query this per group.
+    // For the beta, we'll use the group members to filter.
+    const members = await getAuditGroupMembers(group.id);
+    const stationIds = members.map(m => m.stationId);
+
+    if (stationIds.length === 0) continue;
+
+    // Approved reports in the last 7 days
+    const { data: recentApproved } = await supabase
+      .from("price_reports")
+      .select("id, approved_at, reported_at")
+      .in("station_id", stationIds)
+      .eq("status", "approved")
+      .gte("reported_at", weekAgo.toISOString());
+
+    const approvedCount = recentApproved?.length || 0;
+
+    // SLA: Average time between reported_at and approved_at
+    let avgSla = 0;
+    if (recentApproved && recentApproved.length > 0) {
+       const durations = recentApproved
+         .filter(r => r.approved_at)
+         .map(r => new Date(r.approved_at!).getTime() - new Date(r.reported_at).getTime());
+       if (durations.length > 0) {
+         avgSla = durations.reduce((a, b) => a + b, 0) / durations.length / (1000 * 60 * 60);
+       }
+    }
+
+    // Abandonment: camera_opened vs submission_success in this group
     const { data: events } = await supabase
       .from("operational_events")
       .select("event_type")
       .eq("scope_id", group.slug)
-      .gte("created_at", last7d);
-
-    const { data: reports } = await supabase
-      .from("price_reports")
-      .select("status")
-      .eq("group_id", group.id) // Assuming we have group_id link, or use city/slug
-      .gte("created_at", last7d);
+      .gte("created_at", weekAgo.toISOString());
 
     const cameraOpens = events?.filter(e => e.event_type === "submission_camera_opened").length || 0;
-    const successes = events?.filter(e => e.event_type === "submission_success" || e.event_type === "price_report_submitted").length || 0;
-    const approvals = reports?.filter(r => r.status === "approved").length || 0;
-    const rejections = reports?.filter(r => r.status === "rejected").length || 0;
+    const successes = events?.filter(e => e.event_type === "submission_success").length || 0;
+    const abandonmentRate = cameraOpens > 0 ? (cameraOpens - successes) / cameraOpens : 0;
 
-    const abandonmentRatio = cameraOpens / (successes || 1);
-    const errorRate = rejections / ((approvals + rejections) || 1);
-    const currentState = (group as any).operationalState || 'closed';
+    // Coverage: Unique stations with reports vs total stations in group
+    const { data: coverageData } = await supabase
+      .from("price_reports")
+      .select("station_id")
+      .in("station_id", stationIds)
+      .eq("status", "approved")
+      .gte("reported_at", twoDaysAgo.toISOString());
+    
+    const uniqueStations = new Set(coverageData?.map(d => d.station_id) || []).size;
+    const coveragePct = stationIds.length > 0 ? (uniqueStations / stationIds.length) : 0;
 
-    let recommendedState = currentState;
-    let reason = "Manter estado atual.";
+    const metrics = { approvedCount, abandonmentRate, slaHours: avgSla, coveragePct };
 
-    // 2. Promotion Logic (limited_test -> beta_open)
-    if (currentState === 'limited_test' || currentState === 'closed') {
-      if (approvals >= 15 && errorRate < 0.15 && abandonmentRatio < 2.5) {
-        recommendedState = 'beta_open';
-        reason = "Volume e qualidade validados. Pronto para beta aberto.";
-      } else if (cameraOpens > 10 && currentState === 'closed') {
-         recommendedState = 'limited_test';
-         reason = "Interesse detectado. Abrir para teste limitado.";
-      }
+    // 2. Logic Rules
+    let suggestion: AuditStationGroup["releaseStatus"] | null = null;
+    let reason = "";
+
+    // PROMOCAO
+    if (group.releaseStatus === "hidden" && approvedCount >= 5 && coveragePct > 0.2) {
+      suggestion = "limited";
+      reason = "Atividade inicial detectada. Pronto para teste limitado.";
+    } else if (group.releaseStatus === "limited" && approvedCount >= 15 && coveragePct > 0.5 && avgSla < 12) {
+      suggestion = "validating";
+      reason = "Boa cobertura e SLA estável. Pronto para validação pública.";
+    } else if (group.releaseStatus === "validating" && approvedCount >= 30 && coveragePct > 0.7 && avgSla < 4) {
+      suggestion = "ready";
+      reason = "Massa crítica atingida e SLA de performance excelente.";
     }
 
-    // 3. Status Check (beta_open -> monitoring/rollback)
-    if (currentState === 'beta_open' || currentState === 'monitoring') {
-      if (abandonmentRatio > 6 || errorRate > 0.4) {
-        recommendedState = 'rollback';
-        reason = "Degradação crítica de performance ou qualidade. Sugerido recuo.";
-      } else if (abandonmentRatio > 4 || errorRate > 0.25) {
-        recommendedState = 'monitoring';
-        reason = "Sinais de atrito acima da média. Requer monitoramento intensivo.";
-      } else if (currentState === 'monitoring' && abandonmentRatio < 3 && errorRate < 0.1) {
-        recommendedState = 'beta_open';
-        reason = "Estabilidade recuperada. Voltar para beta aberto normal.";
-      }
+    // RECUO
+    if (group.releaseStatus === "ready" && (abandonmentRate > 0.6 || (approvedCount < 5 && now.getTime() - twoDaysAgo.getTime() > 0))) {
+        // Se abandonment rate for muito alto no READY, sugere recuo
+        suggestion = "validating";
+        reason = "Regressão de UX ou queda brusca de atividade no grupo.";
     }
 
-    if (recommendedState !== currentState) {
+    if (suggestion && suggestion !== group.releaseStatus) {
       recommendations.push({
-        groupId: group.id,
+        slug: group.slug,
         name: group.name,
-        currentState,
-        recommendedState,
+        currentStatus: group.releaseStatus,
+        suggestedStatus: suggestion,
         reason,
-        metrics: {
-          submissions7d: successes,
-          approvals7d: approvals,
-          abandonmentRatio,
-          errorRate
-        }
+        confidence: 0.8,
+        metrics
       });
+
+      // Persist recommendation to DB for the UI to show
+      await supabase
+        .from("audit_station_groups")
+        .update({ 
+          recommended_state: suggestion,
+          rollout_notes: `Sugestão do Motor: ${reason} (Metrics: ${Math.round(coveragePct * 100)}% cov, ${approvedCount} reports)`
+        })
+        .eq("slug", group.slug);
+    } else if (group.recommendedState) {
+       // Clear if metrics no longer justify it (or if it was already updated)
+       if (group.recommendedState === group.releaseStatus) {
+         await supabase
+          .from("audit_station_groups")
+          .update({ recommended_state: null })
+          .eq("slug", group.slug);
+       }
     }
   }
 
   return recommendations;
-}
-
-export async function applyRolloutChange(
-  groupId: string, 
-  newState: TerritorialOperationalState, 
-  changeKind: 'automated' | 'manual_override',
-  reason: string,
-  actorId?: string
-) {
-  const supabase = createSupabaseServiceClient();
-  
-  // 1. Get current state
-  const { data: group } = await supabase
-    .from("audit_station_groups")
-    .select("operational_state")
-    .eq("id", groupId)
-    .single();
-
-  const previousState = group?.operational_state || 'closed';
-
-  // 2. Update group
-  const { error: updateError } = await supabase
-    .from("audit_station_groups")
-    .update({ 
-      operational_state: newState,
-      recommended_state: null,
-      updated_at: new Date().toISOString()
-    })
-    .eq("id", groupId);
-
-  if (updateError) throw updateError;
-
-  // 3. Log change
-  await supabase.from("territorial_rollout_logs").insert({
-    group_id: groupId,
-    previous_state: previousState,
-    new_state: newState,
-    change_kind: changeKind,
-    reason,
-    actor_id: actorId
-  });
 }

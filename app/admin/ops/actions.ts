@@ -73,3 +73,60 @@ export async function getOperationalHistory(limit = 20) {
 
   return data;
 }
+
+export async function acceptRolloutRecommendationAction(slug: string, suggestedStatus: string) {
+  const supabase = createSupabaseServiceClient();
+  
+  const { error } = await supabase
+    .from("audit_station_groups")
+    .update({ 
+      release_status: suggestedStatus,
+      recommended_state: null,
+      updated_at: new Date().toISOString()
+    })
+    .eq("slug", slug);
+
+  if (error) return { success: false, error: error.message };
+
+  await supabase.from("operational_logs").insert({
+    event_kind: "rollout_recommendation_accepted",
+    message: `Recomendação ACEITA para ${slug}: Novo status ${suggestedStatus}`,
+    payload: { slug, suggestedStatus },
+    actor_id: "admin_dashboard"
+  });
+
+  revalidatePath("/admin/ops");
+  return { success: true };
+}
+
+export async function rejectRolloutRecommendationAction(slug: string) {
+  const supabase = createSupabaseServiceClient();
+  
+  const { error } = await supabase
+    .from("audit_station_groups")
+    .update({ 
+      recommended_state: null,
+      updated_at: new Date().toISOString()
+    })
+    .eq("slug", slug);
+
+  if (error) return { success: false, error: error.message };
+
+  await supabase.from("operational_logs").insert({
+    event_kind: "rollout_recommendation_rejected",
+    message: `Recomendação REJEITADA para ${slug}`,
+    payload: { slug },
+    actor_id: "admin_dashboard"
+  });
+
+  revalidatePath("/admin/ops");
+  return { success: true };
+}
+
+import { generateGroupRecommendations } from "@/lib/ops/rollout-engine";
+
+export async function triggerRolloutEngineAction() {
+  await generateGroupRecommendations();
+  revalidatePath("/admin/ops");
+  return { success: true };
+}

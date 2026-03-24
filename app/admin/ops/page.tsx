@@ -2,7 +2,11 @@ import { getAuditGroups } from "@/lib/audit/groups";
 import { detectActiveAlerts, type OperationalAlert } from "@/lib/ops/alerts";
 import { getCollectorTrustList } from "@/lib/data/queries";
 import { getKillSwitches } from "@/lib/ops/kill-switches";
-import { getOperationalHistory } from "./actions";
+import { 
+  toggleKillSwitchAction,
+  getOperationalHistory,
+  triggerRolloutEngineAction
+} from "./actions";
 import { 
   Zap, 
   Shield, 
@@ -24,6 +28,7 @@ import {
 import { cn } from "@/lib/utils";
 import { KillSwitchToggle } from "./components/kill-switch-toggle";
 import { RolloutControl } from "./components/rollout-control";
+import { TriggerRolloutButton } from "./components/trigger-rollout-button";
 import { type AuditStationGroup } from "@/lib/audit/types";
 
 export default async function OpsDashboardPage() {
@@ -42,7 +47,8 @@ export default async function OpsDashboardPage() {
           <h1 className="text-3xl font-bold tracking-tight">Painel Operacional</h1>
           <p className="text-white/50 text-sm mt-1">Controle central de resiliência e rollout territorial do beta.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-4 items-center">
+           <TriggerRolloutButton />
            <div className="px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full flex items-center gap-2">
              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
              <span className="text-[10px] font-bold text-green-500 uppercase tracking-wider">Sistema Online</span>

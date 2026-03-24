@@ -1,9 +1,8 @@
 "use client";
 
 import { useTransition } from "react";
-import { updateGroupRolloutAction } from "../actions";
-import { type AuditStationGroup } from "@/lib/audit/types";
 import { cn } from "@/lib/utils";
+import { type AuditStationGroup } from "@/lib/audit/types";
 import { 
   ArrowUpCircle, 
   ArrowDownCircle, 
@@ -12,8 +11,16 @@ import {
   Activity,
   ChevronRight,
   ShieldCheck,
-  Info
+  Info,
+  Sparkles,
+  CheckCircle,
+  XCircle
 } from "lucide-react";
+import { 
+  updateGroupRolloutAction, 
+  acceptRolloutRecommendationAction, 
+  rejectRolloutRecommendationAction 
+} from "../actions";
 
 interface RolloutControlProps {
   group: AuditStationGroup;
@@ -31,6 +38,19 @@ export function RolloutControl({ group }: RolloutControlProps) {
   const handleOpsStateChange = (state: AuditStationGroup["operationalState"]) => {
     startTransition(() => {
       void updateGroupRolloutAction(group.slug, { operationalState: state });
+    });
+  };
+
+  const handleAcceptRecommendation = () => {
+    if (!group.recommendedState) return;
+    startTransition(() => {
+      void acceptRolloutRecommendationAction(group.slug, group.recommendedState!);
+    });
+  };
+
+  const handleRejectRecommendation = () => {
+    startTransition(() => {
+      void rejectRolloutRecommendationAction(group.slug);
     });
   };
 
@@ -123,6 +143,35 @@ export function RolloutControl({ group }: RolloutControlProps) {
         </div>
       </div>
       
+      {group.recommendedState && group.recommendedState !== group.releaseStatus && (
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 space-y-3">
+           <div className="flex items-center gap-2 text-amber-500">
+              <Sparkles className="w-4 h-4" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Recomendação de Expansão</span>
+           </div>
+           <p className="text-[11px] font-medium leading-relaxed">
+             Sugerimos promover este recorte para <span className="font-black underline">{group.recommendedState}</span>.
+           </p>
+           <div className="flex gap-2 font-black uppercase tracking-tighter">
+              <button 
+                onClick={handleAcceptRecommendation}
+                disabled={isPending}
+                className="flex-1 bg-amber-500 text-black px-3 py-1.5 rounded-lg text-[10px] flex items-center justify-center gap-2 hover:bg-amber-400 transition-colors disabled:opacity-50"
+              >
+                <CheckCircle className="w-3.5 h-3.5" />
+                Aceitar
+              </button>
+              <button 
+                onClick={handleRejectRecommendation}
+                disabled={isPending}
+                className="px-3 py-1.5 rounded-lg text-[10px] border border-white/10 text-white/40 hover:bg-white/5 disabled:opacity-50"
+              >
+                 Ignorar
+              </button>
+           </div>
+        </div>
+      )}
+
       {group.rolloutNotes && (
         <div className="bg-white/5 rounded-lg p-2 flex gap-2 items-start">
            <Info className="w-3 h-3 text-white/30 mt-0.5 shrink-0" />
