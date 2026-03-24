@@ -129,3 +129,23 @@ export async function triggerRolloutEngineAction() {
   revalidatePath("/admin/ops");
   return { success: true };
 }
+
+export async function updateBetaFeedbackTriageAction(id: string, updates: any) {
+  const supabase = createSupabaseServiceClient();
+  const { error } = await supabase
+    .from("beta_feedback")
+    .update({ 
+      status: updates.status,
+      triage_notes: updates.triageNotes,
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", id);
+
+  if (error) {
+    console.error("Failed to triage feedback", error);
+    return { success: false, error: error.message };
+  }
+
+  revalidatePath("/admin/ops");
+  return { success: true };
+}
