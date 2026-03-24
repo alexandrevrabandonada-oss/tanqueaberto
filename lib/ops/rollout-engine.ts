@@ -9,7 +9,7 @@ export interface RolloutRecommendation {
   slug: string;
   name: string;
   currentStatus: TerritorialOperationalState;
-  suggestedStatus: TerritorialOperationalState;
+  recommendedState: TerritorialOperationalState;
   reason: string;
   confidence: number;
   metrics: {
@@ -149,7 +149,7 @@ export async function generateGroupRecommendations(): Promise<RolloutRecommendat
         slug: group.slug,
         name: group.name,
         currentStatus: group.releaseStatus,
-        suggestedStatus: suggestion,
+        recommendedState: suggestion,
         reason,
         confidence: 0.8,
         metrics
