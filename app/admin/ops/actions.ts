@@ -130,13 +130,13 @@ export async function triggerRolloutEngineAction() {
   return { success: true };
 }
 
-export async function updateBetaFeedbackTriageAction(formData: FormData) {
+export async function updateBetaFeedbackTriageAction(formData: FormData): Promise<void> {
   const id = formData.get("feedbackId") as string;
   const status = formData.get("triageStatus") as string;
   const triageNotes = (formData.get("triageNotes") as string) || "";
 
   const supabase = createSupabaseServiceClient();
-  const { error } = await supabase
+  await supabase
     .from("beta_feedback")
     .update({ 
       status: status,
@@ -145,11 +145,5 @@ export async function updateBetaFeedbackTriageAction(formData: FormData) {
     })
     .eq("id", id);
 
-  if (error) {
-    console.error("Failed to triage feedback", error);
-    return { success: false, error: error.message };
-  }
-
   revalidatePath("/admin/ops");
-  return { success: true };
 }
