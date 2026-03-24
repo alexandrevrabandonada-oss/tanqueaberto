@@ -6,7 +6,8 @@ import { getKillSwitches } from "@/lib/ops/kill-switches";
 import { 
   toggleKillSwitchAction,
   getOperationalHistory,
-  triggerRolloutEngineAction
+  triggerRolloutEngineAction,
+  getTerritorialRolloutHistory
 } from "./actions";
 import { 
   Zap, 
@@ -15,7 +16,7 @@ import {
   Map as MapIcon, 
   Clock, 
   AlertTriangle, 
-  CheckCircle2, 
+  CheckCircle2,
   History,
   Info,
   ChevronRight,
@@ -24,21 +25,31 @@ import {
   ArrowUpCircle,
   ArrowDownCircle,
   UserCheck,
-  Star
+  Star,
+  MessageSquare
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { KillSwitchToggle } from "./components/kill-switch-toggle";
 import { RolloutControl } from "./components/rollout-control";
+import { RolloutHistoryPanel } from "./components/rollout-history-panel";
 import { TriggerRolloutButton } from "./components/trigger-rollout-button";
 import { type AuditStationGroup } from "@/lib/audit/types";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export default async function OpsDashboardPage() {
-  const [killSwitches, groups, alerts, history, collectors] = await Promise.all([
+  const supabase = await createSupabaseServerClient();
+  const { data: feedback } = await supabase
+    .from('beta_feedback_submissions')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(10);
+  const [killSwitches, groups, alerts, history, collectors, territorialHistory] = await Promise.all([
     getKillSwitches(),
     getAuditGroups(),
     detectActiveAlerts(),
     getOperationalHistory(15),
-    getCollectorTrustList(10)
+    getCollectorTrustList(10),
+    getTerritorialRolloutHistory(15)
   ]);
 
   return (
@@ -110,28 +121,69 @@ export default async function OpsDashboardPage() {
                <UserCheck className="w-3 h-3 text-white/50" />
                Reputação de Coletores
              </h3>
-             <div className="space-y-3">
-                {collectors.map((c: any, i: number) => (
-                  <div key={i} className="flex justify-between items-center bg-white/[0.02] p-2 rounded-lg border border-white/5">
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-bold truncate">{c.nickname || 'Anônimo'}</p>
-                      <p className="text-[9px] text-white/30 truncate">{c.ip_hash?.slice(0, 8)}...</p>
+              <div className="space-y-2">
+                {collectors.map((c: any, i: number) => {
+                  const aprRate = c.total_reports > 0 ? Math.round((c.approved_reports / c.total_reports) * 100) : 0;
+                  return (
+                    <div key={i} className="flex justify-between items-center bg-white/[0.02] p-2 rounded-lg border border-white/5">
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-bold truncate">{c.nickname || 'Anônimo'}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-[9px] text-white/30 truncate">{c.ip_hash?.slice(0, 8)}...</p>
+                          <span className="text-[8px] text-white/20 font-mono">{aprRate}% APR</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 text-right">
+                         <span className={cn(
+                           "text-[8px] font-black px-1.5 py-0.5 rounded-sm uppercase tracking-tighter",
+                           c.trust_stage === 'muito_confiável' ? "bg-green-500/20 text-green-400 border border-green-500/30" :
+                           c.trust_stage === 'confiável' ? "bg-blue-500/20 text-blue-400 border border-blue-500/30" :
+                           c.trust_stage === 'em_revisão' ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" :
+                           c.trust_stage === 'bloqueado' ? "bg-red-500/20 text-red-400 border border-red-500/30" :
+                           "bg-white/5 text-white/40 border border-white/10"
+                         )}>
+                           {c.trust_stage.replace('_', ' ')}
+                         </span>
+                         <div className="flex items-center gap-1 bg-black/40 px-1.5 py-0.5 rounded border border-white/5">
+                           <Star className="w-2.5 h-2.5 text-amber-500" />
+                           <span className="text-[10px] font-mono font-bold">{c.score}</span>
+                         </div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 text-right">
-                       <span className={cn(
-                         "text-[8px] font-black px-1 rounded-sm uppercase",
-                         c.trust_stage === 'very_trusted' ? "bg-green-500 text-white" :
-                         c.trust_stage === 'trusted' ? "bg-blue-500 text-white" : "bg-white/10 text-white/40"
-                       )}>
-                         {c.trust_stage}
-                       </span>
-                       <div className="flex items-center gap-1">
-                         <Star className="w-2.5 h-2.5 text-amber-500" />
-                         <span className="text-[10px] font-mono font-bold">{c.score}</span>
-                       </div>
+                  );
+                })}
+              </div>
+          </div>
+
+          <div className="bg-[#111] border border-[color:var(--color-accent)]/10 rounded-2xl p-4">
+             <h3 className="text-xs font-bold text-[color:var(--color-accent)]/50 uppercase tracking-widest mb-4 flex items-center gap-2">
+               <MessageSquare className="w-3 h-3" />
+               Voz da Rua (Feedback)
+             </h3>
+             <div className="space-y-3">
+                {feedback?.map((f: any, i: number) => (
+                  <div key={i} className="bg-white/[0.02] p-3 rounded-xl border border-white/5 space-y-2">
+                    <div className="flex justify-between items-start">
+                      <span className="text-[8px] font-black px-1 bg-white/5 rounded text-white/40 uppercase tracking-widest">
+                        {f.screen_group || 'geral'}
+                      </span>
+                      <span className="text-[8px] text-white/20 font-mono">
+                        {new Date(f.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-white/80 leading-normal italic">&ldquo;{f.message || 'Sem comentário'}&rdquo;</p>
+                    <div className="flex flex-wrap gap-1">
+                      {f.triage_tags?.map((tag: string) => (
+                        <span key={tag} className="text-[7px] font-bold px-1.5 py-0.5 bg-[color:var(--color-accent)]/10 text-[color:var(--color-accent)]/70 rounded-full border border-[color:var(--color-accent)]/20 uppercase">
+                          {tag.replace('_', ' ')}
+                        </span>
+                      ))}
                     </div>
                   </div>
                 ))}
+                {(!feedback || feedback.length === 0) && (
+                  <p className="text-[10px] text-white/20 text-center py-4">Nenhum feedback humano recente.</p>
+                )}
              </div>
           </div>
 
@@ -231,6 +283,8 @@ export default async function OpsDashboardPage() {
                 ))}
               </div>
            </div>
+
+           <RolloutHistoryPanel logs={territorialHistory} />
         </section>
 
       </div>

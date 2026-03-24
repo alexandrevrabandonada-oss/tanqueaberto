@@ -17,6 +17,8 @@ import { getStationPublicName } from "@/lib/quality/stations";
 import { Navigation } from "lucide-react";
 import { openExternalNavigation } from "@/lib/navigation/external-maps";
 import type { StationWithReports } from "@/lib/types";
+import { ContextualFeedback } from "@/components/feedback/contextual-feedback";
+import { submitContextualFeedbackAction } from "@/app/hub/feedback-actions";
 
 // Note: Consistent naming.
 
@@ -28,6 +30,7 @@ interface RouteAssistantProps {
 export function RouteAssistant({ stations, currentStationId = null }: RouteAssistantProps) {
   const [context, setContext] = useState<RouteContext | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const [feedbackType, setFeedbackType] = useState<'skip' | 'stop' | null>(null);
 
   useEffect(() => {
     setIsMounted(true);
@@ -47,27 +50,45 @@ export function RouteAssistant({ stations, currentStationId = null }: RouteAssis
 
   const handleSkip = () => {
     if (!nextStation) return;
-    
-    skipStationInRoute(nextStation.id);
-    const updated = readRouteContext();
-    setContext(updated);
-    
-    void trackProductEvent({
-      eventType: "route_station_skipped",
-      pagePath: window.location.pathname,
-      pageTitle: document.title,
-      stationId: nextStation.id,
-      scopeType: "route",
-      scopeId: context.startedAt || "active",
-      payload: { 
-        city: nextStation.city,
-        skippedCount: updated.skippedStationIds.length
-      }
-    });
+    setFeedbackType('skip');
   };
 
   const handleStop = () => {
-    if (window.confirm("Deseja encerrar a rota de coleta atual?")) {
+    setFeedbackType('stop');
+  };
+
+  const submitFeedback = async (message: string, tags: string[]) => {
+    if (feedbackType === 'skip' && nextStation) {
+      skipStationInRoute(nextStation.id);
+      const updated = readRouteContext();
+      setContext(updated);
+      
+      void trackProductEvent({
+        eventType: "route_station_skipped",
+        pagePath: window.location.pathname,
+        pageTitle: document.title,
+        stationId: nextStation.id,
+        scopeType: "route",
+        scopeId: context!.startedAt || "active",
+        payload: { 
+          city: nextStation.city,
+          skippedCount: updated.skippedStationIds.length,
+          feedback: message,
+          tags
+        }
+      });
+
+      if (message || tags.length > 0) {
+        await submitContextualFeedbackAction({
+          message,
+          tags,
+          page_path: window.location.pathname,
+          station_id: nextStation.id,
+          city: nextStation.city,
+          context_type: 'skip'
+        });
+      }
+    } else if (feedbackType === 'stop') {
       stopRoute();
       setContext(readRouteContext());
       void trackProductEvent({
@@ -75,9 +96,20 @@ export function RouteAssistant({ stations, currentStationId = null }: RouteAssis
         pagePath: window.location.pathname,
         pageTitle: document.title,
         scopeType: "route",
-        scopeId: context.startedAt || "active"
+        scopeId: context!.startedAt || "active",
+        payload: { feedback: message, tags }
       });
+
+      if (message || tags.length > 0) {
+        await submitContextualFeedbackAction({
+          message,
+          tags,
+          page_path: window.location.pathname,
+          context_type: 'abandon'
+        });
+      }
     }
+    setFeedbackType(null);
   };
 
   if (!nextStation) {
@@ -180,6 +212,14 @@ export function RouteAssistant({ stations, currentStationId = null }: RouteAssis
         <span>Progresso: {context.completedStationIds.length} concluídos · {context.skippedStationIds.length} pulados</span>
         <span className="uppercase tracking-widest">Coleta Assistida</span>
       </div>
+
+      {feedbackType && (
+        <ContextualFeedback 
+          title={feedbackType === 'skip' ? "Por que pular este posto?" : "Por que encerrar a rota?"}
+          onSelect={submitFeedback}
+          onCancel={() => setFeedbackType(null)}
+        />
+      )}
     </SectionCard>
   );
 }

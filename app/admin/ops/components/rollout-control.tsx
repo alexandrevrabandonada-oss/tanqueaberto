@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
 import { type AuditStationGroup } from "@/lib/audit/types";
 import { 
@@ -29,9 +29,15 @@ interface RolloutControlProps {
 export function RolloutControl({ group }: RolloutControlProps) {
   const [isPending, startTransition] = useTransition();
 
+  const [rolloutReason, setRolloutReason] = useState("");
+
   const handleStatusChange = (status: AuditStationGroup["releaseStatus"]) => {
     startTransition(() => {
-      void updateGroupRolloutAction(group.slug, { releaseStatus: status });
+      void updateGroupRolloutAction(group.slug, { 
+        releaseStatus: status,
+        rolloutNotes: rolloutReason ? `[MANUAL] ${rolloutReason}` : group.rolloutNotes ?? undefined
+      });
+      setRolloutReason("");
     });
   };
 
@@ -44,13 +50,15 @@ export function RolloutControl({ group }: RolloutControlProps) {
   const handleAcceptRecommendation = () => {
     if (!group.recommendedState) return;
     startTransition(() => {
-      void acceptRolloutRecommendationAction(group.slug, group.recommendedState!);
+      void acceptRolloutRecommendationAction(group.slug, group.recommendedState!, rolloutReason);
+      setRolloutReason("");
     });
   };
 
   const handleRejectRecommendation = () => {
     startTransition(() => {
-      void rejectRolloutRecommendationAction(group.slug);
+      void rejectRolloutRecommendationAction(group.slug, rolloutReason);
+      setRolloutReason("");
     });
   };
 
@@ -60,6 +68,11 @@ export function RolloutControl({ group }: RolloutControlProps) {
     limited: "text-blue-400 bg-blue-500/10 border-blue-500/20",
     hidden: "text-white/30 bg-white/5 border-white/10"
   };
+
+  // Parse metrics from notes if they exist (formatted as [MOTOR] reason | Confiança: ... | Sinais: ...)
+  const motorSignals = group.rolloutNotes?.includes("[MOTOR]") 
+    ? group.rolloutNotes.split("| Sinais: ")[1] 
+    : null;
 
   return (
     <div className={cn(
@@ -96,6 +109,16 @@ export function RolloutControl({ group }: RolloutControlProps) {
             <ArrowDownCircle className="w-4 h-4" />
           </button>
         </div>
+      </div>
+
+      <div className="space-y-2">
+         <input 
+            type="text"
+            placeholder="Motivo da alteração territorial..."
+            value={rolloutReason}
+            onChange={(e) => setRolloutReason(e.target.value)}
+            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-[10px] text-white placeholder:text-white/20 focus:outline-none focus:border-white/30"
+         />
       </div>
 
       <div className="grid grid-cols-2 gap-2 pt-1 border-t border-white/5">
@@ -145,13 +168,30 @@ export function RolloutControl({ group }: RolloutControlProps) {
       
       {group.recommendedState && group.recommendedState !== group.releaseStatus && (
         <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 space-y-3">
-           <div className="flex items-center gap-2 text-amber-500">
-              <Sparkles className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Recomendação de Expansão</span>
+           <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-amber-500">
+                <Sparkles className="w-4 h-4" />
+                <span className="text-[10px] font-black uppercase tracking-widest">Recomendação Territorial</span>
+              </div>
+              {motorSignals && (
+                <div className="flex items-center gap-1 text-[9px] font-black text-amber-500/40">
+                   <Activity className="w-3 h-3" />
+                   {motorSignals}
+                </div>
+              )}
            </div>
+           
            <p className="text-[11px] font-medium leading-relaxed">
-             Sugerimos promover este recorte para <span className="font-black underline">{group.recommendedState}</span>.
+             O motor sugere <span className="font-black underline uppercase">{group.recommendedState}</span> para este território.
            </p>
+
+           {group.rolloutNotes?.includes("[MOTOR]") && (
+             <div className="bg-black/20 rounded-lg p-2 flex gap-2 items-start">
+               <Info className="w-3 h-3 text-amber-500/40 mt-0.5 shrink-0" />
+               <p className="text-[9px] text-white/40 leading-normal">{group.rolloutNotes.split("|")[0].replace("[MOTOR]", "").trim()}</p>
+             </div>
+           )}
+
            <div className="flex gap-2 font-black uppercase tracking-tighter">
               <button 
                 onClick={handleAcceptRecommendation}
@@ -172,7 +212,7 @@ export function RolloutControl({ group }: RolloutControlProps) {
         </div>
       )}
 
-      {group.rolloutNotes && (
+      {!group.recommendedState && group.rolloutNotes && (
         <div className="bg-white/5 rounded-lg p-2 flex gap-2 items-start">
            <Info className="w-3 h-3 text-white/30 mt-0.5 shrink-0" />
            <p className="text-[9px] text-white/40 leading-normal line-clamp-2">{group.rolloutNotes}</p>

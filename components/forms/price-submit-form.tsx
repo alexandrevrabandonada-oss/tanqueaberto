@@ -27,7 +27,9 @@ import { getStationPublicName } from "@/lib/quality/stations";
 import { useSubmissionHistory } from "@/components/history/submission-history-context";
 import { analyzePhotoQuality, type PhotoQualityResult } from "@/lib/camera/quality-analyzer";
 import { processImageForUpload } from "@/lib/camera/image-processor";
-import { AlertTriangle, CheckCircle2, Loader2, Sparkles } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Loader2, Sparkles, MessageCircleQuestion } from "lucide-react";
+import { ContextualFeedback } from "@/components/feedback/contextual-feedback";
+import { submitContextualFeedbackAction } from "@/app/hub/feedback-actions";
 
 const fuelOptions: FuelType[] = ["gasolina_comum", "gasolina_aditivada", "etanol", "diesel_s10", "diesel_comum", "gnv"];
 const allowedFuelSet = new Set<FuelType>(fuelOptions);
@@ -143,6 +145,7 @@ function PriceSubmitFormBody({
       }
     }
   }, [state.success, state.reportId, addSubmission, stations, stationId, fuelType, price, nickname]);
+  const [showFeedback, setShowFeedback] = useState(false);
   const selectedFileRef = useRef<File | null>(null);
   const hasStartedRef = useRef(false);
   const completedRef = useRef(false);
@@ -833,7 +836,8 @@ function PriceSubmitFormBody({
   }
 
   return (
-    <form ref={formRef} action={formAction} className="space-y-4" onSubmitCapture={() => markStarted("submit")}>
+    <>
+      <form ref={formRef} action={formAction} className="space-y-4" onSubmitCapture={() => markStarted("submit")}>
       <input type="hidden" name="website" value="" />
       <input type="hidden" name="locationDistance" value={currentDistance?.toString() ?? ""} />
       <input type="hidden" name="locationConfidence" value={locationConfidence} />
@@ -1322,7 +1326,36 @@ function PriceSubmitFormBody({
       <Button type="submit" className={cn("w-full h-16 text-lg font-bold shadow-2xl", !canSubmit && "opacity-50")} disabled={pending || !canSubmit}>
         {pending ? "Enviando..." : `Enviar preço ${statusLabel === "foto pronta" ? "com foto pronta" : "agora"}`}
       </Button>
-    </form>
+      </form>
+
+      {showFeedback && (
+        <ContextualFeedback 
+          title="O que aconteceu no envio?"
+          onSelect={async (message, tags) => {
+            setShowFeedback(false);
+            await submitContextualFeedbackAction({
+              message,
+              tags,
+              page_path: window.location.pathname,
+              station_id: stationId,
+              context_type: 'generic'
+            });
+          }}
+          onCancel={() => setShowFeedback(false)}
+        />
+      )}
+
+      <div className="fixed bottom-24 right-4 z-40">
+        <button
+          onClick={() => setShowFeedback(true)}
+          type="button"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-black/60 border border-white/10 text-white/40 hover:text-[color:var(--color-accent)] hover:border-[color:var(--color-accent)]/30 transition-all shadow-xl backdrop-blur-md"
+          title="Relatar problema ou dúvida"
+        >
+          <MessageCircleQuestion className="h-5 w-5" />
+        </button>
+      </div>
+    </>
   );
 }
 

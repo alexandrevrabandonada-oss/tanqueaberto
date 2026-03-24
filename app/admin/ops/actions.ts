@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createSupabaseServiceClient } from "@/lib/supabase/admin";
 import { updateKillSwitch, type OperationalKillSwitches } from "@/lib/ops/kill-switches";
 import { getAuditGroupBySlug } from "@/lib/audit/groups";
+import { recordOperationalEvent } from "@/lib/ops/logs";
 
 export async function toggleKillSwitchAction(key: keyof OperationalKillSwitches, value: boolean) {
   const result = await updateKillSwitch(key, value, "admin_dashboard");
@@ -52,6 +53,26 @@ export async function updateGroupRolloutAction(
     actor_id: "admin_dashboard"
   });
 
+  // Log to structured history if status changed
+  if (updates.releaseStatus && updates.releaseStatus !== group.releaseStatus) {
+    await supabase.from("territorial_rollout_logs").insert({
+      group_id: group.id,
+      previous_state: group.releaseStatus,
+      new_state: updates.releaseStatus,
+      change_kind: 'manual_override',
+      reason: updates.rolloutNotes || "Alteração manual direta",
+      payload: { updates }
+    });
+
+    await recordOperationalEvent({
+      eventType: "rollout_manual_override",
+      scopeType: "territory",
+      scopeId: slug,
+      reason: updates.rolloutNotes,
+      payload: { from: group.releaseStatus, to: updates.releaseStatus }
+    });
+  }
+
   revalidatePath("/admin/ops");
   revalidatePath("/");
   return { success: true };
@@ -73,9 +94,11 @@ export async function getOperationalHistory(limit = 20) {
   return data;
 }
 
-export async function acceptRolloutRecommendationAction(slug: string, suggestedStatus: string) {
+export async function acceptRolloutRecommendationAction(slug: string, suggestedStatus: string, reason?: string) {
   const supabase = createSupabaseServiceClient();
-  
+  const group = await getAuditGroupBySlug(slug);
+  if (!group) return { success: false, error: "Group not found" };
+
   const { error } = await supabase
     .from("audit_station_groups")
     .update({ 
@@ -87,20 +110,33 @@ export async function acceptRolloutRecommendationAction(slug: string, suggestedS
 
   if (error) return { success: false, error: error.message };
 
-  await supabase.from("operational_logs").insert({
-    event_kind: "rollout_recommendation_accepted",
-    message: `Recomendação ACEITA para ${slug}: Novo status ${suggestedStatus}`,
-    payload: { slug, suggestedStatus },
-    actor_id: "admin_dashboard"
+  await supabase.from("territorial_rollout_logs").insert({
+    group_id: group.id,
+    previous_state: group.releaseStatus,
+    new_state: suggestedStatus,
+    change_kind: 'manual_override',
+    reason: reason || "Sugestão aceita pelo administrador",
+    actor_id: null,
+    payload: { action: "accept_recommendation", metrics_snapshot: group.rolloutNotes }
+  });
+
+  await recordOperationalEvent({
+    eventType: "rollout_recommendation_accepted",
+    scopeType: "territory",
+    scopeId: slug,
+    reason: reason,
+    payload: { from: group.releaseStatus, to: suggestedStatus }
   });
 
   revalidatePath("/admin/ops");
   return { success: true };
 }
 
-export async function rejectRolloutRecommendationAction(slug: string) {
+export async function rejectRolloutRecommendationAction(slug: string, reason?: string) {
   const supabase = createSupabaseServiceClient();
-  
+  const group = await getAuditGroupBySlug(slug);
+  if (!group) return { success: false, error: "Group not found" };
+
   const { error } = await supabase
     .from("audit_station_groups")
     .update({ 
@@ -111,11 +147,22 @@ export async function rejectRolloutRecommendationAction(slug: string) {
 
   if (error) return { success: false, error: error.message };
 
-  await supabase.from("operational_logs").insert({
-    event_kind: "rollout_recommendation_rejected",
-    message: `Recomendação REJEITADA para ${slug}`,
-    payload: { slug },
-    actor_id: "admin_dashboard"
+  await supabase.from("territorial_rollout_logs").insert({
+    group_id: group.id,
+    previous_state: group.releaseStatus,
+    new_state: group.releaseStatus,
+    change_kind: 'manual_override',
+    reason: reason || "Sugestão rejeitada pelo administrador",
+    actor_id: null,
+    payload: { action: "reject_recommendation" }
+  });
+
+  await recordOperationalEvent({
+    eventType: "rollout_recommendation_rejected",
+    scopeType: "territory",
+    scopeId: slug,
+    reason: reason,
+    payload: { status: group.releaseStatus }
   });
 
   revalidatePath("/admin/ops");
@@ -185,4 +232,20 @@ export async function disableBetaInviteAction(formData: FormData): Promise<void>
     .eq("id", inviteId);
 
   revalidatePath("/admin/ops");
+}
+
+export async function getTerritorialRolloutHistory(limit = 20) {
+  const supabase = createSupabaseServiceClient();
+  const { data, error } = await supabase
+    .from("territorial_rollout_logs")
+    .select("*, audit_station_groups(name)")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error("Failed to fetch territorial rollout history", error);
+    return [];
+  }
+
+  return data as any[];
 }

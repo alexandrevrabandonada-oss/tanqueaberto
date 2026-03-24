@@ -1,7 +1,7 @@
 import { createSupabaseServiceClient } from "@/lib/supabase/admin";
 import { recordOperationalEvent } from "./logs";
 
-export type TrustStage = 'new' | 'trusted' | 'very_trusted' | 'review_needed' | 'blocked';
+export type TrustStage = 'novo' | 'confiável' | 'muito_confiável' | 'em_revisão' | 'bloqueado';
 
 export interface CollectorTrust {
   nickname: string | null;
@@ -14,30 +14,58 @@ export interface CollectorTrust {
 }
 
 /**
- * Define o estágio de confiança baseado no score e volume
+ * Define o estágio de confiança baseado no score e volume real
  */
 export function getTrustStage(score: number, totalReports: number): TrustStage {
-  if (score < 20) return 'blocked';
-  if (score < 40) return 'review_needed';
-  if (score >= 90 && totalReports >= 25) return 'very_trusted';
-  if (score >= 70 && totalReports >= 5) return 'trusted';
-  return 'new';
+  if (score < 20) return 'bloqueado';
+  if (score < 45) return 'em_revisão';
+  if (score >= 90 && totalReports >= 15) return 'muito_confiável';
+  if (score >= 70 && totalReports >= 3) return 'confiável';
+  return 'novo';
 }
 
 /**
- * Calcula o delta de score para um evento de moderação
+ * Interface para os sinais de qualidade de um envio
  */
-export function calculateScoreDelta(action: 'approve' | 'reject', reason?: string): number {
-  if (action === 'approve') {
-    return 2; // Ganho gradual (pode ser expandido conforme sinais de qualidade)
+export interface ReputationSignals {
+  action: 'approve' | 'reject';
+  reason?: string;
+  photoQuality?: number; // 0-100
+  locationConfidence?: 'high' | 'low';
+  isConsistencyBonus?: boolean;
+}
+
+/**
+ * Calcula o delta de score considerando múltiplos sinais operacionais
+ */
+export function calculateScoreDelta(signals: ReputationSignals): number {
+  let delta = 0;
+
+  if (signals.action === 'approve') {
+    delta += 2; // Ganho base por aprovação
+
+    // Bônus de Qualidade de Foto (Heurística)
+    if (signals.photoQuality && signals.photoQuality >= 85) delta += 3;
+    
+    // Bônus de Proximidade (Geo Confidence)
+    if (signals.locationConfidence === 'high') delta += 2;
+
+    // Bônus de Consistência (Mesmo posto/região recorrente)
+    if (signals.isConsistencyBonus) delta += 1;
+  } else {
+    // Penalidades por rejeição (Gravidade)
+    if (signals.reason?.includes('fraude') || signals.reason?.includes('fake')) {
+      return -60; // Penalidade crítica
+    }
+    
+    if (signals.reason?.includes('duplicata')) delta -= 10;
+    if (signals.reason?.includes('foto ruim')) delta -= 8;
+    if (signals.reason?.includes('preco errado')) delta -= 12;
+    
+    if (delta === 0) delta = -15; // Default rejection penalty
   }
   
-  // Penalidades por rejeição
-  if (reason?.includes('fraude') || reason?.includes('má fé') || reason?.includes('fake')) return -50;
-  if (reason?.includes('duplicata')) return -5;
-  if (reason?.includes('foto ruim') || reason?.includes('preco errado')) return -8;
-  
-  return -12; // Default rejection penalty
+  return delta;
 }
 
 /**
@@ -49,7 +77,7 @@ export async function getOrCreateCollectorTrust(nickname: string | null, ipHash:
   const { data, error } = await supabase
     .from('collector_trust')
     .select('*')
-    .eq('nickname', nickname || '') // Handle null as empty string for unique constraint consistency if needed
+    .eq('nickname', nickname || '')
     .eq('ip_hash', ipHash || '')
     .maybeSingle();
 
@@ -65,13 +93,12 @@ export async function getOrCreateCollectorTrust(nickname: string | null, ipHash:
     };
   }
 
-  // Se não existe, cria (usando empty strings para cases nulos se a constraint for rígida)
-  const defaultTrust: Partial<any> = {
+  const defaultTrust = {
     nickname: nickname || '',
     ip_hash: ipHash || '',
     score: 50,
     total_reports: 0,
-    trust_stage: 'new'
+    trust_stage: 'novo' as TrustStage
   };
 
   const { data: created, error: createError } = await supabase
@@ -89,7 +116,7 @@ export async function getOrCreateCollectorTrust(nickname: string | null, ipHash:
       totalReports: 0,
       approvedReports: 0,
       rejectedReports: 0,
-      trustStage: 'new'
+      trustStage: 'novo'
     };
   }
 
@@ -105,19 +132,22 @@ export async function getOrCreateCollectorTrust(nickname: string | null, ipHash:
 }
 
 /**
- * Atualiza o score após uma ação de moderação
+ * Atualiza o score após uma ação de moderação, processando sinais
  */
-export async function updateCollectorScore(nickname: string | null, ipHash: string | null, action: 'approve' | 'reject', reason?: string) {
+export async function updateCollectorScore(
+  nickname: string | null, 
+  ipHash: string | null, 
+  signals: ReputationSignals
+) {
   const supabase = createSupabaseServiceClient();
-  const delta = calculateScoreDelta(action, reason);
+  const delta = calculateScoreDelta(signals);
   
-  // Primeiro garantimos que existe
   const current = await getOrCreateCollectorTrust(nickname, ipHash);
   
   const nextScore = Math.max(0, Math.min(100, current.score + delta));
   const nextTotal = current.totalReports + 1;
-  const nextApproved = current.approvedReports + (action === 'approve' ? 1 : 0);
-  const nextRejected = current.rejectedReports + (action === 'reject' ? 1 : 0);
+  const nextApproved = current.approvedReports + (signals.action === 'approve' ? 1 : 0);
+  const nextRejected = current.rejectedReports + (signals.action === 'reject' ? 1 : 0);
   const nextStage = getTrustStage(nextScore, nextTotal);
 
   await supabase
@@ -139,13 +169,14 @@ export async function updateCollectorScore(nickname: string | null, ipHash: stri
     severity: delta < 0 ? 'warning' : 'info',
     scopeType: 'collector',
     scopeId: `${nickname || 'anon'}:${ipHash || 'unknown'}`,
-    reason: action,
+    reason: signals.action,
     payload: {
-      action,
-      reason,
+      action: signals.action,
+      reason: signals.reason,
       delta,
       newScore: nextScore,
-      newStage: nextStage
+      newStage: nextStage,
+      signals
     }
   });
 }

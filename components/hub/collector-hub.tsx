@@ -12,6 +12,10 @@ import { Trophy, ShieldCheck, UserCircle } from "lucide-react";
 import type { StationWithReports } from "@/lib/types";
 import { HubRecents } from "./hub-recents";
 import { CycleDash } from "./cycle-dash";
+import { ReputationBadge } from "./reputation-badge";
+import { ProofOfLifeReinforcement } from "./proof-of-life-reforcement";
+import { getCollectorTrustAction } from "@/app/hub/actions";
+import type { CollectorTrust } from "@/lib/ops/collector-trust";
 
 interface CollectorHubProps {
   stations: StationWithReports[];
@@ -22,14 +26,19 @@ export function CollectorHub({ stations }: CollectorHubProps) {
   const { mission, stats: missionStats, isLoaded: missionLoaded } = useMissionContext();
   const [localQueue, setLocalQueue] = useState<SubmissionQueueEntry[]>([]);
   const [localLoaded, setLocalLoaded] = useState(false);
+  const [trust, setTrust] = useState<CollectorTrust | null>(null);
 
   useEffect(() => {
-    const loadLocal = async () => {
-      const queue = await loadSubmissionQueue();
+    const loadData = async () => {
+      const [queue, trustData] = await Promise.all([
+        loadSubmissionQueue(),
+        getCollectorTrustAction(reporterNickname)
+      ]);
       setLocalQueue(queue);
+      setTrust(trustData);
       setLocalLoaded(true);
     };
-    loadLocal();
+    loadData();
 
     void trackProductEvent({
       eventType: "hub_opened",
@@ -38,10 +47,11 @@ export function CollectorHub({ stations }: CollectorHubProps) {
       payload: { 
         hasNickname: !!reporterNickname,
         submissionsCount: submissions.length,
-        hasMission: !!mission
+        hasMission: !!mission,
+        trustStage: trust?.trustStage
       }
     });
-  }, [reporterNickname, submissions.length, mission]);
+  }, [reporterNickname, submissions.length, mission, trust?.trustStage]);
 
   if (!historyLoaded || !missionLoaded || !localLoaded) {
     return null;
@@ -53,6 +63,9 @@ export function CollectorHub({ stations }: CollectorHubProps) {
   const localCount = localItems.length;
   const hasErrors = localItems.some(s => s.status === "failed" || s.status === "photo_required" || s.status === "expired");
 
+  // Determine city context for Proof of Life
+  const defaultCity = stations.length > 0 ? stations[0].city : "Resende"; // Fallback to a known city
+
   return (
     <div className="space-y-6">
       {/* Cycle Line */}
@@ -62,6 +75,16 @@ export function CollectorHub({ stations }: CollectorHubProps) {
         localCount={localCount}
         hasMission={!!mission}
       />
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        {/* Reputation Badge */}
+        {trust && (
+          <ReputationBadge stage={trust.trustStage} score={trust.score} />
+        )}
+
+        {/* Proof of Life Reinforcement */}
+        <ProofOfLifeReinforcement city={defaultCity} />
+      </div>
 
       {/* Main Sections */}
       <div className="grid gap-6">

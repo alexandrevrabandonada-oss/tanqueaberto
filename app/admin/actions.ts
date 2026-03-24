@@ -133,7 +133,7 @@ async function moderateReports(reportIds: string[], decision: "approved" | "reje
 
   const { data: reports, error: reportError } = await supabase
     .from("price_reports")
-    .select("id,station_id,version,fuel_type,price,reported_at,reporter_nickname,ip_hash")
+    .select("id,station_id,version,fuel_type,price,reported_at,reporter_nickname,ip_hash,metadata,location_confidence")
     .in("id", reportIds);
 
   if (reportError || !reports || reports.length === 0) {
@@ -193,10 +193,16 @@ async function moderateReports(reportIds: string[], decision: "approved" | "reje
 
   // Update collector trust score for each report moderated
   try {
-    const trustAction = decision === "approved" ? "approve" : "reject";
-    const trustUpdates = reports.map((r) => 
-      updateCollectorScore(r.reporter_nickname, r.ip_hash, trustAction, note)
-    );
+    const trustUpdates = reports.map((r) => {
+      const metadata = (r.metadata as any) || {};
+      return updateCollectorScore(r.reporter_nickname, r.ip_hash, {
+        action: decision === "approved" ? "approve" : "reject",
+        reason: note,
+        photoQuality: metadata.quality_score,
+        locationConfidence: r.location_confidence as any,
+        isConsistencyBonus: false // Could be calculated comparing with history
+      });
+    });
     await Promise.all(trustUpdates);
   } catch (err) {
     console.error("Failed to update collector trust scores:", err);

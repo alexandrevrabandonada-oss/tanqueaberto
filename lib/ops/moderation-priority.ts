@@ -55,14 +55,14 @@ export function getReportPriorityScore(
     score -= 50; // Very heavy penalty for reused photos
   }
 
-  // 8. Collector Trust Score (Enhanced)
+  // 8. Collector Trust Score (Enhanced Fast Lane)
   if (context.reporterTrustScore !== undefined) {
     if (context.reporterTrustScore >= 90) {
-      score += 60; // Very Trusted collectors get top-tier fast lane priority
+      score += 65; // Elite collectors get top-tier fast lane priority
     } else if (context.reporterTrustScore >= 70) {
-      score += 40; // Trusted collectors get standard fast lane priority
+      score += 45; // Reliable collectors get standard fast lane priority
     } else if (context.reporterTrustScore < 40) {
-      score -= 30; // Suspicious or low-volume collectors are deprioritized
+      score -= 40; // Low trust collectors are significantly deprioritized
     }
   }
 

@@ -67,25 +67,21 @@ export async function generateGroupRecommendations(): Promise<RolloutRecommendat
   const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
 
   for (const group of groups) {
-    // 1. Fetch Metrics for this group
-    // In a real scenario, we'd have a more efficient way to query this per group.
-    // For the beta, we'll use the group members to filter.
     const members = await getAuditGroupMembers(group.id);
     const stationIds = members.map(m => m.stationId);
-
     if (stationIds.length === 0) continue;
 
-    // Approved reports in the last 7 days
+    // 1. SINAL: Volume de Envios Aprovados
     const { data: recentApproved } = await supabase
       .from("price_reports")
-      .select("id, approved_at, reported_at")
+      .select("id, approved_at, reported_at, status")
       .in("station_id", stationIds)
       .eq("status", "approved")
       .gte("reported_at", weekAgo.toISOString());
 
     const approvedCount = recentApproved?.length || 0;
 
-    // SLA: Average time between reported_at and approved_at
+    // 2. SINAL: Latência de Moderação (SLA)
     let avgSla = 0;
     if (recentApproved && recentApproved.length > 0) {
        const durations = recentApproved
@@ -96,7 +92,7 @@ export async function generateGroupRecommendations(): Promise<RolloutRecommendat
        }
     }
 
-    // Abandonment: camera_opened vs submission_success in this group
+    // 3. SINAL: Abandono Operacional (Funnel)
     const { data: events } = await supabase
       .from("operational_events")
       .select("event_type")
@@ -104,10 +100,18 @@ export async function generateGroupRecommendations(): Promise<RolloutRecommendat
       .gte("created_at", weekAgo.toISOString());
 
     const cameraOpens = events?.filter(e => e.event_type === "submission_camera_opened").length || 0;
-    const successes = events?.filter(e => e.event_type === "submission_success").length || 0;
+    const successes = events?.filter(e => e.event_type === "submission_success" || e.event_type === "submission_accepted").length || 0;
     const abandonmentRate = cameraOpens > 0 ? (cameraOpens - successes) / cameraOpens : 0;
 
-    // Coverage: Unique stations with reports vs total stations in group
+    // 4. SINAL: Conflitos de Qualidade
+    // Eventos que indicam que um envio foi sinalizado ou teve problemas detectados mecanicamente
+    const qualityFlags = events?.filter(e => e.event_type === "submission_quality_flagged" || e.event_type === "submission_blocked").length || 0;
+    const qualityConflictRate = approvedCount > 0 ? qualityFlags / (approvedCount + qualityFlags) : 0;
+
+    // 5. SINAL: Prova de Vida (Atividade de Navegação)
+    const proofOfLife = events?.filter(e => e.event_type === "hub_opened" || e.event_type === "station_clicked").length || 0;
+
+    // 6. SINAL: Cobertura Territorial
     const { data: coverageData } = await supabase
       .from("price_reports")
       .select("station_id")
@@ -118,31 +122,54 @@ export async function generateGroupRecommendations(): Promise<RolloutRecommendat
     const uniqueStations = new Set(coverageData?.map(d => d.station_id) || []).size;
     const coveragePct = stationIds.length > 0 ? (uniqueStations / stationIds.length) : 0;
 
-    const metrics = { approvedCount, abandonmentRate, slaHours: avgSla, coveragePct };
+    const metrics = { 
+      approvedCount, 
+      abandonmentRate, 
+      slaHours: avgSla, 
+      coveragePct,
+      qualityConflictRate,
+      proofOfLife
+    };
 
-    // 2. Logic Rules
+    // 7. Lógica de Scoring para Recomendação
     let suggestion: AuditStationGroup["releaseStatus"] | null = null;
     let reason = "";
+    let confidence = 0.5;
 
-    // PROMOCAO
-    if (group.releaseStatus === "hidden" && approvedCount >= 5 && coveragePct > 0.2) {
+    // Regras de Promoção (Upgrade de Estágio)
+    const isStable = abandonmentRate < 0.35 && qualityConflictRate < 0.15 && avgSla < 12;
+    const isHighActivity = approvedCount >= 20 && coveragePct > 0.4;
+    const isMaturity = approvedCount >= 40 && coveragePct > 0.7 && avgSla < 4;
+
+    if (group.releaseStatus === "hidden" && approvedCount >= 5 && proofOfLife > 10) {
       suggestion = "limited";
-      reason = "Atividade inicial detectada. Pronto para teste limitado.";
-    } else if (group.releaseStatus === "limited" && approvedCount >= 15 && coveragePct > 0.5 && avgSla < 12) {
+      reason = "Atividade inicial e interesse detectados. Iniciar teste limitado.";
+      confidence = 0.6;
+    } else if (group.releaseStatus === "limited" && isHighActivity && isStable) {
       suggestion = "validating";
-      reason = "Boa cobertura e SLA estável. Pronto para validação pública.";
-    } else if (group.releaseStatus === "validating" && approvedCount >= 30 && coveragePct > 0.7 && avgSla < 4) {
+      reason = "Volume robusto e estabilidade de dados. Pronto para Beta Público.";
+      confidence = 0.8;
+    } else if (group.releaseStatus === "validating" && isMaturity && isStable) {
       suggestion = "ready";
-      reason = "Massa crítica atingida e SLA de performance excelente.";
+      reason = "Consolidação atingida. Alta cobertura e baixa latência.";
+      confidence = 0.9;
     }
 
-    // RECUO
-    if (group.releaseStatus === "ready" && (abandonmentRate > 0.6 || (approvedCount < 5 && now.getTime() - twoDaysAgo.getTime() > 0))) {
-        // Se abandonment rate for muito alto no READY, sugere recuo
-        suggestion = "validating";
-        reason = "Regressão de UX ou queda brusca de atividade no grupo.";
+    // Regras de Recuo (Downgrade de Estágio / Rollback)
+    const isDegrading = abandonmentRate > 0.6 || qualityConflictRate > 0.25;
+    const isGhostArea = proofOfLife < 5 && approvedCount < 2 && group.releaseStatus !== "hidden";
+
+    if (group.releaseStatus === "ready" && (isDegrading || approvedCount < 10)) {
+      suggestion = "validating";
+      reason = "Alerta de regressão: queda de atividade ou alta taxa de abandono.";
+      confidence = 0.85;
+    } else if (isGhostArea) {
+      suggestion = "limited";
+      reason = "Abandono crítico ou falta de prova de vida no território.";
+      confidence = 0.7;
     }
 
+    // Persistência da Recomendação
     if (suggestion && suggestion !== group.releaseStatus) {
       recommendations.push({
         groupId: group.id,
@@ -151,26 +178,27 @@ export async function generateGroupRecommendations(): Promise<RolloutRecommendat
         currentStatus: group.releaseStatus,
         recommendedState: suggestion,
         reason,
-        confidence: 0.8,
-        metrics
+        confidence,
+        metrics: {
+          approvedCount,
+          abandonmentRate,
+          slaHours: avgSla,
+          coveragePct
+        }
       });
 
-      // Persist recommendation to DB for the UI to show
       await supabase
         .from("audit_station_groups")
         .update({ 
           recommended_state: suggestion,
-          rollout_notes: `Sugestão do Motor: ${reason} (Metrics: ${Math.round(coveragePct * 100)}% cov, ${approvedCount} reports)`
+          rollout_notes: `[MOTOR] ${reason} | Confiança: ${Math.round(confidence * 100)}% | Sinais: ${approvedCount} apr, ${Math.round(coveragePct * 100)}% cov, ${Math.round(abandonmentRate * 100)}% abnd`
         })
         .eq("slug", group.slug);
-    } else if (group.recommendedState) {
-       // Clear if metrics no longer justify it (or if it was already updated)
-       if (group.recommendedState === group.releaseStatus) {
-         await supabase
-          .from("audit_station_groups")
-          .update({ recommended_state: null })
-          .eq("slug", group.slug);
-       }
+    } else if (group.recommendedState && group.recommendedState === group.releaseStatus) {
+       await supabase
+        .from("audit_station_groups")
+        .update({ recommended_state: null })
+        .eq("slug", group.slug);
     }
   }
 

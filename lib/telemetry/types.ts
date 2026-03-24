@@ -51,7 +51,10 @@ export type ProductTelemetryEventType =
   | "station_page_shared"
   | "station_evidence_viewed"
   | "hub_opened"
-  | "hub_action_clicked";
+  | "hub_action_clicked"
+  | "rollout_recommendation_accepted"
+  | "rollout_recommendation_rejected"
+  | "rollout_manual_override";
 
 export interface ProductTelemetryEventInput {
   eventType: ProductTelemetryEventType;
