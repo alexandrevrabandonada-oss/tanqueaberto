@@ -142,7 +142,7 @@ function PriceSubmitFormBody({
         });
       }
     }
-  }, [state.success, state.reportId, addSubmission, stations, stationId, fuelType, price]);
+  }, [state.success, state.reportId, addSubmission, stations, stationId, fuelType, price, nickname]);
   const selectedFileRef = useRef<File | null>(null);
   const hasStartedRef = useRef(false);
   const completedRef = useRef(false);

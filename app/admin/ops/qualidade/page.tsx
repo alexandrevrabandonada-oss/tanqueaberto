@@ -1,4 +1,5 @@
 import { ShieldAlert, Image as ImageIcon, Scale, AlertCircle, TrendingDown } from "lucide-react";
+export const dynamic = 'force-dynamic';
 import { getQualityMetrics } from "@/lib/data/quality-queries";
 import { SectionCard } from "@/components/ui/section-card";
 import { Badge } from "@/components/ui/badge";

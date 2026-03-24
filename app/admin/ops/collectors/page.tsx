@@ -1,4 +1,5 @@
 import { getCollectorTrustList } from "@/lib/data/queries";
+export const dynamic = 'force-dynamic';
 import { 
   UserCheck, 
   ArrowLeft, 

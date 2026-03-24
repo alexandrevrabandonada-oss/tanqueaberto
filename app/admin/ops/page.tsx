@@ -1,4 +1,5 @@
 import { getAuditGroups } from "@/lib/audit/groups";
+export const dynamic = 'force-dynamic';
 import { detectActiveAlerts, type OperationalAlert } from "@/lib/ops/alerts";
 import { getCollectorTrustList } from "@/lib/data/queries";
 import { getKillSwitches } from "@/lib/ops/kill-switches";
