@@ -12,6 +12,8 @@ export interface RecorteActivity {
   recentCollaboratorsCount: number;
   lastApprovalAt: string | null;
   lastMissionCompletedAt: string | null;
+  lastSubmissionAt: string | null; // Any status
+  collaborationDensity: number; // % of stations with >1 report
   lastStationTouched: {
     id: string;
     name: string;
@@ -20,6 +22,10 @@ export interface RecorteActivity {
   stationsWithMultipleReports: number;
   totalAttempts: number;
   status: 'strong' | 'medium' | 'weak';
+  recencySignals: {
+    type: 'submission' | 'approval' | 'mission';
+    timestamp: string;
+  }[];
 }
 
 export async function getRecorteActivity(city: string, groupSlug?: string): Promise<RecorteActivity> {
@@ -47,10 +53,9 @@ export async function getRecorteActivity(city: string, groupSlug?: string): Prom
   const collaborationProgress = totalStations > 0 ? (stationsWithHistory / totalStations) * 100 : 0;
 
   // 2. Get last price report (any status)
-  const { data: lastReport } = await supabase
+  const { data: lastSubmission } = await supabase
     .from("price_reports")
-    .select("created_at, station_id")
-    .eq("status", "approved") // Using approved as a proxy for "touched" unless we want any submission
+    .select("created_at, station_id, status")
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -79,13 +84,23 @@ export async function getRecorteActivity(city: string, groupSlug?: string): Prom
     .select("id", { count: 'exact', head: true });
 
   // 6. Stations with multiple reports (densidade)
-  // This is expensive to count accurately without a better view, but we can approximate or use a sample
-  const stationsWithMultipleReports = stations?.filter(s => s.last_reported_at).length || 0; // Simplified for now
+  // Get counts of reports per station for this city
+  const { data: densityData } = await supabase
+    .from("price_reports")
+    .select("station_id")
+    .in("station_id", stations?.map(s => s.id) || []);
+  
+  const reportCounts: Record<string, number> = {};
+  densityData?.forEach(r => {
+    reportCounts[r.station_id] = (reportCounts[r.station_id] || 0) + 1;
+  });
+  const stationsWithMultipleReports = Object.values(reportCounts).filter(count => count > 1).length;
+  const collaborationDensity = totalStations > 0 ? (stationsWithMultipleReports / totalStations) * 100 : 0;
 
   // 7. Last station touched details
   let lastStationTouched = null;
-  if (lastReport?.station_id) {
-    const station = stations?.find(s => s.id === lastReport.station_id);
+  if (lastSubmission?.station_id) {
+    const station = stations?.find(s => s.id === lastSubmission.station_id);
     if (station) {
       lastStationTouched = {
         id: station.id,
@@ -103,7 +118,13 @@ export async function getRecorteActivity(city: string, groupSlug?: string): Prom
 
   const distinctCollaborators = new Set(collaborators?.filter(c => c.reporter_nickname).map(c => c.reporter_nickname)).size;
 
-  // 9. Status determination
+  // 9. Build recency signals
+  const recencySignals: RecorteActivity['recencySignals'] = [];
+  if (lastSubmission) recencySignals.push({ type: 'submission', timestamp: lastSubmission.created_at });
+  if (lastApproval) recencySignals.push({ type: 'approval', timestamp: lastApproval.created_at });
+  if (lastMission) recencySignals.push({ type: 'mission', timestamp: lastMission.created_at });
+
+  // 10. Status determination
   let status: RecorteActivity['status'] = 'weak';
   if (collaborationProgress > 60 && distinctCollaborators > 5) {
     status = 'strong';
@@ -115,11 +136,11 @@ export async function getRecorteActivity(city: string, groupSlug?: string): Prom
   let lastActivityType: RecorteActivity['lastActivityType'] = null;
   let activityLabel = "Nenhuma atividade recente detectada.";
 
-  const reportTime = lastReport?.created_at ? new Date(lastReport.created_at).getTime() : 0;
+  const submissionTime = lastSubmission?.created_at ? new Date(lastSubmission.created_at).getTime() : 0;
   const missionTime = lastMission?.created_at ? new Date(lastMission.created_at).getTime() : 0;
   const approvalTime = lastApproval?.created_at ? new Date(lastApproval.created_at).getTime() : 0;
 
-  const maxTime = Math.max(reportTime, missionTime, approvalTime);
+  const maxTime = Math.max(submissionTime, missionTime, approvalTime);
 
   if (maxTime === 0) {
     activityLabel = "Aguardando primeira colaboração.";
@@ -132,8 +153,8 @@ export async function getRecorteActivity(city: string, groupSlug?: string): Prom
     lastActivityType = 'mission';
     activityLabel = "Missão de rua concluída.";
   } else {
-    lastActivityAt = lastReport!.created_at;
-    lastActivityType = 'price';
+    lastActivityAt = lastSubmission!.created_at;
+    lastActivityType = 'submission';
     activityLabel = "Envio recebido pelo sistema.";
   }
 
@@ -149,9 +170,122 @@ export async function getRecorteActivity(city: string, groupSlug?: string): Prom
     recentCollaboratorsCount: distinctCollaborators,
     lastApprovalAt: lastApproval?.created_at ?? null,
     lastMissionCompletedAt: lastMission?.created_at ?? null,
+    lastSubmissionAt: lastSubmission?.created_at ?? null,
+    collaborationDensity,
     lastStationTouched,
     stationsWithMultipleReports,
     totalAttempts: totalAttempts || 0,
-    status
+    status,
+    recencySignals: recencySignals.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+  };
+}
+export interface CollectorTerritorialImpact {
+  primaryNeighborhood: string | null;
+  primaryCity: string | null;
+  stationsTouchedCount: number;
+  totalApprovedReports: number;
+  territoryDensity: number; // percentage of stations in primary neighborhood touched
+  remainingGaps: number; // stations in primary neighborhood with no photo
+  gapsClosedCount: number; // stations where this collector was the first to provide a report
+}
+
+export async function getCollectorTerritorialImpact(nickname: string): Promise<CollectorTerritorialImpact> {
+  const supabase = createSupabaseServiceClient();
+
+  // 1. Get all approved reports for this collector to find primary territory
+  const { data: reports } = await supabase
+    .from("price_reports")
+    .select("station_id, stations(neighborhood, city)")
+    .eq("reporter_nickname", nickname)
+    .eq("status", "approved");
+
+  if (!reports || reports.length === 0) {
+    return {
+      primaryNeighborhood: null,
+      primaryCity: null,
+      stationsTouchedCount: 0,
+      totalApprovedReports: 0,
+      territoryDensity: 0,
+      remainingGaps: 0,
+      gapsClosedCount: 0
+    };
+  }
+
+  // Calculate primary neighborhood and city
+  const neighborhoodCounts: Record<string, number> = {};
+  const cityCounts: Record<string, number> = {};
+  const touchedStationIds = new Set<string>();
+
+  reports.forEach((r: any) => {
+    const station = r.stations;
+    if (station) {
+      if (station.neighborhood) {
+        neighborhoodCounts[station.neighborhood] = (neighborhoodCounts[station.neighborhood] || 0) + 1;
+      }
+      if (station.city) {
+        cityCounts[station.city] = (cityCounts[station.city] || 0) + 1;
+      }
+      touchedStationIds.add(r.station_id);
+    }
+  });
+
+  const primaryNeighborhood = Object.entries(neighborhoodCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+  const primaryCity = Object.entries(cityCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+
+  // Calculate gaps in primary territory
+  let remainingGaps = 0;
+  let totalStationsInTerritory = 0;
+
+  if (primaryNeighborhood && primaryCity) {
+    const { data: territoryStations } = await supabase
+      .from("stations")
+      .select("id, last_reported_at")
+      .eq("city", primaryCity)
+      .eq("neighborhood", primaryNeighborhood)
+      .eq("is_active", true);
+
+    if (territoryStations) {
+      totalStationsInTerritory = territoryStations.length;
+      remainingGaps = territoryStations.filter(s => !s.last_reported_at).length;
+    }
+  }
+
+  // Calculate gaps closed (where this collector was the first to report)
+  // 1. Get all station IDs the collector touched
+  const stationIds = Array.from(touchedStationIds);
+  
+  // 2. For each touched station, check if there are any approved reports EARLIER than the collector's first report on that station
+  // This is a bit expensive, so we'll approximate: check if the collector's report is the absolute first approved one for that station
+  const { data: firstReports } = await supabase
+    .from("price_reports")
+    .select("station_id, reporter_nickname, reported_at")
+    .in("station_id", stationIds)
+    .eq("status", "approved")
+    .order("reported_at", { ascending: true });
+
+  const firstReportByStation = new Map<string, string>();
+  if (firstReports) {
+    for (const r of firstReports) {
+      if (!firstReportByStation.has(r.station_id)) {
+        firstReportByStation.set(r.station_id, r.reporter_nickname || '');
+      }
+    }
+  }
+
+  let gapsClosedCount = 0;
+  touchedStationIds.forEach(sid => {
+    if (firstReportByStation.get(sid) === nickname) {
+      gapsClosedCount++;
+    }
+  });
+
+  return {
+    primaryNeighborhood,
+    primaryCity,
+    stationsTouchedCount: touchedStationIds.size,
+    totalApprovedReports: reports.length,
+    territoryDensity: totalStationsInTerritory > 0 ? (touchedStationIds.size / totalStationsInTerritory) * 100 : 0,
+    remainingGaps,
+    gapsClosedCount
   };
 }

@@ -49,7 +49,17 @@ export function RolloutApproval({ recommendations }: RolloutApprovalProps) {
       <div className="grid gap-4">
         {recommendations.map((rec) => {
           // Status order for comparison: hidden < limited < validating < ready
-          const statusOrder = { hidden: 0, limited: 1, validating: 2, ready: 3 };
+          const statusOrder: Record<string, number> = { 
+            hidden: 0, 
+            captura_interna: 0,
+            limited: 1, 
+            validacao_beta: 2,
+            validating: 2,
+            ready: 3,
+            publicado: 3,
+            monitoramento: 4,
+            rollback: -1
+          };
           const isImproving = statusOrder[rec.recommendedState] > statusOrder[rec.currentStatus];
           const isPending = pendingIds.includes(rec.groupId);
 

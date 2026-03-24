@@ -8,7 +8,9 @@ export interface OperationalAlert {
   status: 'active' | 'resolved' | 'acknowledged';
   city?: string;
   scopeId?: string;
+  module?: string;
   message: string;
+  cause?: string;
   suggestedAction?: string;
   payload: any;
   startedAt?: string;
@@ -38,7 +40,9 @@ export async function detectActiveAlerts(): Promise<OperationalAlert[]> {
         alertKind: 'performance',
         severity: 'critical',
         status: 'active',
+        module: 'camera_upload',
         message: "Abandono total de fluxo detectado nas últimas 4h.",
+        cause: "Câmeras abertas sem nenhum envio concluído.",
         suggestedAction: "Verificar estabilidade do módulo de câmera e upload.",
         payload: { cameraCount, successCount }
       });
@@ -47,7 +51,9 @@ export async function detectActiveAlerts(): Promise<OperationalAlert[]> {
         alertKind: 'performance',
         severity: 'warning',
         status: 'active',
+        module: 'camera_upload',
         message: "Taxa de abandono de envio acima do normal (>5x).",
+        cause: "Volume de abertura de câmera muito superior aos sucessos.",
         suggestedAction: "Revisar UX do formulário de envio ou lentidão de rede.",
         payload: { ratio: cameraCount / (successCount || 1) }
       });
@@ -68,7 +74,9 @@ export async function detectActiveAlerts(): Promise<OperationalAlert[]> {
       alertKind: 'moderation',
       severity: hoursOld > 4 ? 'critical' : 'warning',
       status: 'active',
+      module: 'moderation_queue',
       message: `Fila de moderação acumulada: ${pendingReports.length} pendentes.`,
+      cause: hoursOld > 4 ? "Latência de moderação excedeu 4h." : "Volume de pendências em crescimento.",
       suggestedAction: hoursOld > 4 ? "Acionar moderadores de plantão (SLA crítico)." : "Limpar fila de moderação.",
       payload: { count: pendingReports.length, oldestAgeHours: hoursOld }
     });
@@ -103,7 +111,9 @@ export async function detectActiveAlerts(): Promise<OperationalAlert[]> {
           status: 'active',
           city: group.city,
           scopeId: group.slug,
+          module: 'territorial_readiness',
           message: `Regressão silenciosa em ${group.name}: tentativas sem sucesso nas últimas 24h.`,
+          cause: "Tentativas de abertura de câmera sem finalização no recorte.",
           suggestedAction: "Verificar se o recorte perdeu cobertura ou se há erro técnico localizado.",
           payload: { attempts }
         });
@@ -132,7 +142,10 @@ export async function detectActiveAlerts(): Promise<OperationalAlert[]> {
           alertKind: 'performance',
           severity: 'critical',
           status: 'active',
+          module: 'camera_upload',
           message: `Regressão de Fluxo: ${Math.round(dropRate * 100)}% de abandono de câmera nas últimas 4h.`,
+          cause: "Taxa de drop excessiva entre abertura e conclusão.",
+          suggestedAction: "Investigar falhas silenciosas no componente PriceSubmitForm.",
           payload: { dropRate, cameras, completions: completions.length }
         });
       }
@@ -151,7 +164,9 @@ export async function detectActiveAlerts(): Promise<OperationalAlert[]> {
         alertKind: 'performance',
         severity: 'warning',
         status: 'active',
+        module: 'local_queue',
         message: `Pico de Fila Local: ${queueEvents.length} envios acumulados na última hora.`,
+        cause: "Alta frequência de eventos 'submission_queue_added'.",
         suggestedAction: "Verificar se há instabilidade no endpoint de upload ou rede.",
         payload: { count: queueEvents.length }
       });
@@ -181,15 +196,22 @@ export async function persistAlerts(alerts: OperationalAlert[]) {
         status: alert.status,
         city: alert.city,
         scope_id: alert.scopeId,
+        module: alert.module,
         message: alert.message,
+        cause: alert.cause,
         suggested_action: alert.suggestedAction,
         payload: alert.payload
       });
     } else {
-      // Atualizar timestamp de update
+      // Atualizar timestamp de update e novos campos contextuais
       await supabase
         .from("operational_alerts")
-        .update({ payload: alert.payload, updated_at: new Date().toISOString() })
+        .update({ 
+          payload: alert.payload, 
+          module: alert.module,
+          cause: alert.cause,
+          updated_at: new Date().toISOString() 
+        })
         .eq("id", existing.id);
     }
   }
@@ -198,4 +220,32 @@ export async function persistAlerts(alerts: OperationalAlert[]) {
   // (Pode ser complexo sem um identificador de regra único, mas para o beta
   // vamos simplificar: se detectamos alertas, os ativos que NÃO estão na lista
   // poderiam ser resolvidos, mas isso exige cuidado. Vamos pular por enquanto.)
+}
+export async function getActiveActionableAlerts(): Promise<any[]> {
+  const supabase = createSupabaseServiceClient();
+  const { data, error } = await supabase
+    .from("operational_alerts")
+    .select("*")
+    .eq("status", "active")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Failed to fetch active alerts", error);
+    return [];
+  }
+
+  return data.map(a => ({
+    id: a.id,
+    alertKind: a.alert_kind,
+    severity: a.severity,
+    message: a.message,
+    city: a.city,
+    scopeId: a.scope_id,
+    module: a.module,
+    cause: a.cause,
+    suggestedAction: a.suggested_action,
+    payload: a.payload,
+    startedAt: a.created_at,
+    status: a.status
+  }));
 }

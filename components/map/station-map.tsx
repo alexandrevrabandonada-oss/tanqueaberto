@@ -5,6 +5,7 @@ import type { Route } from "next";
 import Link from "next/link";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
+import { Info, Navigation, Camera } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
@@ -186,62 +187,113 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
         })}
       </MapContainer>
 
-      <div className="absolute inset-x-3 bottom-3 z-[402] pointer-events-none">
-        <div className="pointer-events-auto rounded-[24px] border border-white/8 bg-black/85 p-4 backdrop-blur-md">
+      <div className={cn(
+        "absolute inset-x-0 bottom-0 z-[402] px-3 pb-3 transition-transform duration-300 ease-out",
+        selectedStation ? "translate-y-0" : "translate-y-12 pointer-events-none opacity-0"
+      )}>
+        <div className="rounded-[28px] border border-white/12 bg-black/90 p-5 shadow-2xl backdrop-blur-xl">
           {selectedStation ? (
-            <div className="space-y-3">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-white/42">Pin tocado</p>
-                  <h4 className="mt-1 text-base font-semibold text-white">{selectedStationName}</h4>
-                  <p className="text-sm text-white/54">
+            <div className="space-y-4">
+              <div className="flex items-start justify-between">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/42">Pin Selecionado</span>
+                    {selectedStation.geoReviewStatus === "manual_review" && (
+                      <Badge variant="warning" className="h-4 py-0 text-[9px]">Revisão</Badge>
+                    )}
+                  </div>
+                  <h4 className="mt-1 truncate text-lg font-black tracking-tight text-white uppercase italic">{selectedStationName}</h4>
+                  <p className="truncate text-sm font-medium text-white/54">
                     {selectedStation.neighborhood}, {selectedStation.city}
                   </p>
-                  <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-white/42">{selectedStation.brand || "Cadastro territorial"}</p>
                 </div>
-                <Badge variant={selectedReport ? recencyToneToBadgeVariant(selectedTone) : "outline"}>
-                  {selectedReport ? formatRecencyLabel(selectedReport.reportedAt) : "Sem preço"}
-                </Badge>
+                
+                <div className="flex shrink-0 flex-col items-end gap-1">
+                  {selectedReport ? (
+                    <div className="text-right">
+                      <div className="text-xl font-black tracking-tighter text-white">{formatCurrencyBRL(selectedReport.price)}</div>
+                      <div className="text-[10px] font-bold text-white/30 uppercase tracking-widest">{fuelLabels[selectedReport.fuelType]}</div>
+                    </div>
+                  ) : (
+                    <Badge variant="outline" className="text-[10px]">Sem preço</Badge>
+                  )}
+                </div>
               </div>
-              <div className="flex flex-wrap gap-2 text-xs text-white/56">
-                {selectedReport ? <Badge variant="default">{fuelFilter === "all" ? fuelLabels[selectedReport.fuelType] : `Filtro: ${fuelLabels[fuelFilter]}`}</Badge> : null}
-                {selectedReport ? <Badge variant={recencyToneToBadgeVariant(selectedTone)}>{selectedTone === "stale" ? "Sem atualização recente" : "Preço recente"}</Badge> : <Badge variant="outline">Posto cadastrado</Badge>}
-                {selectedStation.geoReviewStatus === "manual_review" && !selectedReport ? <Badge variant="warning">Localização em revisão</Badge> : null}
-              </div>
-              <p className="text-sm text-white/58">
-                {selectedReport
-                  ? `${fuelLabels[selectedReport.fuelType]} · ${formatCurrencyBRL(selectedReport.price)} · ${formatRecencyLabel(selectedReport.reportedAt)}`
-                  : "Posto cadastrado no território, sem preço recente aprovado."}
-              </p>
-              <div className="flex gap-2">
+
+              <div className="grid grid-cols-3 gap-2">
+                <ButtonLink
+                  href={getSendHref(selectedStation.id, returnToHref, fuelFilter)}
+                  className="flex flex-col h-16 gap-1 rounded-2xl bg-white text-black hover:bg-white/90"
+                  onClick={() => {
+                    rememberStationVisit({ id: selectedStation.id, name: selectedStationName, city: selectedStation.city });
+                    void trackProductEvent({ 
+                      eventType: "camera_opened_from_station", 
+                      pagePath: getSendHref(selectedStation.id, returnToHref, fuelFilter), 
+                      pageTitle: selectedStationName, 
+                      stationId: selectedStation.id, 
+                      city: selectedStation.city, 
+                      fuelType: selectedReport?.fuelType ?? null, 
+                      scopeType: "submission", 
+                      scopeId: selectedStation.id, 
+                      payload: { source: "map_sheet", action: "camera" } 
+                    });
+                  }}
+                >
+                  <Camera className="w-5 h-5" />
+                  <span className="text-[9px] font-black uppercase tracking-tighter">Câmera</span>
+                </ButtonLink>
+
+                <button
+                  onClick={() => {
+                    const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                    import("@/lib/navigation/external-maps").then(({ openExternalNavigation }) => {
+                      openExternalNavigation(isMobile ? "waze" : "google", {
+                        lat: selectedStation.lat,
+                        lng: selectedStation.lng,
+                        stationId: selectedStation.id,
+                        stationName: selectedStationName,
+                        source: "map_sheet"
+                      });
+                    });
+                  }}
+                  className="flex flex-col items-center justify-center h-16 gap-1 rounded-2xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors"
+                >
+                  <Navigation className="w-5 h-5 text-[color:var(--color-accent)]" />
+                  <span className="text-[9px] font-black uppercase tracking-tighter">Navegar</span>
+                </button>
+
                 <ButtonLink
                   href={getStationHref(selectedStation.id, returnToHref)}
                   variant="secondary"
-                  className="flex-1"
+                  className="flex flex-col h-16 gap-1 rounded-2xl border border-white/10"
                   onClick={() => {
                     rememberStationVisit({ id: selectedStation.id, name: selectedStationName, city: selectedStation.city });
-                    void trackProductEvent({ eventType: "station_clicked", pagePath: getStationHref(selectedStation.id, returnToHref), pageTitle: selectedStationName, stationId: selectedStation.id, city: selectedStation.city, fuelType: selectedReport?.fuelType ?? null, scopeType: "station", scopeId: selectedStation.id, payload: { source: "map-card-open" } });
+                    void trackProductEvent({ 
+                      eventType: "station_clicked", 
+                      pagePath: getStationHref(selectedStation.id, returnToHref), 
+                      pageTitle: selectedStationName, 
+                      stationId: selectedStation.id, 
+                      city: selectedStation.city, 
+                      fuelType: selectedReport?.fuelType ?? null, 
+                      scopeType: "station", 
+                      scopeId: selectedStation.id, 
+                      payload: { source: "map_sheet", action: "details" } 
+                    });
                   }}
                 >
-                  Abrir posto
-                </ButtonLink>
-                <ButtonLink
-                  href={getSendHref(selectedStation.id, returnToHref, fuelFilter)}
-                  className="flex-1"
-                  onClick={() => {
-                    rememberStationVisit({ id: selectedStation.id, name: selectedStationName, city: selectedStation.city });
-                    void trackProductEvent({ eventType: "camera_opened_from_station", pagePath: getSendHref(selectedStation.id, returnToHref, fuelFilter), pageTitle: selectedStationName, stationId: selectedStation.id, city: selectedStation.city, fuelType: selectedReport?.fuelType ?? null, scopeType: "submission", scopeId: selectedStation.id, payload: { source: "map-card-send", compactMode: true } });
-                  }}
-                >
-                  Abrir câmera
+                  <Info className="w-5 h-5" />
+                  <span className="text-[9px] font-black uppercase tracking-tighter">Detalhes</span>
                 </ButtonLink>
               </div>
             </div>
           ) : (
-            <div className="flex items-center justify-between gap-3 text-sm text-white/58">
-              <p>Toque em um pin para ver o card rápido e seguir para o posto ou para o envio.</p>
-              <button type="button" onClick={() => setSelectedStationId(mapStations[0]?.id ?? null)} className="rounded-full border border-white/10 px-3 py-2 text-xs font-medium text-white/72">
-                Abrir um pin
+            <div className="flex items-center justify-between text-xs font-bold text-white/40 uppercase tracking-widest py-1">
+              <span>Selecione um posto</span>
+              <button 
+                onClick={() => setSelectedStationId(mapStations[0]?.id || null)}
+                className="text-[color:var(--color-accent)] animate-pulse"
+              >
+                Abrir mais próximo
               </button>
             </div>
           )}

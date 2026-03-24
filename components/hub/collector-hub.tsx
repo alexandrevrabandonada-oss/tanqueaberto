@@ -14,8 +14,13 @@ import { HubRecents } from "./hub-recents";
 import { CycleDash } from "./cycle-dash";
 import { ReputationBadge } from "./reputation-badge";
 import { ProofOfLifeReinforcement } from "./proof-of-life-reforcement";
-import { getCollectorTrustAction } from "@/app/hub/actions";
+import { HubGeofencingCTA } from "./hub-geofencing-cta";
+import { TerritorialImpactCard } from "./territorial-impact-card";
+import { getCollectorTrustAction, getCollectorTerritorialImpactAction } from "@/app/hub/actions";
 import type { CollectorTrust } from "@/lib/ops/collector-trust";
+import type { CollectorTerritorialImpact } from "@/lib/ops/recorte-activity";
+import { recordHubInteraction } from "@/lib/telemetry/attribution";
+import { RetomadaBloco } from "./retomada-bloco";
 
 interface CollectorHubProps {
   stations: StationWithReports[];
@@ -23,20 +28,24 @@ interface CollectorHubProps {
 
 export function CollectorHub({ stations }: CollectorHubProps) {
   const { submissions, reporterNickname, isLoaded: historyLoaded } = useSubmissionHistory();
-  const { mission, stats: missionStats, isLoaded: missionLoaded } = useMissionContext();
+  const { mission, stats: missionStats, isLoaded: missionLoaded, currentStationId } = useMissionContext();
   const [localQueue, setLocalQueue] = useState<SubmissionQueueEntry[]>([]);
   const [localLoaded, setLocalLoaded] = useState(false);
   const [trust, setTrust] = useState<CollectorTrust | null>(null);
+  const [impact, setImpact] = useState<CollectorTerritorialImpact | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
-      const [queue, trustData] = await Promise.all([
+      const [queue, trustData, impactData] = await Promise.all([
         loadSubmissionQueue(),
-        getCollectorTrustAction(reporterNickname)
+        getCollectorTrustAction(reporterNickname),
+        reporterNickname ? getCollectorTerritorialImpactAction(reporterNickname) : Promise.resolve(null)
       ]);
       setLocalQueue(queue);
       setTrust(trustData);
+      setImpact(impactData);
       setLocalLoaded(true);
+      recordHubInteraction();
     };
     loadData();
 
@@ -76,15 +85,47 @@ export function CollectorHub({ stations }: CollectorHubProps) {
         hasMission={!!mission}
       />
 
+      {/* Retomada de Fluxo (Prioridade Máxima) */}
+      {hasErrors ? (
+        <RetomadaBloco 
+          type="pending"
+          count={localCount}
+          href="/enviar"
+        />
+      ) : mission ? (
+        <RetomadaBloco 
+          type="mission"
+          lastStationName={stations.find(s => s.id === currentStationId)?.name || mission.groupName}
+          lastUpdate={mission.lastSubmissionAt || mission.startedAt}
+          href="/beta/missoes"
+        />
+      ) : localCount > 0 ? (
+        <RetomadaBloco 
+          type="pending"
+          count={localCount}
+          href="/enviar"
+        />
+      ) : null}
+
+      {/* Hub 2.0: Recommendations & Smart Actions */}
+      {reporterNickname && (
+        <HubGeofencingCTA nickname={reporterNickname} />
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2">
         {/* Reputation Badge */}
         {trust && (
-          <ReputationBadge stage={trust.trustStage} score={trust.score} />
+          <ReputationBadge stage={trust.trustStage} score={trust.score} streak={trust.streak} />
         )}
 
-        {/* Proof of Life Reinforcement */}
-        <ProofOfLifeReinforcement city={defaultCity} />
+        {/* Impact Territorial */}
+        {impact && (
+          <TerritorialImpactCard impact={impact} />
+        )}
       </div>
+
+      {/* Complementary Proof of Life */}
+      <ProofOfLifeReinforcement city={defaultCity} />
 
       {/* Main Sections */}
       <div className="grid gap-6">
@@ -109,3 +150,4 @@ export function CollectorHub({ stations }: CollectorHubProps) {
     </div>
   );
 }
+

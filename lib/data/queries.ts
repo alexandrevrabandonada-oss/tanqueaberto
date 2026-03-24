@@ -392,3 +392,50 @@ export async function getCollectorTrustList(limit = 100) {
 
   return data;
 }
+export async function getStationsByIds(ids: string[]): Promise<Station[]> {
+  if (ids.length === 0) return [];
+  if (isPreviewFixturesMode()) {
+    return getPreviewStations()
+      .filter(s => ids.includes(s.id))
+      .map((station) => station as unknown as Station);
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("stations")
+    .select("id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,coordinate_reviewed_at,updated_at")
+    .in("id", ids)
+    .eq("is_active", true);
+
+  if (error || !data) {
+    if (error) console.error("Failed to load stations by ids", error);
+    return [];
+  }
+
+  return (data as StationRow[]).map(mapStationRow);
+}
+
+export async function getRecentReportsForStations(stationIds: string[], limit = 50): Promise<PriceReport[]> {
+  if (stationIds.length === 0) return [];
+  if (isPreviewFixturesMode()) {
+    return getPreviewRecentFeed()
+      .filter(r => stationIds.includes(r.stationId))
+      .slice(0, limit);
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("price_reports")
+    .select("id,station_id,fuel_type,price,photo_url,photo_taken_at,reported_at,created_at,reporter_nickname,status,moderation_note")
+    .in("station_id", stationIds)
+    .eq("status", "approved")
+    .order("reported_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) {
+    if (error) console.error("Failed to load group reports", error);
+    return [];
+  }
+
+  return (data as PriceReportRow[]).map(mapReportRow);
+}

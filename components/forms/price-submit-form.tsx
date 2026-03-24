@@ -30,6 +30,7 @@ import { processImageForUpload } from "@/lib/camera/image-processor";
 import { AlertTriangle, CheckCircle2, Loader2, Sparkles, MessageCircleQuestion } from "lucide-react";
 import { ContextualFeedback } from "@/components/feedback/contextual-feedback";
 import { submitContextualFeedbackAction } from "@/app/hub/feedback-actions";
+import { consumeHubAttribution } from "@/lib/telemetry/attribution";
 
 const fuelOptions: FuelType[] = ["gasolina_comum", "gasolina_aditivada", "etanol", "diesel_s10", "diesel_comum", "gnv"];
 const allowedFuelSet = new Set<FuelType>(fuelOptions);
@@ -142,6 +143,21 @@ function PriceSubmitFormBody({
           submittedAt: new Date().toISOString(),
           reporterNickname: nickname || null
         });
+
+        // Hub Conversion Tracking
+        if (consumeHubAttribution()) {
+          void trackProductEvent({
+            eventType: "hub_conversion_success",
+            pagePath: "/enviar",
+            pageTitle: "Enviar preço",
+            stationId: station.id,
+            fuelType,
+            payload: { 
+              reportId: state.reportId,
+              source: "hub"
+            }
+          });
+        }
       }
     }
   }, [state.success, state.reportId, addSubmission, stations, stationId, fuelType, price, nickname]);
@@ -1338,6 +1354,7 @@ function PriceSubmitFormBody({
               tags,
               page_path: window.location.pathname,
               station_id: stationId,
+              city: selectedStation?.city || null,
               context_type: 'generic'
             });
           }}

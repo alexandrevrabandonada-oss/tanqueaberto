@@ -74,6 +74,16 @@ function buildContextHref(query: string, city: string, fuelFilter: FuelFilter, r
   return suffix ? `/?${suffix}` : "/";
 }
 
+function getStationHref(stationId: string, returnToHref?: string) {
+  return returnToHref ? (`/postos/${stationId}?returnTo=${encodeURIComponent(returnToHref)}` as Route) : (`/postos/${stationId}` as Route);
+}
+
+function getSendHref(stationId: string, returnToHref?: string, fuelFilter?: FuelFilter) {
+  const fuelParam = fuelFilter && fuelFilter !== "all" ? `&fuel=${fuelFilter}` : "";
+  const base = `/enviar?stationId=${stationId}${fuelParam}#photo`;
+  return returnToHref ? (`${base}&returnTo=${encodeURIComponent(returnToHref)}` as Route) : (base as Route);
+}
+
 function FilterSelect({
   label,
   value,
@@ -927,13 +937,40 @@ export function HomeBrowser({
                         {formatDistance(station.distance)}
                       </span>
                     )}
-                    {latest ? (
-                      <Badge variant={recencyToneToBadgeVariant(getRecencyTone(latest.reportedAt))} className="text-[10px]">
-                        {formatRecencyLabel(latest.reportedAt)}
-                      </Badge>
-                    ) : (
-                      <span className="text-[10px] uppercase tracking-wider text-white/24">Sem preço</span>
-                    )}
+                    
+                    <div className="flex items-center gap-1">
+                      <ButtonLink
+                        href={getSendHref(station.id, contextHref, fuelFilter)}
+                        className="h-9 w-9 p-0 rounded-xl bg-white text-black hover:bg-white/90"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void trackProductEvent({ eventType: "camera_opened_from_station", pagePath: contextHref, pageTitle: "Lista", stationId: station.id, payload: { source: "home_list_quick", action: "camera" } });
+                        }}
+                      >
+                        <Camera className="h-4 w-4" />
+                      </ButtonLink>
+
+                      <button
+                        className="h-9 w-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                          import("@/lib/navigation/external-maps").then(({ openExternalNavigation }) => {
+                            openExternalNavigation(isMobile ? "waze" : "google", {
+                              lat: station.lat,
+                              lng: station.lng,
+                              stationId: station.id,
+                              stationName: getStationPublicName(station),
+                              source: "home_list_quick"
+                            });
+                          });
+                        }}
+                      >
+                        <Navigation className="h-4 w-4 text-[color:var(--color-accent)]" />
+                      </button>
+                    </div>
+
                     <ArrowRight className="h-4 w-4 text-white/20 transition group-hover:translate-x-1 group-hover:text-white" />
                   </div>
                 </Link>

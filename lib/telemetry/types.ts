@@ -52,6 +52,10 @@ export type ProductTelemetryEventType =
   | "station_evidence_viewed"
   | "hub_opened"
   | "hub_action_clicked"
+  | "hub_mission_resumed"
+  | "hub_pendency_resubmitted"
+  | "hub_camera_opened"
+  | "hub_conversion_success"
   | "rollout_recommendation_accepted"
   | "rollout_recommendation_rejected"
   | "rollout_manual_override";

@@ -1,15 +1,16 @@
 "use client";
 
-import { ShieldCheck, Trophy, AlertCircle, Info, Sparkles } from "lucide-react";
+import { ShieldCheck, Trophy, AlertCircle, Info, Sparkles, Zap, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TrustStage } from "@/lib/ops/collector-trust";
 
 interface ReputationBadgeProps {
   stage: TrustStage;
   score: number;
+  streak?: number;
 }
 
-export function ReputationBadge({ stage, score }: ReputationBadgeProps) {
+export function ReputationBadge({ stage, score, streak }: ReputationBadgeProps) {
   const configs: Record<TrustStage, { label: string, icon: any, color: string, bg: string, message: string }> = {
     'novo': {
       label: 'Novo Coletor',
@@ -58,15 +59,24 @@ export function ReputationBadge({ stage, score }: ReputationBadgeProps) {
       <div className={cn("mt-0.5 shrink-0", config.color)}>
         {config.icon}
       </div>
-      <div className="space-y-1">
-        <div className="flex items-center gap-2">
-           <span className={cn("text-[9px] font-black uppercase tracking-widest", config.color)}>
-             {config.label}
-           </span>
-           <div className="flex items-center gap-1 bg-black/20 px-1.5 py-0.5 rounded text-[8px] font-bold text-white/40">
-              <Sparkles className="w-2.5 h-2.5" />
-              Score: {score}
+       <div className="space-y-1 w-full">
+        <div className="flex items-center justify-between gap-2">
+           <div className="flex items-center gap-2">
+             <span className={cn("text-[9px] font-black uppercase tracking-widest", config.color)}>
+               {config.label}
+             </span>
+             <div className="flex items-center gap-1 bg-black/20 px-1.5 py-0.5 rounded text-[8px] font-bold text-white/40">
+                <Sparkles className="w-2.5 h-2.5" />
+                Score: {score}
+             </div>
            </div>
+           
+           {streak && streak > 0 && (
+             <div className="flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded-full text-[9px] font-black text-amber-500 italic border border-amber-500/20 shadow-[0_0_10px_rgba(245,158,11,0.1)]">
+               <Zap className="w-3 h-3 fill-current" />
+               {streak}D SEQ
+             </div>
+           )}
         </div>
         <p className="text-[11px] font-medium text-white/60 leading-tight">
           {config.message}

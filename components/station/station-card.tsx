@@ -132,7 +132,7 @@ export function StationCard({ station, fuelFilter = "all", returnToHref, isStree
           className={cn("flex-1", isStreetMode && "h-14 text-base font-bold")}
           onClick={() => {
             rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
-            void trackProductEvent({ eventType: "camera_opened_from_station", pagePath: sendHref, pageTitle: getStationPublicName(station), stationId: station.id, city: station.city, fuelType: latest?.fuelType ?? null, scopeType: "submission", scopeId: station.id, payload: { source: "station-card-bottom", streetMode: isStreetMode } });
+            void trackProductEvent({ eventType: "camera_opened_from_station", pagePath: sendHref, pageTitle: getStationPublicName(station), stationId: station.id, city: station.city, fuelType: latest?.fuelType ?? null, scopeType: "submission", scopeId: station.id, payload: { source: "station_card", streetMode: isStreetMode } });
           }}
         >
           <Camera className={cn("h-4 w-4", isStreetMode && "h-5 w-5")} />

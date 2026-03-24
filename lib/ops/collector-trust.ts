@@ -11,6 +11,9 @@ export interface CollectorTrust {
   approvedReports: number;
   rejectedReports: number;
   trustStage: TrustStage;
+  streakDays: number;
+  missionsCompleted: number;
+  lastReportAt?: string | null;
 }
 
 /**
@@ -76,7 +79,7 @@ export async function getOrCreateCollectorTrust(nickname: string | null, ipHash:
   
   const { data, error } = await supabase
     .from('collector_trust')
-    .select('*')
+    .select('nickname, ip_hash, score, total_reports, approved_reports, rejected_reports, trust_stage, streak_days, missions_completed, last_report_at')
     .eq('nickname', nickname || '')
     .eq('ip_hash', ipHash || '')
     .maybeSingle();
@@ -89,7 +92,10 @@ export async function getOrCreateCollectorTrust(nickname: string | null, ipHash:
       totalReports: data.total_reports,
       approvedReports: data.approved_reports,
       rejectedReports: data.rejected_reports,
-      trustStage: data.trust_stage as TrustStage
+      trustStage: data.trust_stage as TrustStage,
+      streakDays: data.streak_days || 0,
+      missionsCompleted: data.missions_completed || 0,
+      lastReportAt: data.last_report_at
     };
   }
 
@@ -98,7 +104,9 @@ export async function getOrCreateCollectorTrust(nickname: string | null, ipHash:
     ip_hash: ipHash || '',
     score: 50,
     total_reports: 0,
-    trust_stage: 'novo' as TrustStage
+    trust_stage: 'novo' as TrustStage,
+    streak_days: 0,
+    missions_completed: 0
   };
 
   const { data: created, error: createError } = await supabase
@@ -116,7 +124,9 @@ export async function getOrCreateCollectorTrust(nickname: string | null, ipHash:
       totalReports: 0,
       approvedReports: 0,
       rejectedReports: 0,
-      trustStage: 'novo'
+      trustStage: 'novo',
+      streakDays: 0,
+      missionsCompleted: 0
     };
   }
 
@@ -127,7 +137,10 @@ export async function getOrCreateCollectorTrust(nickname: string | null, ipHash:
     totalReports: created.total_reports,
     approvedReports: created.approved_reports,
     rejectedReports: created.rejected_reports,
-    trustStage: created.trust_stage as TrustStage
+    trustStage: created.trust_stage as TrustStage,
+    streakDays: created.streak_days || 0,
+    missionsCompleted: created.missions_completed || 0,
+    lastReportAt: created.last_report_at
   };
 }
 
@@ -140,9 +153,30 @@ export async function updateCollectorScore(
   signals: ReputationSignals
 ) {
   const supabase = createSupabaseServiceClient();
-  const delta = calculateScoreDelta(signals);
-  
   const current = await getOrCreateCollectorTrust(nickname, ipHash);
+  
+  const now = new Date();
+  const lastReportAt = current.lastReportAt ? new Date(current.lastReportAt) : null;
+  
+  let nextStreak = current.streakDays;
+  if (!lastReportAt) {
+    nextStreak = 1;
+  } else {
+    const hoursSinceLast = (now.getTime() - lastReportAt.getTime()) / (1000 * 3600);
+    
+    if (hoursSinceLast < 24) {
+      // Já reportou hoje, mantém a streak
+      nextStreak = current.streakDays || 1;
+    } else if (hoursSinceLast < 48) {
+      // Reportou ontem, incrementa
+      nextStreak = (current.streakDays || 0) + 1;
+    } else {
+      // Quebrou a streak
+      nextStreak = 1;
+    }
+  }
+
+  const delta = calculateScoreDelta({ ...signals, isConsistencyBonus: nextStreak > 1 });
   
   const nextScore = Math.max(0, Math.min(100, current.score + delta));
   const nextTotal = current.totalReports + 1;
@@ -158,8 +192,9 @@ export async function updateCollectorScore(
       approved_reports: nextApproved,
       rejected_reports: nextRejected,
       trust_stage: nextStage,
-      last_report_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      streak_days: nextStreak,
+      last_report_at: now.toISOString(),
+      updated_at: now.toISOString()
     })
     .eq('nickname', nickname || '')
     .eq('ip_hash', ipHash || '');

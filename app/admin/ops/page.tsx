@@ -7,7 +7,8 @@ import {
   toggleKillSwitchAction,
   getOperationalHistory,
   triggerRolloutEngineAction,
-  getTerritorialRolloutHistory
+  getTerritorialRolloutHistory,
+  getOperationalSynthesisAction
 } from "./actions";
 import { 
   Zap, 
@@ -26,15 +27,20 @@ import {
   ArrowDownCircle,
   UserCheck,
   Star,
-  MessageSquare
+  MessageSquare,
+  Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { KillSwitchToggle } from "./components/kill-switch-toggle";
 import { RolloutControl } from "./components/rollout-control";
 import { RolloutHistoryPanel } from "./components/rollout-history-panel";
 import { TriggerRolloutButton } from "./components/trigger-rollout-button";
+import { OperationalSynthesis } from "@/components/admin/command/operational-synthesis";
 import { type AuditStationGroup } from "@/lib/audit/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { VozDaRuaClusters } from "./components/voz-da-rua-clusters";
+import { Badge } from "@/components/ui/badge";
+import { Copy } from "lucide-react";
 
 export default async function OpsDashboardPage() {
   const supabase = await createSupabaseServerClient();
@@ -43,13 +49,14 @@ export default async function OpsDashboardPage() {
     .select('*')
     .order('created_at', { ascending: false })
     .limit(10);
-  const [killSwitches, groups, alerts, history, collectors, territorialHistory] = await Promise.all([
+  const [killSwitches, groups, alerts, history, collectors, territorialHistory, synthesis] = await Promise.all([
     getKillSwitches(),
     getAuditGroups(),
     detectActiveAlerts(),
     getOperationalHistory(15),
     getCollectorTrustList(10),
-    getTerritorialRolloutHistory(15)
+    getTerritorialRolloutHistory(15),
+    getOperationalSynthesisAction()
   ]);
 
   return (
@@ -67,6 +74,10 @@ export default async function OpsDashboardPage() {
            </div>
         </div>
       </header>
+
+      <div className="mb-8">
+        <OperationalSynthesis synthesis={synthesis} />
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
@@ -155,36 +166,8 @@ export default async function OpsDashboardPage() {
               </div>
           </div>
 
-          <div className="bg-[#111] border border-[color:var(--color-accent)]/10 rounded-2xl p-4">
-             <h3 className="text-xs font-bold text-[color:var(--color-accent)]/50 uppercase tracking-widest mb-4 flex items-center gap-2">
-               <MessageSquare className="w-3 h-3" />
-               Voz da Rua (Feedback)
-             </h3>
-             <div className="space-y-3">
-                {feedback?.map((f: any, i: number) => (
-                  <div key={i} className="bg-white/[0.02] p-3 rounded-xl border border-white/5 space-y-2">
-                    <div className="flex justify-between items-start">
-                      <span className="text-[8px] font-black px-1 bg-white/5 rounded text-white/40 uppercase tracking-widest">
-                        {f.screen_group || 'geral'}
-                      </span>
-                      <span className="text-[8px] text-white/20 font-mono">
-                        {new Date(f.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-white/80 leading-normal italic">&ldquo;{f.message || 'Sem comentário'}&rdquo;</p>
-                    <div className="flex flex-wrap gap-1">
-                      {f.triage_tags?.map((tag: string) => (
-                        <span key={tag} className="text-[7px] font-bold px-1.5 py-0.5 bg-[color:var(--color-accent)]/10 text-[color:var(--color-accent)]/70 rounded-full border border-[color:var(--color-accent)]/20 uppercase">
-                          {tag.replace('_', ' ')}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-                {(!feedback || feedback.length === 0) && (
-                  <p className="text-[10px] text-white/20 text-center py-4">Nenhum feedback humano recente.</p>
-                )}
-             </div>
+          <div className="bg-[#111] border border-white/5 rounded-2xl p-4">
+             <VozDaRuaClusters clusters={synthesis.topClusters || []} />
           </div>
 
           <div className="bg-[#111] border border-white/5 rounded-2xl p-4">

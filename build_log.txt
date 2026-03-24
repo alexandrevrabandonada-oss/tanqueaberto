@@ -1,0 +1,21 @@
+
+> bomba-aberta@0.1.0 build
+> next build
+
+   Ôû▓ Next.js 15.5.14
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+Failed to compile.
+
+./node_modules\next\dist\compiled\client-only\error.js
+'client-only' cannot be imported from a Server Component module. It should only be used from a Client Component.
+
+Import trace for requested module:
+  ./node_modules\next\dist\compiled\client-only\error.js
+  ./node_modules\styled-jsx\dist\index\index.js
+  ./node_modules\styled-jsx\style.js
+  ./app\admin\command-center\page.tsx
+
+
+> Build failed because of webpack errors
