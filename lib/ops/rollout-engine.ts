@@ -2,11 +2,13 @@ import { createSupabaseServiceClient } from "@/lib/supabase/admin";
 import { getAuditGroups, getAuditGroupMembers } from "@/lib/audit/groups";
 import { type AuditStationGroup } from "@/lib/audit/types";
 
+export type TerritorialOperationalState = AuditStationGroup["releaseStatus"];
+
 export interface RolloutRecommendation {
   slug: string;
   name: string;
-  currentStatus: AuditStationGroup["releaseStatus"];
-  suggestedStatus: AuditStationGroup["releaseStatus"];
+  currentStatus: TerritorialOperationalState;
+  suggestedStatus: TerritorialOperationalState;
   reason: string;
   confidence: number;
   metrics: {
@@ -16,6 +18,43 @@ export interface RolloutRecommendation {
     coveragePct: number;
   };
 }
+
+export async function applyRolloutChange(
+  groupId: string,
+  newState: TerritorialOperationalState,
+  kind: 'automated' | 'manual_override',
+  reason: string,
+  adminId: string
+) {
+  const supabase = createSupabaseServiceClient();
+  
+  // 1. Update the actual group status
+  const { error: updateError } = await supabase
+    .from("audit_station_groups")
+    .update({ 
+      release_status: newState,
+      recommended_state: null, // Clear recommendation
+      rollout_notes: `${kind === 'automated' ? '[AUTO]' : '[MANUAL]'} ${reason}`
+    })
+    .eq("id", groupId);
+
+  if (updateError) throw updateError;
+
+  // 2. Log the operation
+  await supabase
+    .from("operational_logs")
+    .insert({
+      event_type: "rollout_change",
+      scope_type: "audit_group",
+      scope_id: groupId,
+      severity: "info",
+      message: `Rollout change to ${newState}: ${reason}`,
+      metadata: { kind, adminId },
+      created_at: new Date().toISOString()
+    });
+}
+
+export const getRolloutRecommendations = generateGroupRecommendations;
 
 export async function generateGroupRecommendations(): Promise<RolloutRecommendation[]> {
   const supabase = createSupabaseServiceClient();
