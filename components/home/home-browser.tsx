@@ -45,6 +45,9 @@ import { InstallPromptCard } from "./install-prompt-card";
 import { useOperationalFocus } from "@/hooks/use-operational-focus";
 import { useRetentionSurfaces } from "@/components/layout/retention-hub";
 import { type OperationalKillSwitches } from "@/lib/ops/kill-switches";
+import { RecortePulseWidget } from "./recorte-pulse-widget";
+import { getRecortePulseAction } from "@/app/actions/pulse";
+import { type RecorteActivity } from "@/lib/ops/recorte-activity";
 
 interface HomeBrowserProps {
   stations: StationWithReports[];
@@ -302,6 +305,33 @@ export function HomeBrowser({
       distance: calculateDistance(coords.lat, coords.lng, station.lat, station.lng)
     }));
   }, [stations, coords]);
+
+  const [pulseData, setPulseData] = useState<RecorteActivity | null>(null);
+
+  useEffect(() => {
+    if (initialCity) {
+      const fetchPulse = async () => {
+        const data = await getRecortePulseAction(initialCity);
+        setPulseData(data);
+        
+        if (data) {
+          void trackProductEvent({
+            eventType: "recorte_pulse_opened" as any,
+            pagePath: "/",
+            pageTitle: "Home",
+            payload: { 
+              city: initialCity,
+              isLive: data.lastActivityAt && (Date.now() - new Date(data.lastActivityAt).getTime()) < 60 * 60 * 1000,
+              coverage: data.collaborationProgress
+            }
+          });
+        }
+      };
+      fetchPulse();
+    } else {
+      setPulseData(null);
+    }
+  }, [initialCity]);
 
   const filteredStations = useMemo(
     () => filterStations(stationsWithDistances, deferredQuery, selectedCity, fuelFilter, recencyFilter, presenceFilter),
@@ -657,6 +687,12 @@ export function HomeBrowser({
                 </button>
               );
             })}
+            {pulseData && initialCity && (
+            <RecortePulseWidget 
+              activity={pulseData} 
+              cityName={initialCity} 
+            />
+          )}
             <FeedbackTrigger 
               city={selectedCity} 
               fuelType={fuelFilter} 
