@@ -15,23 +15,23 @@ interface QuickActionButtonProps extends React.ButtonHTMLAttributes<HTMLButtonEl
   href?: Route | string;
   showLabel?: boolean;
   layout?: 'vertical' | 'horizontal';
+  isAssisted?: boolean;
 }
 
 export const QuickActionButton = React.forwardRef<HTMLButtonElement, QuickActionButtonProps>(
-  ({ icon: Icon, label, variant = 'secondary', isStreetMode, href, showLabel = true, layout = 'vertical', className, onClick, ...props }, ref) => {
+  ({ icon: Icon, label, variant = 'secondary', isStreetMode, isAssisted, href, showLabel = true, layout = 'vertical', className, onClick, ...props }, ref) => {
     const isHorizontal = layout === 'horizontal';
     
     const content = (
       <>
         <Icon className={cn(
-          "shrink-0 transition-transform group-active:scale-110", 
-          isStreetMode ? "h-5 w-5" : "h-4 w-4"
+          "shrink-0 transition-transform group-active:scale-125 duration-75", 
+          isStreetMode || isAssisted ? "h-6 w-6" : "h-4 w-4"
         )} />
         {showLabel && (
           <span className={cn(
             "font-black tracking-widest uppercase italic leading-none transition-all",
-            isStreetMode ? "text-[10px]" : "text-[9px]",
-            isHorizontal ? "ml-1" : "mt-0.5"
+            isAssisted ? "text-[11px] text-white" : isStreetMode ? "text-[10px]" : "text-[9px]"
           )}>
             {label}
           </span>
@@ -40,13 +40,15 @@ export const QuickActionButton = React.forwardRef<HTMLButtonElement, QuickAction
     );
 
     const baseStyles = cn(
-      "group flex items-center justify-center rounded-2xl transition-all duration-200 active:scale-90 active:brightness-125 select-none",
-      isHorizontal ? "flex-row px-4 h-11 min-w-[90px] gap-2" : "flex-col gap-1.5",
-      !isHorizontal && (isStreetMode ? "h-16 w-full" : "h-14 px-4 min-w-[70px]"),
-      variant === 'primary' && "bg-white text-black hover:bg-white/90 shadow-lg shadow-white/5",
+      "group flex items-center justify-center rounded-2xl transition-all duration-150 select-none touch-none",
+      "active:scale-95 active:brightness-150 active:shadow-[0_0_20px_rgba(255,255,255,0.1)]",
+      isHorizontal ? "flex-row px-4 h-11 min-w-[90px] gap-2.5" : "flex-col gap-2",
+      !isHorizontal && (isAssisted ? "h-20 w-full" : isStreetMode ? "h-16 w-full" : "h-14 px-4 min-w-[70px]"),
+      variant === 'primary' && "bg-white text-black hover:bg-white/90 shadow-xl shadow-white/5",
       variant === 'secondary' && "bg-white/5 border border-white/10 text-white hover:bg-white/10",
-      variant === 'accent' && "bg-[color:var(--color-accent)] text-black hover:opacity-90 shadow-lg shadow-[color:var(--color-accent)]/10",
+      variant === 'accent' && "bg-[color:var(--color-accent)] text-black hover:opacity-90 shadow-xl shadow-[color:var(--color-accent)]/10",
       variant === 'outline' && "border border-white/10 bg-transparent text-white/60 hover:text-white hover:border-white/20",
+      isAssisted && variant === 'primary' && "ring-2 ring-white/20 ring-offset-2 ring-offset-black",
       className
     );
 

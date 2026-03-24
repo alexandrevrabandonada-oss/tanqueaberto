@@ -19,6 +19,8 @@ import { formatRecencyLabel } from "@/lib/format/time";
 import { Trophy, Target, Zap, Clock3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useOperationalMemory } from "@/hooks/use-operational-memory";
+import { useInbox } from "@/hooks/use-inbox";
+import { CollectorInbox } from "@/components/user/collector-inbox";
 
 export interface RetentionSurfaceItem {
   id: string;
@@ -32,6 +34,7 @@ export function useRetentionSurfaces() {
   const { memory } = useOperationalMemory();
   const { mission, stats, progress } = useMissionContext();
   const { reporterNickname, submissions } = useMySubmissions();
+  const { items: inboxItems, unreadCount } = useInbox();
   const [trust, setTrust] = useState<CollectorTrust | null>(null);
   const [role, setRole] = useState<UtilityRole>('iniciante');
 
@@ -54,12 +57,12 @@ export function useRetentionSurfaces() {
   // --- PRIORIDADE 0: ATIVAÇÃO DE INICIANTE (FUNIL 1.0) ---
   const isTrueBeginner = role === 'iniciante' && submissions.length === 0;
   
-  if (isTrueBeginner && focus.suggestedStation) {
+    if (isTrueBeginner && focus.suggestedStation) {
     surfaces.push({
       id: "retention_beginner_activation",
       type: "ACTION_PROMPT",
       content: (
-        <div className="flex flex-col gap-4 rounded-[28px] bg-blue-600/10 border border-blue-500/20 p-5 shadow-lg shadow-blue-500/5">
+        <div className="flex flex-col gap-3 sm:gap-4 rounded-[28px] bg-blue-600/10 border border-blue-500/20 p-4 sm:p-5 shadow-lg shadow-blue-500/5">
            <div className="flex justify-between items-start">
               <div className="flex items-center gap-3">
                  <div className="rounded-full bg-blue-500/20 p-2">
@@ -132,8 +135,21 @@ export function useRetentionSurfaces() {
   surfaces.push({
     id: "utility_status_identity",
     type: "OPERATIONAL_RETENTION",
-  content: <UtilityStatusCard />
+  content: <UtilityStatusCard unreadCount={unreadCount} />
 });
+
+// 0.05 Collector Inbox (Novidades Assíncronas)
+if (inboxItems.length > 0) {
+  surfaces.push({
+    id: "retention_collector_inbox",
+    type: "OPERATIONAL_RETENTION",
+    content: (
+      <div className="rounded-[32px] border border-white/8 bg-white/[0.02] p-1 sm:p-2">
+        <CollectorInbox />
+      </div>
+    )
+  });
+}
 
 // 0.1 Last Submission Cycle (Feedback de Loop)
 const lastSub = submissions[0];
@@ -142,7 +158,7 @@ if (lastSub) {
     id: "retention_last_cycle",
     type: "OPERATIONAL_RETENTION",
     content: (
-      <div className="flex flex-col gap-3 rounded-[28px] bg-white/[0.03] border border-white/8 p-5">
+      <div className="flex flex-col gap-2 sm:gap-3 rounded-[28px] bg-white/[0.03] border border-white/8 p-4 sm:p-5">
         <div className="flex justify-between items-start">
           <div className="space-y-0.5">
             <p className="text-[10px] font-black uppercase text-white/30 tracking-widest">Acompanhar Ciclo</p>
@@ -173,7 +189,7 @@ if (lastSub) {
       id: "retention_active_mission",
       type: "OPERATIONAL_RETENTION",
       content: (
-        <div className="flex flex-col gap-4 rounded-[28px] bg-[color:var(--color-accent)]/10 border border-[color:var(--color-accent)]/20 p-5">
+        <div className="flex flex-col gap-3 sm:gap-4 rounded-[28px] bg-[color:var(--color-accent)]/10 border border-[color:var(--color-accent)]/20 p-4 sm:p-5">
            <div className="flex justify-between items-start">
              <div className="flex items-center gap-3">
                 <div className="rounded-full bg-[color:var(--color-accent)]/20 p-2">
@@ -217,7 +233,7 @@ if (lastSub) {
       id: "retention_offline_queue",
       type: "OPERATIONAL_RETENTION",
       content: (
-        <div className="flex items-center justify-between gap-3 rounded-2xl bg-orange-500/10 border border-orange-500/20 p-4">
+        <div className="flex items-center justify-between gap-3 rounded-2xl bg-orange-500/10 border border-orange-500/20 p-3 sm:p-4">
           <div className="flex items-center gap-3">
              <div className="rounded-full bg-orange-500/20 p-2">
                <WifiOff className="h-4 w-4 text-orange-400" />
@@ -252,7 +268,7 @@ if (lastSub) {
       id: "retention_territorial_impact",
       type: "OPERATIONAL_RETENTION",
       content: (
-        <div className="flex flex-col gap-4 rounded-[28px] bg-white/[0.03] border border-white/8 p-5">
+        <div className="flex flex-col gap-3 sm:gap-4 rounded-[28px] bg-white/[0.03] border border-white/8 p-4 sm:p-5">
           <div className="flex justify-between items-start">
             <div className="space-y-0.5">
               <p className="text-[10px] font-black uppercase text-white/30 tracking-widest">Seu Impacto</p>

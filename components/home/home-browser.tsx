@@ -166,6 +166,7 @@ export function HomeBrowser({
   const retentionSurfaces = useRetentionSurfaces();
   const [navHandoff, setNavHandoff] = useState<any>(null);
   const [role, setRole] = useState<UtilityRole | null>(null);
+  const isAssisted = isStreetMode || role === "iniciante";
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -209,6 +210,33 @@ export function HomeBrowser({
     return () => {
       window.removeEventListener("focus", checkHandoff);
     };
+  }, []);
+
+  // Scroll Depth Telemetry
+  useEffect(() => {
+    const thresholds = [25, 50, 75, 100];
+    const tracked = new Set<number>();
+
+    const handleScroll = () => {
+      const winHeight = window.innerHeight;
+      const docHeight = document.documentElement.scrollHeight;
+      const scrollTop = window.scrollY;
+      const scrollPercent = Math.round((scrollTop / (docHeight - winHeight)) * 100);
+
+      thresholds.forEach(t => {
+        if (scrollPercent >= t && !tracked.has(t)) {
+          tracked.add(t);
+          void trackProductEvent({
+            eventType: "scroll_depth" as any,
+            pagePath: "/",
+            payload: { depth: t }
+          });
+        }
+      });
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   useEffect(() => {
@@ -725,9 +753,18 @@ export function HomeBrowser({
                 <Link 
                   key={`fav-${fid}`}
                   href={getSendHref(fid, contextHref, fuelFilter)}
-                  className="flex min-w-[160px] h-20 items-center gap-3 rounded-[24px] border border-yellow-400/30 bg-yellow-400/5 pl-4 pr-5 transition active:scale-[0.96] hover:bg-yellow-400/10"
+                  className={cn(
+                    "flex min-w-[160px] h-20 items-center gap-3 rounded-[24px] border border-yellow-400/30 bg-yellow-400/5 pl-4 pr-5 transition duration-200 active:scale-95 active:brightness-125 hover:bg-yellow-400/10",
+                    isAssisted && "border-yellow-400/50 bg-yellow-400/10"
+                  )}
                   onClick={() => {
-                     void trackProductEvent({ eventType: "quick_action_clicked" as any, pagePath: "/", pageTitle: "Home", stationId: fid, payload: { source: "quick_access", type: "favorite" } });
+                     void trackProductEvent({ 
+                       eventType: "quick_action_clicked", 
+                       pagePath: "/", 
+                       pageTitle: "Home", 
+                       stationId: fid, 
+                       payload: { source: "quick_access", type: "favorite", isAssisted, action: "photo" } 
+                     });
                   }}
                 >
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-yellow-400 text-black shadow-lg shadow-yellow-400/20">
@@ -735,7 +772,7 @@ export function HomeBrowser({
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-black text-white truncate uppercase italic tracking-tight">{displayName}</p>
-                    <p className="text-[10px] font-bold text-yellow-400/50 truncate uppercase tracking-widest">{s.neighborhood}</p>
+                    <p className="text-[10px] font-bold text-yellow-400/50 truncate uppercase tracking-widest">{isAssisted ? "ENVIAR FOTO" : s.neighborhood}</p>
                   </div>
                 </Link>
               );
@@ -748,9 +785,18 @@ export function HomeBrowser({
                 <Link 
                   key={`rec-${rid}`}
                   href={getSendHref(rid, contextHref, fuelFilter)}
-                  className="flex min-w-[160px] h-20 items-center gap-3 rounded-[24px] border border-white/10 bg-white/5 pl-4 pr-5 transition active:scale-[0.96] hover:bg-white/10"
+                  className={cn(
+                    "flex min-w-[160px] h-20 items-center gap-3 rounded-[24px] border border-white/10 bg-white/5 pl-4 pr-5 transition duration-200 active:scale-95 active:brightness-125 hover:bg-white/10",
+                    isAssisted && "border-white/20 bg-white/8"
+                  )}
                   onClick={() => {
-                     void trackProductEvent({ eventType: "quick_action_clicked" as any, pagePath: "/", pageTitle: "Home", stationId: rid, payload: { source: "quick_access", type: "recent" } });
+                     void trackProductEvent({ 
+                       eventType: "quick_action_clicked", 
+                       pagePath: "/", 
+                       pageTitle: "Home", 
+                       stationId: rid, 
+                       payload: { source: "quick_access", type: "recent", isAssisted, action: "photo" } 
+                     });
                   }}
                 >
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white/42 group-hover:bg-white/20">
@@ -758,7 +804,7 @@ export function HomeBrowser({
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-black text-white truncate uppercase italic tracking-tight">{displayName}</p>
-                    <p className="text-[10px] font-bold text-white/30 truncate uppercase tracking-widest">{s.neighborhood}</p>
+                    <p className="text-[10px] font-bold text-white/30 truncate uppercase tracking-widest">{isAssisted ? "RETOMAR ENVIO" : s.neighborhood}</p>
                   </div>
                 </Link>
               );
@@ -1186,7 +1232,7 @@ export function HomeBrowser({
                       className="p-0 border-none bg-transparent gap-1.5"
                       onMisclick={() => {
                         void trackProductEvent({ 
-                          eventType: "quick_action_misclick" as any, 
+                          eventType: "quick_action_misclick", 
                           pagePath: contextHref, 
                           pageTitle: getStationPublicName(station), 
                           stationId: station.id 
@@ -1195,31 +1241,28 @@ export function HomeBrowser({
                     >
                       <QuickActionButton
                         icon={Camera}
-                        label="Foto"
+                        label={isAssisted ? "FOTO" : "Foto"}
                         variant="primary"
                         isStreetMode={isStreetMode}
+                        isAssisted={isAssisted}
                         href={getSendHref(station.id, contextHref, fuelFilter)}
                         className={cn(
                           "h-9 min-w-0 transition-all", 
-                          (isStreetMode || role === 'iniciante') ? "w-auto px-3" : "w-9 p-0"
+                          isAssisted ? "w-auto px-3" : "w-9 p-0"
                         )}
-                        showLabel={isStreetMode || role === 'iniciante'}
-                        layout={(isStreetMode || role === 'iniciante') ? 'horizontal' : 'vertical'}
+                        showLabel={isAssisted}
+                        layout={isAssisted ? 'horizontal' : 'vertical'}
                         onClick={() => {
                           rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
                           void trackProductEvent({ 
-                            eventType: "camera_opened_from_station", 
+                            eventType: "quick_action_clicked", 
                             pagePath: getSendHref(station.id, contextHref, fuelFilter), 
                             pageTitle: getStationPublicName(station), 
                             stationId: station.id, 
-                            city: station.city, 
-                            fuelType: latest?.fuelType ?? null, 
-                            scopeType: "submission", 
-                            scopeId: station.id, 
                             payload: { 
                               source: "home_list", 
                               action: "photo",
-                              labelMode: (isStreetMode || role === 'iniciante') ? "text" : "icon"
+                              isAssisted
                             } 
                           });
                         }}
@@ -1227,17 +1270,24 @@ export function HomeBrowser({
                       
                       <QuickActionButton
                         icon={Navigation}
-                        label="Rota"
+                        label={isAssisted ? "ROTA" : "Rota"}
                         variant="secondary"
                         isStreetMode={isStreetMode}
+                        isAssisted={isAssisted}
                         className={cn(
                           "h-9 min-w-0 transition-all", 
-                          (isStreetMode || role === 'iniciante') ? "w-auto px-3" : "w-9 p-0"
+                          isAssisted ? "w-auto px-3" : "w-9 p-0"
                         )}
-                        showLabel={isStreetMode || role === 'iniciante'}
-                        layout={(isStreetMode || role === 'iniciante') ? 'horizontal' : 'vertical'}
+                        showLabel={isAssisted}
+                        layout={isAssisted ? 'horizontal' : 'vertical'}
                         onClick={() => {
                           const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                          void trackProductEvent({ 
+                            eventType: "quick_action_clicked", 
+                            pagePath: "/", 
+                            stationId: station.id, 
+                            payload: { action: "route", method: isMobile ? "waze" : "google", isAssisted } 
+                          });
                           import("@/lib/navigation/external-maps").then(({ openExternalNavigation }) => {
                             openExternalNavigation(isMobile ? "waze" : "google", {
                               lat: station.lat,
@@ -1246,50 +1296,39 @@ export function HomeBrowser({
                               stationName: getStationPublicName(station),
                               source: "home_list"
                             });
-
-                            void trackProductEvent({ 
-                              eventType: "quick_action_clicked" as any, 
-                              pagePath: "/", 
-                              pageTitle: "Home", 
-                              stationId: station.id,
-                              payload: { 
-                                method: isMobile ? "waze" : "google",
-                                labelMode: (isStreetMode || role === 'iniciante') ? "text" : "icon",
-                                action: "route"
-                              }
-                            });
                           });
                         }}
                       />
 
                       <QuickActionButton
                         icon={ArrowRight}
-                        label="Ver"
+                        label={isAssisted ? "VER" : "Ver"}
                         variant="secondary"
                         isStreetMode={isStreetMode}
+                        isAssisted={isAssisted}
                         href={stationHref}
                         className={cn(
                           "h-9 min-w-0 transition-all", 
-                          (isStreetMode || role === 'iniciante') ? "w-auto px-3" : "w-9 p-0"
+                          isAssisted ? "w-auto px-3" : "w-9 p-0"
                         )}
-                        showLabel={isStreetMode || role === 'iniciante'}
-                        layout={(isStreetMode || role === 'iniciante') ? 'horizontal' : 'vertical'}
+                        showLabel={isAssisted}
+                        layout={isAssisted ? 'horizontal' : 'vertical'}
                         onClick={() => {
                           rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
                           void trackProductEvent({ 
-                            eventType: "quick_action_clicked" as any, 
-                            pagePath: "/", 
-                            pageTitle: "Home", 
+                            eventType: "quick_action_clicked", 
+                            pagePath: stationHref, 
+                            pageTitle: getStationPublicName(station), 
                             stationId: station.id,
                             payload: { 
+                              source: "home_list",
                               action: "details",
-                              labelMode: (isStreetMode || role === 'iniciante') ? "text" : "icon"
+                              isAssisted
                             }
                           });
                         }}
                       />
                     </QuickActionGroup>
-
                   </div>
                 </Link>
               );

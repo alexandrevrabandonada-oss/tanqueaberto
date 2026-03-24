@@ -187,6 +187,13 @@ function PriceSubmitFormBody({
   const lastFailureKeyRef = useRef<string | null>(null);
   const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
   const [qualityResult, setQualityResult] = useState<PhotoQualityResult | null>(null);
+  const [validationErrors, setValidationErrors] = useState<{
+    stationId?: string;
+    fuelType?: string;
+    price?: string;
+    photo?: string;
+  }>({});
+  const lastFieldRef = useRef<string | null>(null);
   const retryAttemptRef = useRef(0);
   const lastQueuedFailureSignatureRef = useRef<string | null>(null);
   const lastQueuedAbandonmentSignatureRef = useRef<string | null>(null);
@@ -784,11 +791,65 @@ function PriceSubmitFormBody({
       if (priceInputRef.current) {
         priceInputRef.current.focus();
       }
-    } catch (err) {
-      console.error("Erro ao processar foto:", err);
     } finally {
       setIsProcessingPhoto(false);
     }
+  }
+
+  function formatPrice(value: string) {
+    const digits = value.replace(/\D/g, "");
+    if (!digits) return "";
+    
+    // Suporte a 3 casas decimais (padrão posto: 5.699)
+    const num = parseInt(digits, 10);
+    const formatted = (num / 1000).toLocaleString("pt-BR", {
+      minimumFractionDigits: 3,
+      maximumFractionDigits: 3,
+    });
+    return formatted;
+  }
+
+  function handlePriceChange(e: ChangeEvent<HTMLInputElement>) {
+    const raw = e.target.value;
+    const formatted = formatPrice(raw);
+    setPrice(formatted);
+    
+    // Clear error on change
+    if (validationErrors.price) {
+      setValidationErrors(prev => ({ ...prev, price: undefined }));
+    }
+  }
+
+  function handleFieldFocus(fieldName: string) {
+    lastFieldRef.current = fieldName;
+  }
+
+  function validateForm() {
+    const errors: typeof validationErrors = {};
+    if (!stationId) errors.stationId = "Selecione um posto.";
+    if (!fuelType) errors.fuelType = "Selecione o combustível.";
+    
+    // Validação de preço: deve ter pelo menos 5 chars (ex: 5,699)
+    if (!price || price.length < 5) {
+      errors.price = "Informe um preço válido (ex: 5,699).";
+    }
+    
+    if (!selectedFileRef.current) {
+      errors.photo = "A foto é obrigatória para o envio de rua.";
+    }
+    
+    setValidationErrors(errors);
+    
+    // Telemetry for validation errors
+    Object.entries(errors).forEach(([field, message]) => {
+      void trackProductEvent({
+        eventType: "submission_validation_error" as any,
+        pagePath: "/enviar",
+        payload: { field, message, price, fuelType }
+      });
+    });
+    
+    return Object.keys(errors).length === 0;
   }
 
   const canSubmit = Boolean(selectedStation && selectedFileRef.current && price.trim() && fuelType);
@@ -867,7 +928,19 @@ function PriceSubmitFormBody({
 
   return (
     <>
-      <form ref={formRef} action={formAction} className="space-y-4" onSubmitCapture={() => markStarted("submit")}>
+    <form
+      ref={formRef}
+      action={formAction}
+      className={cn("space-y-4", state.success && "hidden")}
+      onSubmit={(e) => {
+        if (!validateForm()) {
+          e.preventDefault();
+          return;
+        }
+        // Success tracking
+        markStarted("submit");
+      }}
+    >
       <input type="hidden" name="website" value="" />
       <input type="hidden" name="locationDistance" value={currentDistance?.toString() ?? ""} />
       <input type="hidden" name="locationConfidence" value={locationConfidence} />
@@ -1177,9 +1250,17 @@ function PriceSubmitFormBody({
           type="file"
           accept="image/*"
           capture="environment"
-          onChange={handleFileChange}
-          className="w-full rounded-[18px] border border-dashed border-white/14 bg-black/30 px-4 py-3 text-sm text-white file:mr-4 file:rounded-full file:border-0 file:bg-[color:var(--color-accent)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-black"
+          onFocus={() => handleFieldFocus("photo")}
+          onChange={(e) => {
+            setValidationErrors(prev => ({ ...prev, photo: undefined }));
+            handleFileChange(e);
+          }}
+          className={cn(
+            "w-full rounded-[18px] border border-dashed px-4 py-3 text-sm text-white file:mr-4 file:rounded-full file:border-0 file:bg-[color:var(--color-accent)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-black transition-all",
+            validationErrors.photo ? "border-red-500/50 bg-red-500/5" : "border-white/14 bg-black/30"
+          )}
         />
+        {validationErrors.photo && <p className="mt-1.5 px-1 text-[10px] font-bold uppercase text-red-300 tracking-wider animate-in fade-in slide-in-from-top-1">{validationErrors.photo}</p>}
       </div>
 
       {isProcessingPhoto && (
@@ -1259,7 +1340,10 @@ function PriceSubmitFormBody({
         {lockedStation ? (
           <>
             <input type="hidden" name="stationId" value={stationId} />
-            <div className="rounded-[18px] border border-white/8 bg-white/5 px-4 py-3 text-sm text-white/72">
+            <div className={cn(
+              "rounded-[18px] border bg-white/5 px-4 py-3 text-sm text-white/72 transition-all",
+              validationErrors.stationId ? "border-red-500/50 bg-red-500/5" : "border-white/8"
+            )}>
               <p className="font-medium text-white">{selectedStation?.name}</p>
               <p className="mt-1 text-white/54">{selectedStation?.neighborhood}, {selectedStation?.city}</p>
               {selectedStation?.address && !isStreetMode ? <p className="mt-1 text-xs text-white/42">{selectedStation.address}</p> : null}
@@ -1270,12 +1354,16 @@ function PriceSubmitFormBody({
             id="stationId"
             name="stationId"
             value={stationId}
-            required
+            onFocus={() => handleFieldFocus("stationId")}
             onChange={(event) => {
               setStationId(event.target.value);
+              setValidationErrors(prev => ({ ...prev, stationId: undefined }));
               markStarted("station", { changed: true });
             }}
-            className="w-full rounded-[18px] border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none ring-0"
+            className={cn(
+              "w-full rounded-[18px] border bg-black/30 px-4 py-3 text-sm text-white outline-none ring-0 transition-all",
+              validationErrors.stationId ? "border-red-500/50 ring-1 ring-red-500/20" : "border-white/10"
+            )}
           >
             {stations.map((station) => (
               <option key={station.id} value={station.id}>
@@ -1284,6 +1372,7 @@ function PriceSubmitFormBody({
             ))}
           </select>
         )}
+        {validationErrors.stationId && <p className="mt-1.5 px-1 text-[10px] font-bold uppercase text-red-400 tracking-wider transition-all animate-in fade-in slide-in-from-top-1">{validationErrors.stationId}</p>}
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -1295,12 +1384,16 @@ function PriceSubmitFormBody({
             id="fuelType"
             name="fuelType"
             value={fuelType}
-            required
+            onFocus={() => handleFieldFocus("fuelType")}
             onChange={(event) => {
               setFuelType(event.target.value as FuelType);
+              setValidationErrors(prev => ({ ...prev, fuelType: undefined }));
               markStarted("fuel", { fuelType: event.target.value });
             }}
-            className="w-full rounded-[18px] border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none ring-0"
+            className={cn(
+               "w-full rounded-[18px] border bg-black/30 px-4 py-3 text-sm text-white outline-none ring-0 transition-all",
+               validationErrors.fuelType ? "border-red-500/50 ring-1 ring-red-500/20" : "border-white/10"
+            )}
           >
             {fuelOptions.map((option) => (
               <option key={option} value={option}>
@@ -1308,6 +1401,7 @@ function PriceSubmitFormBody({
               </option>
             ))}
           </select>
+          {validationErrors.fuelType && <p className="mt-1.5 px-1 text-[10px] font-bold uppercase text-red-400 tracking-wider animate-in fade-in slide-in-from-top-1">{validationErrors.fuelType}</p>}
         </div>
 
         <div className="space-y-2 rounded-[22px] border border-white/8 bg-black/30 p-4">
@@ -1318,16 +1412,18 @@ function PriceSubmitFormBody({
             id="price"
             name="price"
             ref={priceInputRef}
-            inputMode="decimal"
+            type="text"
+            inputMode="numeric"
             value={price}
-            required
-            onChange={(event) => {
-              setPrice(event.target.value);
-              markStarted("price", { hasValue: event.target.value.trim().length > 0 });
-            }}
-            placeholder="Ex.: 6,29"
-            className="w-full rounded-[18px] border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none ring-0"
+            onFocus={() => handleFieldFocus("price")}
+            onChange={handlePriceChange}
+            placeholder="0,000"
+            className={cn(
+              "w-full rounded-[18px] border bg-black/30 px-4 py-3 text-lg font-bold text-[color:var(--color-accent)] outline-none ring-0 transition-all placeholder:text-white/10",
+              validationErrors.price ? "border-red-500/50 ring-1 ring-red-500/20" : "border-white/10"
+            )}
           />
+          {validationErrors.price && <p className="mt-1 px-1 text-[10px] font-bold uppercase text-red-400 tracking-wider animate-in fade-in slide-in-from-top-1">{validationErrors.price}</p>}
         </div>
       </div>
 

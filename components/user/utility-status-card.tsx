@@ -7,7 +7,11 @@ import { getUtilityStatusAction } from "@/app/actions/user";
 import type { UtilityStatus, CollectorTrust } from "@/lib/ops/collector-trust";
 import { cn } from "@/lib/utils";
 
-export function UtilityStatusCard() {
+interface UtilityStatusCardProps {
+  unreadCount?: number;
+}
+
+export function UtilityStatusCard({ unreadCount = 0 }: UtilityStatusCardProps) {
   const { reporterNickname } = useMySubmissions();
   const [data, setData] = useState<{ trust: CollectorTrust; status: UtilityStatus } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -81,12 +85,19 @@ export function UtilityStatusCard() {
         </div>
 
         <div className="flex flex-col items-end gap-2 shrink-0">
-           <div className="text-right">
-             <p className="text-[10px] uppercase font-bold text-white/30 tracking-widest">Utilidade</p>
-             <div className="flex items-center gap-1.5 mt-0.5">
-                <Star className="h-3.5 w-3.5 text-amber-500" />
-                <span className="text-lg font-black text-white">{trust?.streakDays || 0}d</span>
-             </div>
+           <div className="relative">
+              <div className="text-right">
+                <p className="text-[10px] uppercase font-bold text-white/30 tracking-widest">Utilidade</p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                   <Star className="h-3.5 w-3.5 text-amber-500" />
+                   <span className="text-lg font-black text-white">{trust?.streakDays || 0}d</span>
+                </div>
+              </div>
+              {unreadCount > 0 && (
+                <div className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[color:var(--color-accent)] text-[9px] font-black text-black shadow-lg shadow-[color:var(--color-accent)]/20 animate-bounce">
+                  {unreadCount}
+                </div>
+              )}
            </div>
         </div>
       </div>

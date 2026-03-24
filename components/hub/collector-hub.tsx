@@ -4,7 +4,6 @@ import { useSubmissionHistory } from "@/components/history/submission-history-co
 import { useMissionContext } from "@/components/mission/mission-context";
 import { SubmissionStatus } from "./submission-status";
 import { MissionCard } from "./mission-card";
-import { SmartActions } from "./smart-actions";
 import { useEffect, useState } from "react";
 import { loadSubmissionQueue, type SubmissionQueueEntry } from "@/lib/queue/submission-queue";
 import { trackProductEvent } from "@/lib/telemetry/client";
@@ -20,8 +19,9 @@ import { getCollectorTrustAction, getCollectorTerritorialImpactAction } from "@/
 import type { CollectorTrust } from "@/lib/ops/collector-trust";
 import type { CollectorTerritorialImpact } from "@/lib/ops/recorte-activity";
 import { recordHubInteraction } from "@/lib/telemetry/attribution";
-import { RetomadaBloco } from "./retomada-bloco";
 import { HubActivationHero } from "./hub-activation-hero";
+import { HubOperatingAgenda } from "./hub-operating-agenda";
+import { useGeolocation } from "@/hooks/use-geolocation";
 
 interface CollectorHubProps {
   stations: StationWithReports[];
@@ -34,6 +34,11 @@ export function CollectorHub({ stations }: CollectorHubProps) {
   const [localLoaded, setLocalLoaded] = useState(false);
   const [trust, setTrust] = useState<CollectorTrust | null>(null);
   const [impact, setImpact] = useState<CollectorTerritorialImpact | null>(null);
+  const { coords, getLocation } = useGeolocation();
+
+  useEffect(() => {
+    getLocation();
+  }, [getLocation]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -99,28 +104,15 @@ export function CollectorHub({ stations }: CollectorHubProps) {
         />
       )}
 
-      {/* Retomada de Fluxo (Prioridade Máxima) */}
-      {hasErrors ? (
-        <RetomadaBloco 
-          type="pending"
-          count={localCount}
-          href="/enviar"
+      {/* Hub 4.0: Agenda Operacional (Substitui Retomada e SmartActions) */}
+      {!isZeroState && (
+        <HubOperatingAgenda 
+          stations={stations}
+          mission={mission}
+          localQueue={localQueue}
+          submissions={submissions}
+          coords={coords}
         />
-      ) : mission ? (
-        <RetomadaBloco 
-          type="mission"
-          lastStationName={stations.find(s => s.id === currentStationId)?.name || mission.groupName}
-          lastUpdate={mission.lastSubmissionAt || mission.startedAt}
-          href="/beta/missoes"
-        />
-      ) : localCount > 0 ? (
-        <RetomadaBloco 
-          type="pending"
-          count={localCount}
-          href="/enviar"
-        />
-      ) : !isZeroState && !isInactiveVeteran && (
-         <HubActivationHero type="EMPTY_QUEUE" />
       )}
 
       {/* Hub 2.0: Recommendations & Smart Actions */}
@@ -145,13 +137,6 @@ export function CollectorHub({ stations }: CollectorHubProps) {
 
       {/* Main Sections */}
       <div className="grid gap-6">
-        <SmartActions 
-          localCount={localCount}
-          hasMission={!!mission}
-          approvedCount={approvedCount}
-          hasErrors={hasErrors}
-          totalReports={trust?.missionsCompleted || 0}
-        />
         
         {mission && (
           <MissionCard mission={mission} stats={missionStats} stations={stations} />

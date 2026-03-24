@@ -26,6 +26,7 @@ interface StationCardProps {
   fuelFilter?: "all" | FuelType;
   returnToHref?: string;
   isStreetMode?: boolean;
+  isAssisted?: boolean;
   isFavorite?: boolean;
   onFavoriteToggle?: () => void;
 }
@@ -39,7 +40,7 @@ function getSendHref(stationId: string, returnToHref?: string, fuelFilter?: "all
   return returnToHref ? (`/enviar?stationId=${stationId}${fuelParam}&returnTo=${encodeURIComponent(returnToHref)}#photo` as Route) : ((`/enviar?stationId=${stationId}${fuelParam}#photo`) as Route);
 }
 
-export function StationCard({ station, fuelFilter = "all", returnToHref, isStreetMode, isFavorite, onFavoriteToggle }: StationCardProps) {
+export function StationCard({ station, fuelFilter = "all", returnToHref, isStreetMode, isAssisted, isFavorite, onFavoriteToggle }: StationCardProps) {
   const latest: PriceReport | null = getSelectedStationReport(station, fuelFilter);
   const stationHref = getStationHref(station.id, returnToHref);
   const sendHref = getSendHref(station.id, returnToHref, fuelFilter);
@@ -62,7 +63,7 @@ export function StationCard({ station, fuelFilter = "all", returnToHref, isStree
   );
 
   return (
-    <SectionCard className={cn("space-y-4 py-4 transition-all", isStreetMode && "space-y-2 py-3")}>
+    <SectionCard className={cn("space-y-3 sm:space-y-4 py-3 sm:py-4 transition-all", isStreetMode && "space-y-2 py-3")}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 flex-1 items-start gap-2">
           {onFavoriteToggle && (
@@ -76,9 +77,9 @@ export function StationCard({ station, fuelFilter = "all", returnToHref, isStree
           )}
           <div className="min-w-0">
             {!isStreetMode && <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">{station.brand || "Posto"}</p>}
-            <h3 className={cn("truncate font-semibold text-white", isStreetMode ? "text-base" : "text-lg")}>{getStationPublicName(station)}</h3>
+            <h3 className={cn("truncate font-semibold text-white", isStreetMode ? "text-base" : "text-base sm:text-lg")}>{getStationPublicName(station)}</h3>
             <div className="flex items-center gap-2">
-              <p className="truncate text-sm text-white/50">
+              <p className="truncate text-[11px] sm:text-sm text-white/50">
                 {station.neighborhood}{!isStreetMode && `, ${station.city}`}
               </p>
               {station.distance !== undefined && (
@@ -108,10 +109,10 @@ export function StationCard({ station, fuelFilter = "all", returnToHref, isStree
       )}
 
       {latest ? (
-        <div className={cn("rounded-[20px] border border-white/8 bg-black/30 p-4 transition-all", isStreetMode && "p-2 px-3")}>
+        <div className={cn("rounded-[20px] border border-white/8 bg-black/30 p-3 sm:p-4 transition-all", isStreetMode && "p-2 px-3")}>
           <div className="flex items-center justify-between">
-            <span className={cn("font-medium text-white/60", isStreetMode ? "text-xs" : "text-sm")}>{fuelLabels[latest.fuelType]}</span>
-            <span className={cn("font-bold tracking-tight text-white", isStreetMode ? "text-lg" : "text-2xl")}>{formatCurrencyBRL(latest.price)}</span>
+            <span className={cn("font-medium text-white/60", isStreetMode ? "text-xs" : "text-xs sm:text-sm")}>{fuelLabels[latest.fuelType]}</span>
+            <span className={cn("font-bold tracking-tight text-white", isStreetMode ? "text-lg" : "text-xl sm:text-2xl")}>{formatCurrencyBRL(latest.price)}</span>
           </div>
           {!isStreetMode && (
             <div className="mt-2 flex items-center gap-1.5 text-xs text-white/30">
@@ -135,23 +136,37 @@ export function StationCard({ station, fuelFilter = "all", returnToHref, isStree
       >
         <QuickActionButton
           icon={Camera}
-          label="Foto"
+          label={isAssisted ? "FOTO" : "Foto"}
           variant="primary"
           isStreetMode={isStreetMode}
+          isAssisted={isAssisted}
           href={sendHref}
           onClick={() => {
             rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
-            void trackProductEvent({ eventType: "camera_opened_from_station", pagePath: sendHref, pageTitle: getStationPublicName(station), stationId: station.id, city: station.city, fuelType: latest?.fuelType ?? null, scopeType: "submission", scopeId: station.id, payload: { source: "station_card", streetMode: isStreetMode, action: "photo" } });
+            void trackProductEvent({ 
+              eventType: "quick_action_clicked", 
+              pagePath: sendHref, 
+              pageTitle: getStationPublicName(station), 
+              stationId: station.id, 
+              payload: { action: "photo", isAssisted, streetMode: isStreetMode } 
+            });
           }}
         />
         
         <QuickActionButton
           icon={Navigation}
-          label="Rota"
+          label={isAssisted ? "ROTA" : "Rota"}
           variant="secondary"
           isStreetMode={isStreetMode}
+          isAssisted={isAssisted}
           onClick={() => {
             const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            void trackProductEvent({ 
+              eventType: "quick_action_clicked", 
+              pagePath: "/", 
+              stationId: station.id, 
+              payload: { action: "route", isAssisted, streetMode: isStreetMode } 
+            });
             openExternalNavigation(isMobile ? "waze" : "google", {
               lat: station.lat,
               lng: station.lng,
@@ -164,13 +179,19 @@ export function StationCard({ station, fuelFilter = "all", returnToHref, isStree
 
         <QuickActionButton
           icon={Info}
-          label="Ver"
+          label={isAssisted ? "VER" : "Ver"}
           variant="outline"
           isStreetMode={isStreetMode}
+          isAssisted={isAssisted}
           href={stationHref}
           onClick={() => {
             rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
-            void trackProductEvent({ eventType: "station_clicked", pagePath: stationHref, pageTitle: getStationPublicName(station), stationId: station.id, city: station.city, fuelType: latest?.fuelType ?? null, scopeType: "station", scopeId: station.id, payload: { source: "station-card-open" } });
+            void trackProductEvent({ 
+              eventType: "quick_action_clicked", 
+              pagePath: stationHref, 
+              stationId: station.id, 
+              payload: { action: "details", isAssisted, streetMode: isStreetMode } 
+            });
           }}
         />
       </QuickActionGroup>

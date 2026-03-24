@@ -103,4 +103,19 @@ a {
   box-shadow: 0 0 0 6px rgba(255, 183, 3, 0.18);
 }
 
+/* Safe Area & Density Utilities */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
 
+.bottom-nav-safe {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

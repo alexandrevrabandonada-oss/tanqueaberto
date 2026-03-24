@@ -82,7 +82,15 @@ export type ProductTelemetryEventType =
   | "first_submission_milestone"
   | "public_station_view"
   | "station_action_click"
-  | "memory_shortcut_click";
+  | "memory_shortcut_click"
+  | "scroll_depth"
+  | "submission_validation_error"
+  | "submission_field_abandoned"
+  | "inbox_opened"
+  | "inbox_item_click"
+  | "inbox_cleared"
+  | "quick_action_clicked"
+  | "hub_agenda_action_clicked";
 
 export interface ProductTelemetryEventInput {
   eventType: ProductTelemetryEventType;
