@@ -1,7 +1,7 @@
 import { getAuditGroups } from "@/lib/audit/groups";
 import { getEditorialGapDashboard, type EditorialGapRecommendation } from "./editorial-gaps";
 import type { AuditStationGroup } from "@/lib/audit/types";
-import { type GroupReleaseStatus } from "./release-types";
+import { type GroupReleaseStatus, type PublicOpeningStage } from "./release-types";
 
 export { type GroupReleaseStatus };
 
@@ -9,6 +9,7 @@ export interface EffectiveGroupStatus {
   slug: string;
   name: string;
   status: GroupReleaseStatus;
+  publicStage: PublicOpeningStage;
   isPublished: boolean;
   isOverride: boolean;
   score: number;
@@ -39,10 +40,17 @@ export async function getTerritorialReleaseSummary(): Promise<EffectiveGroupStat
       const status = statusFromOps || (group.releaseStatus as GroupReleaseStatus) || suggestedStatus;
       const isPublished = typeof group.isPublished === "boolean" ? group.isPublished : (status !== "limited" && status !== "hidden");
 
+      // Mapping rules for public transparency
+      const publicStage: PublicOpeningStage = 
+        status === "ready" ? "consolidated" :
+        status === "validating" ? "public_beta" :
+        status === "limited" ? "restricted_beta" : "closed";
+
       return {
         slug: group.slug,
         name: group.name,
         status,
+        publicStage,
         isPublished,
         isOverride: Boolean(group.releaseStatus || opsState),
         score: gapItem?.score ?? 0,

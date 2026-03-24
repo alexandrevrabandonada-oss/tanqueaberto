@@ -356,3 +356,68 @@ export async function updateStationCurationAction(formData: FormData) {
   revalidatePath("/auditoria");
   redirect(`${ADMIN_ROUTE}?notice=station_saved` as Route);
 }
+
+export async function updateCityRolloutAction(formData: FormData) {
+  const admin = await requireAdminUser();
+  const groupSlug = String(formData.get("groupSlug") ?? "");
+  const nextStatus = getOptionalText(formData, "status") as any;
+  const nextOpsState = getOptionalText(formData, "operationalState") as any;
+  const rolloutNote = getOptionalText(formData, "rolloutNote");
+
+  if (!groupSlug) {
+    redirect(`${ADMIN_ROUTE}?error=invalid_request` as Route);
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const updatePayload: Record<string, any> = {
+    updated_at: new Date().toISOString()
+  };
+
+  if (nextStatus) updatePayload.release_status = nextStatus;
+  if (nextOpsState) updatePayload.operational_state = nextOpsState;
+  if (rolloutNote) updatePayload.rollout_notes = rolloutNote;
+
+  const { error } = await supabase
+    .from("station_groups")
+    .update(updatePayload)
+    .eq("slug", groupSlug);
+
+  if (error) {
+    await recordOperationalEvent({
+      eventType: "city_rollout_failed",
+      severity: "error",
+      scopeType: "group",
+      scopeId: groupSlug,
+      actorId: admin.id,
+      actorEmail: admin.email,
+      reason: error.message
+    });
+    redirect(`${ADMIN_ROUTE}?error=moderation_failed` as Route);
+  }
+
+  await recordAdminActionLog({
+    actionKind: "city_rollout_updated",
+    actorId: admin.id,
+    actorEmail: admin.email,
+    targetType: "group",
+    targetId: groupSlug,
+    note: `Rollout alterado para: ${nextStatus || "-"} / ${nextOpsState || "-"}. ${rolloutNote || ""}`,
+    payload: updatePayload
+  });
+
+  await recordOperationalEvent({
+    eventType: "city_rollout_updated",
+    severity: "info",
+    scopeType: "group",
+    scopeId: groupSlug,
+    actorId: admin.id,
+    actorEmail: admin.email,
+    reason: "promoção/recuo territorial salvo",
+    payload: updatePayload
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath(`/cidade/${groupSlug}`);
+  redirect(`${ADMIN_ROUTE}?notice=rollout_updated` as Route);
+}

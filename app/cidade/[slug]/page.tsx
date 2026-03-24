@@ -55,6 +55,36 @@ export default async function CityPage({ params }: CityPageProps) {
   const cityStations = stations.filter(s => s.city.toUpperCase() === cityName.toUpperCase());
   const cityRelease = releaseSummary.find(s => s.name.toUpperCase() === cityName.toUpperCase());
   const status = cityRelease?.status || "limited";
+  const stage = cityRelease?.publicStage || "closed";
+
+  const stageTemplates = {
+    closed: {
+      badge: "Em Breve",
+      title: `O Bomba está chegando em ${cityName}`,
+      desc: "Estamos mapeando os postos e preparando a base. Em breve você poderá consultar preços em tempo real.",
+      cta: "QUERO ME INSCREVER"
+    },
+    restricted_beta: {
+      badge: "Beta Restrito",
+      title: `${cityName} em fase de testes`,
+      desc: "O sistema já está operacional para convidados. Peça seu acesso e ajude a validar os primeiros dados.",
+      cta: "PEDIR CONVITE BETA"
+    },
+    public_beta: {
+      badge: "Beta Público",
+      title: `Beta Aberto em ${cityName}`,
+      desc: "Explore os preços reais e colabore para manter o mapa vivo. Os dados ainda estão em validação comunitária.",
+      cta: "EXPLORAR PREÇOS AGORA"
+    },
+    consolidated: {
+      badge: "Operação Oficial",
+      title: `Preço Real em ${cityName}`,
+      desc: "O mapa popular de combustíveis oficial da cidade. Dados auditados e atualizados pela comunidade.",
+      cta: "ABRIR MAPA COMPLETO"
+    }
+  };
+
+  const template = stageTemplates[stage];
 
   return (
     <div className="min-h-screen bg-black text-white selection:bg-[color:var(--color-accent)] selection:text-black">
@@ -67,7 +97,7 @@ export default async function CityPage({ params }: CityPageProps) {
 
         <div className="mx-auto max-w-2xl space-y-6">
           <Badge variant="accent" className="h-7 px-4 text-[10px] font-black uppercase tracking-[0.2em]">
-            Recorte Territorial
+            {template.badge}
           </Badge>
           
           <h1 className="text-5xl font-black tracking-tighter sm:text-7xl">
@@ -75,15 +105,15 @@ export default async function CityPage({ params }: CityPageProps) {
           </h1>
           
           <p className="text-lg leading-relaxed text-white/54 sm:text-xl">
-            Monitoramento comunitário de preços e cobertura de postos de combustível na região.
+            {template.desc}
           </p>
 
           <div className="flex flex-wrap justify-center gap-3 pt-4">
              <ButtonLink 
-               href={`/?city=${encodeURIComponent(cityName)}&ref=city_page`}
+               href={`/?city=${encodeURIComponent(cityName)}&ref=city_page&stage=${stage}`}
                className="h-14 px-8 text-sm font-black uppercase tracking-widest bg-[color:var(--color-accent)] text-black"
              >
-                ENTRAR NO APP AGORA
+                {template.cta}
                 <ArrowRight className="h-4 w-4" />
              </ButtonLink>
           </div>
@@ -96,11 +126,11 @@ export default async function CityPage({ params }: CityPageProps) {
           <div className="space-y-8">
             <SectionCard className="space-y-6 border-white/10 bg-white/5 p-8">
                <div className="space-y-2">
-                  <p className="text-xs font-black uppercase tracking-widest text-white/40">Estado da Cobertura</p>
+                  <p className="text-xs font-black uppercase tracking-widest text-white/40">Estágio da Operação</p>
                   <div className="flex items-center gap-3">
                      <ReadinessBadge status={status as any} />
-                     <Badge variant={status === "ready" ? "default" : "warning"} className="h-6">
-                        {status === "ready" ? "CONSOLIDADO" : "EM FORMAÇÃO"}
+                     <Badge variant={stage === "consolidated" ? "default" : "warning"} className="h-6">
+                        {stage === "consolidated" ? "CONSOLIDADO" : stage === "public_beta" ? "BETA ABERTO" : "EM FORMAÇÃO"}
                      </Badge>
                   </div>
                </div>
