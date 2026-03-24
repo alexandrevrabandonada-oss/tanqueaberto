@@ -130,13 +130,17 @@ export async function triggerRolloutEngineAction() {
   return { success: true };
 }
 
-export async function updateBetaFeedbackTriageAction(id: string, updates: any) {
+export async function updateBetaFeedbackTriageAction(formData: FormData) {
+  const id = formData.get("feedbackId") as string;
+  const status = formData.get("triageStatus") as string;
+  const triageNotes = (formData.get("triageNotes") as string) || "";
+
   const supabase = createSupabaseServiceClient();
   const { error } = await supabase
     .from("beta_feedback")
     .update({ 
-      status: updates.status,
-      triage_notes: updates.triageNotes,
+      status: status,
+      triage_notes: triageNotes,
       updated_at: new Date().toISOString()
     })
     .eq("id", id);
