@@ -38,7 +38,10 @@ import { type EffectiveGroupStatus } from "@/lib/ops/release-control";
 import { getSmartDefaultRecorte, getSmartDefaultPhrase, type SmartDefaultReason } from "@/lib/ops/smart-default";
 import { FeedbackTrigger } from "@/components/feedback/feedback-trigger";
 import type { FuelFilter, RecencyFilter } from "@/lib/filters/public";
-import type { ReportWithStation, StationWithReports } from "@/lib/types";
+import { type ReportWithStation, StationWithReports } from "@/lib/types";
+import { SurfaceOrchestrator } from "@/components/layout/surface-orchestrator";
+import { type SurfaceType } from "@/lib/ui/surface-orchestrator";
+import { InstallPromptCard } from "./install-prompt-card";
 
 interface HomeBrowserProps {
   stations: StationWithReports[];
@@ -362,31 +365,28 @@ export function HomeBrowser({
     setPresenceFilter("all");
   };
 
-  return (
-    <>
-      <FirstVisitGuide />
-      {betaClosed ? (
-        <SectionCard className="space-y-3 border-[color:var(--color-accent)]/20 bg-[color:var(--color-accent)]/8">
-          <Badge variant="warning">Beta fechado</Badge>
-          <h2 className="text-[1.45rem] font-semibold leading-tight text-white">Convite controlado, cobertura em expansão.</h2>
-          <p className="text-sm text-white/58">A base real já está no ar. Se algo estiver confuso, use o feedback. Se faltar posto ou preço, use as lacunas do mapa.</p>
-          <div className="flex flex-wrap gap-2">
-            <ButtonLink href="/feedback" className="inline-flex">
-              Enviar feedback
-            </ButtonLink>
-            <ButtonLink href="/postos/sem-atualizacao" variant="secondary" className="inline-flex">
-              Ver lacunas do mapa
-            </ButtonLink>
-          </div>
-        </SectionCard>
-      ) : null}
+  // 1. Gather all potential surfaces for orchestration
+  const surfaces = [];
 
-      <div className="mb-4">
-        <RouteAssistant stations={stations} />
-      </div>
+  if (isLowPerf) {
+    surfaces.push({
+      id: "low-perf",
+      type: "CRITICAL_ALERT" as SurfaceType,
+      content: (
+        <div className="flex items-center gap-3 rounded-[22px] border border-orange-500/30 bg-orange-500/10 px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-orange-400">
+          <Zap className="h-3.5 w-3.5" />
+          Conexão instável ({effectiveType}). Modo econômico ativo.
+        </div>
+      )
+    });
+  }
 
-      {navHandoff && (
-        <div className="mb-6 flex animate-in fade-in slide-in-from-top-4 duration-500 flex-col gap-3 rounded-[24px] border border-[color:var(--color-accent)]/30 bg-[color:var(--color-accent)]/10 p-4 shadow-xl backdrop-blur-md">
+  if (navHandoff) {
+    surfaces.push({
+      id: "nav-handoff",
+      type: "CONTEXT_HANDOFF" as SurfaceType,
+      content: (
+        <div className="flex flex-col gap-3 rounded-[24px] border border-[color:var(--color-accent)]/30 bg-[color:var(--color-accent)]/10 p-4 shadow-xl backdrop-blur-md">
            <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--color-accent)]/20">
@@ -427,28 +427,74 @@ export function HomeBrowser({
                  <Camera className="h-4 w-4" />
                  ABRIR CÂMERA AGORA
               </ButtonLink>
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setNavHandoff(null);
-                  clearNavigationHandoff();
-                }}
-                className="h-12 px-6 text-xs font-bold"
-              >
-                 Ainda não
-              </Button>
            </div>
         </div>
-      )}
+      )
+    });
+  }
 
-      {isLowPerf && (
-        <div className="mb-4 flex items-center gap-3 rounded-[22px] border border-orange-500/30 bg-orange-500/10 px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-orange-400">
-          <Zap className="h-3.5 w-3.5" />
-          Conexão instável ({effectiveType}). Modo econômico ativo.
+  if (betaClosed) {
+    surfaces.push({
+      id: "beta-closed",
+      type: "INFO_NOTICE" as SurfaceType,
+      content: (
+        <SectionCard className="space-y-3 border-[color:var(--color-accent)]/20 bg-[color:var(--color-accent)]/8">
+          <Badge variant="warning">Beta fechado</Badge>
+          <h2 className="text-[1.45rem] font-semibold leading-tight text-white">Convite controlado, cobertura em expansão.</h2>
+          <p className="text-sm text-white/58">A base real já está no ar. Se algo estiver confuso, use o feedback.</p>
+        </SectionCard>
+      ),
+      isDismissible: true
+    });
+  }
+
+  surfaces.push({
+    id: "pwa-install",
+    type: "ACTION_PROMPT" as SurfaceType,
+    content: <InstallPromptCard />
+  });
+
+  if (defaultSelectionReason) {
+    surfaces.push({
+      id: "smart-default",
+      type: "INFO_NOTICE" as SurfaceType,
+      content: (
+        <div className="mx-1 -mt-2 mb-2 flex items-center justify-between rounded-full bg-emerald-500/10 px-4 py-2 border border-emerald-500/20">
+          <div className="flex items-center gap-2">
+            <div className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">
+              {defaultSelectionReason}
+            </span>
+          </div>
+          <button 
+            onClick={() => setDefaultSelectionReason(null)}
+            className="text-[10px] font-bold text-emerald-400/50 hover:text-emerald-400"
+          >
+            TROCAR
+          </button>
         </div>
-      )}
+      )
+    });
+  }
+
+  return (
+    <>
+      <FirstVisitGuide />
+      
+      <div className="mb-6">
+        <SurfaceOrchestrator 
+           surfaces={surfaces} 
+           onDismiss={(id) => {
+             if (id === "beta-closed") { /* potential local storage toggle */ }
+           }}
+        />
+      </div>
 
       <div className="mb-4">
+        <RouteAssistant stations={stations} />
+      </div>
+
+      <div className="mb-6">
         <Button 
           variant={isStreetMode ? "primary" : "secondary"}
           onClick={toggleStreetMode}
@@ -514,23 +560,7 @@ export function HomeBrowser({
       )}
 
       <SectionCard className={cn("space-y-4", isStreetMode && "space-y-2 py-3", isLowPerf && "low-perf-mode shadow-none border-white/5")}>
-        {/* Smart Default Contextual Message */}
-        {defaultSelectionReason && (
-          <div className="mx-1 -mt-2 mb-2 flex items-center justify-between rounded-full bg-emerald-500/10 px-4 py-2 border border-emerald-500/20 animate-in fade-in slide-in-from-top-2">
-            <div className="flex items-center gap-2">
-              <div className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">
-                {defaultSelectionReason}
-              </span>
-            </div>
-            <button 
-              onClick={() => setDefaultSelectionReason(null)}
-              className="text-[10px] font-bold text-emerald-400/50 hover:text-emerald-400"
-            >
-              TROCAR
-            </button>
-          </div>
-        )}
+        {/* Surfaces orchestrated elsewhere now */}
         {!isStreetMode && (
           <div className="space-y-1.5">
             <Badge className="text-[10px] uppercase tracking-widest">Mapa Vivo</Badge>
