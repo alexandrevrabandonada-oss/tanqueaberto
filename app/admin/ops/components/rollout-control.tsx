@@ -11,7 +11,8 @@ import {
   Play, 
   Activity,
   ChevronRight,
-  ShieldCheck
+  ShieldCheck,
+  Info
 } from "lucide-react";
 
 interface RolloutControlProps {
@@ -22,14 +23,14 @@ export function RolloutControl({ group }: RolloutControlProps) {
   const [isPending, startTransition] = useTransition();
 
   const handleStatusChange = (status: AuditStationGroup["releaseStatus"]) => {
-    startTransition(async () => {
-      await updateGroupRolloutAction(group.slug, { releaseStatus: status });
+    startTransition(() => {
+      void updateGroupRolloutAction(group.slug, { releaseStatus: status });
     });
   };
 
   const handleOpsStateChange = (state: AuditStationGroup["operationalState"]) => {
-    startTransition(async () => {
-      await updateGroupRolloutAction(group.slug, { operationalState: state });
+    startTransition(() => {
+      void updateGroupRolloutAction(group.slug, { operationalState: state });
     });
   };
 
@@ -107,7 +108,7 @@ export function RolloutControl({ group }: RolloutControlProps) {
            <span className="text-[9px] text-white/20 uppercase font-bold tracking-widest">Visibilidade</span>
            <div className="flex gap-2 items-center h-full">
               <button 
-                onClick={() => startTransition(() => updateGroupRolloutAction(group.slug, { isPublished: !group.isPublished }))}
+                onClick={() => startTransition(() => { void updateGroupRolloutAction(group.slug, { isPublished: !group.isPublished }); })}
                 className={cn(
                   "flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[10px] font-bold transition-all",
                   group.isPublished 

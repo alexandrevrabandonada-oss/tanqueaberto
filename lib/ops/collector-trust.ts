@@ -1,7 +1,7 @@
 import { createSupabaseServiceClient } from "@/lib/supabase/admin";
 import { recordOperationalEvent } from "./logs";
 
-export type TrustStage = 'new' | 'trusted' | 'review_needed' | 'blocked';
+export type TrustStage = 'new' | 'trusted' | 'very_trusted' | 'review_needed' | 'blocked';
 
 export interface CollectorTrust {
   nickname: string | null;
@@ -19,7 +19,8 @@ export interface CollectorTrust {
 export function getTrustStage(score: number, totalReports: number): TrustStage {
   if (score < 20) return 'blocked';
   if (score < 40) return 'review_needed';
-  if (score >= 80 && totalReports >= 10) return 'trusted';
+  if (score >= 90 && totalReports >= 25) return 'very_trusted';
+  if (score >= 70 && totalReports >= 5) return 'trusted';
   return 'new';
 }
 
@@ -28,14 +29,15 @@ export function getTrustStage(score: number, totalReports: number): TrustStage {
  */
 export function calculateScoreDelta(action: 'approve' | 'reject', reason?: string): number {
   if (action === 'approve') {
-    return 2; // Ganho gradual
+    return 2; // Ganho gradual (pode ser expandido conforme sinais de qualidade)
   }
   
   // Penalidades por rejeição
-  if (reason?.includes('fraude') || reason?.includes('má fé')) return -30;
-  if (reason?.includes('foto ruim') || reason?.includes('preco errado')) return -5;
+  if (reason?.includes('fraude') || reason?.includes('má fé') || reason?.includes('fake')) return -50;
+  if (reason?.includes('duplicata')) return -5;
+  if (reason?.includes('foto ruim') || reason?.includes('preco errado')) return -8;
   
-  return -10; // Default rejection
+  return -12; // Default rejection penalty
 }
 
 /**

@@ -1,10 +1,7 @@
-import { Suspense } from "react";
-import { 
-  getKillSwitches, 
-  type OperationalKillSwitches 
-} from "@/lib/ops/kill-switches";
 import { getAuditGroups } from "@/lib/audit/groups";
-import { detectActiveAlerts } from "@/lib/ops/alerts";
+import { detectActiveAlerts, type OperationalAlert } from "@/lib/ops/alerts";
+import { getCollectorTrustList } from "@/lib/data/queries";
+import { getKillSwitches } from "@/lib/ops/kill-switches";
 import { getOperationalHistory } from "./actions";
 import { 
   Zap, 
@@ -20,18 +17,22 @@ import {
   Pause,
   Play,
   ArrowUpCircle,
-  ArrowDownCircle
+  ArrowDownCircle,
+  UserCheck,
+  Star
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { KillSwitchToggle } from "./components/kill-switch-toggle";
 import { RolloutControl } from "./components/rollout-control";
+import { type AuditStationGroup } from "@/lib/audit/types";
 
 export default async function OpsDashboardPage() {
-  const [killSwitches, groups, alerts, history] = await Promise.all([
+  const [killSwitches, groups, alerts, history, collectors] = await Promise.all([
     getKillSwitches(),
     getAuditGroups(),
     detectActiveAlerts(),
-    getOperationalHistory(15)
+    getOperationalHistory(15),
+    getCollectorTrustList(10)
   ]);
 
   return (
@@ -70,7 +71,7 @@ export default async function OpsDashboardPage() {
                   <p className="text-xs text-white/40">Nenhuma regressão detectada agora.</p>
                 </div>
               ) : (
-                alerts.map((alert, i) => (
+                alerts.map((alert: OperationalAlert, i: number) => (
                   <div key={i} className={cn(
                     "p-3 rounded-xl border border-white/5 bg-white/[0.03] space-y-2",
                     alert.severity === 'critical' ? "border-red-500/30 bg-red-500/5" : "border-amber-500/30 bg-amber-500/5"
@@ -95,6 +96,36 @@ export default async function OpsDashboardPage() {
                 ))
               )}
             </div>
+          </div>
+
+          <div className="bg-[#111] border border-white/5 rounded-2xl p-4">
+             <h3 className="text-xs font-bold text-white/30 uppercase tracking-widest mb-4 flex items-center gap-2">
+               <UserCheck className="w-3 h-3 text-white/50" />
+               Reputação de Coletores
+             </h3>
+             <div className="space-y-3">
+                {collectors.map((c: any, i: number) => (
+                  <div key={i} className="flex justify-between items-center bg-white/[0.02] p-2 rounded-lg border border-white/5">
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-bold truncate">{c.nickname || 'Anônimo'}</p>
+                      <p className="text-[9px] text-white/30 truncate">{c.ip_hash?.slice(0, 8)}...</p>
+                    </div>
+                    <div className="flex items-center gap-2 text-right">
+                       <span className={cn(
+                         "text-[8px] font-black px-1 rounded-sm uppercase",
+                         c.trust_stage === 'very_trusted' ? "bg-green-500 text-white" :
+                         c.trust_stage === 'trusted' ? "bg-blue-500 text-white" : "bg-white/10 text-white/40"
+                       )}>
+                         {c.trust_stage}
+                       </span>
+                       <div className="flex items-center gap-1">
+                         <Star className="w-2.5 h-2.5 text-amber-500" />
+                         <span className="text-[10px] font-mono font-bold">{c.score}</span>
+                       </div>
+                    </div>
+                  </div>
+                ))}
+             </div>
           </div>
 
           <div className="bg-[#111] border border-white/5 rounded-2xl p-4">
@@ -188,7 +219,7 @@ export default async function OpsDashboardPage() {
                 </h2>
               </div>
               <div className="p-4 space-y-4">
-                {groups.map((group) => (
+                {groups.map((group: AuditStationGroup) => (
                   <RolloutControl key={group.id} group={group} />
                 ))}
               </div>
