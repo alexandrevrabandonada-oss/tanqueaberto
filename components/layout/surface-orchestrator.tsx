@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { type SurfaceType, SURFACE_PRIORITIES, getTopSurfaces } from "@/lib/ui/surface-orchestrator";
 import { trackProductEvent } from "@/lib/telemetry/client";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
@@ -24,19 +24,19 @@ interface SurfaceOrchestratorProps {
 export function SurfaceOrchestrator({ surfaces, onDismiss, killSwitches }: SurfaceOrchestratorProps) {
   const [minimized, setMinimized] = useState<Record<string, boolean>>({});
   
-  const filteredSurfaces = surfaces.filter(s => {
+  const filteredSurfaces = useMemo(() => surfaces.filter((s: SurfaceItem) => {
     if (killSwitches?.disable_heavy_territorial_widgets && s.type === "INFO_NOTICE") {
       return false;
     }
     return true;
-  });
+  }), [surfaces, killSwitches?.disable_heavy_territorial_widgets]);
 
-  const activeIds = filteredSurfaces.map(s => s.id);
-  const topTypes = getTopSurfaces(filteredSurfaces.map(s => s.type), 2);
+  const activeIds = filteredSurfaces.map((s: SurfaceItem) => s.id);
+  const topTypes = useMemo(() => getTopSurfaces(filteredSurfaces.map((s: SurfaceItem) => s.type), 2), [filteredSurfaces]);
   
   // Track impressions
   useEffect(() => {
-    topTypes.forEach(type => {
+    topTypes.forEach((type: SurfaceType) => {
       void trackProductEvent({
         eventType: "surface_orchestrated_view" as any,
         pagePath: window.location.pathname,
@@ -45,13 +45,13 @@ export function SurfaceOrchestrator({ surfaces, onDismiss, killSwitches }: Surfa
         payload: { priority: SURFACE_PRIORITIES[type] }
       });
     });
-  }, [JSON.stringify(topTypes)]);
+  }, [topTypes]);
 
   if (filteredSurfaces.length === 0) return null;
 
   const topSurfaces = filteredSurfaces
-    .filter(s => topTypes.includes(s.type))
-    .sort((a, b) => SURFACE_PRIORITIES[b.type] - SURFACE_PRIORITIES[a.type]);
+    .filter((s: SurfaceItem) => topTypes.includes(s.type))
+    .sort((a: SurfaceItem, b: SurfaceItem) => SURFACE_PRIORITIES[b.type] - SURFACE_PRIORITIES[a.type]);
 
   const primary = topSurfaces[0];
   const secondary = topSurfaces[1];

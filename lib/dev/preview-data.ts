@@ -49,6 +49,7 @@ const stations: StationWithReports[] = [
         locationConfidence: "high",
         reconciliationId: null,
         isConfirmation: false,
+        ipHash: "preview-hash",
         metadata: {},
         version: 1
       }
@@ -117,6 +118,7 @@ const stations: StationWithReports[] = [
         locationConfidence: "high",
         reconciliationId: null,
         isConfirmation: false,
+        ipHash: "preview-hash",
         metadata: {},
         version: 1
       }
@@ -165,6 +167,7 @@ const stations: StationWithReports[] = [
         locationConfidence: "high",
         reconciliationId: null,
         isConfirmation: false,
+        ipHash: "preview-hash",
         metadata: {},
         version: 1
       }
@@ -199,6 +202,7 @@ const feed: ReportWithStation[] = [
     locationConfidence: "high",
     reconciliationId: null,
     isConfirmation: false,
+    ipHash: "preview-hash",
     metadata: {},
     version: 1,
     station: {
@@ -233,6 +237,7 @@ const feed: ReportWithStation[] = [
     locationConfidence: "high",
     reconciliationId: null,
     isConfirmation: false,
+    ipHash: "preview-hash",
     metadata: {},
     version: 1,
     station: {
