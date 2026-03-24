@@ -115,7 +115,7 @@ export function CollectorHub({ stations }: CollectorHubProps) {
       <div className="grid gap-4 sm:grid-cols-2">
         {/* Reputation Badge */}
         {trust && (
-          <ReputationBadge stage={trust.trustStage} score={trust.score} streak={trust.streak} />
+          <ReputationBadge stage={trust.trustStage} score={trust.score} streak={trust.streakDays} />
         )}
 
         {/* Impact Territorial */}
