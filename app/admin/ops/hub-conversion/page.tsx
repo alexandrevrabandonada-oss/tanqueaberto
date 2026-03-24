@@ -4,6 +4,8 @@ import { SectionCard } from "@/components/ui/section-card";
 import { BarChart, ArrowUpRight, MousePointerClick } from "lucide-react";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 export default async function HubConversionPage() {
   const metrics = await getHubConversionMetrics();
 

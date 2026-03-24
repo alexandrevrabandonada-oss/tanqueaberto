@@ -1,6 +1,8 @@
 import type { Metadata, ResolvingMetadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+
+export const dynamic = "force-dynamic";
 import { ArrowRight, MapPin, Zap, Info, Share2, ShieldCheck, Camera } from "lucide-react";
 
 import { resolveCityFromSlug, slugifyCity } from "@/lib/geo/city-slugs";
