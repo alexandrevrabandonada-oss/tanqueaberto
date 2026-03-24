@@ -45,7 +45,7 @@ export function SurfaceOrchestrator({ surfaces, onDismiss, killSwitches }: Surfa
         payload: { priority: SURFACE_PRIORITIES[type] }
       });
     });
-  }, [topTypes.join(",")]);
+  }, [JSON.stringify(topTypes)]);
 
   if (filteredSurfaces.length === 0) return null;
 

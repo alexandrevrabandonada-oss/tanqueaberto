@@ -324,7 +324,7 @@ export default async function StationPage({ params, searchParams }: StationPageP
           <PriceTable reports={audit.recentReports.slice(0, 5) as PriceReport[]} />
           <div className="rounded-2xl bg-black/40 p-4 border border-white/5">
              <p className="text-[11px] text-white/50 leading-relaxed italic">
-               "A prova de vida é o que diferencia o Bomba Aberta. Cada preço acima corresponde a uma foto real do painel do posto, auditada para garantir honestidade territorial."
+              &quot;A prova de vida é o que diferencia o Bomba Aberta. Cada preço acima corresponde a uma foto real do painel do posto, auditada para garantir honestidade territorial.&quot;
              </p>
           </div>
         </SectionCard>
