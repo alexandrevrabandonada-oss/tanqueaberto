@@ -48,7 +48,9 @@ export function RolloutApproval({ recommendations }: RolloutApprovalProps) {
 
       <div className="grid gap-4">
         {recommendations.map((rec) => {
-          const isImproving = rec.recommendedState === 'beta_open' || rec.recommendedState === 'limited_test';
+          // Status order for comparison: hidden < limited < validating < ready
+          const statusOrder = { hidden: 0, limited: 1, validating: 2, ready: 3 };
+          const isImproving = statusOrder[rec.recommendedState] > statusOrder[rec.currentStatus];
           const isPending = pendingIds.includes(rec.groupId);
 
           return (
@@ -67,7 +69,7 @@ export function RolloutApproval({ recommendations }: RolloutApprovalProps) {
                     )}
                   </div>
                   <div className="flex items-center gap-2 text-xs">
-                    <span className="text-white/40 uppercase tracking-wider">{rec.currentState}</span>
+                    <span className="text-white/40 uppercase tracking-wider">{rec.currentStatus}</span>
                     <span className="text-white/20">→</span>
                     <span className={cn(
                       "font-bold uppercase tracking-wider",
@@ -102,16 +104,20 @@ export function RolloutApproval({ recommendations }: RolloutApprovalProps) {
 
               <div className="flex flex-wrap gap-4 pt-1">
                  <div className="flex flex-col">
-                    <span className="text-[10px] text-white/30 uppercase">Envios (7d)</span>
-                    <span className="text-xs font-mono text-white/70">{rec.metrics.submissions7d}</span>
+                    <span className="text-[10px] text-white/30 uppercase">Aprovados (7d)</span>
+                    <span className="text-xs font-mono text-white/70">{rec.metrics.approvedCount}</span>
                  </div>
                  <div className="flex flex-col">
-                    <span className="text-[10px] text-white/30 uppercase">Taxa Abandono</span>
-                    <span className="text-xs font-mono text-white/70">{rec.metrics.abandonmentRatio.toFixed(1)}x</span>
+                    <span className="text-[10px] text-white/30 uppercase">SLA (h)</span>
+                    <span className="text-xs font-mono text-white/70">{rec.metrics.slaHours.toFixed(1)}h</span>
                  </div>
                  <div className="flex flex-col">
-                    <span className="text-[10px] text-white/30 uppercase">Taxa Erro</span>
-                    <span className="text-xs font-mono text-rose-400">{(rec.metrics.errorRate * 100).toFixed(0)}%</span>
+                    <span className="text-[10px] text-white/30 uppercase">Cobertura</span>
+                    <span className="text-xs font-mono text-emerald-400">{(rec.metrics.coveragePct * 100).toFixed(0)}%</span>
+                 </div>
+                 <div className="flex flex-col">
+                    <span className="text-[10px] text-white/30 uppercase">Abandono</span>
+                    <span className="text-xs font-mono text-white/70">{(rec.metrics.abandonmentRate * 100).toFixed(0)}%</span>
                  </div>
               </div>
             </div>
