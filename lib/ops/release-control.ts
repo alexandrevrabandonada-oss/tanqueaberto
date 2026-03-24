@@ -18,11 +18,19 @@ export interface EffectiveGroupStatus {
 
 export async function getTerritorialReleaseSummary(): Promise<EffectiveGroupStatus[]> {
   try {
-    const dashboard = await getEditorialGapDashboard(14);
-    const groups = await getAuditGroups();
+    const dashboard = await getEditorialGapDashboard(14).catch(err => {
+      console.error("Failed to fetch editorial gap dashboard", err);
+      return { groupRows: [] };
+    });
+    const groups = await getAuditGroups().catch(err => {
+      console.error("Failed to fetch audit groups", err);
+      return [];
+    });
     
+    if (!groups) return [];
+
     return groups.map(group => {
-      const gapItem = dashboard.groupRows?.find(row => row.id === `group:${group.slug}`);
+      const gapItem = dashboard.groupRows?.find((row: any) => row.id === `group:${group.slug}`);
       
       const suggestedStatus: GroupReleaseStatus = 
         gapItem?.recommendation === "vale pedir coleta já" ? "ready" :

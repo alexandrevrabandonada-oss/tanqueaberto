@@ -21,9 +21,8 @@ const DEFAULT_SWITCHES: OperationalKillSwitches = {
  * Falls back to defaults if the table or record doesn't exist.
  */
 export async function getKillSwitches(): Promise<OperationalKillSwitches> {
-  const supabase = createSupabaseServiceClient();
-
   try {
+    const supabase = createSupabaseServiceClient();
     const { data, error } = await supabase
       .from("sys_config")
       .select("value")
@@ -31,6 +30,7 @@ export async function getKillSwitches(): Promise<OperationalKillSwitches> {
       .maybeSingle();
 
     if (error || !data) {
+      if (error) console.warn("Kill switches table access failed, using defaults", error);
       return DEFAULT_SWITCHES;
     }
 
