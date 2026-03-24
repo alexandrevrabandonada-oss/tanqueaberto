@@ -5,6 +5,7 @@ import { type AuditStationGroup } from "@/lib/audit/types";
 export type TerritorialOperationalState = AuditStationGroup["releaseStatus"];
 
 export interface RolloutRecommendation {
+  groupId: string;
   slug: string;
   name: string;
   currentStatus: TerritorialOperationalState;
@@ -144,6 +145,7 @@ export async function generateGroupRecommendations(): Promise<RolloutRecommendat
 
     if (suggestion && suggestion !== group.releaseStatus) {
       recommendations.push({
+        groupId: group.id,
         slug: group.slug,
         name: group.name,
         currentStatus: group.releaseStatus,
