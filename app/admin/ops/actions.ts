@@ -1,4 +1,3 @@
-"use client"; // Wait, actions should be server-side. Removing "use client".
 "use server";
 
 import { revalidatePath } from "next/cache";
