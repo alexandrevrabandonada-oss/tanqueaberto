@@ -1,297 +1,200 @@
-import Link from "next/link";
-import { ArrowLeft, ArrowUpRight, ArrowDownRight, Zap, Target, BarChart3, Clock, CheckCircle2, AlertTriangle, Download, ShieldAlert, AlertOctagon } from "lucide-react";
-
-import { Badge } from "@/components/ui/badge";
-import { SectionCard } from "@/components/ui/section-card";
-import { Button } from "@/components/ui/button";
-import { requireAdminUser } from "@/lib/auth/admin";
-import { getDailyOpsDigest } from "@/lib/ops/daily-digest";
-import { formatDateTimeBR } from "@/lib/format/time";
-import { getBetaSynthesis } from "@/lib/ops/beta-synthesis";
-import { RolloutApproval } from "@/components/admin/rollout-approval";
+import { Suspense } from "react";
+import { 
+  getKillSwitches, 
+  type OperationalKillSwitches 
+} from "@/lib/ops/kill-switches";
+import { getAuditGroups } from "@/lib/audit/groups";
+import { detectActiveAlerts } from "@/lib/ops/alerts";
+import { getOperationalHistory } from "./actions";
+import { 
+  Zap, 
+  Shield, 
+  Activity, 
+  Map as MapIcon, 
+  Clock, 
+  AlertTriangle, 
+  CheckCircle2, 
+  History,
+  Info,
+  ChevronRight,
+  Pause,
+  Play,
+  ArrowUpCircle,
+  ArrowDownCircle
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+import { KillSwitchToggle } from "./components/kill-switch-toggle";
+import { RolloutControl } from "./components/rollout-control";
 
-export const dynamic = "force-dynamic";
-
-export default async function AdminOpsPage() {
-  await requireAdminUser();
-  const digest = await getDailyOpsDigest();
-  const synthesis = await getBetaSynthesis();
+export default async function OpsDashboardPage() {
+  const [killSwitches, groups, alerts, history] = await Promise.all([
+    getKillSwitches(),
+    getAuditGroups(),
+    detectActiveAlerts(),
+    getOperationalHistory(15)
+  ]);
 
   return (
-    <div className="space-y-6 pb-20 pt-1">
-      {/* Header */}
-      <SectionCard className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <Link href="/admin" className="rounded-full border border-white/10 bg-white/5 p-2 hover:bg-white/10">
-              <ArrowLeft className="h-5 w-5 text-white/70" />
-            </Link>
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Live Operations</p>
-              <h1 className="text-3xl font-bold tracking-tight text-white">Loop Diário</h1>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-             <div className="text-right">
-               <p className="text-xs text-white/30">Última atualização</p>
-               <p className="text-sm font-medium text-white/60">{formatDateTimeBR(digest.timestamp)}</p>
-             </div>
-             <Link href={"/admin/ops/qualidade" as any}>
-                <Button variant="secondary" className="gap-2">
-                  <ShieldAlert className="h-4 w-4" />
-                  Qualidade do Dado
-                </Button>
-             </Link>
-             <Link href={"/admin/ops/aprendizado" as any}>
-                <Button variant="secondary" className="gap-2">
-                  <Target className="h-4 w-4 text-rose-400" />
-                  Aprendizado do Beta
-                </Button>
-             </Link>
-             <a href="/api/admin/ops/export" download>
-                <Button variant="secondary" className="gap-2">
-                  <Download className="h-4 w-4" />
-                  Exportar CSV
-                </Button>
-             </a>
-          </div>
+    <div className="min-h-screen bg-[#0a0a0a] text-white p-6 pb-20">
+      <header className="mb-8 flex justify-between items-end">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Painel Operacional</h1>
+          <p className="text-white/50 text-sm mt-1">Controle central de resiliência e rollout territorial do beta.</p>
         </div>
-      </SectionCard>
+        <div className="flex gap-2">
+           <div className="px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full flex items-center gap-2">
+             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+             <span className="text-[10px] font-bold text-green-500 uppercase tracking-wider">Sistema Online</span>
+           </div>
+        </div>
+      </header>
 
-      {/* Hero Summary */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <SectionCard className="border-l-4 border-l-[color:var(--color-accent)]">
-          <div className="flex items-center justify-between">
-            <p className="text-xs uppercase tracking-wider text-white/40">Envios 24h</p>
-            <Zap className="h-4 w-4 text-[color:var(--color-accent)]" />
-          </div>
-          <p className="mt-2 text-3xl font-bold text-white">{digest.summary.submissions24h}</p>
-          <div className="mt-1 flex items-center gap-2 text-xs text-white/50">
-            <span className="text-emerald-400">{digest.summary.approvals24h} aprovados</span>
-            <span>•</span>
-            <span className="text-rose-400">{digest.summary.rejections24h} rejeitados</span>
-          </div>
-        </SectionCard>
-
-        <SectionCard className="border-l-4 border-l-blue-500">
-          <div className="flex items-center justify-between">
-            <p className="text-xs uppercase tracking-wider text-white/40">SLA Médio</p>
-            <Clock className="h-4 w-4 text-blue-400" />
-          </div>
-          <p className="mt-2 text-3xl font-bold text-white">{Math.round(digest.summary.avgSlaMinutes)}<span className="text-sm font-normal text-white/40 ml-1">min</span></p>
-          <p className="mt-1 text-xs text-white/50">Tempo Envio → Moderação</p>
-        </SectionCard>
-
-        <SectionCard className={cn("border-l-4", digest.summary.pendingTotal > 20 ? "border-l-orange-500" : "border-l-emerald-500")}>
-          <div className="flex items-center justify-between">
-            <p className="text-xs uppercase tracking-wider text-white/40">Fila Atual</p>
-            <BarChart3 className="h-4 w-4 text-orange-400" />
-          </div>
-          <p className="mt-2 text-3xl font-bold text-white">{digest.summary.pendingTotal}</p>
-          <p className="mt-1 text-xs text-white/50">Pendentes aguardando ação</p>
-        </SectionCard>
-
-        <SectionCard className="border-l-4 border-l-purple-500">
-          <div className="flex items-center justify-between">
-            <p className="text-xs uppercase tracking-wider text-white/40">Health Rate</p>
-            <CheckCircle2 className="h-4 w-4 text-purple-400" />
-          </div>
-          <p className="mt-2 text-3xl font-bold text-white">98.2<span className="text-sm font-normal text-white/40 ml-1">%</span></p>
-          <p className="mt-1 text-xs text-white/50">Sucesso de envio App → API</p>
-        </SectionCard>
-      </div>
-
-      {/* Alertas de Regressão */}
-      {synthesis.activeAlerts.length > 0 && (
-        <SectionCard className="border-l-4 border-l-rose-500 bg-rose-500/5">
-          <div className="flex items-center gap-3">
-            <AlertOctagon className="h-6 w-6 text-rose-400 animate-pulse" />
-            <div>
-              <h2 className="text-xl font-bold text-white">Alertas de Regressão Ativos</h2>
-              <p className="text-sm text-white/40">Problemas detectados que exigem atenção imediata da operação.</p>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* COLUNA 1: ALERTAS E SAÚDE */}
+        <section className="space-y-6">
+          <div className="bg-[#111] border border-white/5 rounded-2xl overflow-hidden">
+            <div className="p-4 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+              <h2 className="font-bold flex items-center gap-2">
+                <Activity className="w-4 h-4 text-amber-400" />
+                Alertas Ativos
+              </h2>
+              <span className="text-[10px] bg-white/10 px-2 py-0.5 rounded-full text-white/70">
+                {alerts.length} ativos
+              </span>
             </div>
-          </div>
-          
-          <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {synthesis.activeAlerts.map((alert, idx) => (
-              <div key={idx} className={cn(
-                "rounded-2xl border p-4 space-y-2",
-                alert.severity === 'critical' ? "bg-rose-500/10 border-rose-500/20" : "bg-orange-500/10 border-orange-500/20"
-              )}>
-                <div className="flex items-center justify-between">
-                  <Badge variant={alert.severity === 'critical' ? 'danger' : 'warning'} className="text-[9px]">
-                    {alert.alertKind.toUpperCase()}
-                  </Badge>
-                  <span className="text-[10px] text-white/30 font-mono">#{idx+1}</span>
-                </div>
-                <h3 className="font-bold text-white text-sm">{alert.message}</h3>
-                {alert.suggestedAction && (
-                  <p className="text-xs text-white/60 leading-relaxed italic">Sugestão: {alert.suggestedAction}</p>
-                )}
-                <div className="flex items-center justify-between pt-2">
-                   <div className="text-[10px] text-white/30">
-                      Detectado em {alert.city || "Global"}
-                   </div>
-                   <Button variant="ghost" className="h-6 px-2 text-[10px] hover:bg-white/5">Ignorar</Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
-      )}
-
-      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
-        {/* Recommended Actions */}
-        <div className="space-y-6">
-          <RolloutApproval recommendations={synthesis.rolloutRecommendations} />
-          
-          <SectionCard className="space-y-6">
-            <div className="flex items-center gap-2">
-              <Target className="h-5 w-5 text-rose-400" />
-              <h2 className="text-xl font-bold text-white">Ações Recomendadas</h2>
-            </div>
-
-            <div className="space-y-3">
-              {digest.recommendedActions.length === 0 ? (
-                <div className="rounded-2xl border border-white/5 bg-white/5 p-8 text-center">
-                  <p className="text-sm text-white/40">Nenhuma ação crítica recomendada no momento.</p>
+            <div className="p-4 space-y-3">
+              {alerts.length === 0 ? (
+                <div className="py-8 text-center">
+                  <CheckCircle2 className="w-8 h-8 text-green-500/30 mx-auto mb-2" />
+                  <p className="text-xs text-white/40">Nenhuma regressão detectada agora.</p>
                 </div>
               ) : (
-                digest.recommendedActions.map((action, idx) => (
-                  <div 
-                    key={idx} 
-                    className="group flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-5 transition hover:border-white/20"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={cn(
-                          "rounded-full p-2",
-                          action.type === "intensificar" ? "bg-emerald-500/10 text-emerald-400" :
-                          action.type === "moderar" ? "bg-orange-500/10 text-orange-400" :
-                          action.type === "segurar" ? "bg-rose-500/10 text-rose-400" :
-                          "bg-blue-500/10 text-blue-400"
-                        )}>
-                           <Zap className="h-4 w-4" />
-                        </div>
-                        <h3 className="font-bold text-white">{action.label}</h3>
+                alerts.map((alert, i) => (
+                  <div key={i} className={cn(
+                    "p-3 rounded-xl border border-white/5 bg-white/[0.03] space-y-2",
+                    alert.severity === 'critical' ? "border-red-500/30 bg-red-500/5" : "border-amber-500/30 bg-amber-500/5"
+                  )}>
+                    <div className="flex justify-between items-start">
+                      <span className={cn(
+                        "text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded",
+                        alert.severity === 'critical' ? "bg-red-500 text-white" : "bg-amber-500 text-black"
+                      )}>
+                        {alert.severity}
+                      </span>
+                      <span className="text-[10px] text-white/40">{alert.alertKind}</span>
+                    </div>
+                    <p className="text-xs font-semibold leading-relaxed">{alert.message}</p>
+                    {alert.suggestedAction && (
+                      <div className="flex gap-2 items-start mt-2 pt-2 border-t border-white/5">
+                        <Zap className="w-3 h-3 text-white/70 mt-0.5 shrink-0" />
+                        <p className="text-[10px] text-white/70 leading-normal italic">{alert.suggestedAction}</p>
                       </div>
-                      <Badge variant={action.priority === "alta" ? "danger" : "warning"}>
-                        {action.priority.toUpperCase()}
-                      </Badge>
-                    </div>
-                    <p className="text-sm leading-relaxed text-white/60">{action.description}</p>
-                    <div className="flex items-center gap-2 pt-2">
-                       <Button variant="secondary" className="h-8 px-3 text-xs">Resolver agora</Button>
-                       <Button variant="ghost" className="h-8 px-3 text-xs opacity-0 group-hover:opacity-100">Ignorar</Button>
-                    </div>
+                    )}
                   </div>
                 ))
               )}
             </div>
-          </SectionCard>
+          </div>
 
-          {/* Group Changes Table */}
-          <SectionCard className="space-y-6 overflow-hidden p-0">
-            <div className="border-b border-white/5 px-6 pt-6 pb-4">
-              <h2 className="text-xl font-bold text-white">Desempenho por Grupo (Top Mudanças)</h2>
-              <p className="text-sm text-white/40">Comparativo de Score vs. Médias Recentes</p>
-            </div>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="border-b border-white/5 text-[10px] uppercase tracking-widest text-white/30">
-                    <th className="px-6 py-4 font-medium">Grupo Territorial</th>
-                    <th className="px-6 py-4 font-medium">Score Atual</th>
-                    <th className="px-6 py-4 font-medium">Variação</th>
-                    <th className="px-6 py-4 font-medium">Tendência</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {digest.groupChanges.map((group) => (
-                    <tr key={group.groupId} className="transition hover:bg-white/5">
-                      <td className="px-6 py-4">
-                        <p className="text-sm font-semibold text-white">{group.name}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                           <div className="h-2 w-16 overflow-hidden rounded-full bg-white/10">
-                              <div 
-                                className={cn(
-                                  "h-full rounded-full",
-                                  group.currentScore > 75 ? "bg-emerald-500" : 
-                                  group.currentScore > 40 ? "bg-orange-500" : "bg-rose-500"
-                                )} 
-                                style={{ width: `${group.currentScore}%` }}
-                              />
-                           </div>
-                           <span className="text-xs font-mono text-white/60">{group.currentScore}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className={cn(
-                          "flex items-center gap-1 text-xs font-medium",
-                          group.scoreChange > 0 ? "text-emerald-400" : group.scoreChange < 0 ? "text-rose-400" : "text-white/40"
-                        )}>
-                          {group.scoreChange > 0 ? <ArrowUpRight className="h-3 w-3" /> : group.scoreChange < 0 ? <ArrowDownRight className="h-3 w-3" /> : null}
-                          {Math.abs(group.scoreChange)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                         <Badge variant={group.trend === "up" ? "default" : group.trend === "down" ? "danger" : "outline"}>
-                            {group.trend.toUpperCase()}
-                         </Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </SectionCard>
-        </div>
+          <div className="bg-[#111] border border-white/5 rounded-2xl p-4">
+             <h3 className="text-xs font-bold text-white/30 uppercase tracking-widest mb-4 flex items-center gap-2">
+               <History className="w-3 h-3" />
+               Histórico Recente
+             </h3>
+             <div className="space-y-4">
+                {history.map((log: any, i: number) => (
+                  <div key={i} className="flex gap-3 items-start border-l border-white/10 pl-4 py-1 relative">
+                    <div className="absolute -left-[4.5px] top-2 w-2 h-2 rounded-full bg-white/20 border border-[#111]" />
+                    <div className="space-y-1">
+                      <p className="text-[11px] font-medium leading-tight">{log.message}</p>
+                      <div className="flex gap-2 items-center">
+                        <span className="text-[9px] text-white/20 font-mono">
+                          {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        <span className="text-[9px] px-1 bg-white/5 rounded text-white/40 uppercase font-bold tracking-tighter">
+                          {log.actor_id}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+             </div>
+          </div>
+        </section>
 
-        {/* Sidebar Insights */}
-        <div className="space-y-6">
-           <SectionCard className="space-y-4 bg-emerald-500/5 border-emerald-500/10">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-emerald-400" />
-                <h3 className="font-bold text-white">Status de Lançamento</h3>
+        {/* COLUNA 2: KILL SWITCHES E CONTROLES GERAIS */}
+        <section className="space-y-6">
+           <div className="bg-[#111] border border-white/5 rounded-2xl overflow-hidden">
+              <div className="p-4 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+                <h2 className="font-bold flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-blue-400" />
+                  Kill Switches
+                </h2>
               </div>
-              <div className="space-y-3">
-                 <div className="flex items-center justify-between text-sm">
-                   <span className="text-white/60">Grupos &apos;Ready&apos;</span>
-                   <span className="font-bold text-white">12</span>
-                 </div>
-                 <div className="flex items-center justify-between text-sm">
-                   <span className="text-white/60">Grupos em Validação</span>
-                   <span className="font-bold text-white">8</span>
-                 </div>
-                 <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
-                    <div className="h-full w-[60%] rounded-full bg-emerald-500" />
-                 </div>
-                 <p className="text-[10px] text-white/30 text-center uppercase tracking-widest">Rollout Total: 60%</p>
+              <div className="p-4 grid grid-cols-1 gap-3">
+                <KillSwitchToggle 
+                  label="Modo Missão" 
+                  description="Desabilita início de novas missões de rua."
+                  switchKey="disable_mission_mode"
+                  active={killSwitches.disable_mission_mode}
+                />
+                <KillSwitchToggle 
+                  label="Prompts de PWA" 
+                  description="Esconde banners de 'Instalar App'."
+                  switchKey="disable_pwa_prompts"
+                  active={killSwitches.disable_pwa_prompts}
+                />
+                <KillSwitchToggle 
+                  label="Widgets Pesados" 
+                  description="Remove componentes territoriais intensos."
+                  switchKey="disable_heavy_territorial_widgets"
+                  active={killSwitches.disable_heavy_territorial_widgets}
+                />
+                 <KillSwitchToggle 
+                  label="Sugestões Auto" 
+                  description="Desliga motor de recomendação inteligente."
+                  switchKey="disable_auto_suggestions"
+                  active={killSwitches.disable_auto_suggestions}
+                />
+                 <KillSwitchToggle 
+                  label="Fast Lane Mod" 
+                  description="Trava priorização automática de moderação."
+                  switchKey="disable_fast_lane"
+                  active={killSwitches.disable_fast_lane}
+                />
               </div>
-           </SectionCard>
+           </div>
 
-           <SectionCard className="space-y-4">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-orange-400" />
-                <h3 className="font-bold text-white">Fila de SLA Crítica</h3>
+           <div className="bg-gradient-to-br from-blue-500/10 to-indigo-500/10 border border-blue-500/20 rounded-2xl p-4 space-y-3">
+              <div className="flex items-center gap-2 text-blue-400">
+                <Info className="w-4 h-4" />
+                <span className="text-xs font-bold uppercase tracking-wider">Guideline Operacional</span>
               </div>
-              <div className="space-y-4">
-                 <div className="space-y-1">
-                    <p className="text-xs text-white/40 uppercase tracking-widest">Maior Latência</p>
-                    <p className="text-sm font-semibold text-white">Resende Centro (12h+)</p>
-                 </div>
-                 <div className="space-y-1">
-                    <p className="text-xs text-white/40 uppercase tracking-widest">Maior Volume Pendente</p>
-                    <p className="text-sm font-semibold text-white">Volta Redonda (14 reports)</p>
-                 </div>
-                 <Button variant="secondary" className="w-full text-xs font-bold py-2">Congelar Grupos Críticos</Button>
+              <p className="text-[11px] text-white/50 leading-relaxed italic">
+                Use os Kill Switches para reagir a picos de carga ou instabilidades na API sem precisar de novo deploy. 
+                Toda alteração é logada e revalida o cache global do app.
+              </p>
+           </div>
+        </section>
+
+        {/* COLUNA 3: ROLLOUT TERRITORIAL */}
+        <section className="space-y-6">
+           <div className="bg-[#111] border border-white/5 rounded-2xl overflow-hidden">
+              <div className="p-4 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+                <h2 className="font-bold flex items-center gap-2">
+                  <MapIcon className="w-4 h-4 text-green-400" />
+                  Abertura Territorial
+                </h2>
               </div>
-           </SectionCard>
-        </div>
+              <div className="p-4 space-y-4">
+                {groups.map((group) => (
+                  <RolloutControl key={group.id} group={group} />
+                ))}
+              </div>
+           </div>
+        </section>
+
       </div>
     </div>
   );
