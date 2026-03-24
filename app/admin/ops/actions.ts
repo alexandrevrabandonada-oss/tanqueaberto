@@ -147,3 +147,42 @@ export async function updateBetaFeedbackTriageAction(formData: FormData): Promis
 
   revalidatePath("/admin/ops");
 }
+
+export async function createBetaInviteAction(formData: FormData): Promise<void> {
+  const code = formData.get("code") as string;
+  const maxUses = parseInt(formData.get("maxUses") as string || "1");
+  const expiresAt = formData.get("expiresAt") as string;
+  const batchLabel = formData.get("batchLabel") as string;
+  const batchNote = formData.get("batchNote") as string;
+  const testerNote = formData.get("testerNote") as string;
+
+  const supabase = createSupabaseServiceClient();
+  
+  const generatedCode = code || Math.random().toString(36).substring(2, 10).toUpperCase();
+
+  await supabase
+    .from("beta_invites")
+    .insert({
+      code: generatedCode,
+      max_uses: maxUses,
+      expires_at: expiresAt || null,
+      batch_label: batchLabel,
+      batch_note: batchNote,
+      tester_note: testerNote,
+      is_active: true
+    });
+
+  revalidatePath("/admin/ops");
+}
+
+export async function disableBetaInviteAction(formData: FormData): Promise<void> {
+  const inviteId = formData.get("inviteId") as string;
+  const supabase = createSupabaseServiceClient();
+
+  await supabase
+    .from("beta_invites")
+    .update({ is_active: false })
+    .eq("id", inviteId);
+
+  revalidatePath("/admin/ops");
+}
