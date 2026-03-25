@@ -1,8 +1,6 @@
 "use client";
 
-import { startTransition } from "react";
-import type { Route } from "next";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Clock3, Map, Send, UserCircle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -16,40 +14,33 @@ const items: Array<{ href: string; label: string; icon: React.ComponentType<{ cl
 
 export function BottomNav() {
   const pathname = usePathname();
-  const router = useRouter();
 
   return (
-    <nav className="pointer-events-auto fixed inset-x-4 bottom-4 z-[1000] isolate mx-auto w-auto max-w-[448px] rounded-[26px] border border-white/10 bg-black/92 p-2 shadow-2xl backdrop-blur-xl transition-all duration-300 lg:max-w-[720px] lg:left-1/2 lg:right-auto lg:w-[calc(100%-32px)] lg:-translate-x-1/2">
-      <ul className="grid grid-cols-4 gap-1 lg:gap-3">
-        {items.map(({ href, label, icon: Icon }) => {
-          const active = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+    <nav className="fixed inset-x-0 bottom-0 z-[1000] border-t border-white/10 bg-black/95 px-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-[0_-18px_40px_rgba(0,0,0,0.45)] lg:border-t-0 lg:bg-transparent lg:px-0 lg:pb-4 lg:pt-0 lg:shadow-none">
+      <div className="mx-auto w-full max-w-[480px] rounded-[24px] bg-black/95 lg:max-w-[720px] lg:rounded-[26px] lg:border lg:border-white/10 lg:px-2 lg:py-2 lg:shadow-2xl">
+        <ul className="grid grid-cols-4 gap-1 lg:gap-3">
+          {items.map(({ href, label, icon: Icon }) => {
+            const active = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
 
-          return (
-            <li key={href} className="min-w-0">
-              <button
-                type="button"
-                aria-current={active ? "page" : undefined}
-                onClick={() => {
-                  if (active) {
-                    return;
-                  }
-
-                  startTransition(() => {
-                    router.push(href as Route);
-                  });
-                }}
-                className={cn(
-                  "relative z-10 flex w-full touch-manipulation flex-col items-center gap-1 rounded-[18px] px-3 py-2 text-[11px] font-medium text-white/56 transition active:scale-95 hover:bg-white/5 lg:flex-row lg:justify-center lg:gap-2 lg:text-[12px]",
-                  active && "bg-[color:var(--color-accent)] font-bold text-black lg:font-black"
-                )}
-              >
-                <Icon className={cn("h-4 w-4", active && "animate-pulse")} />
-                <span className="truncate lg:uppercase lg:tracking-widest">{label}</span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+            return (
+              <li key={href} className="min-w-0">
+                <a
+                  href={href}
+                  aria-current={active ? "page" : undefined}
+                  draggable={false}
+                  className={cn(
+                    "flex min-h-14 w-full touch-manipulation flex-col items-center justify-center gap-1 rounded-[18px] px-2 py-2 text-[11px] font-medium text-white/56 active:scale-[0.98] lg:flex-row lg:gap-2 lg:px-3 lg:text-[12px]",
+                    active && "bg-[color:var(--color-accent)] font-bold text-black lg:font-black"
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span className="truncate lg:uppercase lg:tracking-widest">{label}</span>
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
     </nav>
   );
 }
