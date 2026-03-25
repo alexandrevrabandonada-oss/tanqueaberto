@@ -9,6 +9,7 @@ export function PwaRegister() {
     }
 
     let mounted = true;
+    let updateInterval = 0;
 
     navigator.serviceWorker
       .register("/sw.js")
@@ -20,6 +21,11 @@ export function PwaRegister() {
         const emitUpdateReady = () => {
           window.dispatchEvent(new Event("bomba-aberta-sw-update-ready"));
         };
+
+        void registration.update();
+        updateInterval = window.setInterval(() => {
+          void registration.update();
+        }, 60_000);
 
         if (registration.waiting) {
           emitUpdateReady();
@@ -46,11 +52,22 @@ export function PwaRegister() {
       window.location.reload();
     };
 
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void navigator.serviceWorker.getRegistration().then((registration) => registration?.update());
+      }
+    };
+
     navigator.serviceWorker.addEventListener("controllerchange", onControllerChange);
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
       mounted = false;
+      if (updateInterval) {
+        window.clearInterval(updateInterval);
+      }
       navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, []);
 
