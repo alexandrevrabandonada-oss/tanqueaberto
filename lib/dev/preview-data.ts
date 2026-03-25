@@ -7,6 +7,8 @@ function isoDaysAgo(days: number, hours = 0) {
   return date.toISOString();
 }
 
+const previewImage = "/brand/bomba-aberta/emblem/bomba-aberta-emblem-og.png";
+
 const stations: StationWithReports[] = [
   {
     id: "preview-vr-centro",
@@ -30,7 +32,7 @@ const stations: StationWithReports[] = [
         stationId: "preview-vr-centro",
         fuelType: "gasolina_comum",
         price: 6.39,
-        photoUrl: "/brand/og-preview.svg",
+        photoUrl: previewImage,
         photoTakenAt: isoDaysAgo(1),
         observedAt: isoDaysAgo(1),
         submittedAt: isoDaysAgo(1),
@@ -99,7 +101,7 @@ const stations: StationWithReports[] = [
         stationId: "preview-resende-paraiso",
         fuelType: "etanol",
         price: 4.39,
-        photoUrl: "/brand/og-preview.svg",
+        photoUrl: previewImage,
         photoTakenAt: isoDaysAgo(6),
         observedAt: isoDaysAgo(6),
         submittedAt: isoDaysAgo(6),
@@ -148,7 +150,7 @@ const stations: StationWithReports[] = [
         stationId: "preview-bp-centro",
         fuelType: "diesel_s10",
         price: 6.19,
-        photoUrl: "/brand/og-preview.svg",
+        photoUrl: previewImage,
         photoTakenAt: isoDaysAgo(18),
         observedAt: isoDaysAgo(18),
         submittedAt: isoDaysAgo(18),
@@ -183,7 +185,7 @@ const feed: ReportWithStation[] = [
     stationId: "preview-vr-centro",
     fuelType: "gasolina_comum",
     price: 6.39,
-    photoUrl: "/brand/og-preview.svg",
+    photoUrl: previewImage,
     photoTakenAt: isoDaysAgo(1),
     observedAt: isoDaysAgo(1),
     submittedAt: isoDaysAgo(1),
@@ -218,7 +220,7 @@ const feed: ReportWithStation[] = [
     stationId: "preview-resende-paraiso",
     fuelType: "etanol",
     price: 4.39,
-    photoUrl: "/brand/og-preview.svg",
+    photoUrl: previewImage,
     photoTakenAt: isoDaysAgo(6),
     observedAt: isoDaysAgo(6),
     submittedAt: isoDaysAgo(6),

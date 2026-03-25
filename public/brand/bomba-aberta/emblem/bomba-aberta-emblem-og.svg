@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" fill="none">
+  <rect width="1200" height="630" rx="84" fill="#090909"/>
+  <rect x="56" y="56" width="1088" height="518" rx="64" fill="url(#g)" opacity="0.95"/>
+  <g transform="translate(86 108)">
+    <rect x="0" y="0" width="208" height="208" rx="56" fill="#FFC700"/>
+    <g transform="translate(34 18) scale(0.32)">
+      <path d="M142 10c-26 0-48 21-48 47v33c0 26-11 50-30 67l-30 28c-11 10-18 24-18 40v14c0 14 11 25 25 25h10v28c0 16 13 29 29 29h126c16 0 29-13 29-29v-28h10c14 0 25-11 25-25v-14c0-16-7-30-18-40l-30-28c-19-17-30-41-30-67V57c0-26-22-47-48-47Z" fill="#090909"/>
+      <rect x="118" y="54" width="48" height="70" rx="14" fill="#090909"/>
+      <rect x="126" y="64" width="32" height="28" rx="8" fill="#FFC700"/>
+      <path d="M103 174h78v20c0 10-8 18-18 18h-42c-10 0-18-8-18-18v-20Z" fill="#090909"/>
+      <path d="M188 45c21 6 36 24 36 46v18c0 12 10 22 22 22h12v24h-14c-28 0-50-22-50-50V91c0-14-6-26-16-33V45Z" fill="#090909"/>
+      <path d="M0 278h282v20c0 16-13 30-30 30H30c-17 0-30-14-30-30v-20Z" fill="#090909"/>
+    </g>
+  </g>
+  <text x="336" y="200" fill="#F5F4EF" font-family="Space Grotesk, Arial, sans-serif" font-size="72" font-weight="800">Bomba Aberta</text>
+  <text x="336" y="272" fill="#FFC700" font-family="Instrument Sans, Arial, sans-serif" font-size="28" font-weight="700" letter-spacing="5">VR ABANDONADA</text>
+  <text x="336" y="348" fill="#F5F4EF" font-family="Instrument Sans, Arial, sans-serif" font-size="36" font-weight="500">Mapa popular dos combustíveis no Sul Fluminense.</text>
+  <text x="336" y="410" fill="#A4A39C" font-family="Instrument Sans, Arial, sans-serif" font-size="24" font-weight="400">Preço recente, foto e recência em um toque.</text>
+  <rect x="336" y="462" width="188" height="44" rx="22" fill="#FFC700"/>
+  <text x="430" y="492" text-anchor="middle" fill="#090909" font-family="Instrument Sans, Arial, sans-serif" font-size="20" font-weight="700">Mapa vivo</text>
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#151515"/>
+      <stop offset="1" stop-color="#090909"/>
+    </linearGradient>
+  </defs>
+</svg>

@@ -34,11 +34,13 @@ export const metadata: Metadata = {
       },
   icons: {
     icon: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/icons/icon.svg", type: "image/svg+xml" }
+      { url: "/brand/bomba-aberta/icon/bomba-aberta-icon.svg", type: "image/svg+xml", sizes: "any" },
+      { url: "/brand/bomba-aberta/icon/favicon-16.png", type: "image/png", sizes: "16x16" },
+      { url: "/brand/bomba-aberta/icon/favicon-32.png", type: "image/png", sizes: "32x32" },
+      { url: "/brand/bomba-aberta/icon/bomba-aberta-icon-192.png", type: "image/png", sizes: "192x192" }
     ],
-    shortcut: "/favicon.svg",
-    apple: "/icons/apple-touch-icon.svg"
+    shortcut: "/brand/bomba-aberta/icon/favicon-32.png",
+    apple: "/brand/bomba-aberta/icon/apple-touch-icon.png"
   },
   openGraph: {
     title: `${brand.name} | ${brand.tagline}`,
@@ -47,7 +49,7 @@ export const metadata: Metadata = {
     siteName: brand.name,
     images: [
       {
-        url: "/brand/og-preview.svg",
+        url: "/brand/bomba-aberta/emblem/bomba-aberta-emblem-og.png",
         width: 1200,
         height: 630,
         alt: brand.name
@@ -58,7 +60,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: `${brand.name} | ${brand.tagline}`,
     description: "Mapa popular de preços de combustíveis no Sul Fluminense.",
-    images: ["/brand/og-preview.svg"]
+    images: ["/brand/bomba-aberta/emblem/bomba-aberta-emblem-og.png"]
   }
 };
 
@@ -84,9 +86,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <SubmissionHistoryProvider>
             <TestModeIndicator />
             <MissionOverlay />
-            <ErrorBoundary name="RootLayout">
-              {children}
-            </ErrorBoundary>
+            <ErrorBoundary name="RootLayout">{children}</ErrorBoundary>
           </SubmissionHistoryProvider>
         </MissionProvider>
       </body>

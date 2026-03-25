@@ -1,36 +1,57 @@
 # Sistema de Marca - Bomba Aberta
 
-Data: 2026-03-22
+Data: 2026-03-25
 
 ## Resumo
-O Bomba Aberta passa a ter um sistema de marca completo, com versões próprias para app, PWA, comunicação e uso editorial. A lógica central permanece: amarelo forte, preto profundo, linguagem popular e industrial, com leitura rápida em tamanhos pequenos.
+O Bomba Aberta passa a operar com um sistema de marca em três níveis: ícone puro para leitura mínima, logo horizontal para navegação e selo expandido para superfícies institucionais e sociais. A base continua amarela, preta e industrial, com foco em legibilidade real no app.
 
 ## Versões oficiais
 
-### 1. Marca principal vertical
-Arquivo: `/brand/mark-vertical.svg`
-Uso: splash screen, página sobre, peças editoriais, aberturas, apresentações.
+### 1. Ícone puro
+Arquivos:
+- `/brand/bomba-aberta/icon/bomba-aberta-icon.svg`
+- `/brand/bomba-aberta/icon/bomba-aberta-icon-192.png`
+- `/brand/bomba-aberta/icon/bomba-aberta-icon-512.png`
+- `/brand/bomba-aberta/icon/bomba-aberta-icon-maskable-192.png`
+- `/brand/bomba-aberta/icon/bomba-aberta-icon-maskable-512.png`
+- `/brand/bomba-aberta/icon/favicon-16.png`
+- `/brand/bomba-aberta/icon/favicon-32.png`
+- `/brand/bomba-aberta/icon/apple-touch-icon.png`
 
-### 2. Marca horizontal
-Arquivo: `/brand/mark-horizontal.svg`
-Uso: header do app, navbar, hero compacto, assinaturas horizontais.
+Uso: favicon, app icon, manifest e superfícies compactas.
 
-### 3. Símbolo reduzido
-Arquivo: `/brand/mark-symbol.svg`
-Uso: app icon, avatar, favicon, marcador pequeno, selos e superfícies compactas.
+### 2. Logo horizontal
+Arquivos:
+- `/brand/bomba-aberta/logo/bomba-aberta-logo-horizontal.svg`
+- `/brand/bomba-aberta/logo/bomba-aberta-logo-horizontal-dark.png`
 
-### 4. Wordmark
-Arquivo: `/brand/wordmark.svg`
-Uso: materiais gráficos, thumbnails, assinatura de marca quando o símbolo não for necessário.
+Uso: header do app, superfícies de interface e assinaturas horizontais.
 
-### 5. Monocromáticas
-Arquivos: `/brand/mono-black.svg`, `/brand/mono-white.svg`, `/brand/mono-yellow.svg`
-Uso: fundos claros, fundos escuros, recortes editoriais e aplicações de contraste.
+### 3. Selo expandido
+Arquivos:
+- `/brand/bomba-aberta/emblem/bomba-aberta-emblem.svg`
+- `/brand/bomba-aberta/emblem/bomba-aberta-emblem-dark.png`
+- `/brand/bomba-aberta/emblem/bomba-aberta-emblem-transparent.png`
+- `/brand/bomba-aberta/emblem/bomba-aberta-emblem-og.png`
+
+Uso: splash, onboarding, sobre, páginas institucionais e social preview.
+
+### 4. Legado
+Arquivos:
+- `/brand/mark-vertical.svg`
+- `/brand/mark-horizontal.svg`
+- `/brand/mark-symbol.svg`
+- `/brand/wordmark.svg`
+- `/brand/mono-black.svg`
+- `/brand/mono-white.svg`
+- `/brand/mono-yellow.svg`
+
+Uso: apenas como origem legada enquanto a migração conclui.
 
 ## Regra de uso
-- Use a versão vertical para impacto e abertura.
-- Use a horizontal para navegação e cabeçalho.
-- Use o símbolo em espaços muito pequenos.
+- Use o ícone puro para leitura instantânea e tamanhos pequenos.
+- Use o logo horizontal para navegação e cabeçalho.
+- Use o selo expandido apenas em superfícies grandes.
 - Use o wordmark quando a leitura do nome for prioridade.
 - Use as monocromáticas quando a cor principal conflitar com o fundo.
 
@@ -39,9 +60,9 @@ Uso: fundos claros, fundos escuros, recortes editoriais e aplicações de contra
 - Não encostar texto, ícone ou borda no limite do logo.
 
 ## Tamanho mínimo sugerido
-- Símbolo: 24px em tela.
-- Horizontal: 160px de largura.
-- Vertical: 180px de altura.
+- Ícone: 24px em tela.
+- Logo horizontal: 160px de largura.
+- Selo expandido: 180px de altura.
 - Wordmark: 180px de largura.
 
 ## Fundos permitidos
@@ -61,7 +82,7 @@ Uso: fundos claros, fundos escuros, recortes editoriais e aplicações de contra
 - Não esticar horizontal ou verticalmente.
 - Não trocar o amarelo por outro tom sem necessidade.
 - Não misturar a marca com cores neon fora da paleta.
-- Não usar o símbolo pequeno com textos longos ao lado em espaços apertados.
+- Não usar o selo expandido em contexto pequeno.
 
 ## Paleta oficial
 - Amarelo principal: `#FFC700`
@@ -78,11 +99,11 @@ Uso: fundos claros, fundos escuros, recortes editoriais e aplicações de contra
 - Tom: industrial, popular, direto, sem estética corporativa genérica.
 
 ## Integração no produto
-- Header do app: marca horizontal.
-- Sobre/metodologia: marca vertical.
-- PWA e ícones: símbolo reduzido.
-- Open Graph e compartilhamento: marca horizontal.
-- Loading/splash: marca vertical ou símbolo reduzido centralizado.
+- Header do app: logo horizontal.
+- Sobre/metodologia: selo expandido.
+- PWA e ícones: ícone puro.
+- Open Graph e compartilhamento: selo expandido.
+- Loading/splash: selo expandido.
 
 ## Observação prática
-A versão simplificada privilegia leitura e escala. O símbolo foi limpo para preservar a bomba, a silhueta e a faísca sem ruído excessivo em tamanhos pequenos.
+A versão simplificada privilegia leitura e escala. O sistema separa claramente peça mínima, peça principal e peça institucional para evitar competição visual.

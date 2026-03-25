@@ -30,9 +30,7 @@ export function isBetaBypassedPath(pathname: string) {
     pathname.startsWith("/admin/") ||
     pathname.startsWith("/api/") ||
     pathname.startsWith("/_next/") ||
-    pathname.startsWith("/icons/") ||
     pathname.startsWith("/brand/") ||
-    pathname === "/favicon.svg" ||
     pathname === "/favicon.ico" ||
     pathname === "/manifest.webmanifest" ||
     pathname === "/robots.txt" ||

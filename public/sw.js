@@ -1,4 +1,4 @@
-const CACHE_NAME = "bomba-aberta-v3";
+const CACHE_NAME = "bomba-aberta-v4";
 const APP_SHELL = [
   "/",
   "/atualizacoes",
@@ -8,13 +8,20 @@ const APP_SHELL = [
   "/sobre",
   "/offline",
   "/manifest.webmanifest",
-  "/favicon.svg",
-  "/icons/icon.svg",
-  "/icons/icon-maskable.svg",
-  "/icons/apple-touch-icon.svg",
-  "/brand/mark-symbol.svg",
-  "/brand/mark-horizontal.svg",
-  "/brand/og-preview.svg"
+  "/brand/bomba-aberta/icon/favicon-16.png",
+  "/brand/bomba-aberta/icon/favicon-32.png",
+  "/brand/bomba-aberta/icon/apple-touch-icon.png",
+  "/brand/bomba-aberta/icon/bomba-aberta-icon.svg",
+  "/brand/bomba-aberta/icon/bomba-aberta-icon-192.png",
+  "/brand/bomba-aberta/icon/bomba-aberta-icon-512.png",
+  "/brand/bomba-aberta/icon/bomba-aberta-icon-maskable-192.png",
+  "/brand/bomba-aberta/icon/bomba-aberta-icon-maskable-512.png",
+  "/brand/bomba-aberta/logo/bomba-aberta-logo-horizontal.svg",
+  "/brand/bomba-aberta/logo/bomba-aberta-logo-horizontal-dark.png",
+  "/brand/bomba-aberta/emblem/bomba-aberta-emblem.svg",
+  "/brand/bomba-aberta/emblem/bomba-aberta-emblem-dark.png",
+  "/brand/bomba-aberta/emblem/bomba-aberta-emblem-transparent.png",
+  "/brand/bomba-aberta/emblem/bomba-aberta-emblem-og.png"
 ];
 
 async function cacheStaticResponse(request) {

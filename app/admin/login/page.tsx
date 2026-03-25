@@ -32,7 +32,7 @@ export default async function AdminLoginPage({ searchParams }: AdminLoginPagePro
       <div className="w-full max-w-md space-y-4">
         <SectionCard className="space-y-4">
           <div className="flex items-center gap-3">
-            <BrandMark variant="symbol" className="h-11 w-11" decorative />
+            <BrandMark variant="icon" className="h-11 w-11" decorative />
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-white/42">Área restrita</p>
               <h1 className="font-display text-2xl text-white">{brand.name}</h1>

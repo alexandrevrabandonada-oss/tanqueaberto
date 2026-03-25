@@ -18,7 +18,7 @@ export default function SobrePage() {
     <AppShell>
       <SectionCard className="space-y-5">
         <div className="rounded-[28px] border border-white/8 bg-black/35 p-5">
-          <BrandMark variant="vertical" className="mx-auto h-auto w-full max-w-[280px]" />
+          <BrandMark variant="emblem" className="mx-auto h-auto w-full max-w-[340px]" />
         </div>
         <div className="space-y-2">
           <p className="text-xs uppercase tracking-[0.2em] text-white/42">Sobre e metodologia</p>

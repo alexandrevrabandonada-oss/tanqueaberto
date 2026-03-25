@@ -10,15 +10,33 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/brand/mark-symbol.svg",
+      "src": "/brand/bomba-aberta/icon/bomba-aberta-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/brand/mark-symbol.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/brand/bomba-aberta/icon/bomba-aberta-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/bomba-aberta/icon/bomba-aberta-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/bomba-aberta/icon/bomba-aberta-icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/brand/bomba-aberta/icon/bomba-aberta-icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "maskable"
     }
   ]
