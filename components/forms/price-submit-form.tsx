@@ -32,6 +32,9 @@ import { ContextualFeedback } from "@/components/feedback/contextual-feedback";
 import { submitContextualFeedbackAction } from "@/app/hub/feedback-actions";
 import { consumeHubAttribution } from "@/lib/telemetry/attribution";
 import { useMySubmissions } from "@/hooks/use-my-submissions";
+import { PostSubmissionBridge } from "./post-submission-bridge";
+import { useStreetSession } from "@/hooks/use-street-session";
+import { useTestMode } from "@/hooks/use-test-mode";
 
 const fuelOptions: FuelType[] = ["gasolina_comum", "gasolina_aditivada", "etanol", "diesel_s10", "diesel_comum", "gnv"];
 const allowedFuelSet = new Set<FuelType>(fuelOptions);
@@ -107,6 +110,8 @@ function PriceSubmitFormBody({
   const { addSubmission } = useSubmissionHistory();
   const { submissions } = useMySubmissions();
   const safeReturnToHref = useMemo(() => safeRoute(returnToHref), [returnToHref]);
+  const { recordActivity } = useStreetSession();
+  const { isActive: isTestMode } = useTestMode();
   const draftKey = useMemo(() => createDraftKey(initialStationId), [initialStationId]);
 
   const initialStation = useMemo(() => stations.find((station) => station.id === initialStationId) ?? null, [initialStationId, stations]);
@@ -172,9 +177,12 @@ function PriceSubmitFormBody({
             }
           });
         }
+
+        // Sessão de Rua: Concluir envio
+        recordActivity('complete', station.id);
       }
     }
-  }, [state.success, state.reportId, addSubmission, stations, stationId, fuelType, price, nickname]);
+  }, [state.success, state.reportId, addSubmission, stations, stationId, fuelType, price, nickname, recordActivity]);
   const [showFeedback, setShowFeedback] = useState(false);
   const selectedFileRef = useRef<File | null>(null);
   const hasStartedRef = useRef(false);
@@ -414,6 +422,20 @@ function PriceSubmitFormBody({
       closestStationId: closestId
     };
   }, [coords, selectedStation, stations]);
+
+  const nearbyStationsList = useMemo(() => {
+    if (!coords) return [];
+    return stations
+      .map(s => ({ ...s, distance: calculateDistance(coords.lat, coords.lng, s.lat, s.lng) }))
+      .filter(s => (s.distance || 0) <= 2000)
+      .sort((a, b) => (a.distance || 0) - (b.distance || 0));
+  }, [coords, stations]);
+
+  const nextStationNode = useMemo(() => {
+    if (!mission || mission.currentIndex + 1 >= mission.stationIds.length) return null;
+    const nextId = mission.stationIds[mission.currentIndex + 1];
+    return stations.find(s => s.id === nextId) || null;
+  }, [mission, stations]);
   const ambiguityTrackedRef = useRef<string | null>(null);
   useEffect(() => {
     if (isAmbiguous && !lockedStation && coords && ambiguityTrackedRef.current !== stationId) {
@@ -1013,6 +1035,7 @@ function PriceSubmitFormBody({
                 }
               });
               fileInputRef.current?.click();
+              recordActivity('start', stationId);
             }}
             className={cn("w-full sm:w-auto", isStreetMode && "h-16 text-lg font-bold shadow-2xl")}
           >
@@ -1038,6 +1061,7 @@ function PriceSubmitFormBody({
                 }
               });
               fileInputRef.current?.click();
+              recordActivity('start', stationId);
             }}
             className="w-full sm:w-auto"
           >
@@ -1069,118 +1093,18 @@ function PriceSubmitFormBody({
       ) : null}
 
       {state.success ? (
-        <div className={cn("rounded-[24px] border border-green-400/20 bg-green-400/10 p-5 text-sm text-white", isStreetMode && "p-4")}>
-          <div className="flex items-start gap-3">
-            <div className="rounded-full bg-green-500/20 p-2">
-              <ShieldCheck className="h-6 w-6 text-green-400" />
-            </div>
-            <div>
-              <p className="text-lg font-bold">Show! Preço enviado.</p>
-              <p className="text-white/60">Já está na fila prioritária de moderação.</p>
-            </div>
-          </div>
-          
-          <div className="mt-6 space-y-3">
-            {mission && mission.currentIndex + 1 < mission.stationIds.length ? (() => {
-               const nextId = mission.stationIds[mission.currentIndex + 1];
-               const nextS = stations.find(s => s.id === nextId);
-               return (
-                 <Button
-                    type="button"
-                    className="w-full h-16 text-lg font-black bg-yellow-400 text-black border-4 border-black/10 shadow-[0_10px_40px_rgba(255,212,0,0.3)]"
-                    onClick={() => {
-                      if (submittedStationId) {
-                        nextStation(submittedStationId);
-                      } else {
-                        nextStation();
-                      }
-                      router.push((`/enviar?stationId=${nextId}#photo` as Route));
-                    }}
-                  >
-                    IR PARA O PRÓXIMO ALVO: {nextS ? getStationPublicName(nextS).toUpperCase() : "PRÓXIMO"}
-                  </Button>
-               );
-            })() : (
-              <Button
-                type="button"
-                className="w-full h-16 text-lg font-bold shadow-lg"
-                onClick={() => {
-                  void trackProductEvent({
-                    eventType: "submission_series_continued",
-                    pagePath: "/enviar",
-                    pageTitle: "Enviar preço",
-                    stationId: submittedStationId,
-                    fuelType,
-                    scopeType: "submission",
-                    scopeId: submittedStationId,
-                    payload: { mode: "same_station", streetMode: isStreetMode }
-                  });
-                  void resetForAnotherSubmission();
-                }}
-              >
-                ENVIAR OUTRO NESTE POSTO
-              </Button>
-            )}
-            
-            {(() => {
-              const route = readRouteContext();
-              const nextStationIdInRoute = route?.completedStationIds ? stations.find(s => !route.completedStationIds.includes(s.id) && s.id !== submittedStationId)?.id : null;
-
-              if (nextStationIdInRoute && nextStationIdInRoute !== submittedStationId && !mission) {
-                const ns = stations.find(s => s.id === nextStationIdInRoute);
-                return (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="w-full h-14 font-semibold"
-                    onClick={() => {
-                       if (submittedStationId) {
-                         completeStationInRoute(submittedStationId);
-                       }
-                       router.push((`/enviar?stationId=${nextStationIdInRoute}#photo` as Route));
-                    }}
-                  >
-                    IR PARA: {ns ? getStationPublicName(ns) : "PRÓXIMO POSTO"}
-                  </Button>
-                );
-              }
-              return null;
-            })()}
-
-            <div className="flex gap-2">
-              <Button 
-                type="button" 
-                variant="ghost" 
-                className="flex-1 h-12"
-                onClick={() => {
-                  if (mission && submittedStationId) {
-                    nextStation(submittedStationId);
-                  } else if (mission) {
-                    nextStation();
-                  }
-                  router.push((safeReturnToHref ?? "/") as Route);
-                }}
-              >
-                Voltar ao mapa
-              </Button>
-              {submittedStationId && (
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  className="flex-1 h-12"
-                  onClick={() => router.push((`/postos/${submittedStationId}` as Route))}
-                >
-                  Ver posto
-                </Button>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-6 border-t border-white/10 pt-4">
-            <p className="mb-3 text-[10px] uppercase tracking-widest text-white/40 text-center">Rota de Coleta</p>
-            <RouteAssistant stations={stations} currentStationId={submittedStationId} />
-          </div>
-        </div>
+        <PostSubmissionBridge
+          status={currentQueueItem ? "queued" : "success"}
+          station={selectedStation!}
+          fuelType={fuelType}
+          price={price}
+          isStreetMode={isStreetMode}
+          mission={mission}
+          nextMissionStation={nextStationNode}
+          nearbyStations={nearbyStationsList}
+          safeReturnToHref={safeReturnToHref}
+          onReset={resetForAnotherSubmission}
+        />
       ) : null}
 
       {state.error ? (
@@ -1305,14 +1229,21 @@ function PriceSubmitFormBody({
               )}
             </div>
             
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => fileInputRef.current?.click()}
-              className="h-8 rounded-full border-white/10 bg-white/10 px-3 text-[10px] font-bold text-white backdrop-blur-md hover:bg-white/20"
-            >
-              REFAZER FOTO
-            </Button>
+            <div className="flex items-center gap-2">
+              {isTestMode && (
+                <Badge variant="outline" className="h-8 border-indigo-500/50 bg-indigo-500/10 text-indigo-400 font-black italic">
+                  BETA TEST
+                </Badge>
+              )}
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => fileInputRef.current?.click()}
+                className="h-8 rounded-full border-white/10 bg-white/10 px-3 text-[10px] font-bold text-white backdrop-blur-md hover:bg-white/20"
+              >
+                REFAZER FOTO
+              </Button>
+            </div>
           </div>
 
           {!qualityResult?.isGood && qualityResult && (

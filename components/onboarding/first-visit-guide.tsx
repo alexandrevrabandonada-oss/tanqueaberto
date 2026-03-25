@@ -10,7 +10,11 @@ import { SectionCard } from "@/components/ui/section-card";
 
 const STORAGE_KEY = "bomba_aberta_home_guide_dismissed";
 
-export function FirstVisitGuide() {
+interface FirstVisitGuideProps {
+  isCondensed?: boolean;
+}
+
+export function FirstVisitGuide({ isCondensed = false }: FirstVisitGuideProps) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -19,6 +23,26 @@ export function FirstVisitGuide() {
   }, []);
 
   if (!visible) return null;
+
+  if (isCondensed) {
+    return (
+      <div className="flex items-center justify-between gap-3 rounded-[22px] border border-[color:var(--color-accent)]/20 bg-[color:var(--color-accent)]/8 pl-4 pr-1.5 py-1.5 animate-in fade-in slide-in-from-top-1 duration-300">
+        <div className="flex items-center gap-2">
+          <Badge variant="warning" className="h-5 px-1.5 text-[9px]">NOVO</Badge>
+          <p className="text-xs font-medium text-white/80">Guia: Comece pelo mapa para entender o território.</p>
+        </div>
+        <button
+          onClick={() => {
+            window.localStorage.setItem(STORAGE_KEY, "1");
+            setVisible(false);
+          }}
+          className="flex h-9 items-center justify-center rounded-full bg-white/10 px-4 text-[10px] font-bold text-white hover:bg-white/20 active:scale-95"
+        >
+          MAIS TARDE
+        </button>
+      </div>
+    );
+  }
 
   return (
     <SectionCard className="space-y-4 border-[color:var(--color-accent)]/18 bg-[color:var(--color-accent)]/8">

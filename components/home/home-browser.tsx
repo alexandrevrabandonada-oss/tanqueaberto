@@ -40,8 +40,8 @@ import { getSmartDefaultRecorte, getSmartDefaultPhrase, type SmartDefaultReason 
 import { FeedbackTrigger } from "@/components/feedback/feedback-trigger";
 import type { FuelFilter, RecencyFilter } from "@/lib/filters/public";
 import { type ReportWithStation, StationWithReports } from "@/lib/types";
-import { SurfaceOrchestrator } from "@/components/layout/surface-orchestrator";
-import { type SurfaceType } from "@/lib/ui/surface-orchestrator";
+import { SurfaceOrchestrator, type SurfaceItem } from "@/components/layout/surface-orchestrator";
+import { type SurfaceType, SURFACE_PRIORITIES } from "@/lib/ui/surface-orchestrator";
 import { InstallPromptCard } from "./install-prompt-card";
 import { useOperationalFocus } from "@/hooks/use-operational-focus";
 import { useRetentionSurfaces } from "@/components/layout/retention-hub";
@@ -55,6 +55,7 @@ import { type UtilityRole } from "@/lib/ops/collector-trust";
 import { QuickActionGroup, QuickActionButton } from "@/components/ui/quick-action";
 import { OperationalMemoryBar } from "./operational-memory-bar";
 import { useOperationalMemory } from "@/hooks/use-operational-memory";
+import { useStreetSession } from "@/hooks/use-street-session";
 
 interface HomeBrowserProps {
   stations: StationWithReports[];
@@ -160,6 +161,8 @@ export function HomeBrowser({
   const { coords, loading: geoLoading, error: geoError, getLocation } = useGeolocation();
   const { isLowPerf, effectiveType } = useNetworkHardening();
   const { isStreetMode, toggleStreetMode, recentIds, favoriteIds, toggleFavorite, isFavorite } = useStreetMode();
+  const { recordActivity } = useStreetSession();
+  const [listMode, setListMode] = useState<'ultra-claro' | 'avancado' | 'normal'>('normal');
   const { reporterNickname } = useMySubmissions();
   const { focus, updateTownFocus, updateSuggestedStation } = useOperationalFocus();
   const { addRecentCut } = useOperationalMemory();
@@ -238,6 +241,22 @@ export function HomeBrowser({
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("bomba_lista_mode") as any;
+    if (stored) setListMode(stored);
+    else if (isAssisted) setListMode('ultra-claro');
+  }, [isAssisted]);
+
+  const updateListMode = (mode: 'ultra-claro' | 'avancado' | 'normal') => {
+    setListMode(mode);
+    localStorage.setItem("bomba_lista_mode", mode);
+    void trackProductEvent({ 
+      eventType: "list_mode_changed" as any, 
+      pagePath: "/", 
+      payload: { mode } 
+    });
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -493,6 +512,19 @@ export function HomeBrowser({
     () => orderedStations.filter((station) => !hasRecentStationPriceForFilter(station, fuelFilter)).slice(0, 4),
     [fuelFilter, orderedStations]
   );
+
+  // Sessão de Rua: Registrar views automáticas
+  useEffect(() => {
+    // Pegar IDs dos postos atualmente visíveis na lista (top 10 de cada seção)
+    const visibleIds = [
+      ...noRecentStations.map(s => s.id),
+      ...orderedStations.slice(0, 10).map(s => s.id)
+    ];
+    
+    visibleIds.forEach(id => {
+      recordActivity('view', id);
+    });
+  }, [noRecentStations, orderedStations, recordActivity]);
   const contextHref = useMemo(() => buildContextHref(query, selectedCity, fuelFilter, recencyFilter, presenceFilter), [fuelFilter, presenceFilter, query, recencyFilter, selectedCity]);
 
   const cheapestNow = useMemo(() => {
@@ -557,16 +589,16 @@ export function HomeBrowser({
     }
   }, [role, isHydrated, orderedStations, focus.suggestedStation?.id, updateSuggestedStation]);
 
-  // 1. Gather all potential surfaces for orchestration
-  const surfaces: Array<{ id: string; type: SurfaceType; content: React.ReactNode; isDismissible?: boolean }> = [];
+  // 1. Gather   // 1. Gather all potential surfaces for orchestration
+  const surfaces: SurfaceItem[] = [];
 
   // Add retention surfaces first
-  retentionSurfaces.forEach(s => surfaces.push(s));
+  retentionSurfaces.forEach(s => surfaces.push(s as SurfaceItem));
 
   if (isLowPerf) {
     surfaces.push({
       id: "low-perf",
-      type: "CRITICAL_ALERT" as SurfaceType,
+      type: "CRITICAL_ALERT",
       content: (
         <div className="flex items-center gap-3 rounded-[22px] border border-orange-500/30 bg-orange-500/10 px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-orange-400">
           <Zap className="h-3.5 w-3.5" />
@@ -579,7 +611,7 @@ export function HomeBrowser({
   if (navHandoff) {
     surfaces.push({
       id: "nav-handoff",
-      type: "CONTEXT_HANDOFF" as SurfaceType,
+      type: "CONTEXT_HANDOFF",
       content: (
         <div className="flex flex-col gap-3 rounded-[24px] border border-[color:var(--color-accent)]/30 bg-[color:var(--color-accent)]/10 p-4 shadow-xl backdrop-blur-md">
            <div className="flex items-center justify-between gap-3">
@@ -628,10 +660,30 @@ export function HomeBrowser({
     });
   }
 
+  // MISSION STATUS (RouteAssistant) integrated into surfaces
+  if (mission) {
+    surfaces.push({
+      id: "mission-assistant",
+      type: "MISSION_STATUS",
+      content: ({ isCondensed }: { isCondensed: boolean }) => (
+        <RouteAssistant stations={stations} isCondensed={isCondensed} />
+      )
+    });
+  }
+
+  // ONBOARDING (FirstVisitGuide) integrated into surfaces
+  surfaces.push({
+    id: "onboarding-guide",
+    type: "ONBOARDING",
+    content: ({ isCondensed }: { isCondensed: boolean }) => (
+      <FirstVisitGuide isCondensed={isCondensed} />
+    )
+  });
+
   if (betaClosed) {
     surfaces.push({
       id: "beta-closed",
-      type: "INFO_NOTICE" as SurfaceType,
+      type: "INFO_NOTICE",
       content: (
         <SectionCard className="space-y-3 border-[color:var(--color-accent)]/20 bg-[color:var(--color-accent)]/8">
           <Badge variant="warning">Beta fechado</Badge>
@@ -643,9 +695,28 @@ export function HomeBrowser({
     });
   }
 
+  // STREET MODE PROMPT as surface if not active
+  if (!isStreetMode && !mission) {
+    surfaces.push({
+      id: "street-mode-prompt",
+      type: "STREET_MODE_PROMPT",
+      content: ({ isCondensed }: { isCondensed: boolean }) => (
+        <button 
+          onClick={toggleStreetMode}
+          className={cn(
+            "w-full rounded-[22px] border-2 border-white/5 bg-[color:var(--color-accent)]/10 text-xs font-bold uppercase tracking-widest text-[color:var(--color-accent)] shadow-lg transition-all active:scale-95",
+            isCondensed ? "h-11 border-dashed" : "h-14"
+          )}
+        >
+          🚀 MODO RUA (MAIS RÁPIDO)
+        </button>
+      )
+    });
+  }
+
   surfaces.push({
     id: "pwa-install",
-    type: "ACTION_PROMPT" as SurfaceType,
+    type: "ACTION_PROMPT",
     content: <InstallPromptCard />
   });
 
@@ -653,18 +724,17 @@ export function HomeBrowser({
   const orchestratedSurfaces = useMemo(() => {
     let result = [...surfaces];
     
-    // If it's a NEW user, prioritize Onboarding (handled by FirstVisitGuide) 
+    // If it's a NEW user, prioritize Onboarding (handled by FirstVisitGuide via priorities) 
     // and keep surfaces light.
     if (role === 'iniciante') {
-      // Remove less urgent prompts for beginners to avoid noise
       result = result.filter(s => s.id !== 'pwa-install' && s.id !== 'beta-closed');
     }
 
-    // [Modo Foco] If Mission is active, suppress almost everything except Critical status
+    // MISSION ACTIVE: Orchestrator already handles prioritites, 
+    // but we can explicitly suppress low-priority info here if desired.
     if (missionActive) {
       result = result.filter(s => 
-        s.type === ("CRITICAL_ALERT" as SurfaceType) || 
-        s.id.includes("mission") || 
+        SURFACE_PRIORITIES[s.type] >= SURFACE_PRIORITIES.MISSION_STATUS ||
         s.id.includes("pending")
       );
     }
@@ -675,7 +745,7 @@ export function HomeBrowser({
   if (defaultSelectionReason) {
     surfaces.push({
       id: "smart-default",
-      type: "INFO_NOTICE" as SurfaceType,
+      type: "INFO_NOTICE",
       content: (
         <div className="mx-1 -mt-2 mb-2 flex items-center justify-between rounded-full bg-emerald-500/10 px-4 py-2 border border-emerald-500/20">
           <div className="flex items-center gap-2">
@@ -697,9 +767,7 @@ export function HomeBrowser({
 
   return (
     <>
-      <FirstVisitGuide />
-      
-      <div className="mb-6">
+      <div className={cn("mb-6 transition-all duration-300", (isHeroCollapsed || missionActive) && "opacity-0 h-0 overflow-hidden mb-0")}>
         <SurfaceOrchestrator 
            surfaces={orchestratedSurfaces} 
            onDismiss={(id) => {
@@ -708,19 +776,17 @@ export function HomeBrowser({
         />
       </div>
 
-      <div className="mb-4">
-        <RouteAssistant stations={stations} />
-      </div>
-
-      <div className="mb-6">
-        <Button 
-          variant={isStreetMode ? "primary" : "secondary"}
-          onClick={toggleStreetMode}
-          className="w-full h-14 rounded-[22px] text-xs font-bold uppercase tracking-widest shadow-lg border-2 border-white/5"
-        >
-          {isStreetMode ? "MODO RUA ATIVO" : "🚀 MODO RUA (MAIS RÁPIDO)"}
-        </Button>
-      </div>
+      {isStreetMode && !missionActive && (
+        <div className="mb-6">
+          <Button 
+            variant="primary"
+            onClick={toggleStreetMode}
+            className="w-full h-11 rounded-[22px] text-xs font-black uppercase tracking-widest shadow-lg border-2 border-white/10"
+          >
+            MODO RUA ATIVO
+          </Button>
+        </div>
+      )}
 
       {/* 4. Home Main Action & Quick Access (Adaptive) */}
       {!mission && (recentIds.length > 0 || favoriteIds.length > 0) && (
@@ -961,6 +1027,38 @@ export function HomeBrowser({
               className="h-8 py-0 shrink-0"
             />
           </div>
+
+          <div className="flex items-center gap-1.5 mb-4 px-1 overflow-x-auto scrollbar-none">
+             <button 
+               onClick={() => updateListMode('ultra-claro')}
+               className={cn(
+                 "flex h-9 items-center gap-2 whitespace-nowrap rounded-full px-4 text-[10px] font-black uppercase tracking-widest transition-all",
+                 listMode === 'ultra-claro' ? "bg-white text-black shadow-lg shadow-white/10" : "bg-white/5 text-white/40 hover:bg-white/10"
+               )}
+             >
+               <Sparkles className={cn("h-3.5 w-3.5", listMode === 'ultra-claro' && "fill-current")} />
+               ULTRA-CLARO
+             </button>
+             <button 
+               onClick={() => updateListMode('normal')}
+               className={cn(
+                 "flex h-9 items-center gap-2 whitespace-nowrap rounded-full px-4 text-[10px] font-black uppercase tracking-widest transition-all",
+                 listMode === 'normal' ? "bg-white text-black shadow-lg shadow-white/10" : "bg-white/5 text-white/40 hover:bg-white/10"
+               )}
+             >
+               NORMAL
+             </button>
+             <button 
+               onClick={() => updateListMode('avancado')}
+               className={cn(
+                 "flex h-9 items-center gap-2 whitespace-nowrap rounded-full px-4 text-[10px] font-black uppercase tracking-widest transition-all",
+                 listMode === 'avancado' ? "bg-white text-black shadow-lg shadow-white/10" : "bg-white/5 text-white/40 hover:bg-white/10"
+               )}
+             >
+               <Zap className={cn("h-3.5 w-3.5", listMode === 'avancado' && "fill-current")} />
+               AVANÇADO
+             </button>
+          </div>
           
           <div className="flex items-center justify-between min-h-[1.5rem]">
             {expansionSignal ? (
@@ -983,7 +1081,9 @@ export function HomeBrowser({
                     s.city.trim().toUpperCase() === selectedCity.trim().toUpperCase()
                   );
                   const cityStationIds = cityStations.map(s => s.id);
-                  startMission(selectedReadiness?.slug || "general", selectedReadiness?.name || selectedCity, cityStationIds);
+                  if (selectedReadiness) {
+                    startMission(selectedReadiness.slug || "general", selectedReadiness.name || (selectedCity || "Cidade"), cityStationIds);
+                  }
                   
                   void trackProductEvent({
                     eventType: "first_fold_action" as any,
@@ -1424,8 +1524,12 @@ export function HomeBrowser({
                 fuelFilter={fuelFilter} 
                 returnToHref={contextHref}
                 isStreetMode={isStreetMode}
+                isAssisted={isAssisted}
+                isUltraClaro={listMode === 'ultra-claro'}
+                isAdvanced={listMode === 'avancado'}
                 isFavorite={isFavorite(station.id)}
                 onFavoriteToggle={() => toggleFavorite(station.id)}
+                recordActivity={recordActivity}
               />
             ))}
           </div>
@@ -1457,8 +1561,12 @@ export function HomeBrowser({
                 fuelFilter={fuelFilter} 
                 returnToHref={contextHref}
                 isStreetMode={isStreetMode}
+                isAssisted={isAssisted}
+                isUltraClaro={listMode === 'ultra-claro'}
+                isAdvanced={listMode === 'avancado'}
                 isFavorite={isFavorite(station.id)}
                 onFavoriteToggle={() => toggleFavorite(station.id)}
+                recordActivity={recordActivity}
               />
             ))
           )}

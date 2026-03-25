@@ -8,10 +8,10 @@ import { cn } from "@/lib/utils";
 
 import { type OperationalKillSwitches } from "@/lib/ops/kill-switches";
 
-interface SurfaceItem {
+export interface SurfaceItem {
   id: string;
   type: SurfaceType;
-  content: React.ReactNode;
+  content: React.ReactNode | ((props: { isCondensed: boolean }) => React.ReactNode);
   isDismissible?: boolean;
 }
 
@@ -31,7 +31,6 @@ export function SurfaceOrchestrator({ surfaces, onDismiss, killSwitches }: Surfa
     return true;
   }), [surfaces, killSwitches?.disable_heavy_territorial_widgets]);
 
-  const activeIds = filteredSurfaces.map((s: SurfaceItem) => s.id);
   const topTypes = useMemo(() => getTopSurfaces(filteredSurfaces.map((s: SurfaceItem) => s.type), 2), [filteredSurfaces]);
   
   // Track impressions
@@ -56,19 +55,26 @@ export function SurfaceOrchestrator({ surfaces, onDismiss, killSwitches }: Surfa
   const primary = topSurfaces[0];
   const secondary = topSurfaces[1];
 
+  const renderContent = (item: SurfaceItem, isCondensed: boolean) => {
+    if (typeof item.content === "function") {
+      return item.content({ isCondensed });
+    }
+    return item.content;
+  };
+
   return (
     <div className="flex flex-col gap-3">
-      {/* Primary Surface - Always prominent */}
+      {/* Primary Surface - Always prominent unless it's a type that should be slim (like street mode prompt) */}
       {primary && (
         <div className="relative animate-in fade-in slide-in-from-top-2 duration-500">
-          {primary.content}
+          {renderContent(primary, false)}
         </div>
       )}
 
       {/* Secondary Surface - Minimizable or collapsible */}
       {secondary && (
         <div className={cn(
-          "overflow-hidden transition-all duration-300 rounded-[20px] border border-white/10 bg-white/5",
+          "overflow-hidden transition-all duration-300 rounded-[22px] border border-white/10 bg-white/5",
           minimized[secondary.id] ? "h-10" : "h-auto"
         )}>
            <div className="flex items-center justify-between px-4 py-2 bg-white/5">
@@ -94,7 +100,7 @@ export function SurfaceOrchestrator({ surfaces, onDismiss, killSwitches }: Surfa
            </div>
            {!minimized[secondary.id] && (
              <div className="p-1">
-                {secondary.content}
+                {renderContent(secondary, true)}
              </div>
            )}
         </div>

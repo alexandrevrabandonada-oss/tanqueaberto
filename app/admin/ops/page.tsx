@@ -35,13 +35,14 @@ import { KillSwitchToggle } from "./components/kill-switch-toggle";
 import { RolloutControl } from "./components/rollout-control";
 import { RolloutHistoryPanel } from "./components/rollout-history-panel";
 import { TriggerRolloutButton } from "./components/trigger-rollout-button";
+import { VozDaRuaClusters } from "./components/voz-da-rua-clusters";
+import { CycleLatencySummary } from "./components/cycle-latency-summary";
 import { OperationalSynthesis } from "@/components/admin/command/operational-synthesis";
 import { type AuditStationGroup } from "@/lib/audit/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { VozDaRuaClusters } from "./components/voz-da-rua-clusters";
-import { CycleLatencySummary } from "./components/cycle-latency-summary";
 import { Badge } from "@/components/ui/badge";
-import { Copy } from "lucide-react";
+import { Copy, FlaskConical } from "lucide-react";
+import { TesterMonitorPanel } from "./components/tester-monitor-panel";
 
 export default async function OpsDashboardPage() {
   const supabase = await createSupabaseServerClient();
@@ -275,6 +276,16 @@ export default async function OpsDashboardPage() {
            <RolloutHistoryPanel logs={territorialHistory} />
         </section>
 
+      </div>
+
+      {/* NOVO: MONITORAMENTO DE TESTERS */}
+      <div className="mt-8 pt-8 border-t border-indigo-500/20">
+        <div className="bg-[#111] border border-indigo-500/20 rounded-[32px] p-8 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none">
+            <FlaskConical className="w-64 h-64 text-indigo-500 rotate-12" />
+          </div>
+          <TesterMonitorPanel />
+        </div>
       </div>
     </div>
   );

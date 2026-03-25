@@ -14,6 +14,7 @@ export interface CollectorTrust {
   streakDays: number;
   missionsCompleted: number;
   lastReportAt?: string | null;
+  isTester?: boolean;
 }
 
 export type UtilityRole = 'iniciante' | 'ativo' | 'senior' | 'revisão' | 'bloqueado';
@@ -89,7 +90,7 @@ export async function getOrCreateCollectorTrust(nickname: string | null, ipHash:
   
   const { data, error } = await supabase
     .from('collector_trust')
-    .select('nickname, ip_hash, score, total_reports, approved_reports, rejected_reports, trust_stage, streak_days, missions_completed, last_report_at')
+    .select('nickname, ip_hash, score, total_reports, approved_reports, rejected_reports, trust_stage, streak_days, missions_completed, last_report_at, is_tester')
     .eq('nickname', nickname || '')
     .eq('ip_hash', ipHash || '')
     .maybeSingle();
@@ -105,7 +106,8 @@ export async function getOrCreateCollectorTrust(nickname: string | null, ipHash:
       trustStage: data.trust_stage as TrustStage,
       streakDays: data.streak_days || 0,
       missionsCompleted: data.missions_completed || 0,
-      lastReportAt: data.last_report_at
+      lastReportAt: data.last_report_at,
+      isTester: !!data.is_tester
     };
   }
 
@@ -116,7 +118,8 @@ export async function getOrCreateCollectorTrust(nickname: string | null, ipHash:
     total_reports: 0,
     trust_stage: 'novo' as TrustStage,
     streak_days: 0,
-    missions_completed: 0
+    missions_completed: 0,
+    is_tester: false
   };
 
   const { data: created, error: createError } = await supabase
@@ -150,7 +153,8 @@ export async function getOrCreateCollectorTrust(nickname: string | null, ipHash:
     trustStage: created.trust_stage as TrustStage,
     streakDays: created.streak_days || 0,
     missionsCompleted: created.missions_completed || 0,
-    lastReportAt: created.last_report_at
+    lastReportAt: created.last_report_at,
+    isTester: !!created.is_tester
   };
 }
 

@@ -19,15 +19,17 @@ import { openExternalNavigation } from "@/lib/navigation/external-maps";
 import type { StationWithReports } from "@/lib/types";
 import { ContextualFeedback } from "@/components/feedback/contextual-feedback";
 import { submitContextualFeedbackAction } from "@/app/hub/feedback-actions";
+import { cn } from "@/lib/utils";
 
 // Note: Consistent naming.
 
 interface RouteAssistantProps {
   stations: StationWithReports[];
   currentStationId?: string | null;
+  isCondensed?: boolean;
 }
 
-export function RouteAssistant({ stations, currentStationId = null }: RouteAssistantProps) {
+export function RouteAssistant({ stations, currentStationId = null, isCondensed = false }: RouteAssistantProps) {
   const [context, setContext] = useState<RouteContext | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [feedbackType, setFeedbackType] = useState<'skip' | 'stop' | null>(null);
@@ -114,22 +116,57 @@ export function RouteAssistant({ stations, currentStationId = null }: RouteAssis
 
   if (!nextStation) {
     return (
-      <SectionCard className="border-white/10 bg-[color:var(--color-accent)]/10">
+      <SectionCard className={cn(
+        "border-white/10 bg-[color:var(--color-accent)]/10",
+        isCondensed ? "py-2" : "py-4"
+      )}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Flag className="h-5 w-5 text-[color:var(--color-accent)]" />
+            <Flag className={cn("text-[color:var(--color-accent)]", isCondensed ? "h-3 w-3" : "h-5 w-5")} />
             <div>
-              <p className="text-xs uppercase tracking-widest text-white/40">Rota Concluída</p>
-              <h3 className="text-lg font-bold text-white">Não há mais postos prioritários no recorte.</h3>
+              {!isCondensed && <p className="text-xs uppercase tracking-widest text-white/40">Rota Concluída</p>}
+              <h3 className={cn("font-bold text-white", isCondensed ? "text-xs" : "text-lg")}>Sem postos prioritários.</h3>
             </div>
           </div>
-          <Button variant="ghost" onClick={handleStop}>Finalizar</Button>
+          <Button variant="ghost" className={isCondensed ? "h-8 text-[10px]" : ""} onClick={handleStop}>Finalizar</Button>
         </div>
       </SectionCard>
     );
   }
 
   const sendHref = `/enviar?stationId=${nextStation.id}&returnTo=${encodeURIComponent(window.location.pathname)}#photo` as Route;
+
+  // Render Slim View
+  if (isCondensed) {
+    return (
+      <div className="flex items-center justify-between gap-3 rounded-[22px] border border-[color:var(--color-accent)]/20 bg-[color:var(--color-accent)]/10 pl-4 pr-1.5 py-1.5 animate-in fade-in slide-in-from-top-1 duration-300">
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[color:var(--color-accent)]/20">
+            <Navigation className="h-3 w-3 text-[color:var(--color-accent)]" />
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-xs font-black text-white italic tracking-tight">{getStationPublicName(nextStation)}</p>
+            {nextStation.distance !== undefined && (
+              <p className="text-[9px] font-bold text-[color:var(--color-accent)] uppercase">{formatDistance(nextStation.distance)}</p>
+            )}
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-1">
+          <Link 
+            href={sendHref}
+            className="flex h-9 items-center gap-1.5 rounded-full bg-[color:var(--color-accent)] px-3 text-[10px] font-black text-black active:scale-95"
+          >
+            <Camera className="h-3 w-3" />
+            CÂMERA
+          </Link>
+          <button onClick={handleStop} className="p-2 text-white/20 hover:text-white/50">
+            <XCircle className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <SectionCard className="border-[color:var(--color-accent)]/20 bg-[color:var(--color-accent)]/5">

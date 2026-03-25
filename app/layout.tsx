@@ -73,6 +73,7 @@ import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { MissionProvider } from "@/components/mission/mission-context";
 import { MissionOverlay } from "@/components/mission/mission-overlay";
 import { SubmissionHistoryProvider } from "@/components/history/submission-history-context";
+import { TestModeIndicator } from "@/components/test/test-mode-indicator";
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
@@ -81,6 +82,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <PwaRegister />
         <MissionProvider>
           <SubmissionHistoryProvider>
+            <TestModeIndicator />
             <MissionOverlay />
             <ErrorBoundary name="RootLayout">
               {children}

@@ -1,3 +1,4 @@
+import * as React from "react";
 import type { Route } from "next";
 import Link from "next/link";
 import { Camera, Clock3, MapPin, Star } from "lucide-react";
@@ -20,6 +21,7 @@ import type { FuelType, PriceReport, StationWithReports } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { QuickActionGroup, QuickActionButton } from "@/components/ui/quick-action";
 import { Info } from "lucide-react";
+import { useTestMode } from "@/hooks/use-test-mode";
 
 interface StationCardProps {
   station: StationWithReports;
@@ -27,8 +29,11 @@ interface StationCardProps {
   returnToHref?: string;
   isStreetMode?: boolean;
   isAssisted?: boolean;
+  isUltraClaro?: boolean;
+  isAdvanced?: boolean;
   isFavorite?: boolean;
   onFavoriteToggle?: () => void;
+  recordActivity?: (type: 'view' | 'touch' | 'start' | 'complete', stationId?: string) => void;
 }
 
 function getStationHref(stationId: string, returnToHref?: string) {
@@ -40,7 +45,7 @@ function getSendHref(stationId: string, returnToHref?: string, fuelFilter?: "all
   return returnToHref ? (`/enviar?stationId=${stationId}${fuelParam}&returnTo=${encodeURIComponent(returnToHref)}#photo` as Route) : ((`/enviar?stationId=${stationId}${fuelParam}#photo`) as Route);
 }
 
-export function StationCard({ station, fuelFilter = "all", returnToHref, isStreetMode, isAssisted, isFavorite, onFavoriteToggle }: StationCardProps) {
+export function StationCard({ station, fuelFilter = "all", returnToHref, isStreetMode, isAssisted, isUltraClaro, isAdvanced, isFavorite, onFavoriteToggle, recordActivity }: StationCardProps) {
   const latest: PriceReport | null = getSelectedStationReport(station, fuelFilter);
   const stationHref = getStationHref(station.id, returnToHref);
   const sendHref = getSendHref(station.id, returnToHref, fuelFilter);
@@ -51,6 +56,9 @@ export function StationCard({ station, fuelFilter = "all", returnToHref, isStree
       : `Atualizado ${formatRecencyLabel(latest.reportedAt)}`
     : "Sem preço recente";
   const showReviewBadge = hasPendingStationLocationReview(station) && !latest;
+  const { isActive: isTestMode } = useTestMode();
+
+  const viewStartTime = React.useRef<number>(Date.now());
 
   const statusBadge = station.releaseStatus && station.releaseStatus !== "ready" ? (
     <GroupStatusBadge status={station.releaseStatus} />
@@ -63,7 +71,11 @@ export function StationCard({ station, fuelFilter = "all", returnToHref, isStree
   );
 
   return (
-    <SectionCard className={cn("space-y-3 sm:space-y-4 py-3 sm:py-4 transition-all", isStreetMode && "space-y-2 py-3")}>
+    <SectionCard className={cn(
+      "space-y-3 sm:space-y-4 py-3 sm:py-4 transition-all", 
+      isStreetMode && "space-y-2 py-3",
+      isAdvanced && "py-2 space-y-1.5"
+    )}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 flex-1 items-start gap-2">
           {onFavoriteToggle && (
@@ -76,11 +88,11 @@ export function StationCard({ station, fuelFilter = "all", returnToHref, isStree
             </button>
           )}
           <div className="min-w-0">
-            {!isStreetMode && <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">{station.brand || "Posto"}</p>}
-            <h3 className={cn("truncate font-semibold text-white", isStreetMode ? "text-base" : "text-base sm:text-lg")}>{getStationPublicName(station)}</h3>
+            {!isStreetMode && !isAdvanced && <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">{station.brand || "Posto"}</p>}
+            <h3 className={cn("truncate font-semibold text-white", (isStreetMode || isAdvanced) ? "text-base" : "text-base sm:text-lg")}>{getStationPublicName(station)}</h3>
             <div className="flex items-center gap-2">
               <p className="truncate text-[11px] sm:text-sm text-white/50">
-                {station.neighborhood}{!isStreetMode && `, ${station.city}`}
+                {station.neighborhood}{!isStreetMode && !isAdvanced && `, ${station.city}`}
               </p>
               {station.distance !== undefined && (
                 <>
@@ -91,15 +103,22 @@ export function StationCard({ station, fuelFilter = "all", returnToHref, isStree
                 </>
               )}
             </div>
+            {isTestMode && (
+              <p className="mt-1 font-mono text-[8px] text-indigo-400 opacity-60">
+                ID: {station.id.substring(0, 8)}... | Dist: {station.distance?.toFixed(4)}
+              </p>
+            )}
           </div>
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-1.5">
-          {statusBadge}
-          {latest && !isStreetMode && <span className="text-[10px] uppercase tracking-wider text-white/30">{formatRecencyLabel(latest.reportedAt)}</span>}
-        </div>
+        {!isAdvanced && (
+          <div className="flex shrink-0 flex-col items-end gap-1.5">
+            {statusBadge}
+            {latest && !isStreetMode && <span className="text-[10px] uppercase tracking-wider text-white/30">{formatRecencyLabel(latest.reportedAt)}</span>}
+          </div>
+        )}
       </div>
 
-      {!isStreetMode && (
+      {!isStreetMode && !isAdvanced && (
         <div className="flex items-center gap-2 text-xs text-white/42">
           <MapPin className="h-3.5 w-3.5 text-[color:var(--color-accent)]/60" />
           <span className="truncate">
@@ -109,19 +128,22 @@ export function StationCard({ station, fuelFilter = "all", returnToHref, isStree
       )}
 
       {latest ? (
-        <div className={cn("rounded-[20px] border border-white/8 bg-black/30 p-3 sm:p-4 transition-all", isStreetMode && "p-2 px-3")}>
+        <div className={cn(
+          "rounded-[20px] border border-white/8 bg-black/30 p-3 sm:p-4 transition-all", 
+          (isStreetMode || isAdvanced) && "p-2 px-3"
+        )}>
           <div className="flex items-center justify-between">
-            <span className={cn("font-medium text-white/60", isStreetMode ? "text-xs" : "text-xs sm:text-sm")}>{fuelLabels[latest.fuelType]}</span>
-            <span className={cn("font-bold tracking-tight text-white", isStreetMode ? "text-lg" : "text-xl sm:text-2xl")}>{formatCurrencyBRL(latest.price)}</span>
+            <span className={cn("font-medium text-white/60", (isStreetMode || isAdvanced) ? "text-xs" : "text-xs sm:text-sm")}>{fuelLabels[latest.fuelType]}</span>
+            <span className={cn("font-bold tracking-tight text-white", (isStreetMode || isAdvanced) ? "text-lg" : "text-xl sm:text-2xl")}>{formatCurrencyBRL(latest.price)}</span>
           </div>
-          {!isStreetMode && (
+          {!isStreetMode && !isAdvanced && (
             <div className="mt-2 flex items-center gap-1.5 text-xs text-white/30">
               <Clock3 className="h-3 w-3" />
               {latestLabel}
             </div>
           )}
         </div>
-      ) : !isStreetMode && (
+      ) : !isStreetMode && !isAdvanced && (
         <div className="rounded-[20px] border border-white/5 bg-white/5 p-4 text-sm leading-relaxed text-white/42">
           Posto cadastrado sem preço recente. Colabore com a primeira foto.
         </div>
@@ -130,42 +152,63 @@ export function StationCard({ station, fuelFilter = "all", returnToHref, isStree
 
 
       <QuickActionGroup 
+        className={cn(isAdvanced && "gap-1.5 p-0.5")}
         onMisclick={() => {
           void trackProductEvent({ eventType: "quick_action_misclick" as any, pagePath: stationHref, pageTitle: getStationPublicName(station), stationId: station.id });
         }}
       >
         <QuickActionButton
           icon={Camera}
-          label={isAssisted ? "FOTO" : "Foto"}
+          label={(isAssisted || isUltraClaro) ? "FOTO" : "Foto"}
           variant="primary"
           isStreetMode={isStreetMode}
           isAssisted={isAssisted}
+          isUltraClaro={isUltraClaro}
+          isAdvanced={isAdvanced}
           href={sendHref}
           onClick={() => {
+            recordActivity?.('touch', station.id);
             rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
             void trackProductEvent({ 
               eventType: "quick_action_clicked", 
               pagePath: sendHref, 
               pageTitle: getStationPublicName(station), 
               stationId: station.id, 
-              payload: { action: "photo", isAssisted, streetMode: isStreetMode } 
+              payload: { 
+                action: "photo", 
+                isAssisted, 
+                isUltraClaro, 
+                isAdvanced, 
+                streetMode: isStreetMode,
+                latencyMs: Date.now() - viewStartTime.current
+              } 
             });
           }}
         />
         
         <QuickActionButton
           icon={Navigation}
-          label={isAssisted ? "ROTA" : "Rota"}
+          label={(isAssisted || isUltraClaro) ? "ROTA" : "Rota"}
           variant="secondary"
           isStreetMode={isStreetMode}
           isAssisted={isAssisted}
+          isUltraClaro={isUltraClaro}
+          isAdvanced={isAdvanced}
           onClick={() => {
+            recordActivity?.('touch', station.id);
             const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
             void trackProductEvent({ 
               eventType: "quick_action_clicked", 
               pagePath: "/", 
               stationId: station.id, 
-              payload: { action: "route", isAssisted, streetMode: isStreetMode } 
+              payload: { 
+                action: "route", 
+                isAssisted, 
+                isUltraClaro, 
+                isAdvanced, 
+                streetMode: isStreetMode,
+                latencyMs: Date.now() - viewStartTime.current
+              } 
             });
             openExternalNavigation(isMobile ? "waze" : "google", {
               lat: station.lat,
@@ -179,18 +222,28 @@ export function StationCard({ station, fuelFilter = "all", returnToHref, isStree
 
         <QuickActionButton
           icon={Info}
-          label={isAssisted ? "VER" : "Ver"}
+          label={(isAssisted || isUltraClaro) ? "VER" : "Ver"}
           variant="outline"
           isStreetMode={isStreetMode}
           isAssisted={isAssisted}
+          isUltraClaro={isUltraClaro}
+          isAdvanced={isAdvanced}
           href={stationHref}
           onClick={() => {
+            recordActivity?.('touch', station.id);
             rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
             void trackProductEvent({ 
               eventType: "quick_action_clicked", 
               pagePath: stationHref, 
               stationId: station.id, 
-              payload: { action: "details", isAssisted, streetMode: isStreetMode } 
+              payload: { 
+                action: "details", 
+                isAssisted, 
+                isUltraClaro, 
+                isAdvanced, 
+                streetMode: isStreetMode,
+                latencyMs: Date.now() - viewStartTime.current
+              } 
             });
           }}
         />

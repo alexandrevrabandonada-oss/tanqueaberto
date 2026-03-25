@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { useOperationalMemory } from "@/hooks/use-operational-memory";
 import { useInbox } from "@/hooks/use-inbox";
 import { CollectorInbox } from "@/components/user/collector-inbox";
+import { StreetSessionSummary } from "@/components/user/street-session-summary";
 
 export interface RetentionSurfaceItem {
   id: string;
@@ -150,6 +151,13 @@ if (inboxItems.length > 0) {
     )
   });
 }
+
+// 0.08 Street Session Summary (Progresso de Campo)
+surfaces.push({
+  id: "retention_street_session",
+  type: "OPERATIONAL_RETENTION",
+  content: <StreetSessionSummary />
+});
 
 // 0.1 Last Submission Cycle (Feedback de Loop)
 const lastSub = submissions[0];
