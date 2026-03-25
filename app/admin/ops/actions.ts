@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createSupabaseServiceClient } from "@/lib/supabase/admin";
+import { calculateBetaReadiness, type ReadinessResult } from "@/lib/ops/readiness-engine";
 import { updateKillSwitch, getKillSwitches, type OperationalKillSwitches } from "@/lib/ops/kill-switches";
 import { getAuditGroupBySlug } from "@/lib/audit/groups";
 import { recordOperationalEvent } from "@/lib/ops/logs";
@@ -475,4 +476,143 @@ export async function executeOperationalAction(
 
 export async function getCycleLatencyMetricsAction(): Promise<CycleLatencyMetrics> {
   return calculateCycleLatencyMetrics();
+}
+
+export async function submitQuickFeedbackAction(data: {
+  feedbackType: string;
+  message: string;
+  pagePath: string;
+  city?: string;
+  testerNickname?: string;
+  sessionId?: string;
+  metadata?: Record<string, any>;
+}) {
+  const supabase = createSupabaseServiceClient();
+  
+  const { error } = await supabase
+    .from("beta_feedback_submissions")
+    .insert({
+      feedback_type: data.feedbackType,
+      message: data.message,
+      page_path: data.pagePath,
+      city: data.city || null,
+      tester_nickname: data.testerNickname || null,
+      status: 'pending',
+      screen_group: 'session_debrief',
+      triage_priority: data.feedbackType === 'fluid' ? 'baixa' : 'media',
+      payload: { 
+        sessionId: data.sessionId,
+        ...data.metadata 
+      }
+    });
+
+  if (error) {
+    console.error("Failed to submit quick feedback", error);
+    return { success: false, error: error.message };
+  }
+
+  return { success: true };
+}
+
+export async function updateCollectorCohortAction(nickname: string, ipHash: string, newCohort: string, reason?: string) {
+  const supabase = createSupabaseServiceClient();
+  
+  // Get old cohort for logging
+  const { data: current } = await supabase
+    .from('collector_trust')
+    .select('cohort')
+    .eq('nickname', nickname)
+    .eq('ip_hash', ipHash)
+    .single();
+
+  const { error } = await supabase
+    .from('collector_trust')
+    .update({ 
+      cohort: newCohort,
+      updated_at: new Date().toISOString()
+    })
+    .eq('nickname', nickname)
+    .eq('ip_hash', ipHash);
+
+  if (error) return { success: false, error: error.message };
+
+  // Log change
+  await supabase
+    .from('cohort_change_log')
+    .insert({
+      nickname,
+      ip_hash: ipHash,
+      old_cohort: current?.cohort,
+      new_cohort: newCohort,
+      reason: reason || 'Manual admin override',
+      actor_id: 'admin'
+    });
+
+  revalidatePath("/admin/ops");
+  return { success: true };
+}
+
+export async function getCohortMetricsAction() {
+  const supabase = createSupabaseServiceClient();
+  
+  // Fetch aggregations per cohort
+  const { data, error } = await supabase
+    .from('collector_trust')
+    .select('cohort, total_reports, approved_reports, rejected_reports, score');
+
+  if (error) return [];
+
+  const cohorts = Array.from(new Set(data.map(d => d.cohort)));
+  
+  return cohorts.map(c => {
+    const members = data.filter(d => d.cohort === c);
+    const totalReports = members.reduce((acc, m) => acc + m.total_reports, 0);
+    const approved = members.reduce((acc, m) => acc + m.approved_reports, 0);
+    const avgScore = Math.round(members.reduce((acc, m) => acc + m.score, 0) / members.length);
+    const aprRate = totalReports > 0 ? Math.round((approved / totalReports) * 100) : 0;
+
+    return {
+      id: c,
+      label: c,
+      memberCount: members.length,
+      totalReports,
+      aprRate,
+      avgScore
+    };
+  });
+}
+
+export async function getBetaReadinessAction(): Promise<ReadinessResult> {
+  return await calculateBetaReadiness();
+}
+
+export async function saveDecisionSnapshotAction(result: ReadinessResult) {
+  const supabase = createSupabaseServiceClient();
+  
+  const { error } = await supabase
+    .from('beta_decision_snapshots')
+    .insert({
+      readiness_score: result.score,
+      status: result.status,
+      metrics: result.metrics,
+      risks: result.risks,
+      recommendation: result.recommendation
+    });
+
+  if (error) return { success: false, error: error.message };
+
+  revalidatePath("/admin/ops");
+  return { success: true };
+}
+
+export async function getDecisionHistoryAction() {
+  const supabase = createSupabaseServiceClient();
+  
+  const { data, error } = await supabase
+    .from('beta_decision_snapshots')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  return data || [];
 }

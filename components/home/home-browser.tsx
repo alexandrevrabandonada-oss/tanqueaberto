@@ -15,7 +15,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
 import { ReadinessBadge } from "./readiness-badge";
 import { EmptyStateCard } from "@/components/state/empty-state-card";
-import { useGeolocation } from "@/hooks/use-geolocation";
+import { useLocationHardening } from "@/hooks/use-location-hardening";
 import { calculateDistance, formatDistance } from "@/lib/geo/distance";
 import { cn } from "@/lib/utils";
 import { trackProductEvent } from "@/lib/telemetry/client";
@@ -56,6 +56,9 @@ import { QuickActionGroup, QuickActionButton } from "@/components/ui/quick-actio
 import { OperationalMemoryBar } from "./operational-memory-bar";
 import { useOperationalMemory } from "@/hooks/use-operational-memory";
 import { useStreetSession } from "@/hooks/use-street-session";
+import { useWarmStart } from "@/hooks/use-warm-start";
+import { WarmStartBadge } from "@/components/ui/warm-start-badge";
+import { SessionDebriefModal } from "@/components/session/session-debrief-modal";
 
 interface HomeBrowserProps {
   stations: StationWithReports[];
@@ -146,6 +149,8 @@ export function HomeBrowser({
   const [isHeroCollapsed, setIsHeroCollapsed] = useState(false);
   const { mission, startMission, isLoaded: missionLoaded } = useMissionContext();
   const missionActive = !!mission;
+  
+  const debriefOverlay = <SessionDebriefModal />;
   const heroRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState(initialQuery);
   const [selectedCity, setSelectedCity] = useState(initialCity || "");
@@ -154,14 +159,42 @@ export function HomeBrowser({
   const [fuelFilter, setFuelFilter] = useState<FuelFilter>(initialFuelFilter);
   const [recencyFilter, setRecencyFilter] = useState<RecencyFilter>(initialRecencyFilter);
   const [presenceFilter, setPresenceFilter] = useState<StationPresenceFilter>(initialPresenceFilter);
+
+  // 1. WARM START ENGINE
+  const { data: snapshot, isWarm, isRefreshing, setData: updateSnapshot } = useWarmStart<any>({
+    key: "bomba-aberta:recorte-snapshot",
+    version: "1.0",
+  });
+
+  const displayStations = useMemo(() => {
+    if (isWarm && snapshot?.stations && stations.length === 0) {
+      return snapshot.stations;
+    }
+    return stations;
+  }, [isWarm, snapshot, stations]);
+
+  useEffect(() => {
+    if (stations.length > 0) {
+      updateSnapshot({
+        stations,
+        selectedCity,
+        query,
+        fuelFilter,
+        recencyFilter,
+        presenceFilter,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }, [stations, selectedCity, query, fuelFilter, recencyFilter, presenceFilter, updateSnapshot]);
   const [lastStation, setLastStation] = useState<ReturnType<typeof readLastStationContext>>(() => null);
   const [isHydrated, setIsHydrated] = useState(false);
   const lastTrackedSearchRef = useRef(initialQuery);
   const deferredQuery = useDeferredValue(query);
-  const { coords, loading: geoLoading, error: geoError, getLocation } = useGeolocation();
+  const { location, loading: geoLoading, error: geoError, refresh: getLocation } = useLocationHardening();
+  const coords = location ? { lat: location.lat, lng: location.lng } : null;
   const { isLowPerf, effectiveType } = useNetworkHardening();
   const { isStreetMode, toggleStreetMode, recentIds, favoriteIds, toggleFavorite, isFavorite } = useStreetMode();
-  const { recordActivity } = useStreetSession();
+  const { recordActivity, closeSessionManual } = useStreetSession();
   const [listMode, setListMode] = useState<'ultra-claro' | 'avancado' | 'normal'>('normal');
   const { reporterNickname } = useMySubmissions();
   const { focus, updateTownFocus, updateSuggestedStation } = useOperationalFocus();
@@ -192,6 +225,18 @@ export function HomeBrowser({
     }
     loadRole();
   }, [reporterNickname]);
+
+  // Handle background refresh for warm start
+  useEffect(() => {
+    if (isWarm && !isRefreshing) {
+      // Small delay to let initial render settle
+      const timer = setTimeout(() => {
+        // In this implementation, the parent 'stations' prop update trigger is enough 
+        // but we could explicitly call a refresh if stations were fetched inside HomeBrowser.
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isWarm, isRefreshing]);
 
   useEffect(() => {
     const checkHandoff = () => {
@@ -311,7 +356,7 @@ export function HomeBrowser({
         storedContext.city || null,
         mission,
         coords,
-        stations
+        displayStations
       );
 
       if (smartResult.city && smartResult.reason !== "fallback") {
@@ -393,12 +438,12 @@ export function HomeBrowser({
   }, [selectedReadiness]);
 
   const cityOptions = useMemo(() => {
-    if (!Array.isArray(stations)) return { priority: [], others: [], allCities: [] };
-    const allCities = Array.from(new Set(stations.map((station) => station.city).filter(Boolean))).sort((left, right) => left.localeCompare(right, "pt-BR"));
+    if (!Array.isArray(displayStations)) return { priority: [], others: [], allCities: [] };
+    const allCities = Array.from(new Set(displayStations.map((station) => station.city).filter(Boolean))).sort((left, right) => left.localeCompare(right, "pt-BR"));
     const priority = priorityCities.filter((city) => allCities.some((item) => item.localeCompare(city, "pt-BR") === 0));
     const others = allCities.filter((city) => !priority.some((item) => item.localeCompare(city, "pt-BR") === 0));
     return { priority, others, allCities };
-  }, [stations]);
+  }, [displayStations]);
 
   useEffect(() => {
     if (!isHydrated) {
@@ -422,12 +467,17 @@ export function HomeBrowser({
   }, [fuelFilter, isHydrated, presenceFilter, query, recencyFilter, selectedCity, selectedReadiness]);
 
   const stationsWithDistances = useMemo(() => {
-    if (!coords) return stations;
-    return stations.map(station => ({
+    if (!coords || !location) return displayStations;
+    
+    // Only trust proximity for suggestions if location is reliable
+    const isReliable = location.trustStatus === "confiável";
+    
+    return displayStations.map((station: StationWithReports) => ({
       ...station,
-      distance: calculateDistance(coords.lat, coords.lng, station.lat, station.lng)
+      distance: calculateDistance(coords.lat, coords.lng, station.lat, station.lng),
+      isReliableProximity: isReliable
     }));
-  }, [stations, coords]);
+  }, [displayStations, coords, location]);
 
   const [pulseData, setPulseData] = useState<RecorteActivity | null>(null);
 
@@ -577,14 +627,18 @@ export function HomeBrowser({
   // [Modo Foco] Update suggested station for beginners based on current recorte
   useEffect(() => {
     if (role === 'iniciante' && isHydrated && orderedStations.length > 0) {
-      const bestCandidate = orderedStations[0];
+      const bestCandidate = orderedStations[0] as any;
       const currentSuggested = focus.suggestedStation;
+      const isReliable = bestCandidate.isReliableProximity;
       
-      if (bestCandidate.id !== currentSuggested?.id) {
+      if (isReliable && bestCandidate.id !== currentSuggested?.id) {
         updateSuggestedStation({ 
           id: bestCandidate.id, 
           name: getStationPublicName(bestCandidate) 
         });
+      } else if (!isReliable && currentSuggested) {
+        // Fallback: If signal becomes uncertain, clear current suggestion to avoid inaccurate "Arrival" triggers
+        updateSuggestedStation(null);
       }
     }
   }, [role, isHydrated, orderedStations, focus.suggestedStation?.id, updateSuggestedStation]);
@@ -666,7 +720,17 @@ export function HomeBrowser({
       id: "mission-assistant",
       type: "MISSION_STATUS",
       content: ({ isCondensed }: { isCondensed: boolean }) => (
-        <RouteAssistant stations={stations} isCondensed={isCondensed} />
+        <div className="space-y-3">
+          <RouteAssistant stations={stations} isCondensed={isCondensed} />
+          {!isCondensed && isStreetMode && (
+            <button 
+              onClick={closeSessionManual}
+              className="w-full h-10 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/40 hover:bg-white/10 transition-colors"
+            >
+              🚩 Encerrar Sessão de Rua
+            </button>
+          )}
+        </div>
       )
     });
   }
@@ -767,6 +831,9 @@ export function HomeBrowser({
 
   return (
     <>
+      {debriefOverlay}
+      <FirstVisitGuide />
+      <WarmStartBadge isWarm={isWarm} isRefreshing={isRefreshing} />
       <div className={cn("mb-6 transition-all duration-300", (isHeroCollapsed || missionActive) && "opacity-0 h-0 overflow-hidden mb-0")}>
         <SurfaceOrchestrator 
            surfaces={orchestratedSurfaces} 

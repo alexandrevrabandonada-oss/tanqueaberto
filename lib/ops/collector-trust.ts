@@ -15,6 +15,7 @@ export interface CollectorTrust {
   missionsCompleted: number;
   lastReportAt?: string | null;
   isTester?: boolean;
+  cohort: string;
 }
 
 export type UtilityRole = 'iniciante' | 'ativo' | 'senior' | 'revisão' | 'bloqueado';
@@ -90,7 +91,7 @@ export async function getOrCreateCollectorTrust(nickname: string | null, ipHash:
   
   const { data, error } = await supabase
     .from('collector_trust')
-    .select('nickname, ip_hash, score, total_reports, approved_reports, rejected_reports, trust_stage, streak_days, missions_completed, last_report_at, is_tester')
+    .select('nickname, ip_hash, score, total_reports, approved_reports, rejected_reports, trust_stage, streak_days, missions_completed, last_report_at, is_tester, cohort')
     .eq('nickname', nickname || '')
     .eq('ip_hash', ipHash || '')
     .maybeSingle();
@@ -107,7 +108,8 @@ export async function getOrCreateCollectorTrust(nickname: string | null, ipHash:
       streakDays: data.streak_days || 0,
       missionsCompleted: data.missions_completed || 0,
       lastReportAt: data.last_report_at,
-      isTester: !!data.is_tester
+      isTester: !!data.is_tester,
+      cohort: (data as any).cohort || 'NEWBIE'
     };
   }
 
@@ -139,7 +141,8 @@ export async function getOrCreateCollectorTrust(nickname: string | null, ipHash:
       rejectedReports: 0,
       trustStage: 'novo',
       streakDays: 0,
-      missionsCompleted: 0
+      missionsCompleted: 0,
+      cohort: 'NEWBIE'
     };
   }
 
@@ -154,7 +157,8 @@ export async function getOrCreateCollectorTrust(nickname: string | null, ipHash:
     streakDays: created.streak_days || 0,
     missionsCompleted: created.missions_completed || 0,
     lastReportAt: created.last_report_at,
-    isTester: !!created.is_tester
+    isTester: !!created.is_tester,
+    cohort: (created as any).cohort || 'NEWBIE'
   };
 }
 
@@ -212,6 +216,27 @@ export async function updateCollectorScore(
     })
     .eq('nickname', nickname || '')
     .eq('ip_hash', ipHash || '');
+
+  // Re-classify cohort if needed
+  const nextCohort = classifyCohort({ ...current, score: nextScore, totalReports: nextTotal, approvedReports: nextApproved, trustStage: nextStage });
+  if (nextCohort !== current.cohort) {
+    await supabase
+      .from('collector_trust')
+      .update({ cohort: nextCohort })
+      .eq('nickname', nickname || '')
+      .eq('ip_hash', ipHash || '');
+      
+    await supabase
+      .from('cohort_change_log')
+      .insert({
+        nickname: nickname || 'anon',
+        ip_hash: ipHash || 'unknown',
+        old_cohort: current.cohort,
+        new_cohort: nextCohort,
+        reason: `Auto-promotion after ${signals.action}`,
+        actor_id: 'system:reputation_engine'
+      });
+  }
 
   await recordOperationalEvent({
     eventType: 'collector_trust_updated',
@@ -295,4 +320,50 @@ export function getUtilityStatus(
       : 'Realize seu primeiro envio para validar o status.',
     color: 'blue'
   };
+}
+
+/**
+ * Lógica de classificação automática de coorte baseada no perfil operacional
+ */
+export function classifyCohort(trust: CollectorTrust): string {
+  // ALPHA: Elite (Score > 90, 50+ reports, streak forte)
+  if (trust.score >= 90 && trust.totalReports >= 50 && trust.streakDays >= 5) {
+    return 'ALPHA';
+  }
+
+  // EXPERTS: Volume e confiança (Score > 75, 15+ reports)
+  if (trust.score >= 75 && trust.approvedReports >= 15) {
+    return 'EXPERT';
+  }
+
+  // VETERANS: Tempo e consistência (isTester + 10+ reports)
+  if (trust.isTester && trust.totalReports >= 10) {
+    return 'VETERAN';
+  }
+
+  // DEFAULT
+  return 'NEWBIE';
+}
+
+/**
+ * Retorna flags de funcionalidades ativas para o coletor baseado em sua coorte
+ */
+export function getCohortFlags(cohort: string) {
+  const flags = {
+    experimental_ui: false,
+    extended_telemetry: false,
+    hardened_geofencing: true, // Padrão agora
+    debrief_intensity: 'normal' as 'light' | 'normal' | 'high'
+  };
+
+  if (cohort === 'ALPHA') {
+    flags.experimental_ui = true;
+    flags.extended_telemetry = true;
+    flags.debrief_intensity = 'high';
+  } else if (cohort === 'EXPERT') {
+    flags.extended_telemetry = true;
+    flags.debrief_intensity = 'normal';
+  }
+
+  return flags;
 }

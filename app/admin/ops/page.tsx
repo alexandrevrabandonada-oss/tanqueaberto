@@ -43,6 +43,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { Badge } from "@/components/ui/badge";
 import { Copy, FlaskConical } from "lucide-react";
 import { TesterMonitorPanel } from "./components/tester-monitor-panel";
+import { BetaReadinessPanel } from "./components/beta-readiness-panel";
 
 export default async function OpsDashboardPage() {
   const supabase = await createSupabaseServerClient();
@@ -79,6 +80,10 @@ export default async function OpsDashboardPage() {
 
       <div className="mb-8">
         <OperationalSynthesis synthesis={synthesis} />
+      </div>
+
+      <div className="mb-8">
+        <BetaReadinessPanel />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

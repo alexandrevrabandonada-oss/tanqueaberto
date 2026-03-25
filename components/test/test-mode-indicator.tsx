@@ -2,12 +2,14 @@
 
 import React, { useState } from "react";
 import { useTestMode } from "@/hooks/use-test-mode";
-import { Bug, X, Send, AlertTriangle, Terminal, FlaskConical } from "lucide-react";
+import { Bug, X, Send, AlertTriangle, Terminal, FlaskConical, Navigation } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useLocationHardening } from "@/hooks/use-location-hardening";
 
 export function TestModeIndicator() {
   const { isActive, isTester, reportBug } = useTestMode();
+  const { location } = useLocationHardening();
   const [isOpen, setIsOpen] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -91,9 +93,15 @@ export function TestModeIndicator() {
                   </div>
                   <div className="rounded-xl bg-white/[0.03] border border-white/5 p-3 flex flex-col gap-1">
                     <p className="text-[8px] font-black uppercase tracking-widest flex items-center gap-1 text-orange-400/60">
-                      <AlertTriangle className="h-3 w-3" /> QA Mode
+                      <Navigation className="h-3 w-3" /> GPS Status
                     </p>
-                    <p className="text-[10px] text-white/40">Beta Amp.</p>
+                    <p className={cn(
+                      "text-[10px] font-bold uppercase",
+                      location?.trustStatus === 'confiável' ? "text-emerald-400" :
+                      location?.trustStatus === 'provável' ? "text-orange-400" : "text-red-400"
+                    )}>
+                      {location ? `${Math.round(location.accuracy)}m · ${location.trustStatus}` : "Buscando..."}
+                    </p>
                   </div>
                 </div>
 

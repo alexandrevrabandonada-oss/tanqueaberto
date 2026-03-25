@@ -75,7 +75,9 @@ export function useStreetSession() {
     }
   }, [session, isLoaded]);
 
-  function finalizeSession(s: StreetSession) {
+  const [showDebrief, setShowDebrief] = useState(false);
+
+  function finalizeSession(s: StreetSession, isManual = false) {
     const summary: SessionSummary = {
       id: s.id,
       date: new Date(s.startTime).toLocaleDateString(),
@@ -91,16 +93,31 @@ export function useStreetSession() {
     localStorage.removeItem(SESSION_STORAGE_KEY);
     setSession(null);
     sessionRef.current = null;
+    
+    if (isManual) {
+      setShowDebrief(true);
+    }
 
     void trackProductEvent({
       eventType: "street_session_completed" as any,
       pagePath: window.location.pathname,
       payload: { 
         ...summary,
-        inactivity_close: true
+        inactivity_close: !isManual,
+        manual_close: isManual
       }
     });
   }
+
+  const closeSessionManual = useCallback(() => {
+    if (sessionRef.current) {
+      finalizeSession(sessionRef.current, true);
+    }
+  }, []);
+
+  const clearDebrief = useCallback(() => {
+    setShowDebrief(false);
+  }, []);
 
   const recordActivity = useCallback((type: 'view' | 'touch' | 'start' | 'complete', stationId?: string) => {
     setSession(prev => {
@@ -148,10 +165,13 @@ export function useStreetSession() {
   return {
     session,
     lastSummary,
+    showDebrief,
     stationsSeenCount: session?.stationsSeen.length ?? 0,
     stationsTouchedCount: session?.stationsTouched.length ?? 0,
     isActive: !!session,
     recordActivity,
+    closeSessionManual,
+    clearDebrief,
     isLoaded
   };
 }
