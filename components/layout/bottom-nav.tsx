@@ -18,7 +18,7 @@ export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed inset-x-0 bottom-4 z-[999] mx-auto w-[calc(100%-32px)] max-w-[448px] rounded-[26px] border border-white/10 bg-black/80 p-2 shadow-2xl backdrop-blur-xl">
+    <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[500] w-[calc(100%-32px)] max-w-[448px] rounded-[26px] border border-white/10 bg-black/80 p-2 shadow-2xl backdrop-blur-xl transition-all duration-300">
       <ul className="grid grid-cols-4 gap-1">
         {items.map(({ href, label, icon: Icon }) => {
           // Precise active state logic to avoid "/" matching everything

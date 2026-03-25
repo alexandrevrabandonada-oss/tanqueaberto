@@ -15,9 +15,9 @@ export function MissionOverlay() {
   if (!mission) return null;
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-[600] animate-in slide-in-from-top duration-300">
-      <div className="bg-zinc-900/95 backdrop-blur-md border-b border-yellow-400/20 px-4 py-3 shadow-2xl">
-        <div className="max-w-md mx-auto flex items-center justify-between gap-4">
+    <div className="fixed top-0 left-0 right-0 z-[600] animate-in slide-in-from-top duration-300 pointer-events-none">
+      <div className="mx-auto w-full max-w-[480px] md:max-w-[640px] lg:max-w-[720px] pointer-events-auto bg-zinc-900/95 backdrop-blur-md border-b border-yellow-400/20 px-4 py-3 shadow-2xl transition-all duration-300">
+        <div className="flex items-center justify-between gap-4">
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-2">
               <Badge variant="accent" className="h-4 px-1.5 text-[8px] font-bold">MISSÃO ATIVA</Badge>
@@ -63,7 +63,7 @@ export function MissionOverlay() {
 
       {/* Target prompt if on home or map */}
       {currentStationId && (
-        <div className="max-w-md mx-auto mt-2 px-4">
+        <div className="mx-auto mt-2 px-4 w-full max-w-[480px] md:max-w-[640px] lg:max-w-[720px] pointer-events-auto">
           <Link 
             href={`/enviar?stationId=${currentStationId}#photo` as Route}
             className="flex items-center justify-between bg-yellow-400 text-black px-4 py-3 rounded-2xl shadow-lg animate-bounce-subtle active:scale-[0.98] transition"

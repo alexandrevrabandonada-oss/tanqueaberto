@@ -35,7 +35,7 @@ export function TestModeIndicator() {
       {/* Mini Badge Floating */}
       <div 
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-24 right-4 z-[100] cursor-pointer group"
+        className="fixed bottom-24 left-1/2 -translate-x-[calc(-50%+192px)] sm:-translate-x-[calc(-50%+280px)] md:-translate-x-[calc(-50%+300px)] z-[100] cursor-pointer group transition-all duration-300"
       >
         <div className="flex items-center gap-2 bg-indigo-600 text-white px-3 py-1.5 rounded-full shadow-lg border border-indigo-400/50 hover:bg-indigo-500 transition-all active:scale-95 animate-pulse">
           <FlaskConical className="h-3.5 w-3.5" />
