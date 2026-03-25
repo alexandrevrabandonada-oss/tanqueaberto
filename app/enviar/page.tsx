@@ -9,7 +9,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
 import { QueueAssistant } from "@/components/routes/queue-assistant";
 import { getHomeStations } from "@/lib/data";
-import type { FuelType } from "@/lib/types";
+import type { FuelType, StationWithReports } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +34,13 @@ function parseFuel(value: string | string[] | undefined): FuelType | undefined {
 
 export default async function SubmitPage({ searchParams }: SubmitPageProps) {
   const params = (await searchParams) ?? {};
-  const stations = await getHomeStations();
+  let stations: StationWithReports[] = [];
+  try {
+    stations = await getHomeStations();
+  } catch (err) {
+    console.error("Failed to fetch stations in SubmitPage", err);
+  }
+  
   const initialStationId = firstValue(params.stationId);
   const returnToHref = safeReturnTo(params.returnTo);
   const initialStation = initialStationId ? stations.find((station) => station.id === initialStationId) ?? null : null;
@@ -97,8 +103,3 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
     </AppShell>
   );
 }
-
-
-
-
-

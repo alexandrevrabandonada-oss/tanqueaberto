@@ -7,28 +7,30 @@ import { Clock3, Map, Send, UserCircle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
-const items: Array<{ href: Route; label: string; icon: React.ComponentType<{ className?: string }> }> = [
+const items: Array<{ href: string; label: string; icon: React.ComponentType<{ className?: string }> }> = [
   { href: "/", label: "Mapa", icon: Map },
   { href: "/atualizacoes", label: "Atualizações", icon: Clock3 },
   { href: "/enviar", label: "Enviar", icon: Send },
-  { href: "/hub" as Route, label: "Meu Hub", icon: UserCircle }
+  { href: "/hub", label: "Meu Hub", icon: UserCircle }
 ];
 
 export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed inset-x-0 bottom-4 z-[500] mx-auto w-[calc(100%-32px)] max-w-[448px] rounded-[26px] border border-white/10 bg-black/72 p-2 backdrop-blur-xl">
+    <nav className="fixed inset-x-0 bottom-4 z-[999] mx-auto w-[calc(100%-32px)] max-w-[448px] rounded-[26px] border border-white/10 bg-black/80 p-2 shadow-2xl backdrop-blur-xl">
       <ul className="grid grid-cols-4 gap-1">
         {items.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || pathname.startsWith(`${href}/`);
+          // Precise active state logic to avoid "/" matching everything
+          const active = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
 
           return (
             <li key={href}>
               <Link
-                href={href}
+                href={href as Route}
+                prefetch={false}
                 className={cn(
-                  "flex flex-col items-center gap-1 rounded-[18px] px-3 py-2 text-[11px] font-medium text-white/56 transition",
+                  "flex flex-col items-center gap-1 rounded-[18px] px-3 py-2 text-[11px] font-medium text-white/56 transition active:scale-95",
                   active && "bg-[color:var(--color-accent)] text-black"
                 )}
               >
@@ -42,4 +44,3 @@ export function BottomNav() {
     </nav>
   );
 }
-

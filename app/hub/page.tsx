@@ -3,9 +3,15 @@ import { CollectorHub } from "@/components/hub/collector-hub";
 import { Suspense } from "react";
 import { Loader2 } from "lucide-react";
 import { getHomeStations } from "@/lib/data";
+import type { StationWithReports } from "@/lib/types";
 
 export default async function HubPage() {
-  const stations = await getHomeStations();
+  let stations: StationWithReports[] = [];
+  try {
+    stations = await getHomeStations();
+  } catch (err) {
+    console.error("Failed to fetch stations in HubPage", err);
+  }
 
   return (
     <AppShell>
