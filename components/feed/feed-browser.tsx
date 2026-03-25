@@ -1,16 +1,18 @@
 "use client";
 
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Camera, Clock3, Search, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
 import { EmptyStateCard } from "@/components/state/empty-state-card";
+import { WarmStartBadge } from "@/components/ui/warm-start-badge";
 import { formatCurrencyBRL } from "@/lib/format/currency";
 import { formatDateTimeBR, formatRecencyLabel, getRecencyTone, recencyToneToBadgeVariant } from "@/lib/format/time";
 import { fuelLabels, publicFuelFilters, recencyFilters } from "@/lib/format/labels";
 import { filterReports } from "@/lib/filters/public";
+import { useWarmStart } from "@/hooks/use-warm-start";
 import type { FuelFilter, RecencyFilter } from "@/lib/filters/public";
 import type { ReportWithStation } from "@/lib/types";
 
@@ -18,11 +20,29 @@ interface FeedBrowserProps {
   feed: ReportWithStation[];
 }
 
-export function FeedBrowser({ feed }: FeedBrowserProps) {
+export function FeedBrowser({ feed: initialFeed }: FeedBrowserProps) {
   const [query, setQuery] = useState("");
   const [fuelFilter, setFuelFilter] = useState<FuelFilter>("all");
   const [recencyFilter, setRecencyFilter] = useState<RecencyFilter>("all");
   const deferredQuery = useDeferredValue(query);
+
+  const { data: snapshot, isWarm, isRefreshing, setData: updateSnapshot } = useWarmStart<ReportWithStation[]>({
+    key: "bomba-aberta:updates-snapshot",
+    version: "1.0",
+  });
+
+  const feed = useMemo(() => {
+    if (isWarm && snapshot && (!initialFeed || initialFeed.length === 0)) {
+      return snapshot;
+    }
+    return initialFeed || [];
+  }, [isWarm, snapshot, initialFeed]);
+
+  useEffect(() => {
+    if (initialFeed && initialFeed.length > 0) {
+      updateSnapshot(initialFeed);
+    }
+  }, [initialFeed, updateSnapshot]);
 
   const filteredFeed = useMemo(
     () => filterReports(feed, deferredQuery, "", fuelFilter, recencyFilter),
@@ -31,6 +51,7 @@ export function FeedBrowser({ feed }: FeedBrowserProps) {
 
   return (
     <>
+      <WarmStartBadge isWarm={isWarm} isRefreshing={isRefreshing} />
       <SectionCard className="space-y-4">
         <div className="space-y-2">
           <p className="text-xs uppercase tracking-[0.2em] text-white/42">Feed</p>
