@@ -60,13 +60,7 @@ export function AppShell({ children, killSwitches }: AppShellProps) {
         <PwaStatusStrip killSwitches={killSwitches} />
         <main className="relative z-10 flex-1 space-y-5">{children}</main>
 
-        {/* Floating elements - Responsive Strategy */}
-        {/* 1. Mobile/Tablet: Classic Floating FAB (hidden on very wide screens where it feels 'lost') */}
-        <Fab variant="floating" className="lg:hidden" />
-
-        {/* 2. Desktop: Anchored CTA (visible only on large screens, pinned to content column) */}
         <Fab variant="anchored" className="hidden lg:inline-flex" label="Enviar preço agora" />
-
         <BottomNav />
       </div>
     </div>
