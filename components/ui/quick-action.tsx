@@ -44,7 +44,7 @@ export const QuickActionButton = React.forwardRef<HTMLButtonElement, QuickAction
     );
 
     const baseStyles = cn(
-      "group flex items-center justify-center rounded-[22px] transition-all duration-150 select-none touch-none",
+      "group flex items-center justify-center rounded-[22px] transition-all duration-150 select-none touch-manipulation",
       "active:scale-95 active:brightness-150 active:shadow-[0_0_20px_rgba(255,255,255,0.1)]",
       isHorizontal ? "flex-row px-4 h-11 min-w-[90px] gap-2.5" : "flex-col gap-2",
       !isHorizontal && (
@@ -111,3 +111,4 @@ export function QuickActionGroup({ children, className, onMisclick }: QuickActio
     </div>
   );
 }
+
