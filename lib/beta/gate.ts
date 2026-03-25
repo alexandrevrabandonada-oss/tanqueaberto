@@ -36,6 +36,9 @@ export function isBetaBypassedPath(pathname: string) {
     pathname === "/favicon.ico" ||
     pathname === "/manifest.webmanifest" ||
     pathname === "/robots.txt" ||
-    pathname === "/offline"
+    pathname === "/offline" ||
+    pathname === "/atualizacoes" ||
+    pathname === "/enviar" ||
+    pathname === "/hub"
   );
 }
