@@ -669,6 +669,12 @@ export function HomeBrowser({
 
   const mapStations = visibleStations;
   const summaryStations = orderedStations.slice(0, 6);
+  const priorityStations = noRecentStations.slice(0, 3);
+  const railSendHref = `/enviar?returnTo=${encodeURIComponent(contextHref)}` as Route;
+  const priorityLabel = stationsWithoutRecentPrice > 0 ? `${stationsWithoutRecentPrice} sem preço recente` : "Cobertura boa";
+  const priorityHint = stationsWithoutRecentPrice > 0
+    ? "Vale completar o recorte antes de abrir novos pontos."
+    : "O recorte atual já está bem coberto.";
 
   useEffect(() => {
     const ref = searchParams.get("ref");
@@ -1321,24 +1327,24 @@ export function HomeBrowser({
           </SectionCard>
         </div>
 
-        <aside data-layout-role="rail" className="space-y-6 xl:sticky xl:top-32">
+                <aside data-layout-role="rail" className="space-y-6 xl:sticky xl:top-32">
           <SectionCard className="space-y-4 border-white/10 bg-white/5 xl:p-5">
             <div className="space-y-1.5">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Painel lateral</p>
-              <h3 className="text-lg font-semibold text-white">Leitura rápida da tela larga</h3>
-              <p className="text-sm leading-relaxed text-white/54">Sem tirar o foco do mapa, este rail destaca ação, recorte e próximos passos.</p>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Rail útil</p>
+              <h3 className="text-lg font-semibold text-white">Recorte, prioridade e próxima ação</h3>
+              <p className="text-sm leading-relaxed text-white/54">A lateral só mostra o que ajuda a decidir o próximo gesto sem roubar foco do mapa.</p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
               <div className="rounded-[20px] border border-white/8 bg-black/25 p-4">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Postos no recorte</p>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Recorte atual</p>
                 <p className="mt-2 text-2xl font-semibold text-white">{orderedStations.length}</p>
                 <p className="mt-1 text-xs text-white/48">{selectedCity || "Visão geral territorial"}</p>
               </div>
               <div className="rounded-[20px] border border-white/8 bg-black/25 p-4">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Sem preço recente</p>
-                <p className="mt-2 text-2xl font-semibold text-white">{stationsWithoutRecentPrice}</p>
-                <p className="mt-1 text-xs text-white/48">A maior chance de contribuição útil agora.</p>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Prioridade agora</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{priorityLabel}</p>
+                <p className="mt-1 text-xs text-white/48">{priorityHint}</p>
               </div>
               <div className="rounded-[20px] border border-white/8 bg-black/25 p-4">
                 <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Atualizações</p>
@@ -1350,27 +1356,31 @@ export function HomeBrowser({
             <div className="space-y-3 rounded-[22px] border border-white/8 bg-black/25 p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/30">Mais baratos agora</p>
-                  <h4 className="text-sm font-semibold text-white">Ações rápidas</h4>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/30">Postos sem preço recente</p>
+                  <h4 className="text-sm font-semibold text-white">Melhor chance de ajudar agora</h4>
                 </div>
-                <Badge variant="outline" className="text-[10px]">Top 3</Badge>
+                <Badge variant="outline" className="text-[10px]">{priorityStations.length || 0} itens</Badge>
               </div>
               <div className="space-y-2">
-                {cheapestNow.slice(0, 3).map(({ station, report }, index) => (
+                {priorityStations.length > 0 ? priorityStations.map((station, index) => (
                   <div key={station.id} className="flex items-center justify-between gap-3 rounded-[18px] border border-white/5 bg-white/5 px-3 py-2.5">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-white">{index + 1}. {station.name}</p>
-                      <p className="truncate text-xs text-white/42">{station.neighborhood}</p>
+                      <p className="truncate text-xs text-white/42">{station.neighborhood}, {station.city}</p>
                     </div>
-                    <p className="shrink-0 text-sm font-semibold text-[color:var(--color-accent)]">{formatCurrencyBRL(report.price)}</p>
+                    <Badge variant="warning" className="shrink-0 text-[10px]">sem preço</Badge>
                   </div>
-                ))}
+                )) : (
+                  <div className="rounded-[18px] border border-white/5 bg-white/5 px-3 py-3 text-sm text-white/56">
+                    Nenhum posto sem preço recente no recorte atual.
+                  </div>
+                )}
               </div>
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row xl:flex-col">
-              <ButtonLink href="/enviar" className="w-full justify-center md:hidden">
-                Enviar preço agora
+              <ButtonLink href={railSendHref} className="w-full justify-center md:hidden">
+                Enviar preço do recorte
               </ButtonLink>
               <ButtonLink href="/atualizacoes" variant="secondary" className="w-full justify-center">
                 Ver atualizações
@@ -1428,7 +1438,6 @@ export function HomeBrowser({
                         {formatDistance(station.distance)}
                       </span>
                     )}
-                    
                     <QuickActionGroup 
                       className="p-0 border-none bg-transparent gap-1.5"
                       onMisclick={() => {
@@ -1448,10 +1457,11 @@ export function HomeBrowser({
                         isAssisted={isAssisted}
                         href={getSendHref(station.id, contextHref, fuelFilter)}
                         className={cn(
-                          "h-9 min-w-0 transition-all", 
-                          isAssisted ? "w-auto px-3" : "w-9 p-0"
+                          "h-9 min-w-0 transition-all",
+                          isAssisted ? "w-auto px-3" : "w-9 p-0 xl:w-auto xl:px-3 xl:gap-1.5"
                         )}
                         showLabel={isAssisted}
+                        desktopLabel="Abrir câmera"
                         layout={isAssisted ? 'horizontal' : 'vertical'}
                         onClick={() => {
                           rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
@@ -1476,10 +1486,11 @@ export function HomeBrowser({
                         isStreetMode={isStreetMode}
                         isAssisted={isAssisted}
                         className={cn(
-                          "h-9 min-w-0 transition-all", 
-                          isAssisted ? "w-auto px-3" : "w-9 p-0"
+                          "h-9 min-w-0 transition-all",
+                          isAssisted ? "w-auto px-3" : "w-9 p-0 xl:w-auto xl:px-3 xl:gap-1.5"
                         )}
                         showLabel={isAssisted}
+                        desktopLabel="Traçar rota"
                         layout={isAssisted ? 'horizontal' : 'vertical'}
                         onClick={() => {
                           const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -1509,23 +1520,19 @@ export function HomeBrowser({
                         isAssisted={isAssisted}
                         href={stationHref}
                         className={cn(
-                          "h-9 min-w-0 transition-all", 
-                          isAssisted ? "w-auto px-3" : "w-9 p-0"
+                          "h-9 min-w-0 transition-all",
+                          isAssisted ? "w-auto px-3" : "w-9 p-0 xl:w-auto xl:px-3 xl:gap-1.5"
                         )}
                         showLabel={isAssisted}
+                        desktopLabel="Abrir posto"
                         layout={isAssisted ? 'horizontal' : 'vertical'}
                         onClick={() => {
                           rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
                           void trackProductEvent({ 
                             eventType: "quick_action_clicked", 
                             pagePath: stationHref, 
-                            pageTitle: getStationPublicName(station), 
-                            stationId: station.id,
-                            payload: { 
-                              source: "home_list",
-                              action: "details",
-                              isAssisted
-                            }
+                            stationId: station.id, 
+                            payload: { action: "details", isAssisted } 
                           });
                         }}
                       />
@@ -1742,6 +1749,11 @@ export function HomeBrowser({
     </>
   );
 }
+
+
+
+
+
 
 
 

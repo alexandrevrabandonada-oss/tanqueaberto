@@ -45,6 +45,7 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
   const returnToHref = safeReturnTo(params.returnTo);
   const initialStation = initialStationId ? stations.find((station) => station.id === initialStationId) ?? null : null;
   const initialFuelType = parseFuel(params.fuel);
+  const flowSteps = ["Foto", "Posto", "Preço", "Envio"];
 
   return (
     <AppShell>
@@ -108,25 +109,42 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
         <aside data-layout-role="rail" className="space-y-6 xl:sticky xl:top-32">
           <SectionCard className="space-y-4 border-white/10 bg-white/5 xl:p-5">
             <div className="space-y-1.5">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Rail de apoio</p>
-              <h3 className="text-lg font-semibold text-white">Envio pensado para tela larga</h3>
-              <p className="text-sm leading-relaxed text-white/54">O formulário fica no eixo principal; aqui entram contexto, atalhos e um lembrete do fluxo.</p>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Rail útil</p>
+              <h3 className="text-lg font-semibold text-white">Fluxo, fila e atalho útil</h3>
+              <p className="text-sm leading-relaxed text-white/54">A lateral reforça a ordem do envio, o estado de moderação e o melhor retorno para o mapa.</p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
               <div className="rounded-[20px] border border-white/8 bg-black/25 p-4">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Ordem ideal</p>
-                <p className="mt-2 text-sm font-semibold text-white">Foto, posto, combustível, valor e envio.</p>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Ordem do fluxo</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {flowSteps.map((step, index) => (
+                    <Badge key={step} variant={index === 0 ? "warning" : "outline"} className="text-[10px]">
+                      {step}
+                    </Badge>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-white/48">Foto primeiro, depois posto, combustível e preço.</p>
               </div>
+
               <div className="rounded-[20px] border border-white/8 bg-black/25 p-4">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Quando usar</p>
-                <p className="mt-2 text-sm font-semibold text-white">Para preencher um ponto do mapa sem perder o ritmo da rua.</p>
-              </div>
-              <div className="rounded-[20px] border border-white/8 bg-black/25 p-4">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Status</p>
-                <p className="mt-2 text-sm font-semibold text-white">O envio entra na fila e volta para moderação.</p>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Fila e moderação</p>
+                <p className="mt-2 text-sm font-semibold text-white">Todo envio entra em revisão antes de aparecer no mapa.</p>
+                <p className="mt-1 text-xs text-white/48">A fila protege a leitura pública sem travar o ritmo da rua.</p>
               </div>
             </div>
+
+            {initialStation ? (
+              <div className="rounded-[22px] border border-[color:var(--color-accent)]/16 bg-[color:var(--color-accent)]/8 p-4">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-accent)]/72">Posto escolhido</p>
+                <p className="mt-2 text-sm font-semibold text-white">{initialStation.name}</p>
+                <p className="mt-1 text-xs text-white/52">{initialStation.neighborhood}, {initialStation.city}</p>
+              </div>
+            ) : (
+              <div className="rounded-[22px] border border-white/8 bg-black/25 p-4 text-sm text-white/56">
+                Abra o mapa primeiro se quiser enviar já com o posto certo no eixo.
+              </div>
+            )}
 
             <div className="space-y-2 rounded-[22px] border border-white/8 bg-black/25 p-4">
               <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-white/36">
@@ -148,5 +166,3 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
     </AppShell>
   );
 }
-
-

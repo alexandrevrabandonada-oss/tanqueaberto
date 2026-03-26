@@ -211,7 +211,33 @@ export function CollectorHub({ stations }: CollectorHubProps) {
           </div>
         </div>
 
-        <aside data-layout-role="rail" className="space-y-4 xl:sticky xl:top-28">
+                <aside data-layout-role="rail" className="space-y-4 xl:sticky xl:top-28">
+          <SectionCard className="space-y-4 border-white/10 bg-white/5 xl:p-5">
+            <div className="space-y-1.5">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Rail útil</p>
+              <h3 className="text-lg font-semibold text-white">Sessão, fila e missão</h3>
+              <p className="text-sm leading-relaxed text-white/54">A lateral acompanha o que continua vivo agora, sem duplicar o hero principal.</p>
+            </div>
+
+            <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-1">
+              <div className="rounded-[20px] border border-white/8 bg-black/25 p-4">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Sessão</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{submissions.length}</p>
+                <p className="mt-1 text-xs text-white/48">Envios recentes no histórico.</p>
+              </div>
+              <div className="rounded-[20px] border border-white/8 bg-black/25 p-4">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Fila local</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{localQueue.filter((entry) => entry.status !== "success").length}</p>
+                <p className="mt-1 text-xs text-white/48">Pendências que ainda pedem ação.</p>
+              </div>
+              <div className="rounded-[20px] border border-white/8 bg-black/25 p-4">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Missão</p>
+                <p className="mt-2 text-sm font-semibold text-white">{mission ? mission.groupName : "Sem missão ativa"}</p>
+                <p className="mt-1 text-xs text-white/48">Continuidade e próximo gesto visíveis aqui.</p>
+              </div>
+            </div>
+          </SectionCard>
+
           <SubmissionStatus submissions={submissions} localQueue={localQueue} />
           {reporterNickname && <HubGeofencingCTA nickname={reporterNickname} />}
           <ProofOfLifeReinforcement city={defaultCity} />
@@ -220,6 +246,8 @@ export function CollectorHub({ stations }: CollectorHubProps) {
     </div>
   );
 }
+
+
 
 
 
