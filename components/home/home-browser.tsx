@@ -228,10 +228,10 @@ export function HomeBrowser({
       const scrollY = window.scrollY;
       const isWideViewport = window.innerWidth >= 1280;
       const missionBoost = missionActive ? 1 : 0;
-      const collapseThreshold = isWideViewport ? 36 : 88;
-      const microThreshold = isWideViewport ? 92 : 240;
-      const shouldCollapse = scrollY > (collapseThreshold - missionBoost * 18);
-      const shouldBeMicro = scrollY > (microThreshold - missionBoost * 42);
+      const collapseThreshold = isWideViewport ? 24 : 88;
+      const microThreshold = isWideViewport ? 56 : 240;
+      const shouldCollapse = scrollY > (collapseThreshold - missionBoost * 16);
+      const shouldBeMicro = scrollY > (microThreshold - missionBoost * 36);
 
       if (shouldCollapse !== isHeroCollapsed) {
         setIsHeroCollapsed(shouldCollapse);

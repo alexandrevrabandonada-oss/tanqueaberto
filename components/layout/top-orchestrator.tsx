@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
-import { DatabaseZap, MapPin, Navigation, Search, SignalHigh, SignalLow, Sparkles, X } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { DatabaseZap, MapPin, Navigation, Search, SignalHigh, SignalLow, SlidersHorizontal, Sparkles, X } from "lucide-react";
 
 import { DensitySelector } from "@/components/ui/density-selector";
 import { cn } from "@/lib/utils";
@@ -11,16 +11,16 @@ type DensityMode = "ultra-claro" | "normal" | "avancado";
 
 export const TOP_BUDGETS = {
   expanded: {
-    maxHeight: "140px",
-    maxHeightWide: "128px"
+    maxHeight: "112px",
+    maxHeightWide: "100px"
   },
   sticky: {
-    maxHeight: "92px",
-    maxHeightWide: "84px"
+    maxHeight: "76px",
+    maxHeightWide: "68px"
   },
   micro: {
-    maxHeight: "64px",
-    maxHeightWide: "58px"
+    maxHeight: "54px",
+    maxHeightWide: "48px"
   }
 } as const;
 
@@ -81,7 +81,8 @@ function CompactChip({
   detail,
   tone,
   onClick,
-  isCompact
+  isCompact,
+  className
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
@@ -89,6 +90,7 @@ function CompactChip({
   tone: "good" | "info" | "muted" | "danger";
   onClick?: () => void;
   isCompact: boolean;
+  className?: string;
 }) {
   const toneClass =
     tone === "good"
@@ -103,7 +105,7 @@ function CompactChip({
     <>
       <span
         className={cn(
-          "flex h-5 w-5 items-center justify-center rounded-full border transition-all",
+          "flex h-5 w-5 items-center justify-center rounded-full border transition-all xl:h-4.5 xl:w-4.5",
           tone === "good"
             ? "border-emerald-500/20 bg-emerald-500/20 text-emerald-300"
             : tone === "info"
@@ -116,7 +118,7 @@ function CompactChip({
         <Icon className="h-3 w-3" />
       </span>
       <span className="flex min-w-0 flex-col leading-none">
-        <span className={cn("text-[9px] font-black uppercase tracking-[0.16em] text-current", isCompact && "tracking-[0.14em]")}>{label}</span>
+        <span className={cn("text-[9px] font-black uppercase tracking-[0.16em] text-current xl:text-[8.5px]", isCompact && "tracking-[0.14em]")}>{label}</span>
         {!isCompact && detail ? <span className="mt-1 text-[8px] font-medium uppercase tracking-[0.14em] text-white/42">{detail}</span> : null}
       </span>
     </>
@@ -128,9 +130,10 @@ function CompactChip({
         type="button"
         onClick={onClick}
         className={cn(
-          "inline-flex min-h-8 items-center gap-2 rounded-full border px-2.5 py-1.5 text-left transition-all",
+          "inline-flex min-h-8 items-center gap-2 rounded-full border px-2.5 py-1.5 text-left transition-all xl:min-h-7 xl:px-2.5 xl:py-1",
           toneClass,
-          isCompact && "px-2 py-1"
+          isCompact && "px-2 py-1",
+          className
         )}
       >
         {content}
@@ -139,7 +142,7 @@ function CompactChip({
   }
 
   return (
-    <div className={cn("inline-flex min-h-8 items-center gap-2 rounded-full border px-2.5 py-1.5", toneClass, isCompact && "px-2 py-1")}>{content}</div>
+    <div className={cn("inline-flex min-h-8 items-center gap-2 rounded-full border px-2.5 py-1.5 xl:min-h-7 xl:px-2.5 xl:py-1", toneClass, isCompact && "px-2 py-1", className)}>{content}</div>
   );
 }
 
@@ -164,11 +167,19 @@ export function TopOrchestrator({
   isMissionActive = false,
   className
 }: TopOrchestratorProps) {
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const stickySinceRef = useRef<number | null>(null);
   const compactMode = isSticky || isMicro;
   const budget = isMicro ? TOP_BUDGETS.micro : isSticky ? TOP_BUDGETS.sticky : TOP_BUDGETS.expanded;
   const system = getSystemState({ coords, geoLoading, isWarm, isRefreshing });
   const SystemIcon = system.icon;
+  const priorityCities = cityOptions.priority.slice(0, compactMode ? 3 : 5);
+
+  useEffect(() => {
+    if (compactMode && advancedOpen) {
+      setAdvancedOpen(false);
+    }
+  }, [advancedOpen, compactMode]);
 
   useEffect(() => {
     if (!isSticky) {
@@ -196,25 +207,25 @@ export function TopOrchestrator({
 
   const topClassName = cn(
     "flex flex-col gap-1.5 transition-all duration-300 will-change-transform",
-    isSticky && "sticky top-0 z-[110] -mx-4 rounded-b-[20px] border-b border-white/10 bg-black/86 px-4 py-1.5 shadow-[0_10px_28px_rgba(0,0,0,0.42)] backdrop-blur-xl lg:gap-1 lg:px-4 lg:py-1",
+    !compactMode && "xl:rounded-[24px] xl:border xl:border-white/8 xl:bg-black/18 xl:px-3 xl:py-2 xl:backdrop-blur-md",
+    isSticky && "sticky top-0 z-[110] -mx-4 rounded-b-[20px] border-b border-white/10 bg-black/88 px-4 py-1.5 shadow-[0_10px_28px_rgba(0,0,0,0.42)] backdrop-blur-xl lg:gap-1 lg:px-4 lg:py-1 xl:px-3 xl:py-1",
     isSticky && isMissionActive && "top-10 lg:top-8",
     isMicro && "gap-1 bg-black/72 px-3 py-1 shadow-none lg:px-3 lg:py-0.5",
     className
   );
 
-  const showSupplementaryRow = !compactMode;
-  const priorityCities = cityOptions.priority.slice(0, compactMode ? 3 : 5);
+  const showAdvancedPanel = !compactMode && advancedOpen;
 
   return (
     <div data-top-orchestrator="root" data-top-budget-mode={isMicro ? "micro" : isSticky ? "sticky" : "expanded"} data-top-budget-max-height={budget.maxHeight} data-top-budget-max-height-wide={budget.maxHeightWide} className={topClassName}>
-      <div className={cn("space-y-1.5", compactMode && "space-y-1") }>
+      <div className={cn("space-y-1.5", compactMode && "space-y-1")}>
         <label
           className={cn(
-            "group flex min-h-10 items-center gap-2 rounded-2xl border border-white/8 bg-black/30 px-3 py-2 text-sm text-white/52 transition-all focus-within:border-[color:var(--color-accent)]/50 lg:min-h-9",
+            "group flex min-h-10 items-center gap-2 rounded-2xl border border-white/8 bg-black/30 px-3 py-2 text-sm text-white/52 transition-all focus-within:border-[color:var(--color-accent)]/50 xl:min-h-9 xl:rounded-[20px] xl:bg-black/22 xl:px-3 xl:py-1.5",
             compactMode && "min-h-9 bg-black/24 px-2.5 py-1.5"
           )}
         >
-          <Search className={cn("h-4 w-4 shrink-0 text-[color:var(--color-accent)] transition-all", compactMode && "h-3.5 w-3.5") } />
+          <Search className={cn("h-4 w-4 shrink-0 text-[color:var(--color-accent)] transition-all", compactMode && "h-3.5 w-3.5")} />
           <input
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
@@ -226,7 +237,7 @@ export function TopOrchestrator({
               });
             }}
             placeholder={isMicro ? "Buscar..." : "Buscar posto, bairro ou cidade..."}
-            className={cn("w-full bg-transparent text-xs text-white outline-none placeholder:text-white/30", compactMode && "text-[11px]")}
+            className={cn("w-full bg-transparent text-xs text-white outline-none placeholder:text-white/30 xl:text-[11px]", compactMode && "text-[11px]")}
           />
           {query ? (
             <button onClick={() => onQueryChange("")} className="text-white/30 transition hover:text-white" type="button">
@@ -235,59 +246,51 @@ export function TopOrchestrator({
           ) : null}
         </label>
 
-        <div className={cn("flex flex-wrap items-center gap-1.5", compactMode && "gap-1") }>
-          {selectedCity ? (
+        <div className="grid gap-2 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
             <CompactChip
               icon={MapPin}
-              label={selectedCity}
-              detail="Território"
-              tone="good"
+              label={selectedCity || "Brasil"}
+              detail={selectedCity ? "Território" : "Visão geral"}
+              tone={selectedCity ? "good" : "muted"}
               onClick={onCityReset}
               isCompact={compactMode}
+              className="max-w-full"
             />
-          ) : (
-            <CompactChip
-              icon={MapPin}
-              label="Brasil"
-              detail="Visão geral"
-              tone="muted"
-              onClick={onCityReset}
-              isCompact={compactMode}
-            />
-          )}
 
-          <CompactChip
-            icon={SystemIcon}
-            label={system.label}
-            detail={system.detail}
-            tone={system.tone}
-            onClick={onGetLocation}
-            isCompact={compactMode}
-          />
-
-          {isMissionActive ? (
             <CompactChip
-              icon={Sparkles}
-              label="Missão"
-              detail="Ativa"
-              tone="info"
+              icon={SystemIcon}
+              label={system.label}
+              detail={system.detail}
+              tone={system.tone}
+              onClick={onGetLocation}
               isCompact={compactMode}
+              className="max-w-full"
             />
-          ) : null}
+          </div>
 
-          {isLowPerf ? (
-            <CompactChip
-              icon={SignalLow}
-              label={`Eco ${effectiveType ?? "rede"}`}
-              detail="Baixo consumo"
-              tone="danger"
-              isCompact={compactMode}
-            />
+          {!compactMode ? (
+            <button
+              type="button"
+              onClick={() => {
+                setAdvancedOpen((value) => !value);
+                void trackProductEvent({
+                  eventType: "top_toolbar_toggled" as any,
+                  pagePath: window.location.pathname,
+                  payload: { open: !advancedOpen, sticky: isSticky, micro: isMicro }
+                });
+              }}
+              aria-expanded={advancedOpen}
+              className="inline-flex min-h-8 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.18em] text-white/58 transition hover:border-[color:var(--color-accent)]/28 hover:text-white xl:min-h-7 xl:px-2.5 xl:py-1"
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              <span>{advancedOpen ? "Menos" : "Mais"}</span>
+            </button>
           ) : null}
         </div>
 
-        {showSupplementaryRow ? (
-          <div className="flex items-center justify-between gap-3 rounded-[18px] border border-white/8 bg-black/18 px-3 py-2.5">
+        {showAdvancedPanel ? (
+          <div className="grid gap-2 rounded-[18px] border border-white/8 bg-black/18 px-3 py-2.5 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
             <div className="flex min-w-0 flex-wrap items-center gap-1.5">
               {priorityCities.map((city) => (
                 <button
@@ -295,25 +298,27 @@ export function TopOrchestrator({
                   onClick={() => onCitySelect(city)}
                   type="button"
                   className={cn(
-                    "shrink-0 rounded-full border whitespace-nowrap px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] transition-all",
+                    "shrink-0 rounded-full border whitespace-nowrap px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] transition-all xl:px-2.5 xl:py-1",
                     selectedCity.toUpperCase() === city.toUpperCase() ? "border-white bg-white text-black" : "border-white/10 bg-white/5 text-white/58 hover:bg-white/10"
                   )}
                 >
                   {city}
                 </button>
               ))}
+
+              {isMissionActive ? (
+                <CompactChip icon={Sparkles} label="Missão" detail="Ativa" tone="info" isCompact className="xl:px-2" />
+              ) : null}
+
+              {isLowPerf ? (
+                <CompactChip icon={SignalLow} label={`Eco ${effectiveType ?? "rede"}`} detail="Baixo consumo" tone="danger" isCompact className="xl:px-2" />
+              ) : null}
             </div>
 
-            <DensitySelector
-              mode={densityMode}
-              onChange={onDensityChange}
-              className="w-auto"
-              isCompact={compactMode}
-            />
+            <DensitySelector mode={densityMode} onChange={onDensityChange} className="w-auto justify-self-start xl:justify-self-end" isCompact={compactMode} />
           </div>
         ) : null}
       </div>
     </div>
   );
 }
-
