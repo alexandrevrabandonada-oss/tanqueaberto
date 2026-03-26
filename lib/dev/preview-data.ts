@@ -7,7 +7,7 @@ function isoDaysAgo(days: number, hours = 0) {
   return date.toISOString();
 }
 
-const previewImage = "/brand/bomba-aberta/emblem/bomba-aberta-emblem-og.png";
+const previewImage = "/brand/bomba-aberta/logo/bomba-aberta-logo-og.png";
 
 const stations: StationWithReports[] = [
   {
@@ -275,3 +275,4 @@ export function getPreviewRecentCount() {
 export function getPreviewApprovedReportsSince(days: number) {
   return feed.filter((report) => (Date.now() - new Date(report.reportedAt).getTime()) / 86_400_000 <= days);
 }
+

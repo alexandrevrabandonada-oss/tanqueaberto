@@ -28,7 +28,7 @@ const sources: Record<BrandMarkVariant, { src: string; width: number; height: nu
   vertical: { src: "/brand/bomba-aberta/emblem/bomba-aberta-emblem.svg", width: 840, height: 980 },
   horizontal: { src: "/brand/bomba-aberta/logo/bomba-aberta-logo-horizontal.svg", width: 1200, height: 420 },
   symbol: { src: "/brand/bomba-aberta/icon/bomba-aberta-icon.svg", width: 512, height: 512 },
-  wordmark: { src: "/brand/wordmark.svg", width: 1200, height: 220 },
+  wordmark: { src: "/brand/bomba-aberta/logo/bomba-aberta-logo-horizontal.svg", width: 1200, height: 420 },
   "mono-black": { src: "/brand/mono-black.svg", width: 512, height: 512 },
   "mono-white": { src: "/brand/mono-white.svg", width: 512, height: 512 },
   "mono-yellow": { src: "/brand/mono-yellow.svg", width: 512, height: 512 }
@@ -45,7 +45,7 @@ export function BrandMark({ variant = "logo-horizontal", className, decorative =
       className={cn("block select-none", className)}
       width={asset.width}
       height={asset.height}
-      priority={variant === "logo-horizontal" || variant === "horizontal"}
+      priority={variant === "logo-horizontal" || variant === "horizontal" || variant === "wordmark"}
     />
   );
 }

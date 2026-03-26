@@ -1,4 +1,4 @@
-const CACHE_NAME = "bomba-aberta-v5";
+const CACHE_NAME = "bomba-aberta-v6";
 const APP_SHELL = [
   "/",
   "/atualizacoes",
@@ -8,9 +8,16 @@ const APP_SHELL = [
   "/sobre",
   "/offline",
   "/manifest.webmanifest",
-  "/brand/bomba-aberta/icon/favicon-16.png",
-  "/brand/bomba-aberta/icon/favicon-32.png",
-  "/brand/bomba-aberta/icon/apple-touch-icon.png",
+  "/favicon.ico",
+  "/favicon.svg",
+  "/favicon-16.png",
+  "/favicon-32.png",
+  "/favicon-48.png",
+  "/apple-touch-icon.png",
+  "/icon-192.png",
+  "/icon-512.png",
+  "/maskable-icon-192.png",
+  "/maskable-icon-512.png",
   "/brand/bomba-aberta/icon/bomba-aberta-icon.svg",
   "/brand/bomba-aberta/icon/bomba-aberta-icon-192.png",
   "/brand/bomba-aberta/icon/bomba-aberta-icon-512.png",
@@ -18,10 +25,10 @@ const APP_SHELL = [
   "/brand/bomba-aberta/icon/bomba-aberta-icon-maskable-512.png",
   "/brand/bomba-aberta/logo/bomba-aberta-logo-horizontal.svg",
   "/brand/bomba-aberta/logo/bomba-aberta-logo-horizontal-dark.png",
+  "/brand/bomba-aberta/logo/bomba-aberta-logo-og.png",
   "/brand/bomba-aberta/emblem/bomba-aberta-emblem.svg",
   "/brand/bomba-aberta/emblem/bomba-aberta-emblem-dark.png",
-  "/brand/bomba-aberta/emblem/bomba-aberta-emblem-transparent.png",
-  "/brand/bomba-aberta/emblem/bomba-aberta-emblem-og.png"
+  "/brand/bomba-aberta/emblem/bomba-aberta-emblem-transparent.png"
 ];
 
 async function cacheStaticResponse(request) {

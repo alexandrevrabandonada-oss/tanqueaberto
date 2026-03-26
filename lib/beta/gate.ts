@@ -23,6 +23,22 @@ export function getSafeBetaNextPath(nextValue: string | null | undefined) {
   return nextValue;
 }
 
+function isRootAssetBypassed(pathname: string) {
+  return (
+    pathname === "/favicon.ico" ||
+    pathname === "/favicon.svg" ||
+    pathname === "/favicon-16.png" ||
+    pathname === "/favicon-32.png" ||
+    pathname === "/favicon-48.png" ||
+    pathname === "/apple-touch-icon.png" ||
+    pathname === "/icon-192.png" ||
+    pathname === "/icon-512.png" ||
+    pathname === "/icon-master-1024.png" ||
+    pathname === "/maskable-icon-192.png" ||
+    pathname === "/maskable-icon-512.png"
+  );
+}
+
 export function isBetaBypassedPath(pathname: string) {
   return (
     pathname === "/beta" ||
@@ -31,7 +47,7 @@ export function isBetaBypassedPath(pathname: string) {
     pathname.startsWith("/api/") ||
     pathname.startsWith("/_next/") ||
     pathname.startsWith("/brand/") ||
-    pathname === "/favicon.ico" ||
+    isRootAssetBypassed(pathname) ||
     pathname === "/manifest.webmanifest" ||
     pathname === "/robots.txt" ||
     pathname === "/offline" ||

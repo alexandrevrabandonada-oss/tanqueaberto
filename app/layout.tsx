@@ -34,13 +34,15 @@ export const metadata: Metadata = {
       },
   icons: {
     icon: [
-      { url: "/brand/bomba-aberta/icon/bomba-aberta-icon.svg", type: "image/svg+xml", sizes: "any" },
-      { url: "/brand/bomba-aberta/icon/favicon-16.png", type: "image/png", sizes: "16x16" },
-      { url: "/brand/bomba-aberta/icon/favicon-32.png", type: "image/png", sizes: "32x32" },
-      { url: "/brand/bomba-aberta/icon/bomba-aberta-icon-192.png", type: "image/png", sizes: "192x192" }
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon.svg", type: "image/svg+xml", sizes: "any" },
+      { url: "/favicon-16.png", type: "image/png", sizes: "16x16" },
+      { url: "/favicon-32.png", type: "image/png", sizes: "32x32" },
+      { url: "/favicon-48.png", type: "image/png", sizes: "48x48" },
+      { url: "/icon-192.png", type: "image/png", sizes: "192x192" }
     ],
-    shortcut: "/brand/bomba-aberta/icon/favicon-32.png",
-    apple: "/brand/bomba-aberta/icon/apple-touch-icon.png"
+    shortcut: "/favicon.ico",
+    apple: "/apple-touch-icon.png"
   },
   openGraph: {
     title: `${brand.name} | ${brand.tagline}`,
@@ -49,10 +51,10 @@ export const metadata: Metadata = {
     siteName: brand.name,
     images: [
       {
-        url: "/brand/bomba-aberta/emblem/bomba-aberta-emblem-og.png",
+        url: "/brand/bomba-aberta/logo/bomba-aberta-logo-og.png",
         width: 1200,
         height: 630,
-        alt: brand.name
+        alt: `${brand.name} por VR Abandonada`
       }
     ]
   },
@@ -60,7 +62,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: `${brand.name} | ${brand.tagline}`,
     description: "Mapa popular de preços de combustíveis no Sul Fluminense.",
-    images: ["/brand/bomba-aberta/emblem/bomba-aberta-emblem-og.png"]
+    images: ["/brand/bomba-aberta/logo/bomba-aberta-logo-og.png"]
   }
 };
 
