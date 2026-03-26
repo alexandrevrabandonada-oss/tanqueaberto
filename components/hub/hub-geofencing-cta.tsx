@@ -72,7 +72,8 @@ export function HubGeofencingCTA({ nickname }: HubGeofencingCTAProps) {
               actionType: "recommendation",
               recommendationType: topRec.type,
               recommendationId: topRec.id,
-              hasCoords: !!coords
+              hasCoords: !!coords,
+              viewport: typeof window !== "undefined" ? (window.innerWidth >= 1024 ? "desktop" : window.innerWidth >= 768 ? "tablet" : "mobile") : "unknown"
             }
           });
         }}

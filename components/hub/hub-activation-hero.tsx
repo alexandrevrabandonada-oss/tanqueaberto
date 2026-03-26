@@ -52,37 +52,39 @@ export function HubActivationHero({ type }: HubActivationHeroProps) {
 
   return (
     <SectionCard className={cn(
-      "relative overflow-hidden p-8 border-2 transition-all hover:scale-[1.01] active:scale-[0.99]",
+      "relative overflow-hidden p-8 lg:p-10 border-2 transition-all hover:scale-[1.01] active:scale-[0.99]",
       config.color,
       config.border
     )}>
-      {/* Background Decor */}
-      <div className="absolute -right-8 -top-8 text-white/5 opacity-10">
-        <config.icon className="w-48 h-48" />
+      {/* Background Decor - Adaptive position */}
+      <div className="absolute -right-8 -top-8 text-white/5 opacity-10 lg:opacity-20 lg:-right-4 lg:-top-4">
+        <config.icon className="w-48 h-48 lg:w-64 lg:h-64" />
       </div>
 
-      <div className="relative z-10 space-y-6">
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className={cn("text-[10px] uppercase tracking-widest px-3 border-current", config.textColor)}>
-            {config.badge}
-          </Badge>
-          <div className="h-px flex-1 bg-current opacity-10" />
+      <div className="relative z-10 space-y-6 lg:flex lg:items-center lg:justify-between lg:space-y-0 lg:gap-8">
+        <div className="space-y-6 lg:max-w-xl">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className={cn("text-[10px] uppercase tracking-widest px-3 border-current", config.textColor)}>
+              {config.badge}
+            </Badge>
+            <div className="h-px flex-1 bg-current opacity-10 lg:hidden" />
+          </div>
+
+          <div className="space-y-3">
+            <h2 className="text-3xl font-black tracking-tight uppercase italic leading-none text-white lg:text-4xl">
+              {config.title}
+            </h2>
+            <p className="text-sm font-medium text-white/60 leading-relaxed lg:text-base lg:max-w-md">
+              {config.description}
+            </p>
+          </div>
         </div>
 
-        <div className="max-w-md space-y-3">
-          <h2 className="text-3xl font-black tracking-tight uppercase italic leading-none text-white">
-            {config.title}
-          </h2>
-          <p className="text-sm font-medium text-white/60 leading-relaxed">
-            {config.description}
-          </p>
-        </div>
-
-        <div className="pt-2">
+        <div className="pt-2 lg:pt-0 lg:shrink-0">
           <ButtonLink 
             href={config.href}
             className={cn(
-               "h-14 px-8 text-sm font-black uppercase tracking-widest shadow-xl",
+               "h-14 px-8 text-sm font-black uppercase tracking-widest shadow-xl lg:h-16 lg:px-10",
                type === 'NEW_COLLECTOR' ? "bg-blue-500 text-white shadow-blue-500/20" :
                type === 'INACTIVE_VETERAN' ? "bg-amber-500 text-black shadow-amber-500/20" :
                "bg-emerald-500 text-black shadow-emerald-500/20"
