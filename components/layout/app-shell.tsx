@@ -3,6 +3,7 @@ import { Flame, MapPinned, MessageSquareMore } from "lucide-react";
 
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { BrandMark } from "@/components/brand/brand-mark";
+import { VrAbandonadaBadge } from "@/components/brand/vr-abandonada-badge";
 import { PwaStatusStrip } from "@/components/pwa/pwa-status-strip";
 import { GlobalSubmitCta } from "@/components/layout/global-submit-cta";
 import { isBetaClosed } from "@/lib/beta/gate";
@@ -32,17 +33,22 @@ export function AppShell({ children, killSwitches }: AppShellProps) {
       >
         <div className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-[radial-gradient(circle_at_top,rgba(255,199,0,0.18),transparent_72%)]" />
 
-        <header className="relative z-10 mb-4 flex items-center justify-between gap-3 rounded-[28px] border border-white/8 bg-black/35 px-3 py-2.5 backdrop-blur-md lg:px-4 lg:py-3">
+        <header className="relative z-10 mb-3 flex items-center justify-between gap-3 rounded-[28px] border border-white/8 bg-black/35 px-3 py-2.5 backdrop-blur-md lg:mb-4 lg:px-4 lg:py-3">
           <Link href="/" className="flex min-w-0 items-center gap-3">
             <BrandMark variant="logo-horizontal" className="h-9 w-auto max-w-[180px] sm:max-w-[220px]" decorative />
           </Link>
-          <div className="flex items-center gap-2 rounded-full border border-white/8 bg-white/6 px-3 py-2 text-[11px] text-white/70">
-            <MapPinned className="h-3.5 w-3.5 text-[color:var(--color-accent)]" />
-            <span className="hidden sm:inline">Sul Fluminense</span>
-            <span className="font-bold sm:hidden">SF</span>
-            <Flame className="h-3.5 w-3.5 text-[color:var(--color-danger)]" />
+          <div className="flex items-center gap-2 lg:flex-col lg:items-end">
+            <div className="flex items-center gap-2 rounded-full border border-white/8 bg-white/6 px-3 py-2 text-[11px] text-white/70">
+              <MapPinned className="h-3.5 w-3.5 text-[color:var(--color-accent)]" />
+              <span className="hidden sm:inline">Sul Fluminense</span>
+              <span className="font-bold sm:hidden">SF</span>
+              <Flame className="h-3.5 w-3.5 text-[color:var(--color-danger)]" />
+            </div>
+            <VrAbandonadaBadge compact className="hidden lg:inline-flex" />
           </div>
         </header>
+
+        <VrAbandonadaBadge compact className="relative z-10 mb-3 w-full lg:hidden" />
 
         <GlobalSubmitCta placement="shell" label="Enviar preço agora" className="relative z-10 mb-4" />
 
