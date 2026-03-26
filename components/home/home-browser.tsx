@@ -57,8 +57,9 @@ import { OperationalMemoryBar } from "./operational-memory-bar";
 import { useOperationalMemory } from "@/hooks/use-operational-memory";
 import { useStreetSession } from "@/hooks/use-street-session";
 import { useWarmStart } from "@/hooks/use-warm-start";
-import { WarmStartBadge } from "@/components/ui/warm-start-badge";
+import { TopOrchestrator } from "@/components/layout/top-orchestrator";
 import { SessionDebriefModal } from "@/components/session/session-debrief-modal";
+import { orchestrateHomeState } from "@/lib/ui/home-orchestrator";
 
 interface HomeBrowserProps {
   stations: StationWithReports[];
@@ -147,6 +148,7 @@ export function HomeBrowser({
   const [showShareWelcome, setShowShareWelcome] = useState(false);
   const [shareContext, setShareContext] = useState<string | null>(null);
   const [isHeroCollapsed, setIsHeroCollapsed] = useState(false);
+  const [isMicroMode, setIsMicroMode] = useState(false);
   const { mission, startMission, isLoaded: missionLoaded } = useMissionContext();
   const missionActive = !!mission;
   
@@ -189,6 +191,7 @@ export function HomeBrowser({
   const [lastStation, setLastStation] = useState<ReturnType<typeof readLastStationContext>>(() => null);
   const [isHydrated, setIsHydrated] = useState(false);
   const lastTrackedSearchRef = useRef(initialQuery);
+  const lastTrackedHomeStateRef = useRef<string | null>(null);
   const deferredQuery = useDeferredValue(query);
   const { location, loading: geoLoading, error: geoError, refresh: getLocation } = useLocationHardening();
   const coords = location ? { lat: location.lat, lng: location.lng } : null;
@@ -196,27 +199,71 @@ export function HomeBrowser({
   const { isStreetMode, toggleStreetMode, recentIds, favoriteIds, toggleFavorite, isFavorite } = useStreetMode();
   const { recordActivity, closeSessionManual } = useStreetSession();
   const [listMode, setListMode] = useState<'ultra-claro' | 'avancado' | 'normal'>('normal');
-  const { reporterNickname } = useMySubmissions();
+  const { reporterNickname, submissions } = useMySubmissions();
   const { focus, updateTownFocus, updateSuggestedStation } = useOperationalFocus();
+  const submissionsCount = submissions.length;
   const { addRecentCut } = useOperationalMemory();
   const retentionSurfaces = useRetentionSurfaces();
   const [navHandoff, setNavHandoff] = useState<any>(null);
   const [role, setRole] = useState<UtilityRole | null>(null);
+  const [isOnline, setIsOnline] = useState(true);
   const isAssisted = isStreetMode || role === "iniciante";
   const searchParams = useSearchParams();
 
   useEffect(() => {
+    const syncOnline = () => setIsOnline(navigator.onLine);
+    syncOnline();
+    window.addEventListener("online", syncOnline);
+    window.addEventListener("offline", syncOnline);
+    return () => {
+      window.removeEventListener("online", syncOnline);
+      window.removeEventListener("offline", syncOnline);
+    };
+  }, []);
+
+
+
+  useEffect(() => {
     const handleScroll = () => {
-      // Collapse hero after 120px of scroll
-      const shouldCollapse = window.scrollY > 120;
+      const scrollY = window.scrollY;
+      const isWideViewport = window.innerWidth >= 1280;
+      const missionBoost = missionActive ? 1 : 0;
+      const collapseThreshold = isWideViewport ? 36 : 88;
+      const microThreshold = isWideViewport ? 92 : 240;
+      const shouldCollapse = scrollY > (collapseThreshold - missionBoost * 18);
+      const shouldBeMicro = scrollY > (microThreshold - missionBoost * 42);
+
       if (shouldCollapse !== isHeroCollapsed) {
         setIsHeroCollapsed(shouldCollapse);
+        void trackProductEvent({
+           eventType: "header_state_change" as any,
+           pagePath: "/",
+           payload: { state: shouldCollapse ? "collapsed" : "expanded", scrollY }
+        });
+      }
+      
+      if (shouldBeMicro !== isMicroMode) {
+        setIsMicroMode(shouldBeMicro);
+        void trackProductEvent({
+           eventType: "header_state_change" as any,
+           pagePath: "/",
+           payload: { state: shouldBeMicro ? "micro" : "collapsed", scrollY }
+        });
+      }
+
+      // Track scroll depth under sticky for analytics
+      if (shouldCollapse && scrollY % 500 === 0) {
+         void trackProductEvent({
+            eventType: "scroll_depth_under_sticky" as any,
+            pagePath: "/",
+            payload: { depth: scrollY }
+         });
       }
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [isHeroCollapsed]);
+  }, [isHeroCollapsed, isMicroMode, missionActive]);
 
   useEffect(() => {
     async function loadRole() {
@@ -588,7 +635,38 @@ export function HomeBrowser({
       .slice(0, 3);
   }, [fuelFilter, orderedStations]);
 
-  const hasFilters = Boolean(query || selectedCity || fuelFilter !== "all" || recencyFilter !== "all" || presenceFilter !== "all");
+    const hasFilters = Boolean(query || selectedCity || fuelFilter !== "all" || recencyFilter !== "all" || presenceFilter !== "all");
+  const homeState = useMemo(() => orchestrateHomeState({
+    online: isOnline,
+    geoError,
+    missionActive,
+    role,
+    submissionsCount,
+    recentCount,
+    favoriteCount: favoriteIds.length,
+    streetMode: isStreetMode,
+    isWarm,
+    isRefreshing,
+    selectedCity,
+    hasFilters,
+  }), [isOnline, geoError, missionActive, role, submissionsCount, recentCount, favoriteIds.length, isStreetMode, isWarm, isRefreshing, selectedCity, hasFilters]);
+
+  useEffect(() => {
+    if (lastTrackedHomeStateRef.current === homeState.state) {
+      return;
+    }
+
+    lastTrackedHomeStateRef.current = homeState.state;
+    void trackProductEvent({
+      eventType: "home_primary_block_view" as any,
+      pagePath: "/",
+      payload: {
+        state: homeState.state,
+        label: homeState.label,
+      }
+    });
+  }, [homeState.label, homeState.state]);
+
   const mapStations = visibleStations;
   const summaryStations = orderedStations.slice(0, 6);
 
@@ -832,16 +910,47 @@ export function HomeBrowser({
   return (
     <>
       {debriefOverlay}
-      <FirstVisitGuide />
-      <WarmStartBadge isWarm={isWarm} isRefreshing={isRefreshing} />
+      <TopOrchestrator
+        isWarm={isWarm}
+        isRefreshing={isRefreshing}
+        isLowPerf={isLowPerf}
+        effectiveType={effectiveType}
+        coords={coords}
+        geoLoading={geoLoading}
+        onGetLocation={getLocation}
+        query={query}
+        onQueryChange={(val) => setQuery(val)}
+        selectedCity={selectedCity}
+        onCityReset={() => {
+          setSelectedCity("");
+          setDefaultSelectionReason(null);
+        }}
+        cityOptions={{
+          priority: cityOptions.priority,
+          others: cityOptions.others
+        }}
+        onCitySelect={(city) => {
+          setSelectedCity(city);
+          setDefaultSelectionReason(null);
+          updateTownFocus(city, city);
+        }}
+        densityMode={listMode}
+        onDensityChange={(mode) => updateListMode(mode)}
+        isSticky={isHeroCollapsed || missionActive}
+        isMicro={isMicroMode}
+        isMissionActive={missionActive}
+      />
+      {homeState.state !== "operation-normal" ? (
       <div className={cn("mb-6 transition-all duration-300", (isHeroCollapsed || missionActive) && "opacity-0 h-0 overflow-hidden mb-0")}>
         <SurfaceOrchestrator 
            surfaces={orchestratedSurfaces} 
            onDismiss={(id) => {
              if (id === "beta-closed") { /* potential local storage toggle */ }
            }}
+           maxPrimaryItems={1}
         />
       </div>
+      ) : null}
 
       {isStreetMode && !missionActive && (
         <div className="mb-6">
@@ -856,7 +965,7 @@ export function HomeBrowser({
       )}
 
       {/* 4. Home Main Action & Quick Access (Adaptive) */}
-      {!mission && (recentIds.length > 0 || favoriteIds.length > 0) && (
+      {homeState.showQuickAccess && !mission && (recentIds.length > 0 || favoriteIds.length > 0) && (
         <SectionCard 
           className="mb-4 space-y-4 p-5 border-white/10 bg-white/5"
           onClick={() => {
@@ -946,6 +1055,7 @@ export function HomeBrowser({
         </SectionCard>
       )}
 
+      {homeState.state === "senior-hub" ? (
       <div 
         className="mb-6"
         onClick={() => {
@@ -960,8 +1070,9 @@ export function HomeBrowser({
       >
         <MySubmissionsList />
       </div>
+      ) : null}
 
-      {selectedCity && !isLowPerf && (
+      {homeState.state === "senior-hub" && selectedCity && !isLowPerf && (
         <div className="mb-6">
           <RecorteActivityWidget 
             city={selectedCity} 
@@ -971,162 +1082,14 @@ export function HomeBrowser({
         </div>
       )}
 
-      <SectionCard 
-        className={cn(
-          "space-y-4 transition-all duration-500", 
-          (isStreetMode || missionActive || isHeroCollapsed) && "space-y-2 py-3", 
-          isLowPerf && "low-perf-mode shadow-none border-white/5",
-          (isHeroCollapsed || missionActive) && "sticky top-0 z-40 bg-black/80 backdrop-blur-xl border-white/10 rounded-t-none -mx-4 px-4 shadow-2xl"
-        )}
-      >
-        {/* Adaptive Heading */}
-        {!isStreetMode && !missionActive && !isHeroCollapsed && (
-          <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-500">
+      {homeState.state === "operation-normal" && !isHeroCollapsed && (
+        <SectionCard className="space-y-4 mb-6">
+          <div className="space-y-1.5">
             <Badge className="text-[10px] uppercase tracking-widest">Mapa Vivo {role === 'senior' && "· Senior"}</Badge>
             <h2 className="text-2xl font-bold tracking-tight text-white">Transparência territorial e preço real</h2>
             <p className="text-sm leading-relaxed text-white/40">Busque, filtre e colabore para manter o mapa vivo.</p>
           </div>
-        )}
 
-        <div className="flex items-center gap-3 rounded-[22px] border border-white/8 bg-black/30 px-4 py-3 text-sm text-white/50">
-          <Search className="h-4 w-4 text-[color:var(--color-accent)]" />
-          <input
-            value={query}
-            onChange={(event) => {
-              const nextValue = event.target.value;
-              setQuery(nextValue);
-              if (nextValue.length >= 2 && nextValue !== lastTrackedSearchRef.current) {
-                lastTrackedSearchRef.current = nextValue;
-                void trackProductEvent({
-                  eventType: "home_search_used",
-                  pagePath: "/",
-                  pageTitle: "Mapa vivo",
-                  scopeType: "page",
-                  scopeId: "/",
-                  payload: { queryLength: nextValue.length, query: nextValue }
-                });
-              }
-            }}
-            placeholder="Buscar posto, bairro ou cidade"
-            className="w-full bg-transparent outline-none placeholder:text-white/38"
-          />
-          {query ? (
-            <button type="button" onClick={() => setQuery("")} className="text-white/50 transition hover:text-white">
-              <X className="h-4 w-4" />
-            </button>
-          ) : null}
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex h-10 w-full items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-            <Button 
-              variant={coords ? "primary" : "secondary"}
-              onClick={() => getLocation()}
-              disabled={geoLoading}
-              className="h-8 shrink-0 py-0 px-3 text-[10px] font-bold uppercase tracking-widest"
-            >
-              {geoLoading ? "Buscando..." : coords ? "GPS Ativo" : "📍 Perto de mim"}
-            </Button>
-            <div className="h-4 w-px shrink-0 bg-white/10" />
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedCity("");
-                setDefaultSelectionReason(null);
-              }}
-              className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${
-                selectedCity === "" ? "bg-[color:var(--color-accent)] text-black" : "border border-white/10 bg-white/5 text-white/66"
-              }`}
-            >
-              Todas as cidades
-            </button>
-            {cityOptions.priority.map((city) => {
-              const readiness = Array.isArray(territorialSummary) ? territorialSummary.find(g => g.name?.trim().toUpperCase() === city.trim().toUpperCase() || (g as any).city?.toUpperCase() === city.toUpperCase()) : null;
-              return (
-                <button
-                  key={city}
-                  type="button"
-                  onClick={() => {
-                    const oldCity = selectedCity;
-                    setSelectedCity(city);
-                    setDefaultSelectionReason(null);
-                    updateTownFocus(city, city);
-                    
-                    if (defaultSelectionReason && oldCity !== city) {
-                      void trackProductEvent({
-                        eventType: "territorial_default_rejected" as any,
-                        pagePath: "/",
-                        pageTitle: "Home",
-                        city: city,
-                        payload: { 
-                          previousCity: oldCity,
-                          reason: defaultSelectionReason
-                        }
-                      });
-                    }
-                  }}
-                  className={`flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${
-                    selectedCity.localeCompare(city, "pt-BR") === 0 ? "bg-white text-black" : "border border-white/10 bg-white/5 text-white/66 hover:bg-white/10"
-                  }`}
-                >
-                  {city}
-                  {readiness && (
-                    <span className={cn(
-                      "h-1.5 w-1.5 rounded-full",
-                      readiness.status === "ready" ? "bg-emerald-500" :
-                      readiness.status === "validating" ? "bg-blue-500" : "bg-orange-500"
-                    )} />
-                  )}
-                </button>
-              );
-            })}
-            {pulseData && initialCity && (
-            <RecortePulseWidget 
-              activity={pulseData} 
-              cityName={initialCity} 
-            />
-          )}
-            <FeedbackTrigger 
-              city={selectedCity} 
-              fuelType={fuelFilter} 
-              context={selectedCity ? `vendo ${selectedCity}` : "vendo todas as cidades"}
-              title="Home"
-              className="h-8 py-0 shrink-0"
-            />
-          </div>
-
-          <div className="flex items-center gap-1.5 mb-4 px-1 overflow-x-auto scrollbar-none">
-             <button 
-               onClick={() => updateListMode('ultra-claro')}
-               className={cn(
-                 "flex h-9 items-center gap-2 whitespace-nowrap rounded-full px-4 text-[10px] font-black uppercase tracking-widest transition-all",
-                 listMode === 'ultra-claro' ? "bg-white text-black shadow-lg shadow-white/10" : "bg-white/5 text-white/40 hover:bg-white/10"
-               )}
-             >
-               <Sparkles className={cn("h-3.5 w-3.5", listMode === 'ultra-claro' && "fill-current")} />
-               ULTRA-CLARO
-             </button>
-             <button 
-               onClick={() => updateListMode('normal')}
-               className={cn(
-                 "flex h-9 items-center gap-2 whitespace-nowrap rounded-full px-4 text-[10px] font-black uppercase tracking-widest transition-all",
-                 listMode === 'normal' ? "bg-white text-black shadow-lg shadow-white/10" : "bg-white/5 text-white/40 hover:bg-white/10"
-               )}
-             >
-               NORMAL
-             </button>
-             <button 
-               onClick={() => updateListMode('avancado')}
-               className={cn(
-                 "flex h-9 items-center gap-2 whitespace-nowrap rounded-full px-4 text-[10px] font-black uppercase tracking-widest transition-all",
-                 listMode === 'avancado' ? "bg-white text-black shadow-lg shadow-white/10" : "bg-white/5 text-white/40 hover:bg-white/10"
-               )}
-             >
-               <Zap className={cn("h-3.5 w-3.5", listMode === 'avancado' && "fill-current")} />
-               AVANÇADO
-             </button>
-          </div>
-          
           <div className="flex items-center justify-between min-h-[1.5rem]">
             {expansionSignal ? (
               <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
@@ -1173,6 +1136,10 @@ export function HomeBrowser({
               </Button>
             )}
           </div>
+        </SectionCard>
+      )}
+
+      <SectionCard className="mb-6 space-y-4">
 
           <div className={cn("grid gap-3 transition-all duration-500", (isHeroCollapsed || missionActive) ? "h-0 overflow-hidden opacity-0 pointer-events-none mb-0" : "grid-cols-1 md:grid-cols-3")}>
             <FilterSelect
@@ -1272,8 +1239,7 @@ export function HomeBrowser({
               <p className="text-xs leading-relaxed text-white/46">Os filtros avançados continuam disponíveis, mas ficam abaixo da decisão inicial para reduzir ruído na primeira leitura.</p>
             </div>
           </details>
-        </div>
-
+        
         <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-white/44">
           <div className="flex items-center gap-3">
             <span>{orderedStations.length} postos no recorte</span>
@@ -1337,22 +1303,90 @@ export function HomeBrowser({
         </SectionCard>
       ) : null}
 
-      <OperationalMemoryBar />
+      <div data-layout-scope="home-wide" className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(360px,400px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(400px,440px)] xl:items-start">
+        <div data-layout-role="main" className="space-y-6">
+          {homeState.state === "senior-hub" ? <OperationalMemoryBar /> : null}
 
-      <SectionCard className="space-y-4 shadow-xl shadow-black/20">
-        <div className="flex items-center gap-3 px-5">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Mapa vivo</p>
-              <h3 className="mt-1 text-xl font-semibold text-white">Pins filtrados com leitura por cidade</h3>
+          <SectionCard className="space-y-4 shadow-xl shadow-black/20 xl:p-6">
+            <div className="flex items-center gap-3 px-5 xl:px-0">
+              <div className="flex items-center justify-between gap-3 w-full">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-white/42">Mapa vivo</p>
+                  <h3 className="mt-1 text-xl font-semibold text-white xl:text-[1.35rem]">Pins filtrados com leitura por cidade</h3>
+                </div>
+                <ButtonLink href="/enviar" className="h-10 whitespace-nowrap px-4 text-[11px] font-black uppercase tracking-[0.18em] md:hidden">Enviar preço agora</ButtonLink>
+              </div>
             </div>
-            <Link href="/enviar" className="text-sm text-[color:var(--color-accent)]">
-              Enviar preço
-            </Link>
-          </div>
+            <StationMapShell stations={mapStations} className="h-[440px] xl:h-[560px]" returnToHref={contextHref} fuelFilter={fuelFilter} center={coords} />
+          </SectionCard>
         </div>
-        <StationMapShell stations={mapStations} className="h-[440px]" returnToHref={contextHref} fuelFilter={fuelFilter} center={coords} />
-      </SectionCard>
+
+        <aside data-layout-role="rail" className="space-y-6 xl:sticky xl:top-32">
+          <SectionCard className="space-y-4 border-white/10 bg-white/5 xl:p-5">
+            <div className="space-y-1.5">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Painel lateral</p>
+              <h3 className="text-lg font-semibold text-white">Leitura rápida da tela larga</h3>
+              <p className="text-sm leading-relaxed text-white/54">Sem tirar o foco do mapa, este rail destaca ação, recorte e próximos passos.</p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+              <div className="rounded-[20px] border border-white/8 bg-black/25 p-4">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Postos no recorte</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{orderedStations.length}</p>
+                <p className="mt-1 text-xs text-white/48">{selectedCity || "Visão geral territorial"}</p>
+              </div>
+              <div className="rounded-[20px] border border-white/8 bg-black/25 p-4">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Sem preço recente</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{stationsWithoutRecentPrice}</p>
+                <p className="mt-1 text-xs text-white/48">A maior chance de contribuição útil agora.</p>
+              </div>
+              <div className="rounded-[20px] border border-white/8 bg-black/25 p-4">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Atualizações</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{recentCount}</p>
+                <p className="mt-1 text-xs text-white/48">Entradas recentes aprovadas.</p>
+              </div>
+            </div>
+
+            <div className="space-y-3 rounded-[22px] border border-white/8 bg-black/25 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/30">Mais baratos agora</p>
+                  <h4 className="text-sm font-semibold text-white">Ações rápidas</h4>
+                </div>
+                <Badge variant="outline" className="text-[10px]">Top 3</Badge>
+              </div>
+              <div className="space-y-2">
+                {cheapestNow.slice(0, 3).map(({ station, report }, index) => (
+                  <div key={station.id} className="flex items-center justify-between gap-3 rounded-[18px] border border-white/5 bg-white/5 px-3 py-2.5">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-white">{index + 1}. {station.name}</p>
+                      <p className="truncate text-xs text-white/42">{station.neighborhood}</p>
+                    </div>
+                    <p className="shrink-0 text-sm font-semibold text-[color:var(--color-accent)]">{formatCurrencyBRL(report.price)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row xl:flex-col">
+              <ButtonLink href="/enviar" className="w-full justify-center md:hidden">
+                Enviar preço agora
+              </ButtonLink>
+              <ButtonLink href="/atualizacoes" variant="secondary" className="w-full justify-center">
+                Ver atualizações
+              </ButtonLink>
+            </div>
+          </SectionCard>
+
+          {homeState.state === "senior-hub" && selectedCity && !isLowPerf ? (
+            <RecorteActivityWidget
+              city={selectedCity}
+              groupSlug={selectedReadiness?.slug}
+              isReady={selectedReadiness?.status === "ready"}
+            />
+          ) : null}
+        </aside>
+      </div>
 
       {summaryStations.length > 0 ? (
         <SectionCard className="space-y-4">
@@ -1597,6 +1631,8 @@ export function HomeBrowser({
                 isFavorite={isFavorite(station.id)}
                 onFavoriteToggle={() => toggleFavorite(station.id)}
                 recordActivity={recordActivity}
+                isHeaderSticky={isHeroCollapsed || missionActive}
+                isHeaderMicro={isMicroMode}
               />
             ))}
           </div>
@@ -1634,6 +1670,8 @@ export function HomeBrowser({
                 isFavorite={isFavorite(station.id)}
                 onFavoriteToggle={() => toggleFavorite(station.id)}
                 recordActivity={recordActivity}
+                isHeaderSticky={isHeroCollapsed || missionActive}
+                isHeaderMicro={isMicroMode}
               />
             ))
           )}
@@ -1704,3 +1742,22 @@ export function HomeBrowser({
     </>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -2,7 +2,6 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { assembleStationWithReports, groupReportsByStation, mapReportRow, mapReportsWithStations, mapStationRow } from "@/lib/data/mappers";
 import { getReportPriorityScore } from "@/lib/ops/moderation-priority";
 import { isPreviewFixturesEnabled, getPreviewApprovedReportsSince, getPreviewRecentCount, getPreviewRecentFeed, getPreviewStations, getPreviewStationById } from "@/lib/dev/preview-data";
-import { getTerritorialReleaseSummary } from "@/lib/ops/release-control";
 import { getAuditGroups, getAuditGroupMembers } from "@/lib/audit/groups";
 import type { Station, StationWithReports, ReportWithStation, PriceReport, ReportStatus } from "@/lib/types";
 import type { PriceReportRow, StationRow } from "@/types/supabase";
@@ -136,6 +135,7 @@ export async function getHomeStations(): Promise<StationWithReports[]> {
   let stationsWithStatus = stations;
 
   try {
+    const { getTerritorialReleaseSummary } = await import("@/lib/ops/release-control");
     const releaseSummary = await getTerritorialReleaseSummary();
     const groups = await getAuditGroups();
 
@@ -172,7 +172,7 @@ export async function getHomeStations(): Promise<StationWithReports[]> {
         .filter((s) => s.releaseStatus !== "hidden");
     }
   } catch (err) {
-    console.error("Failed to apply territorial release control, falling back to all stations", err);
+    console.error("Failed to apply territorial release control, falling back to all stations");
   }
 
   const grouped = groupReportsByStation(stationsWithStatus, reports);

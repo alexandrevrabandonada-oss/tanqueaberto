@@ -19,9 +19,10 @@ interface SurfaceOrchestratorProps {
   surfaces: SurfaceItem[];
   onDismiss?: (id: string) => void;
   killSwitches?: Partial<OperationalKillSwitches>;
+  maxPrimaryItems?: number;
 }
 
-export function SurfaceOrchestrator({ surfaces, onDismiss, killSwitches }: SurfaceOrchestratorProps) {
+export function SurfaceOrchestrator({ surfaces, onDismiss, killSwitches, maxPrimaryItems = 2 }: SurfaceOrchestratorProps) {
   const [minimized, setMinimized] = useState<Record<string, boolean>>({});
   
   const filteredSurfaces = useMemo(() => surfaces.filter((s: SurfaceItem) => {
@@ -31,7 +32,7 @@ export function SurfaceOrchestrator({ surfaces, onDismiss, killSwitches }: Surfa
     return true;
   }), [surfaces, killSwitches?.disable_heavy_territorial_widgets]);
 
-  const topTypes = useMemo(() => getTopSurfaces(filteredSurfaces.map((s: SurfaceItem) => s.type), 2), [filteredSurfaces]);
+  const topTypes = useMemo(() => getTopSurfaces(filteredSurfaces.map((s: SurfaceItem) => s.type), maxPrimaryItems), [filteredSurfaces, maxPrimaryItems]);
   
   // Track impressions
   useEffect(() => {
@@ -115,3 +116,7 @@ export function SurfaceOrchestrator({ surfaces, onDismiss, killSwitches }: Surfa
     </div>
   );
 }
+
+
+
+

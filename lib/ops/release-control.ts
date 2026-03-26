@@ -20,11 +20,11 @@ export interface EffectiveGroupStatus {
 export async function getTerritorialReleaseSummary(): Promise<EffectiveGroupStatus[]> {
   try {
     const dashboard = await getEditorialGapDashboard(14).catch(err => {
-      console.error("Failed to fetch editorial gap dashboard", err);
+      console.error("Failed to fetch editorial gap dashboard");
       return { groupRows: [] };
     });
     const groups = await getAuditGroups().catch(err => {
-      console.error("Failed to fetch audit groups", err);
+      console.error("Failed to fetch audit groups");
       return [];
     });
     
@@ -69,7 +69,7 @@ export async function getTerritorialReleaseSummary(): Promise<EffectiveGroupStat
       };
     });
   } catch (error) {
-    console.error("Failed to generate territorial release summary", error);
+    console.error("Failed to generate territorial release summary");
     return [];
   }
 }

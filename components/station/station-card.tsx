@@ -34,6 +34,8 @@ interface StationCardProps {
   isFavorite?: boolean;
   onFavoriteToggle?: () => void;
   recordActivity?: (type: 'view' | 'touch' | 'start' | 'complete', stationId?: string) => void;
+  isHeaderSticky?: boolean;
+  isHeaderMicro?: boolean;
 }
 
 function getStationHref(stationId: string, returnToHref?: string) {
@@ -45,7 +47,20 @@ function getSendHref(stationId: string, returnToHref?: string, fuelFilter?: "all
   return returnToHref ? (`/enviar?stationId=${stationId}${fuelParam}&returnTo=${encodeURIComponent(returnToHref)}#photo` as Route) : ((`/enviar?stationId=${stationId}${fuelParam}#photo`) as Route);
 }
 
-export function StationCard({ station, fuelFilter = "all", returnToHref, isStreetMode, isAssisted, isUltraClaro, isAdvanced, isFavorite, onFavoriteToggle, recordActivity }: StationCardProps) {
+export function StationCard({ 
+  station, 
+  fuelFilter = "all", 
+  returnToHref, 
+  isStreetMode, 
+  isAssisted, 
+  isUltraClaro, 
+  isAdvanced, 
+  isFavorite, 
+  onFavoriteToggle, 
+  recordActivity,
+  isHeaderSticky = false,
+  isHeaderMicro = false
+}: StationCardProps) {
   const latest: PriceReport | null = getSelectedStationReport(station, fuelFilter);
   const stationHref = getStationHref(station.id, returnToHref);
   const sendHref = getSendHref(station.id, returnToHref, fuelFilter);
@@ -154,7 +169,13 @@ export function StationCard({ station, fuelFilter = "all", returnToHref, isStree
       <QuickActionGroup 
         className={cn(isAdvanced && "gap-1.5 p-0.5")}
         onMisclick={() => {
-          void trackProductEvent({ eventType: "quick_action_misclick" as any, pagePath: stationHref, pageTitle: getStationPublicName(station), stationId: station.id });
+          void trackProductEvent({ 
+            eventType: "quick_action_misclick" as any, 
+            pagePath: stationHref, 
+            pageTitle: getStationPublicName(station), 
+            stationId: station.id,
+            payload: { isHeaderSticky, isHeaderMicro }
+          });
         }}
       >
         <QuickActionButton
@@ -180,7 +201,9 @@ export function StationCard({ station, fuelFilter = "all", returnToHref, isStree
                 isUltraClaro, 
                 isAdvanced, 
                 streetMode: isStreetMode,
-                latencyMs: Date.now() - viewStartTime.current
+                latencyMs: Date.now() - viewStartTime.current,
+                isHeaderSticky,
+                isHeaderMicro
               } 
             });
           }}
@@ -207,7 +230,9 @@ export function StationCard({ station, fuelFilter = "all", returnToHref, isStree
                 isUltraClaro, 
                 isAdvanced, 
                 streetMode: isStreetMode,
-                latencyMs: Date.now() - viewStartTime.current
+                latencyMs: Date.now() - viewStartTime.current,
+                isHeaderSticky,
+                isHeaderMicro
               } 
             });
             openExternalNavigation(isMobile ? "waze" : "google", {
@@ -242,7 +267,9 @@ export function StationCard({ station, fuelFilter = "all", returnToHref, isStree
                 isUltraClaro, 
                 isAdvanced, 
                 streetMode: isStreetMode,
-                latencyMs: Date.now() - viewStartTime.current
+                latencyMs: Date.now() - viewStartTime.current,
+                isHeaderSticky,
+                isHeaderMicro
               } 
             });
           }}

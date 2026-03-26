@@ -99,7 +99,7 @@ export async function getRecentOpsJobRuns(limit = 12): Promise<OpsJobRun[]> {
     .limit(limit);
 
   if (error || !data) {
-    console.error("Failed to load operational job runs", error);
+    console.error("Failed to load operational job runs");
     return [];
   }
 
@@ -118,7 +118,7 @@ export async function getLastOpsJobRun(jobType: OpsJobType): Promise<OpsJobRun |
 
   if (error || !data) {
     if (error) {
-      console.error(`Failed to load last run for ${jobType}`, error);
+      console.error(`Failed to load last run for ${jobType}`);
     }
     return null;
   }
