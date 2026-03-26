@@ -18,7 +18,8 @@
     "test:smoke": "playwright test",
     "launch-gate": "tsx scripts/launch-gate.ts",
     "release:visual": "node scripts/release-hardening-visual.cjs",
-    "release:gate:visual": "node scripts/release-gate-visual-final-pre-rua.cjs"
+    "release:gate:visual": "node scripts/release-gate-visual-final-pre-rua.cjs",
+    "release:preview:real": "node scripts/release-gate-preview-real.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
