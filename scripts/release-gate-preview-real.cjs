@@ -1,6 +1,8 @@
 const { chromium } = require('playwright');
 const fs = require('node:fs');
 const path = require('node:path');
+const http = require('node:http');
+const { spawnSync } = require('node:child_process');
 
 const OUT_DIR = path.resolve(process.cwd(), 'reports/release-gate-preview-real');
 const REPORT_PATH = path.resolve(process.cwd(), 'reports/2026-03-26-estado-da-nacao-preview-real-gate.md');
@@ -141,13 +143,82 @@ function normalizeBaseUrl(raw) {
 }
 
 function resolvePreviewUrl() {
+  const argv = process.argv.slice(2);
+  const flagIndex = argv.findIndex((item) => item === '--preview-url' || item === '--url');
+  const flagValue = flagIndex >= 0 ? argv[flagIndex + 1] : null;
+  const positional = argv.find((item) => item && !item.startsWith('--'));
   const candidate =
-    process.argv[2] ||
+    flagValue ||
+    positional ||
     process.env.PREVIEW_URL ||
     process.env.VERCEL_URL ||
     process.env.VERCEL_BRANCH_URL ||
     process.env.NEXT_PUBLIC_SITE_URL;
   return normalizeBaseUrl(candidate);
+}
+
+async function startPreviewProxy(baseUrl) {
+  const cache = new Map();
+  const server = http.createServer((req, res) => {
+    const parsed = new URL(req.url || '/', 'http://127.0.0.1');
+    const requestPath = `${parsed.pathname}${parsed.search}` || '/';
+    const cacheKey = `${req.method || 'GET'}:${requestPath}`;
+    if (cache.has(cacheKey)) {
+      const cached = cache.get(cacheKey);
+      res.writeHead(cached.statusCode, cached.headers);
+      res.end(cached.body);
+      return;
+    }
+
+    const isTextLike = /\.(html?|css|js|mjs|cjs|json|txt|xml|svg|webmanifest|map)$/i.test(parsed.pathname) || parsed.pathname === '/' ;
+    const args = ['curl', '-s', requestPath, '--deployment', baseUrl];
+    const result = spawnSync('vercel', args, { encoding: isTextLike ? 'utf8' : 'buffer', maxBuffer: 20 * 1024 * 1024 });
+
+    if (result.error) {
+      res.writeHead(502, { 'content-type': 'text/plain; charset=utf-8' });
+      res.end(`proxy_error: ${result.error.message}`);
+      return;
+    }
+
+    if (result.status !== 0) {
+      const message = typeof result.stderr === 'string' ? result.stderr : Buffer.from(result.stderr || '').toString('utf8');
+      res.writeHead(502, { 'content-type': 'text/plain; charset=utf-8' });
+      res.end(message || `vercel curl failed for ${requestPath}`);
+      return;
+    }
+
+    const body = isTextLike ? Buffer.from(result.stdout || '', 'utf8') : Buffer.isBuffer(result.stdout) ? result.stdout : Buffer.from(result.stdout || '');
+    const contentType = getContentType(parsed.pathname);
+    const headers = { 'content-type': contentType, 'cache-control': 'no-store' };
+    cache.set(cacheKey, { statusCode: 200, headers, body });
+    res.writeHead(200, headers);
+    res.end(body);
+  });
+
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const address = server.address();
+  if (!address || typeof address === 'string') {
+    throw new Error('Failed to start preview proxy');
+  }
+
+  return {
+    baseUrl: `http://127.0.0.1:${address.port}`,
+    close: () => new Promise((resolve) => server.close(resolve)),
+  };
+}
+
+function getContentType(requestPath) {
+  const lower = requestPath.toLowerCase();
+  if (lower.endsWith('.css')) return 'text/css; charset=utf-8';
+  if (lower.endsWith('.js') || lower.endsWith('.mjs') || lower.endsWith('.cjs')) return 'application/javascript; charset=utf-8';
+  if (lower.endsWith('.json') || lower.endsWith('.webmanifest') || lower.endsWith('.map')) return 'application/json; charset=utf-8';
+  if (lower.endsWith('.svg')) return 'image/svg+xml';
+  if (lower.endsWith('.png')) return 'image/png';
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+  if (lower.endsWith('.ico')) return 'image/x-icon';
+  if (lower.endsWith('.woff2')) return 'font/woff2';
+  if (lower.endsWith('.woff')) return 'font/woff';
+  return 'text/html; charset=utf-8';
 }
 
 function screenshotPath(routeName, stateName, viewportName) {
@@ -177,6 +248,8 @@ function buildScenarios() {
 }
 
 async function createContext(browser, scenario) {
+  const protectionBypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET || process.env.VERCEL_PROTECTION_BYPASS_TOKEN || null;
+  const extraHTTPHeaders = protectionBypass ? { 'x-vercel-protection-bypass': protectionBypass } : undefined;
   const context = await browser.newContext({
     viewport: { width: scenario.viewport.width, height: scenario.viewport.height },
     isMobile: scenario.viewport.isMobile,
@@ -186,6 +259,7 @@ async function createContext(browser, scenario) {
       scenario.stateName === 'gps-ativo'
         ? { latitude: -22.509, longitude: -44.093, accuracy: 12 }
         : undefined,
+    extraHTTPHeaders,
   });
 
   const state = STATES.find((item) => item.name === scenario.stateName);
@@ -389,7 +463,7 @@ function buildReport(baseUrl, summary, metrics, blockers = []) {
   }
   lines.push('');
   lines.push('## Observacoes');
-  lines.push('- O gate aponta para a URL publicada informada por PREVIEW_URL, VERCEL_URL, VERCEL_BRANCH_URL ou argumento na linha de comando.');
+  lines.push('- O gate aponta para a URL publicada informada por --preview-url, PREVIEW_URL, VERCEL_URL, VERCEL_BRANCH_URL ou argumento na linha de comando.');
   lines.push('- O estado PWA wide e emulado por display-mode: standalone em viewport larga.');
   lines.push('- O gate grava screenshots e metrics em reports/release-gate-preview-real.');
   return lines.join('\n');
@@ -425,6 +499,7 @@ async function main() {
     process.exit(1);
   }
 
+  const proxy = await startPreviewProxy(baseUrl);
   const browser = await chromium.launch({ headless: true });
   const metrics = [];
   const blockers = [];
@@ -437,7 +512,7 @@ async function main() {
       page.setDefaultNavigationTimeout(60000);
 
       try {
-        await page.goto(`${baseUrl}${scenario.route.path}`, { waitUntil: 'domcontentloaded', timeout: 90000 });
+        await page.goto(`${proxy.baseUrl}${scenario.route.path}`, { waitUntil: 'domcontentloaded', timeout: 90000 });
         await waitForPageReady(page, scenario.route.name, scenario.stateName);
 
         if (scenario.stateName === 'sticky') {
@@ -503,6 +578,7 @@ async function main() {
     }
   } finally {
     await browser.close().catch(() => undefined);
+    await proxy.close().catch(() => undefined);
   }
 
   const summary = summarize(metrics);

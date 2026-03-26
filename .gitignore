@@ -11,3 +11,5 @@ dist
 *.log
 tsconfig.tsbuildinfo
 supabase/.temp
+
+.vercel
