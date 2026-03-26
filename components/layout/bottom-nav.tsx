@@ -16,8 +16,8 @@ export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-[1000] border-t border-white/10 bg-black/95 px-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-[0_-18px_40px_rgba(0,0,0,0.45)] lg:border-t-0 lg:bg-transparent lg:px-0 lg:pb-4 lg:pt-0 lg:shadow-none">
-      <div className="mx-auto w-full max-w-[480px] rounded-[24px] bg-black/95 lg:max-w-[720px] lg:rounded-[26px] lg:border lg:border-white/10 lg:px-2 lg:py-2 lg:shadow-2xl">
+    <nav data-bottom-nav="root" className="fixed inset-x-0 bottom-0 z-[1000] border-t border-white/10 bg-black/95 px-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-[0_-18px_40px_rgba(0,0,0,0.45)] lg:border-t-0 lg:bg-transparent lg:px-0 lg:pb-4 lg:pt-0 lg:shadow-none">
+      <div className="mx-auto w-full max-w-[560px] rounded-[24px] bg-black/95 md:max-w-[860px] lg:max-w-[980px] lg:rounded-[26px] lg:border lg:border-white/10 lg:px-2 lg:py-2 lg:shadow-2xl xl:max-w-[1120px] 2xl:max-w-[1200px]">
         <ul className="grid grid-cols-4 gap-1 lg:gap-3">
           {items.map(({ href, label, icon: Icon }) => {
             const active = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
