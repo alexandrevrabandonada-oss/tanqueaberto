@@ -236,6 +236,7 @@ export default async function GroupPage({ params }: GroupPageProps) {
                        <QuickActionButton
                          icon={Camera}
                          label={suggestedMission.action}
+                         desktopLabel="Abrir missão"
                          variant="accent"
                          isStreetMode={true}
                          href={`/enviar?groupId=${group.id}&ref=group_mission` as Route}
@@ -400,3 +401,4 @@ export default async function GroupPage({ params }: GroupPageProps) {
     </div>
   );
 }
+

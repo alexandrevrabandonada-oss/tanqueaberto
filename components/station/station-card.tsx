@@ -181,6 +181,7 @@ export function StationCard({
         <QuickActionButton
           icon={Camera}
           label={(isAssisted || isUltraClaro) ? "FOTO" : "Foto"}
+          desktopLabel="Abrir câmera"
           variant="primary"
           isStreetMode={isStreetMode}
           isAssisted={isAssisted}
@@ -212,6 +213,7 @@ export function StationCard({
         <QuickActionButton
           icon={Navigation}
           label={(isAssisted || isUltraClaro) ? "ROTA" : "Rota"}
+          desktopLabel="Traçar rota"
           variant="secondary"
           isStreetMode={isStreetMode}
           isAssisted={isAssisted}
@@ -248,6 +250,7 @@ export function StationCard({
         <QuickActionButton
           icon={Info}
           label={(isAssisted || isUltraClaro) ? "VER" : "Ver"}
+          desktopLabel="Abrir posto"
           variant="outline"
           isStreetMode={isStreetMode}
           isAssisted={isAssisted}
@@ -278,3 +281,4 @@ export function StationCard({
     </SectionCard>
   );
 }
+

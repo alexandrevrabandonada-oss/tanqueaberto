@@ -235,6 +235,7 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
                 <QuickActionButton
                   icon={Camera}
                   label="Foto"
+                  desktopLabel="Abrir câmera"
                   variant="primary"
                   isStreetMode={true}
                   href={getSendHref(selectedStation.id, returnToHref, fuelFilter)}
@@ -257,6 +258,7 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
                 <QuickActionButton
                   icon={Navigation}
                   label="Rota"
+                  desktopLabel="Traçar rota"
                   variant="secondary"
                   isStreetMode={true}
                   onClick={() => {
@@ -276,6 +278,7 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
                 <QuickActionButton
                   icon={Info}
                   label="Ver"
+                  desktopLabel="Abrir posto"
                   variant="outline"
                   isStreetMode={true}
                   href={getStationHref(selectedStation.id, returnToHref)}
@@ -312,4 +315,5 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
     </div>
   );
 }
+
 

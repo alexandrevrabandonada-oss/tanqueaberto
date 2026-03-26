@@ -10,6 +10,8 @@ import Link from "next/link";
 interface QuickActionButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   icon: LucideIcon;
   label: string;
+  secondaryLabel?: string;
+  desktopLabel?: string;
   variant?: 'primary' | 'secondary' | 'accent' | 'outline';
   isStreetMode?: boolean;
   href?: Route | string;
@@ -21,7 +23,7 @@ interface QuickActionButtonProps extends React.ButtonHTMLAttributes<HTMLButtonEl
 }
 
 export const QuickActionButton = React.forwardRef<HTMLButtonElement, QuickActionButtonProps>(
-  ({ icon: Icon, label, variant = 'secondary', isStreetMode, isAssisted, isUltraClaro, isAdvanced, href, showLabel = true, layout = 'vertical', className, onClick, ...props }, ref) => {
+  ({ icon: Icon, label, secondaryLabel, desktopLabel, variant = 'secondary', isStreetMode, isAssisted, isUltraClaro, isAdvanced, href, showLabel = true, layout = 'vertical', className, onClick, ...props }, ref) => {
     const isHorizontal = layout === 'horizontal';
     const effectiveShowLabel = showLabel && !isAdvanced;
     
@@ -32,14 +34,26 @@ export const QuickActionButton = React.forwardRef<HTMLButtonElement, QuickAction
           isUltraClaro ? "h-7 w-7" : isStreetMode || isAssisted ? "h-6 w-6" : isAdvanced ? "h-5 w-5" : "h-4 w-4",
           isUltraClaro && variant === 'primary' && "drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]"
         )} />
-        {effectiveShowLabel && (
-          <span className={cn(
-            "font-black tracking-widest uppercase italic leading-none transition-all",
-            isUltraClaro ? "text-[12px] text-white brightness-125" : isAssisted ? "text-[11px] text-white" : isStreetMode ? "text-[10px]" : "text-[9px]"
-          )}>
-            {label}
-          </span>
-        )}
+        <span className="flex min-w-0 flex-col items-center gap-0.5 text-center">
+          {effectiveShowLabel && (
+            <span className={cn(
+              "font-black tracking-widest uppercase italic leading-none transition-all",
+              isUltraClaro ? "text-[12px] text-white brightness-125" : isAssisted ? "text-[11px] text-white" : isStreetMode ? "text-[10px]" : "text-[9px]"
+            )}>
+              {label}
+            </span>
+          )}
+          {desktopLabel ? (
+            <span className="hidden text-[9px] font-medium leading-none tracking-[0.12em] text-white/38 xl:block">
+              {desktopLabel}
+            </span>
+          ) : null}
+          {secondaryLabel ? (
+            <span className="hidden text-[8px] font-medium leading-none tracking-[0.1em] text-white/28 xl:block">
+              {secondaryLabel}
+            </span>
+          ) : null}
+        </span>
       </>
     );
 
@@ -101,7 +115,6 @@ export function QuickActionGroup({ children, className, onMisclick }: QuickActio
     <div 
       className={cn("grid grid-cols-3 gap-2 p-1 rounded-[22px]", className)}
       onClick={(e) => {
-        // Se o clique foi no container mas não em um botão, é um misclick
         if (e.target === e.currentTarget && onMisclick) {
           onMisclick();
         }
@@ -111,4 +124,3 @@ export function QuickActionGroup({ children, className, onMisclick }: QuickActio
     </div>
   );
 }
-
