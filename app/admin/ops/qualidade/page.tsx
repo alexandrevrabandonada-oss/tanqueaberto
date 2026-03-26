@@ -1,6 +1,9 @@
-import { ShieldAlert, Image as ImageIcon, Scale, AlertCircle, TrendingDown } from "lucide-react";
+import { ShieldAlert, Image as ImageIcon, AlertCircle, TrendingDown } from "lucide-react";
 export const dynamic = 'force-dynamic';
 import { getQualityMetrics } from "@/lib/data/quality-queries";
+import { getStationReviewQueue } from "@/lib/data/queries";
+import { getTerritorialCurationQueue, summarizeTerritorialCurationByCity } from "@/lib/ops/territorial-curation";
+import { TerritorialCurationPanel } from "@/components/admin/ops/territorial-curation-panel";
 import { SectionCard } from "@/components/ui/section-card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrencyBRL } from "@/lib/format/currency";
@@ -8,7 +11,9 @@ import { fuelLabels } from "@/lib/format/labels";
 import Link from "next/link";
 
 export default async function QualityDashboardPage() {
-  const metrics = await getQualityMetrics(7);
+  const [metrics, reviewStations] = await Promise.all([getQualityMetrics(7), getStationReviewQueue(60)]);
+  const territorialQueue = getTerritorialCurationQueue(reviewStations, 60);
+  const citySummaries = summarizeTerritorialCurationByCity(territorialQueue);
 
   return (
     <div className="space-y-6 pb-20">
@@ -45,6 +50,8 @@ export default async function QualityDashboardPage() {
           <p className="mt-2 text-[10px] text-white/40">Aguardando revisão foca</p>
         </SectionCard>
       </div>
+
+      <TerritorialCurationPanel items={territorialQueue} citySummaries={citySummaries} />
 
       <div className="grid gap-6 md:grid-cols-2">
         <SectionCard className="space-y-4">
@@ -116,3 +123,5 @@ export default async function QualityDashboardPage() {
     </div>
   );
 }
+
+
