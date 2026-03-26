@@ -16,7 +16,9 @@
     "audit:dossiers": "tsx scripts/generate-audit-dossiers.ts",
     "ops:seed-groups": "tsx scripts/seed-audit-groups.ts",
     "test:smoke": "playwright test",
-    "launch-gate": "tsx scripts/launch-gate.ts"
+    "launch-gate": "tsx scripts/launch-gate.ts",
+    "release:visual": "node scripts/release-hardening-visual.cjs",
+    "release:gate:visual": "node scripts/release-gate-visual-final-pre-rua.cjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
