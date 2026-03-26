@@ -29,7 +29,7 @@ export function AppShell({ children, killSwitches }: AppShellProps) {
 
       <div
         data-app-shell="root"
-        className="relative mx-auto flex min-h-screen w-full max-w-[560px] flex-col px-4 pb-[calc(env(safe-area-inset-bottom)+12rem)] pt-4 transition-all duration-500 md:max-w-[920px] md:px-6 md:pb-36 lg:max-w-[1180px] lg:px-8 lg:pb-32 xl:max-w-[1540px] xl:px-10 2xl:max-w-[1760px] 2xl:px-12"
+        className="relative mx-auto flex min-h-screen w-full max-w-[560px] flex-col px-4 pb-[calc(env(safe-area-inset-bottom)+12rem)] pt-4 transition-all duration-500 md:max-w-[920px] md:px-6 md:pb-36 lg:max-w-[1180px] lg:px-8 lg:pb-28 xl:max-w-[1540px] xl:px-10 xl:pb-24 2xl:max-w-[1760px] 2xl:px-12 2xl:pb-24"
       >
         <div className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-[radial-gradient(circle_at_top,rgba(255,199,0,0.18),transparent_72%)]" />
 
