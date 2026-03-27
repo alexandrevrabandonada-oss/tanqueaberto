@@ -1,5 +1,5 @@
 import type { Route } from "next";
-import { Camera, ShieldCheck, Clock3, MapPinned, Send } from "lucide-react";
+import { Camera, ShieldCheck } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { ProductEvent } from "@/components/telemetry/product-event";
@@ -54,15 +54,15 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
 
       <div data-layout-scope="submit-wide" className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(330px,360px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(360px,400px)] xl:items-start">
         <div data-layout-role="main" className="space-y-6 min-w-0">
-          <SectionCard className="space-y-4">
+          <SectionCard className="space-y-4 xl:p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.2em] text-white/42">Envio rápido</p>
-                <h2 className="mt-1 text-[1.8rem] font-semibold leading-none text-white">Enviar preço</h2>
+                <h2 className="mt-1 text-[1.8rem] font-semibold leading-none text-white xl:text-[1.45rem]">Enviar preço</h2>
               </div>
               <Badge variant="warning">Foto + preço + horário</Badge>
             </div>
-            <p className="text-sm text-white/62">
+            <p className="text-sm text-white/62 xl:text-[13px]">
               Fluxo direto para rua: foto cedo, posto certo, combustível, preço e envio. O report entra como aguardando moderação.
             </p>
             {initialStation ? (
@@ -72,13 +72,13 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
             ) : null}
           </SectionCard>
 
-          <SectionCard className="space-y-3">
-            <div className="flex items-center justify-between gap-3 rounded-[22px] border border-white/8 bg-black/30 p-4">
+          <SectionCard className="space-y-3 xl:space-y-2.5">
+            <div className="flex items-center justify-between gap-3 rounded-[22px] border border-white/8 bg-black/30 p-4 xl:p-3.5">
               <div className="flex items-center gap-3">
                 <Camera className="h-5 w-5 text-[color:var(--color-accent)]" />
                 <div>
-                  <p className="text-sm font-semibold text-white">Comece pela foto</p>
-                  <p className="text-sm text-white/56">Na rua, é mais rápido fotografar primeiro e preencher o resto em seguida.</p>
+                  <p className="text-sm font-semibold text-white xl:text-[13px]">Comece pela foto</p>
+                  <p className="text-sm text-white/56 xl:text-[13px]">Na rua, é mais rápido fotografar primeiro e preencher o resto em seguida.</p>
                 </div>
               </div>
               <a
@@ -89,7 +89,7 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
               </a>
             </div>
             <PriceSubmitForm stations={stations} initialStationId={initialStation?.id} initialFuelType={initialFuelType} returnToHref={returnToHref || undefined} />
-            <div className="rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/58">
+            <div className="rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/58 xl:p-3.5">
               <div className="flex items-center gap-2 text-white/80">
                 <ShieldCheck className="h-4 w-4 text-[color:var(--color-accent)]" />
                 Vai para moderação
@@ -106,16 +106,16 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
           </SectionCard>
         </div>
 
-        <aside data-layout-role="rail" className="space-y-6 xl:sticky xl:top-32">
-          <SectionCard className="space-y-4 border-white/10 bg-white/5 xl:p-5">
+        <aside data-layout-role="rail" className="space-y-4 xl:sticky xl:top-24">
+          <SectionCard className="space-y-3 border-white/10 bg-white/5 xl:p-4">
             <div className="space-y-1.5">
               <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Rail útil</p>
-              <h3 className="text-lg font-semibold text-white">Fluxo, fila e atalho útil</h3>
-              <p className="text-sm leading-relaxed text-white/54">A lateral reforça a ordem do envio, o estado de moderação e o melhor retorno para o mapa.</p>
+              <h3 className="text-lg font-semibold text-white xl:text-base">Fluxo, fila e atalho útil</h3>
+              <p className="text-sm leading-relaxed text-white/54 xl:text-[13px]">A lateral reforça a ordem do envio, o estado de moderação e o melhor retorno para o mapa.</p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-              <div className="rounded-[20px] border border-white/8 bg-black/25 p-4">
+              <div className="rounded-[20px] border border-white/8 bg-black/25 p-3.5">
                 <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Ordem do fluxo</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {flowSteps.map((step, index) => (
@@ -127,7 +127,7 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
                 <p className="mt-2 text-xs text-white/48">Foto primeiro, depois posto, combustível e preço.</p>
               </div>
 
-              <div className="rounded-[20px] border border-white/8 bg-black/25 p-4">
+              <div className="rounded-[20px] border border-white/8 bg-black/25 p-3.5">
                 <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Fila e moderação</p>
                 <p className="mt-2 text-sm font-semibold text-white">Todo envio entra em revisão antes de aparecer no mapa.</p>
                 <p className="mt-1 text-xs text-white/48">A fila protege a leitura pública sem travar o ritmo da rua.</p>
@@ -135,34 +135,23 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
             </div>
 
             {initialStation ? (
-              <div className="rounded-[22px] border border-[color:var(--color-accent)]/16 bg-[color:var(--color-accent)]/8 p-4">
+              <div className="rounded-[22px] border border-[color:var(--color-accent)]/16 bg-[color:var(--color-accent)]/8 p-3.5">
                 <p className="text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-accent)]/72">Posto escolhido</p>
                 <p className="mt-2 text-sm font-semibold text-white">{initialStation.name}</p>
                 <p className="mt-1 text-xs text-white/52">{initialStation.neighborhood}, {initialStation.city}</p>
               </div>
             ) : (
-              <div className="rounded-[22px] border border-white/8 bg-black/25 p-4 text-sm text-white/56">
+              <div className="rounded-[22px] border border-white/8 bg-black/25 p-3.5 text-sm text-white/56 xl:text-[13px]">
                 Abra o mapa primeiro se quiser enviar já com o posto certo no eixo.
               </div>
             )}
 
-            <div className="space-y-2 rounded-[22px] border border-white/8 bg-black/25 p-4">
-              <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-white/36">
-                <Clock3 className="h-3.5 w-3.5 text-[color:var(--color-accent)]" />
-                Atalhos
-              </div>
-              <ButtonLink href="/" variant="secondary" className="w-full justify-center">
-                <MapPinned className="h-4 w-4" />
-                Voltar ao mapa
-              </ButtonLink>
-              <ButtonLink href="/atualizacoes" className="w-full justify-center">
-                <Send className="h-4 w-4" />
-                Ver atualizações
-              </ButtonLink>
-            </div>
+
           </SectionCard>
         </aside>
       </div>
     </AppShell>
   );
 }
+
+

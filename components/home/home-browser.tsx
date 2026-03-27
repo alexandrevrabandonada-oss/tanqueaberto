@@ -233,10 +233,10 @@ export function HomeBrowser({
       const scrollY = window.scrollY;
       const isWideViewport = window.innerWidth >= 1280;
       const missionBoost = missionActive ? 1 : 0;
-      const collapseThreshold = isWideViewport ? 24 : 88;
-      const microThreshold = isWideViewport ? 56 : 240;
+      const collapseThreshold = isWideViewport ? 16 : 88;
+      const microThreshold = isWideViewport ? 40 : 240;
       const shouldCollapse = scrollY > (collapseThreshold - missionBoost * 16);
-      const shouldBeMicro = scrollY > (microThreshold - missionBoost * 36);
+      const shouldBeMicro = scrollY > (microThreshold - missionBoost * 24);
 
       if (shouldCollapse !== isHeroCollapsed) {
         setIsHeroCollapsed(shouldCollapse);
@@ -1006,7 +1006,7 @@ export function HomeBrowser({
       {/* 4. Home Main Action & Quick Access (Adaptive) */}
       {homeState.showQuickAccess && !mission && (recentIds.length > 0 || favoriteIds.length > 0) && (
         <SectionCard 
-          className="mb-4 space-y-4 p-5 border-white/10 bg-white/5"
+          className="mb-4 space-y-4 p-5 border-white/10 bg-white/5 xl:hidden"
           onClick={() => {
             void trackProductEvent({
               eventType: "home_block_interacted",
@@ -1122,11 +1122,11 @@ export function HomeBrowser({
       )}
 
       {homeState.state === "operation-normal" && !isHeroCollapsed && (
-        <SectionCard className="space-y-4 mb-6">
+        <SectionCard className="space-y-4 mb-6 xl:mb-4">
           <div className="space-y-1.5">
             <Badge className="text-[10px] uppercase tracking-widest">Mapa Vivo {role === 'senior' && "· Senior"}</Badge>
-            <h2 className="text-2xl font-bold tracking-tight text-white">Transparência territorial e preço real</h2>
-            <p className="text-sm leading-relaxed text-white/40">Busque, filtre e colabore para manter o mapa vivo.</p>
+            <h2 className="text-2xl font-bold tracking-tight text-white xl:text-[1.6rem]">Transparência territorial e preço real</h2>
+            <p className="text-sm leading-relaxed text-white/40 xl:max-w-xl">Busque, filtre e colabore para manter o mapa vivo.</p>
           </div>
 
           <div className="flex items-center justify-between min-h-[1.5rem]">
@@ -1178,9 +1178,9 @@ export function HomeBrowser({
         </SectionCard>
       )}
 
-      <SectionCard className="mb-6 space-y-4">
+      <SectionCard className="mb-6 space-y-4 xl:mb-4">
 
-          <div className={cn("grid gap-3 transition-all duration-500", (isHeroCollapsed || missionActive) ? "h-0 overflow-hidden opacity-0 pointer-events-none mb-0" : "grid-cols-1 md:grid-cols-3")}>
+          <div className={cn("grid gap-3 transition-all duration-500 xl:gap-2", (isHeroCollapsed || missionActive) ? "h-0 overflow-hidden opacity-0 pointer-events-none mb-0" : "grid-cols-1 md:grid-cols-3")}>
             <FilterSelect
               label="Combustível"
               value={fuelFilter}
@@ -1459,133 +1459,162 @@ export function HomeBrowser({
             {summaryStations.slice(0, 10).map((station) => {
               const latest = getSelectedStationReport(station, fuelFilter);
               const stationHref = `/postos/${station.id}?returnTo=${encodeURIComponent(contextHref)}` as Route;
+              const latestTone = latest ? getRecencyTone(latest.reportedAt) : "stale";
+              const isContributionPriority = !latest || latestTone === "stale" || hasPendingStationLocationReview(station) || station.releaseStatus !== "ready";
               return (
-                <Link
+                <div
                   key={station.id}
-                  href={stationHref}
-                  onClick={() => {
-                    rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
-                    void trackProductEvent({ eventType: "station_clicked", pagePath: contextHref, pageTitle: "Mapa vivo", stationId: station.id, city: station.city, fuelType: latest?.fuelType ?? null, scopeType: "station", scopeId: station.id, payload: { source: "recorte-lista" } });
-                  }}
-                  className="group flex items-center justify-between rounded-[18px] border border-white/5 bg-white/5 px-4 py-3 transition hover:border-white/12 hover:bg-white/8 active:scale-[0.99]"
+                  className="group relative overflow-hidden rounded-[18px] border border-white/5 bg-white/5 px-4 py-3 transition hover:border-white/12 hover:bg-white/8"
                 >
-                  <div className="min-w-0 pr-4">
-                    <p className="truncate text-sm font-semibold text-white group-hover:text-[color:var(--color-accent)]">{getStationPublicName(station)}</p>
-                    <p className="truncate text-xs text-white/40">
-                      {station.neighborhood}
-                    </p>
+                  <Link
+                    href={stationHref}
+                    aria-label={`Abrir posto ${getStationPublicName(station)}`}
+                    onClick={() => {
+                      rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
+                      void trackProductEvent({ eventType: "station_clicked", pagePath: contextHref, pageTitle: "Mapa vivo", stationId: station.id, city: station.city, fuelType: latest?.fuelType ?? null, scopeType: "station", scopeId: station.id, payload: { source: "recorte-lista" } });
+                    }}
+                    className="absolute inset-0 z-0 rounded-[18px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-accent)]/40"
+                  />
+                  <div className="relative z-10 flex items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1 pr-2">
+                      <p className="truncate text-sm font-semibold text-white group-hover:text-[color:var(--color-accent)]">{getStationPublicName(station)}</p>
+                      <p className="truncate text-xs text-white/40">{station.neighborhood}{station.city ? `, ${station.city}` : ""}</p>
+                      <div className="mt-1 flex items-center gap-2 text-[10px] text-white/32">
+                        {station.distance !== undefined && (
+                          <span className="shrink-0 font-semibold text-white/42">{formatDistance(station.distance)}</span>
+                        )}
+                        {latest ? (
+                          <span className="truncate">{latestTone === "stale" ? "Sem atualização recente" : formatRecencyLabel(latest.reportedAt)}</span>
+                        ) : (
+                          <span className="truncate">Sem preço recente</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="relative z-10">
+                      <div className="grid grid-cols-2 gap-1.5 rounded-[18px] border border-white/6 bg-black/20 p-1.5">
+                        {isContributionPriority ? (
+                          <>
+                            <QuickActionButton
+                              icon={Camera}
+                              label={isAssisted ? "FOTO" : "Foto"}
+                              variant="primary"
+                              isStreetMode={isStreetMode}
+                              isAssisted={isAssisted}
+                              href={getSendHref(station.id, contextHref, fuelFilter)}
+                              className={cn("h-9 min-w-0 transition-all", isAssisted ? "w-auto px-3" : "w-9 p-0 xl:w-auto xl:px-3 xl:gap-1.5")}
+                              showLabel={isAssisted}
+                              desktopLabel="Abrir câmera"
+                              layout={isAssisted ? 'horizontal' : 'vertical'}
+                              onClick={() => {
+                                rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
+                                void trackProductEvent({ 
+                                  eventType: "quick_action_clicked", 
+                                  pagePath: getSendHref(station.id, contextHref, fuelFilter), 
+                                  pageTitle: getStationPublicName(station), 
+                                  stationId: station.id, 
+                                  payload: { 
+                                    source: "home_list", 
+                                    action: "photo",
+                                    isAssisted
+                                  } 
+                                });
+                              }}
+                            />
+                            <QuickActionButton
+                              icon={Navigation}
+                              label={isAssisted ? "ROTA" : "Rota"}
+                              variant="secondary"
+                              isStreetMode={isStreetMode}
+                              isAssisted={isAssisted}
+                              className={cn("h-9 min-w-0 transition-all", isAssisted ? "w-auto px-3" : "w-9 p-0 xl:w-auto xl:px-3 xl:gap-1.5")}
+                              showLabel={isAssisted}
+                              desktopLabel="Traçar rota"
+                              layout={isAssisted ? 'horizontal' : 'vertical'}
+                              onClick={() => {
+                                const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                                void trackProductEvent({ 
+                                  eventType: "quick_action_clicked", 
+                                  pagePath: "/", 
+                                  stationId: station.id, 
+                                  payload: { action: "route", method: isMobile ? "waze" : "google", isAssisted } 
+                                });
+                                import("@/lib/navigation/external-maps").then(({ openExternalNavigation }) => {
+                                  openExternalNavigation(isMobile ? "waze" : "google", {
+                                    lat: station.lat,
+                                    lng: station.lng,
+                                    stationId: station.id,
+                                    stationName: getStationPublicName(station),
+                                    source: "home_list"
+                                  });
+                                });
+                              }}
+                            />
+                          </>
+                        ) : (
+                          <>
+                            <QuickActionButton
+                              icon={Navigation}
+                              label={isAssisted ? "ROTA" : "Rota"}
+                              variant="primary"
+                              isStreetMode={isStreetMode}
+                              isAssisted={isAssisted}
+                              className={cn("h-9 min-w-0 transition-all", isAssisted ? "w-auto px-3" : "w-9 p-0 xl:w-auto xl:px-3 xl:gap-1.5")}
+                              showLabel={isAssisted}
+                              desktopLabel="Traçar rota"
+                              layout={isAssisted ? 'horizontal' : 'vertical'}
+                              onClick={() => {
+                                const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                                void trackProductEvent({ 
+                                  eventType: "quick_action_clicked", 
+                                  pagePath: "/", 
+                                  stationId: station.id, 
+                                  payload: { action: "route", method: isMobile ? "waze" : "google", isAssisted } 
+                                });
+                                import("@/lib/navigation/external-maps").then(({ openExternalNavigation }) => {
+                                  openExternalNavigation(isMobile ? "waze" : "google", {
+                                    lat: station.lat,
+                                    lng: station.lng,
+                                    stationId: station.id,
+                                    stationName: getStationPublicName(station),
+                                    source: "home_list"
+                                  });
+                                });
+                              }}
+                            />
+                            <QuickActionButton
+                              icon={Camera}
+                              label={isAssisted ? "FOTO" : "Foto"}
+                              variant="secondary"
+                              isStreetMode={isStreetMode}
+                              isAssisted={isAssisted}
+                              href={getSendHref(station.id, contextHref, fuelFilter)}
+                              className={cn("h-9 min-w-0 transition-all", isAssisted ? "w-auto px-3" : "w-9 p-0 xl:w-auto xl:px-3 xl:gap-1.5")}
+                              showLabel={isAssisted}
+                              desktopLabel="Abrir câmera"
+                              layout={isAssisted ? 'horizontal' : 'vertical'}
+                              onClick={() => {
+                                rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
+                                void trackProductEvent({ 
+                                  eventType: "quick_action_clicked", 
+                                  pagePath: getSendHref(station.id, contextHref, fuelFilter), 
+                                  pageTitle: getStationPublicName(station), 
+                                  stationId: station.id, 
+                                  payload: { 
+                                    source: "home_list", 
+                                    action: "photo",
+                                    isAssisted
+                                  } 
+                                });
+                              }}
+                            />
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    {station.distance !== undefined && (
-                      <span className="text-[10px] font-medium text-white/40">
-                        {formatDistance(station.distance)}
-                      </span>
-                    )}
-                    <QuickActionGroup 
-                      className="p-0 border-none bg-transparent gap-1.5"
-                      onMisclick={() => {
-                        void trackProductEvent({ 
-                          eventType: "quick_action_misclick", 
-                          pagePath: contextHref, 
-                          pageTitle: getStationPublicName(station), 
-                          stationId: station.id 
-                        });
-                      }}
-                    >
-                      <QuickActionButton
-                        icon={Camera}
-                        label={isAssisted ? "FOTO" : "Foto"}
-                        variant="primary"
-                        isStreetMode={isStreetMode}
-                        isAssisted={isAssisted}
-                        href={getSendHref(station.id, contextHref, fuelFilter)}
-                        className={cn(
-                          "h-9 min-w-0 transition-all",
-                          isAssisted ? "w-auto px-3" : "w-9 p-0 xl:w-auto xl:px-3 xl:gap-1.5"
-                        )}
-                        showLabel={isAssisted}
-                        desktopLabel="Abrir câmera"
-                        layout={isAssisted ? 'horizontal' : 'vertical'}
-                        onClick={() => {
-                          rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
-                          void trackProductEvent({ 
-                            eventType: "quick_action_clicked", 
-                            pagePath: getSendHref(station.id, contextHref, fuelFilter), 
-                            pageTitle: getStationPublicName(station), 
-                            stationId: station.id, 
-                            payload: { 
-                              source: "home_list", 
-                              action: "photo",
-                              isAssisted
-                            } 
-                          });
-                        }}
-                      />
-                      
-                      <QuickActionButton
-                        icon={Navigation}
-                        label={isAssisted ? "ROTA" : "Rota"}
-                        variant="secondary"
-                        isStreetMode={isStreetMode}
-                        isAssisted={isAssisted}
-                        className={cn(
-                          "h-9 min-w-0 transition-all",
-                          isAssisted ? "w-auto px-3" : "w-9 p-0 xl:w-auto xl:px-3 xl:gap-1.5"
-                        )}
-                        showLabel={isAssisted}
-                        desktopLabel="Traçar rota"
-                        layout={isAssisted ? 'horizontal' : 'vertical'}
-                        onClick={() => {
-                          const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                          void trackProductEvent({ 
-                            eventType: "quick_action_clicked", 
-                            pagePath: "/", 
-                            stationId: station.id, 
-                            payload: { action: "route", method: isMobile ? "waze" : "google", isAssisted } 
-                          });
-                          import("@/lib/navigation/external-maps").then(({ openExternalNavigation }) => {
-                            openExternalNavigation(isMobile ? "waze" : "google", {
-                              lat: station.lat,
-                              lng: station.lng,
-                              stationId: station.id,
-                              stationName: getStationPublicName(station),
-                              source: "home_list"
-                            });
-                          });
-                        }}
-                      />
-
-                      <QuickActionButton
-                        icon={ArrowRight}
-                        label={isAssisted ? "VER" : "Ver"}
-                        variant="secondary"
-                        isStreetMode={isStreetMode}
-                        isAssisted={isAssisted}
-                        href={stationHref}
-                        className={cn(
-                          "h-9 min-w-0 transition-all",
-                          isAssisted ? "w-auto px-3" : "w-9 p-0 xl:w-auto xl:px-3 xl:gap-1.5"
-                        )}
-                        showLabel={isAssisted}
-                        desktopLabel="Abrir posto"
-                        layout={isAssisted ? 'horizontal' : 'vertical'}
-                        onClick={() => {
-                          rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
-                          void trackProductEvent({ 
-                            eventType: "quick_action_clicked", 
-                            pagePath: stationHref, 
-                            stationId: station.id, 
-                            payload: { action: "details", isAssisted } 
-                          });
-                        }}
-                      />
-                    </QuickActionGroup>
-                  </div>
-                </Link>
+                </div>
               );
-            })}
-            
-            {summaryStations.length > 10 && (
+            })}`r`n            {summaryStations.length > 10 && (
               <div className="pt-2 text-center">
                 <p className="text-[10px] text-white/30 uppercase tracking-widest">
                   + {summaryStations.length - 10} {summaryStations.length - 10 === 1 ? "posto oculto" : "postos ocultos"} para performance
@@ -1792,6 +1821,11 @@ export function HomeBrowser({
     </>
   );
 }
+
+
+
+
+
 
 
 

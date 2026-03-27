@@ -13,9 +13,10 @@ import { type OperationalKillSwitches } from "@/lib/ops/kill-switches";
 interface AppShellProps {
   children: React.ReactNode;
   killSwitches?: Partial<OperationalKillSwitches>;
+  hideShellSubmitCta?: boolean;
 }
 
-export function AppShell({ children, killSwitches }: AppShellProps) {
+export function AppShell({ children, killSwitches, hideShellSubmitCta = false }: AppShellProps) {
   const betaClosed = isBetaClosed();
 
   return (
@@ -28,17 +29,17 @@ export function AppShell({ children, killSwitches }: AppShellProps) {
       </div>
 
       <div
-        data-app-shell="root"
-        className="relative mx-auto flex min-h-screen w-full max-w-[560px] flex-col px-4 pb-[calc(env(safe-area-inset-bottom)+12rem)] pt-4 transition-all duration-500 md:max-w-[920px] md:px-6 md:pb-36 lg:max-w-[1180px] lg:px-8 lg:pb-28 xl:max-w-[1540px] xl:px-10 xl:pb-24 2xl:max-w-[1760px] 2xl:px-12 2xl:pb-24"
+        data-app-shell-frame="root"
+        className="relative mx-auto flex min-h-screen w-full max-w-[560px] flex-col px-4 pb-[calc(env(safe-area-inset-bottom)+12rem)] pt-3 transition-all duration-500 md:max-w-[920px] md:px-6 md:pb-32 lg:max-w-[1180px] lg:px-8 lg:pb-24 xl:max-w-[1540px] xl:px-10 xl:pb-20 2xl:max-w-[1760px] 2xl:px-12 2xl:pb-20"
       >
         <div className="pointer-events-none absolute inset-x-0 top-0 h-56 bg-[radial-gradient(circle_at_top,rgba(255,199,0,0.18),transparent_72%)]" />
 
-        <header className="relative z-10 mb-3 flex items-center justify-between gap-3 rounded-[28px] border border-white/8 bg-black/35 px-3 py-2.5 backdrop-blur-md lg:mb-4 lg:px-4 lg:py-3">
+        <header data-app-shell-header="root" className="relative z-10 mb-2.5 flex items-center justify-between gap-3 rounded-[28px] border border-white/8 bg-black/35 px-3 py-2 backdrop-blur-md lg:mb-3 lg:px-4 lg:py-2.5 xl:px-4 xl:py-2">
           <Link href="/" className="flex min-w-0 items-center gap-3">
-            <BrandMark variant="logo-horizontal" className="h-9 w-auto max-w-[180px] sm:max-w-[220px]" decorative />
+            <BrandMark variant="logo-horizontal" className="h-8 w-auto max-w-[170px] sm:max-w-[210px]" decorative />
           </Link>
           <div className="flex items-center gap-2 lg:flex-col lg:items-end">
-            <div className="flex items-center gap-2 rounded-full border border-white/8 bg-white/6 px-3 py-2 text-[11px] text-white/70">
+            <div className="flex items-center gap-2 rounded-full border border-white/8 bg-white/6 px-3 py-1.5 text-[11px] text-white/70">
               <MapPinned className="h-3.5 w-3.5 text-[color:var(--color-accent)]" />
               <span className="hidden sm:inline">Sul Fluminense</span>
               <span className="font-bold sm:hidden">SF</span>
@@ -48,12 +49,12 @@ export function AppShell({ children, killSwitches }: AppShellProps) {
           </div>
         </header>
 
-        <VrAbandonadaBadge compact className="relative z-10 mb-3 w-full lg:hidden" />
+        <VrAbandonadaBadge compact className="relative z-10 mb-2.5 w-full lg:hidden" />
 
-        <GlobalSubmitCta placement="shell" label="Enviar preço agora" className="relative z-10 mb-4" />
+        {!hideShellSubmitCta && <GlobalSubmitCta placement="shell" label="Enviar preco agora" className="relative z-10 mb-4" />}
 
         {betaClosed ? (
-          <div className="relative z-10 mb-4 rounded-[22px] border border-[color:var(--color-accent)]/20 bg-[color:var(--color-accent)]/10 px-4 py-3 text-sm text-white/72 backdrop-blur-md">
+          <div className="relative z-10 mb-3.5 rounded-[22px] border border-[color:var(--color-accent)]/20 bg-[color:var(--color-accent)]/10 px-4 py-3 text-sm text-white/72 backdrop-blur-md">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-[11px] uppercase tracking-[0.2em] text-white/46">Beta fechado</p>
@@ -68,11 +69,14 @@ export function AppShell({ children, killSwitches }: AppShellProps) {
         ) : null}
 
         <PwaStatusStrip killSwitches={killSwitches} />
-        <main className="relative z-10 flex-1 space-y-5">{children}</main>
+        <main className="relative z-10 flex-1 space-y-4 xl:space-y-5">{children}</main>
 
-        <GlobalSubmitCta placement="dock" label="Enviar preço" />
+        <GlobalSubmitCta placement="dock" label="Enviar preco" />
         <BottomNav />
       </div>
     </div>
   );
 }
+
+
+

@@ -1,31 +1,33 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useSubmissionHistory } from "@/components/history/submission-history-context";
 import { useMissionContext } from "@/components/mission/mission-context";
 import { SubmissionStatus } from "./submission-status";
-import { MissionCard } from "./mission-card";
-import { useEffect, useState } from "react";
-import { loadSubmissionQueue, type SubmissionQueueEntry } from "@/lib/queue/submission-queue";
+import { useStreetMode } from "@/hooks/use-street-mode";
+import { loadSubmissionQueue, type SubmissionQueueEntry, buildSubmissionQueueHref, getSubmissionQueueStatusLabel } from "@/lib/queue/submission-queue";
 import { trackProductEvent } from "@/lib/telemetry/client";
-import { Trophy, ArrowRight, Clock3, Smartphone, Activity } from "lucide-react";
+import { ArrowRight, Clock3, Smartphone, Activity, MapPin } from "lucide-react";
 import type { StationWithReports } from "@/lib/types";
 import { HubRecents } from "./hub-recents";
-import { CycleDash } from "./cycle-dash";
 import { ReputationBadge } from "./reputation-badge";
 import { ProofOfLifeReinforcement } from "./proof-of-life-reforcement";
-import { HubGeofencingCTA } from "./hub-geofencing-cta";
 import { TerritorialImpactCard } from "./territorial-impact-card";
 import { getCollectorTrustAction, getCollectorTerritorialImpactAction } from "@/app/hub/actions";
 import type { CollectorTrust } from "@/lib/ops/collector-trust";
 import type { CollectorTerritorialImpact } from "@/lib/ops/recorte-activity";
 import { recordHubInteraction } from "@/lib/telemetry/attribution";
 import { HubActivationHero } from "./hub-activation-hero";
-import { HubOperatingAgenda } from "./hub-operating-agenda";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { SectionCard } from "@/components/ui/section-card";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { formatCurrencyBRL } from "@/lib/format/currency";
+import { formatRecencyLabel } from "@/lib/format/time";
+import { fuelLabels } from "@/lib/format/labels";
+import { SubmissionStatusLine } from "@/components/history/submission-status-line";
+import { type MySubmission } from "@/hooks/use-my-submissions";
 
 interface CollectorHubProps {
   stations: StationWithReports[];
@@ -39,7 +41,7 @@ function HubStat({ label, value, hint, icon: Icon, tone = "white" }: { label: st
           <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">{label}</p>
           <p className={cn("mt-2 text-2xl font-semibold", tone === "amber" ? "text-amber-300" : tone === "blue" ? "text-blue-300" : tone === "emerald" ? "text-emerald-300" : "text-white")}>{value}</p>
         </div>
-        <div className={cn("flex h-10 w-10 items-center justify-center rounded-2xl border", tone === "amber" ? "border-amber-500/20 bg-amber-500/10 text-amber-300" : tone === "blue" ? "border-blue-500/20 bg-blue-500/10 text-blue-300" : tone === "emerald" ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-300" : "border-white/10 bg-white/5 text-white/70")}>
+        <div className={cn("flex h-10 w-10 items-center justify-center rounded-2xl border", tone === "amber" ? "border-amber-500/20 bg-amber-500/10 text-amber-300" : tone === "blue" ? "border-blue-500/20 bg-blue-500/10 text-blue-300" : tone === "emerald" ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-300" : "border-white/10 bg-white/5 text-white/70") }>
           <Icon className="h-4 w-4" />
         </div>
       </div>
@@ -48,14 +50,55 @@ function HubStat({ label, value, hint, icon: Icon, tone = "white" }: { label: st
   );
 }
 
+function getLatestSubmission(submissions: MySubmission[]) {
+  return submissions[0] ?? null;
+}
+
+function getLastGestureSummary(
+  latestSubmission: MySubmission | null,
+  latestLocalEntry: SubmissionQueueEntry | null,
+  missionName: string | null,
+) {
+  if (latestSubmission) {
+    return {
+      value: latestSubmission.stationName,
+      hint: `${formatRecencyLabel(latestSubmission.submittedAt)} · ${latestSubmission.status === "approved" ? "aprovado" : latestSubmission.status === "rejected" ? "rejeitado" : "em moderação"}`,
+      href: `/enviar?stationId=${latestSubmission.stationId}`
+    };
+  }
+
+  if (latestLocalEntry) {
+    return {
+      value: latestLocalEntry.stationName,
+      hint: `${formatRecencyLabel(latestLocalEntry.updatedAt)} · ${getSubmissionQueueStatusLabel(latestLocalEntry.status)}`,
+      href: buildSubmissionQueueHref(latestLocalEntry)
+    };
+  }
+
+  if (missionName) {
+    return {
+      value: missionName,
+      hint: "Missao ativa pronta para continuar.",
+      href: "/beta/missoes"
+    };
+  }
+
+  return {
+    value: "Sem gesto ainda",
+    hint: "A primeira acao real ainda nao foi registrada.",
+    href: "/"
+  };
+}
+
 export function CollectorHub({ stations }: CollectorHubProps) {
   const { submissions, reporterNickname, isLoaded: historyLoaded } = useSubmissionHistory();
   const { mission, stats: missionStats, isLoaded: missionLoaded } = useMissionContext();
+  const { recentIds } = useStreetMode();
   const [localQueue, setLocalQueue] = useState<SubmissionQueueEntry[]>([]);
   const [localLoaded, setLocalLoaded] = useState(false);
   const [trust, setTrust] = useState<CollectorTrust | null>(null);
   const [impact, setImpact] = useState<CollectorTerritorialImpact | null>(null);
-  const { coords, getLocation } = useGeolocation();
+  const { getLocation } = useGeolocation();
 
   useEffect(() => {
     getLocation();
@@ -103,153 +146,240 @@ export function CollectorHub({ stations }: CollectorHubProps) {
   const localItems = localQueue.filter(s => s.status !== "success");
   const localCount = localItems.length;
   const hasErrors = localItems.some(s => s.status === "failed" || s.status === "photo_required" || s.status === "expired");
-
   const isNewCollector = (trust?.missionsCompleted || 0) === 0 && approvedCount === 0;
-  const isZeroState = isNewCollector && !mission && localCount === 0;
-  const isInactiveVeteran = !isNewCollector && !mission && localCount === 0 && approvedCount > 0;
+  const isZeroState = isNewCollector && !mission && localCount === 0 && pendingCount === 0;
   const defaultCity = stations.length > 0 ? stations[0].city : "Resende";
+  const recentStations = recentIds
+    .map(id => stations.find(station => station.id === id))
+    .filter((station): station is StationWithReports => !!station)
+    .slice(0, 3);
 
-  const nextStepHref = hasErrors ? "/enviar" : mission ? "/beta/missoes" : localCount > 0 ? "/enviar" : reporterNickname ? "/hub" : "/";
-  const nextStepLabel = hasErrors ? "Corrigir fila" : mission ? "Retomar missão" : localCount > 0 ? "Enviar pendências" : isZeroState ? "Abrir mapa" : "Fazer envio real";
-  const nextStepDescription = hasErrors ? "Há envio local exigindo revisão." : mission ? "A continuação do recorte está pronta." : localCount > 0 ? "O aparelho já tem fila aguardando." : isZeroState ? "Comece pelo mapa para ganhar contexto." : "Um novo envio melhora o mapa e o seu impacto.";
+  const pendingNowCount = localCount + pendingCount;
+  const lastSubmission = getLatestSubmission(submissions);
+  const latestLocalEntry = localItems[0] ?? null;
+  const lastGesture = getLastGestureSummary(lastSubmission, latestLocalEntry, mission?.groupName ?? null);
+
+  const nextStepHref = hasErrors || localCount > 0 || pendingCount > 0
+    ? "/enviar"
+    : mission
+      ? "/beta/missoes"
+      : isZeroState
+        ? "/"
+        : "/enviar";
+
+  const nextStepLabel = hasErrors
+    ? "Corrigir fila"
+    : localCount > 0
+      ? "Enviar pendencias"
+      : pendingCount > 0
+        ? "Acompanhar moderacao"
+        : mission
+          ? "Retomar missao"
+          : isZeroState
+            ? "Abrir mapa"
+            : "Fazer envio real";
+
+  const nextStepDescription = hasErrors
+    ? "Ha pendencias locais com erro que precisam de reenvio."
+    : localCount > 0
+      ? "Existe fila local no aparelho aguardando envio."
+      : pendingCount > 0
+        ? "Ha envios em moderacao; o status real ainda esta em andamento."
+        : mission
+          ? "A missao ativa esta pronta para continuar do ponto atual."
+          : isZeroState
+            ? "Comece pelo mapa para criar a primeira memoria operacional."
+            : "Um novo envio melhora o mapa e reforca seu impacto.";
+
+  const impactCount = impact?.stationsTouchedCount ?? approvedCount;
+  const impactHint = impact?.remainingGaps
+    ? `${impact.remainingGaps} lacunas ainda abertas.`
+    : impactCount > 0
+      ? `${impactCount} envios aprovados no mapa.`
+      : "Ainda sem impacto aprovado.";
+  const impactTone = hasErrors ? "amber" : mission ? "blue" : "emerald";
 
   return (
-    <div data-layout-scope="hub-wide" className="space-y-8">
+    <div data-layout-scope="hub-wide" className="space-y-6">
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(390px,420px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(420px,460px)] xl:items-start">
         <div data-layout-role="main" className="space-y-4 min-w-0">
-          <SectionCard className="space-y-5 border-[color:var(--color-accent)]/20 bg-[linear-gradient(180deg,rgba(255,204,0,0.08),rgba(255,255,255,0.03))] xl:p-6">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Badge variant="warning" className="text-[10px] uppercase tracking-[0.22em]">Meu Hub</Badge>
-                  <span className="text-[10px] uppercase tracking-[0.22em] text-white/36">Central operacional</span>
-                </div>
-                <div className="space-y-2">
-                  <h1 className="text-2xl font-bold tracking-tight text-white xl:text-[2rem]">Seu próximo passo, sua fila e seu impacto, no mesmo lugar.</h1>
-                  <p className="max-w-2xl text-sm text-white/58 xl:text-[15px]">O Hub continua claro para iniciante, mas ganha corpo em telas largas para você retomar contexto, agir e ver continuidade real.</p>
-                </div>
-              </div>
-
-              <div className="grid gap-2 sm:grid-cols-3 xl:min-w-[360px] 2xl:min-w-[400px] xl:grid-cols-1">
-                <HubStat label="Próximo passo" value={nextStepLabel} hint={nextStepDescription} icon={ArrowRight} tone={hasErrors ? "amber" : mission ? "blue" : "emerald"} />
-                <HubStat label="Fila local" value={localCount} hint={hasErrors ? "Há itens exigindo correção." : "Pendências do aparelho."} icon={Smartphone} tone={localCount > 0 ? "blue" : "white"} />
-                <HubStat label="Impacto" value={impact?.stationsTouchedCount ?? approvedCount} hint={impact?.remainingGaps ? `${impact.remainingGaps} lacunas ainda abertas.` : "Envios já aprovados no mapa."} icon={Activity} tone="emerald" />
-              </div>
-            </div>
-          </SectionCard>
-
           {isZeroState ? (
             <HubActivationHero type="NEW_COLLECTOR" />
-          ) : isInactiveVeteran ? (
-            <HubActivationHero type="INACTIVE_VETERAN" />
-          ) : null}
-
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,380px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(0,420px)] xl:items-start">
-            <div className="space-y-4 min-w-0">
-              {!isZeroState && (
-                <CycleDash
-                  approvedCount={approvedCount}
-                  pendingCount={pendingCount}
-                  localCount={localCount}
-                  hasMission={!!mission}
-                />
-              )}
-
-              {!isZeroState && (
-                <HubOperatingAgenda
-                  stations={stations}
-                  mission={mission}
-                  localQueue={localQueue}
-                  submissions={submissions}
-                  coords={coords}
-                />
-              )}
-
-              {mission && (
-                <MissionCard mission={mission} stats={missionStats} stations={stations} />
-              )}
-
-              {!isZeroState && (
-                <HubRecents stations={stations} />
-              )}
-            </div>
-
-            <div className="space-y-4 min-w-0">
-              <SectionCard className="space-y-4 border-white/10 bg-white/5 xl:p-5">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Sessão recente</p>
-                    <h2 className="text-lg font-semibold text-white">Continuar de onde parou</h2>
+          ) : (
+            <SectionCard className="space-y-4 border-[color:var(--color-accent)]/20 bg-[linear-gradient(180deg,rgba(255,204,0,0.08),rgba(255,255,255,0.03))] xl:p-5">
+              <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="warning" className="text-[10px] uppercase tracking-[0.22em]">Meu Hub</Badge>
+                    <span className="text-[10px] uppercase tracking-[0.22em] text-white/36">Continuacao real</span>
                   </div>
-                  <Clock3 className="h-4 w-4 text-[color:var(--color-accent)]" />
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                  <div className="rounded-[20px] border border-white/8 bg-black/25 p-4">
-                    <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Status</p>
-                    <p className="mt-2 text-sm font-semibold text-white">{mission ? `Missão ativa em ${mission.groupName}` : isZeroState ? "Sem missão ativa" : "Hub pronto para continuidade"}</p>
+                  <div className="space-y-2">
+                    <h1 className="text-2xl font-bold tracking-tight text-white xl:text-[1.6rem]">Proximo melhor gesto</h1>
+                    <p className="max-w-2xl text-sm text-white/58 xl:text-[13px]">Mostra o ultimo gesto, o que esta pendente agora e o proximo passo real sem repetir o shell ou o hero da rota.</p>
                   </div>
-                  <div className="rounded-[20px] border border-white/8 bg-black/25 p-4">
-                    <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Sessão atual</p>
-                    <p className="mt-2 text-sm font-semibold text-white">{submissions.length > 0 ? "Histórico visível e retornos prontos." : "Comece um envio para criar memória."}</p>
+                  <div className="flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.2em] text-white/38 xl:gap-1.5">
+                    {mission ? <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-white/62">Missao ativa</span> : null}
+                    <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-white/62">
+                      {pendingNowCount > 0 ? `${pendingNowCount} pendencias` : "Sem pendencias"}
+                    </span>
+                    <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-white/62">
+                      {lastSubmission ? "Ultimo envio salvo" : latestLocalEntry ? "Ultima acao local" : "Sem memoria ainda"}
+                    </span>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <ButtonLink href={nextStepHref as any} variant={nextStepHref === "/enviar" ? "secondary" : "primary"} className="flex-1 justify-center">
+
+                <div className="space-y-2.5 xl:min-w-[260px] xl:max-w-[300px]">
+                  <ButtonLink href={nextStepHref as any} variant={nextStepHref === "/enviar" ? "secondary" : "primary"} className="flex h-11 w-full justify-center text-sm">
                     {nextStepLabel}
+                    <ArrowRight className="ml-2 h-4 w-4" />
                   </ButtonLink>
-                  <ButtonLink href="/enviar" variant="secondary" className="justify-center md:hidden">
-                    Enviar preço
+                  <p className="text-sm leading-snug text-white/54 xl:text-[13px]">{nextStepDescription}</p>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3 xl:gap-2.5">
+                <HubStat label="Ultimo gesto" value={lastGesture.value} hint={lastGesture.hint} icon={Clock3} tone={lastSubmission ? "blue" : latestLocalEntry ? "amber" : "white"} />
+                <HubStat label="Pendente agora" value={pendingNowCount} hint={hasErrors ? "Fila local com erros." : localCount > 0 ? `${localCount} no aparelho.` : pendingCount > 0 ? `${pendingCount} em moderacao.` : "Nada pendente agora."} icon={Smartphone} tone={hasErrors ? "amber" : pendingNowCount > 0 ? "blue" : "white"} />
+                <HubStat label="Impacto acumulado" value={impactCount} hint={impactHint} icon={Activity} tone={impactTone} />
+              </div>
+            </SectionCard>
+          )}
+
+          {!isZeroState && (
+            <SectionCard className="space-y-4 border-white/10 bg-white/5 xl:p-5">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Sessao recente</p>
+                  <h2 className="text-lg font-semibold text-white">O que voce fez por ultimo</h2>
+                </div>
+                <Clock3 className="h-4 w-4 text-[color:var(--color-accent)]" />
+              </div>
+
+              {mission ? (
+                <div className="space-y-3 rounded-[20px] border border-[color:var(--color-accent)]/15 bg-[color:var(--color-accent)]/8 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="space-y-1 min-w-0">
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-accent)]">Missao ativa</p>
+                      <p className="text-sm font-semibold text-white">{mission.groupName}</p>
+                    </div>
+                    <Badge variant="outline" className="border-white/10 bg-white/5 text-[9px] uppercase tracking-[0.18em] text-white/48">
+                      {missionStats?.completed ?? 0}/{missionStats?.total ?? 0}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-white/58">A missao continua aberta. O próximo gesto segue a rota atual sem reiniciar contexto.</p>
+                </div>
+              ) : lastSubmission ? (
+                <div className="space-y-3 rounded-[20px] border border-white/8 bg-black/25 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 space-y-1">
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Ultimo envio</p>
+                      <p className="truncate text-base font-semibold text-white">{lastSubmission.stationName}</p>
+                      <p className="text-sm text-white/52">{fuelLabels[lastSubmission.fuelType]} · {formatCurrencyBRL(Number(lastSubmission.price))}</p>
+                    </div>
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-white/30">{formatRecencyLabel(lastSubmission.submittedAt)}</p>
+                  </div>
+                  <SubmissionStatusLine status={lastSubmission.status} submittedAt={lastSubmission.submittedAt} moderatedAt={lastSubmission.status !== "pending" ? lastSubmission.updatedAt : null} />
+                </div>
+              ) : latestLocalEntry ? (
+                <div className="space-y-3 rounded-[20px] border border-white/8 bg-black/25 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 space-y-1">
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Ultima acao local</p>
+                      <p className="truncate text-base font-semibold text-white">{latestLocalEntry.stationName}</p>
+                      <p className="text-sm text-white/52">{fuelLabels[latestLocalEntry.fuelType]} · {getSubmissionQueueStatusLabel(latestLocalEntry.status)}</p>
+                    </div>
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-white/30">{formatRecencyLabel(latestLocalEntry.updatedAt)}</p>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-white/48">
+                    <MapPin className="h-3.5 w-3.5 text-[color:var(--color-accent)]" />
+                    <span>Pronta para retomar em {latestLocalEntry.city}</span>
+                  </div>
+                  <ButtonLink href={buildSubmissionQueueHref(latestLocalEntry) as any} variant="secondary" className="w-full justify-center">
+                    Retomar pendencia
                   </ButtonLink>
                 </div>
-              </SectionCard>
+              ) : (
+                <div className="rounded-[20px] border border-white/8 bg-black/25 p-4 text-sm text-white/54">
+                  Ainda nao ha sessao recente registrada. O primeiro envio vai criar essa memoria.
+                </div>
+              )}
+            </SectionCard>
+          )}
 
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
-                {trust && <ReputationBadge stage={trust.trustStage} score={trust.score} streak={trust.streakDays} />}
-                {impact && <TerritorialImpactCard impact={impact} />}
+          {!isZeroState && (
+            <SectionCard className="space-y-4 border-white/10 bg-white/5 xl:p-5">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Fila e moderacao</p>
+                  <h2 className="text-lg font-semibold text-white">O que esta pendente agora</h2>
+                </div>
+                <Badge variant="outline" className="border-white/10 bg-white/5 text-[9px] uppercase tracking-[0.18em] text-white/48">
+                  {pendingNowCount} ativos
+                </Badge>
               </div>
-            </div>
-          </div>
+              <SubmissionStatus submissions={submissions} localQueue={localQueue} />
+            </SectionCard>
+          )}
+
+          {!isZeroState && (
+            <SectionCard className="space-y-4 border-white/10 bg-white/5 xl:p-5">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Impacto acumulado</p>
+                  <h2 className="text-lg font-semibold text-white">Reputacao e territorio</h2>
+                </div>
+                <Badge variant="outline" className="border-white/10 bg-white/5 text-[9px] uppercase tracking-[0.18em] text-white/48">
+                  {trust?.trustStage ?? "novo"}
+                </Badge>
+              </div>
+
+              <div className="grid gap-4 xl:grid-cols-2">
+                {trust ? <ReputationBadge stage={trust.trustStage} score={trust.score} streak={trust.streakDays} /> : null}
+                {impact ? (
+                  <TerritorialImpactCard impact={impact} />
+                ) : (
+                  <div className="rounded-[28px] border border-white/8 bg-black/25 p-5 text-sm text-white/52">
+                    Ainda nao existe um territorio dominante para mostrar. A continuidade vai aparecendo conforme os envios forem aprovados.
+                  </div>
+                )}
+              </div>
+            </SectionCard>
+          )}
+
+          {!isZeroState && (
+            <SectionCard className="space-y-4 border-white/10 bg-white/5 xl:p-5">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Memoria e atalhos</p>
+                  <h2 className="text-lg font-semibold text-white">Retomar terreno sem procurar de novo</h2>
+                </div>
+                <Badge variant="outline" className="border-white/10 bg-white/5 text-[9px] uppercase tracking-[0.18em] text-white/48">
+                  {recentStations.length} recentes
+                </Badge>
+              </div>
+
+              {recentStations.length > 0 ? (
+                <HubRecents stations={stations} />
+              ) : (
+                <div className="rounded-[20px] border border-white/8 bg-black/25 p-4 text-sm text-white/54">
+                  Sem atalhos gravados ainda. A primeira volta ao mapa cria memoria util aqui.
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-2">
+                <ButtonLink href="/enviar" variant="secondary">Abrir fila</ButtonLink>
+                <ButtonLink href="/" variant="ghost" className="border border-white/8 bg-white/5 text-white/72">Ver mapa</ButtonLink>
+              </div>
+            </SectionCard>
+          )}
         </div>
 
-                <aside data-layout-role="rail" className="space-y-4 xl:sticky xl:top-28">
-          <SectionCard className="space-y-4 border-white/10 bg-white/5 xl:p-5">
-            <div className="space-y-1.5">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Rail útil</p>
-              <h3 className="text-lg font-semibold text-white">Sessão, fila e missão</h3>
-              <p className="text-sm leading-relaxed text-white/54">A lateral acompanha o que continua vivo agora, sem duplicar o hero principal.</p>
-            </div>
-
-            <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-1">
-              <div className="rounded-[20px] border border-white/8 bg-black/25 p-4">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Sessão</p>
-                <p className="mt-2 text-2xl font-semibold text-white">{submissions.length}</p>
-                <p className="mt-1 text-xs text-white/48">Envios recentes no histórico.</p>
-              </div>
-              <div className="rounded-[20px] border border-white/8 bg-black/25 p-4">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Fila local</p>
-                <p className="mt-2 text-2xl font-semibold text-white">{localQueue.filter((entry) => entry.status !== "success").length}</p>
-                <p className="mt-1 text-xs text-white/48">Pendências que ainda pedem ação.</p>
-              </div>
-              <div className="rounded-[20px] border border-white/8 bg-black/25 p-4">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Missão</p>
-                <p className="mt-2 text-sm font-semibold text-white">{mission ? mission.groupName : "Sem missão ativa"}</p>
-                <p className="mt-1 text-xs text-white/48">Continuidade e próximo gesto visíveis aqui.</p>
-              </div>
-            </div>
-          </SectionCard>
-
-          <SubmissionStatus submissions={submissions} localQueue={localQueue} />
-          {reporterNickname && <HubGeofencingCTA nickname={reporterNickname} />}
+        <aside data-layout-role="rail" className="space-y-4 xl:sticky xl:top-28">
           <ProofOfLifeReinforcement city={defaultCity} />
         </aside>
       </section>
     </div>
   );
 }
-
-
-
-
-
 
 

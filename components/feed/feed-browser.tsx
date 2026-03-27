@@ -52,14 +52,14 @@ export function FeedBrowser({ feed: initialFeed }: FeedBrowserProps) {
   return (
     <>
       <WarmStartBadge isWarm={isWarm} isRefreshing={isRefreshing} />
-      <SectionCard className="space-y-4">
+      <SectionCard className="space-y-4 xl:p-4">
         <div className="space-y-2">
           <p className="text-xs uppercase tracking-[0.2em] text-white/42">Feed</p>
-          <h2 className="text-[1.8rem] font-semibold leading-none text-white">Atualizações recentes</h2>
-          <p className="text-sm text-white/58">Linha do tempo com foco em preço, recência e evidência. Só entra o que já foi aprovado.</p>
+          <h2 className="text-[1.8rem] font-semibold leading-none text-white xl:text-[1.45rem]">Atualizações recentes</h2>
+          <p className="text-sm text-white/58 xl:text-[13px]">Linha do tempo com foco em preço, recência e evidência. Só entra o que já foi aprovado.</p>
         </div>
 
-        <div className="flex items-center gap-3 rounded-[22px] border border-white/8 bg-black/30 px-4 py-3 text-sm text-white/50">
+        <div className="flex items-center gap-3 rounded-[22px] border border-white/8 bg-black/30 px-4 py-3 text-sm text-white/50 xl:py-2.5">
           <Search className="h-4 w-4 text-[color:var(--color-accent)]" />
           <input
             value={query}
@@ -74,7 +74,7 @@ export function FeedBrowser({ feed: initialFeed }: FeedBrowserProps) {
           ) : null}
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-3 xl:space-y-2.5">
           <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
             {publicFuelFilters.map((item) => (
               <button
@@ -109,7 +109,7 @@ export function FeedBrowser({ feed: initialFeed }: FeedBrowserProps) {
           </div>
         </div>
 
-        <div className="rounded-[22px] border border-white/8 bg-white/5 px-4 py-3 text-sm text-white/62">
+        <div className="rounded-[22px] border border-white/8 bg-white/5 px-4 py-3 text-sm text-white/62 xl:px-3 xl:py-2.5">
           O feed mostra envios aprovados. Se você quer ajudar a completar o mapa, abra a lista de lacunas ou envie um novo preço.
           <div className="mt-3">
             <ButtonLink href="/postos/sem-atualizacao" variant="secondary">
@@ -134,11 +134,11 @@ export function FeedBrowser({ feed: initialFeed }: FeedBrowserProps) {
         </div>
       </SectionCard>
 
-      <SectionCard className="space-y-3">
+      <SectionCard className="space-y-3 xl:p-4">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-white/42">Linha do tempo</p>
-            <h3 className="mt-1 text-xl font-semibold text-white">Entradas mais recentes</h3>
+            <h3 className="mt-1 text-xl font-semibold text-white xl:text-[1.35rem]">Entradas mais recentes</h3>
           </div>
           <Clock3 className="h-5 w-5 text-[color:var(--color-accent)]" />
         </div>
@@ -152,7 +152,7 @@ export function FeedBrowser({ feed: initialFeed }: FeedBrowserProps) {
           />
         ) : (
           filteredFeed.map((report) => (
-            <div key={report.id} className="rounded-[22px] border border-white/8 bg-black/30 p-4">
+            <div key={report.id} className="rounded-[22px] border border-white/8 bg-black/30 p-4 xl:p-3.5">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="font-medium text-white">{report.station.name}</p>
@@ -177,3 +177,4 @@ export function FeedBrowser({ feed: initialFeed }: FeedBrowserProps) {
     </>
   );
 }
+
