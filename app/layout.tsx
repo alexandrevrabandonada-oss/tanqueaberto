@@ -83,15 +83,18 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body className="bg-[color:var(--color-bg)] font-body text-[color:var(--color-text)]">
-        <PwaRegister />
-        <MissionProvider>
-          <SubmissionHistoryProvider>
-            <TestModeIndicator />
-            <MissionOverlay />
-            <ErrorBoundary name="RootLayout">{children}</ErrorBoundary>
-          </SubmissionHistoryProvider>
-        </MissionProvider>
+        <div data-app-shell="root" className="min-h-screen">
+          <PwaRegister />
+          <MissionProvider>
+            <SubmissionHistoryProvider>
+              <TestModeIndicator />
+              <MissionOverlay />
+              <ErrorBoundary name="RootLayout">{children}</ErrorBoundary>
+            </SubmissionHistoryProvider>
+          </MissionProvider>
+        </div>
       </body>
     </html>
   );
 }
+

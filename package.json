@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "verify": "npm run typecheck && npm run build",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "next typegen && tsc --noEmit",
@@ -53,3 +54,4 @@
     "typescript": "^5.8.3"
   }
 }
+

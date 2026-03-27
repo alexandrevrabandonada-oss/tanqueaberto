@@ -5,8 +5,8 @@ const http = require('node:http');
 const { spawnSync } = require('node:child_process');
 
 const OUT_DIR = path.resolve(process.cwd(), 'reports/release-gate-preview-real');
-const REPORT_PATH = path.resolve(process.cwd(), 'reports/2026-03-26-estado-da-nacao-preview-real-gate.md');
 const METRICS_PATH = path.join(OUT_DIR, 'metrics.json');
+const REPORT_PATH = path.resolve(process.cwd(), 'reports/estado-da-nacao-gate-preview-real-corrigido.md');
 
 const VIEWPORTS = {
   mobile: { width: 390, height: 844, isMobile: true, hasTouch: true },
@@ -126,6 +126,10 @@ function toElementBox(box) {
     right: Math.round(box.right),
     bottom: Math.round(box.bottom),
   };
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function parsePx(value) {
@@ -292,9 +296,48 @@ async function createContext(browser, scenario) {
 }
 
 async function waitForPageReady(page, routeName, stateName) {
-  await page.waitForSelector('[data-app-shell="root"]', { state: 'visible', timeout: 45000 });
-  await page.waitForSelector('[data-bottom-nav="root"]', { state: 'visible', timeout: 45000 });
-  await page.waitForSelector('[data-top-orchestrator="root"]', { state: 'visible', timeout: 45000 }).catch(() => null);
+  await page.waitForLoadState('domcontentloaded').catch(() => undefined);
+
+  const shellRootSelector = '[data-app-shell="root"]';
+  let rootError = null;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      await page.waitForSelector(shellRootSelector, { state: 'attached', timeout: attempt === 1 ? 5000 : 2500 });
+      rootError = null;
+      break;
+    } catch (error) {
+      rootError = error instanceof Error ? error.message : String(error);
+      await new Promise((resolve) => setTimeout(resolve, attempt < 3 ? 350 : 0));
+    }
+  }
+
+  if (rootError) {
+    throw new Error(`shell_root_missing: [data-app-shell="root"] not found after retry (${rootError})`);
+  }
+
+  const shellFrame = page.locator('[data-app-shell-frame="root"]');
+  if ((await shellFrame.count().catch(() => 0)) === 0) {
+    throw new Error('shell_frame_missing: [data-app-shell-frame="root"] not found');
+  }
+
+  let hydrationError = null;
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      await shellFrame.waitFor({ state: 'visible', timeout: attempt === 1 ? 5000 : 3000 });
+      hydrationError = null;
+      break;
+    } catch (error) {
+      hydrationError = error instanceof Error ? error.message : String(error);
+      await new Promise((resolve) => setTimeout(resolve, attempt === 1 ? 300 : 0));
+    }
+  }
+
+  if (hydrationError) {
+    throw new Error(`shell_hydration_incomplete: [data-app-shell-frame="root"] not visible after retry (${hydrationError})`);
+  }
+
+  await page.waitForSelector('[data-bottom-nav="root"]', { state: 'visible', timeout: 12000 });
+  await page.waitForSelector('[data-top-orchestrator="root"]', { state: 'visible', timeout: 12000 }).catch(() => null);
 
   const expectedStates = new Set(['primeira-visita', 'missao-ativa', 'gps-ativo', 'snapshot-offline']);
   if (routeName === 'mapa' && expectedStates.has(stateName)) {
@@ -306,16 +349,16 @@ async function waitForPageReady(page, routeName, stateName) {
           : stateName === 'gps-ativo'
             ? 'GPS ativo'
             : 'Snapshot offline';
-    await page.getByText(expectedText, { exact: false }).first().waitFor({ state: 'visible', timeout: 30000 }).catch(() => null);
+    await page.getByText(expectedText, { exact: false }).first().waitFor({ state: 'visible', timeout: 7000 }).catch(() => null);
   }
 
-  await page.waitForTimeout(routeName === 'mapa' ? 1600 : 1000);
+  await page.waitForTimeout(routeName === 'mapa' ? 500 : 250);
 }
 
 async function collectMetrics(page, scenario) {
   const viewport = scenario.viewport;
-  const shell = rectFromBox(await page.locator('[data-app-shell="root"]').boundingBox().catch(() => null));
-  const header = rectFromBox(await page.locator('[data-app-shell="root"] > header').boundingBox().catch(() => null));
+  const shell = rectFromBox(await page.locator('[data-app-shell-frame="root"]').boundingBox().catch(() => null));
+  const header = rectFromBox(await page.locator('[data-app-shell-header="root"]').boundingBox().catch(() => null));
   const top = rectFromBox(await page.locator('[data-top-orchestrator="root"]').boundingBox().catch(() => null));
   const nav = rectFromBox(await page.locator('[data-bottom-nav="root"]').boundingBox().catch(() => null));
   const shellCta = rectFromBox(await page.locator('[data-global-cta="shell"]').boundingBox().catch(() => null));
@@ -382,7 +425,7 @@ async function collectMetrics(page, scenario) {
     path: scenario.route.path,
     viewport: `${viewport.width}x${viewport.height}`,
     state: scenario.stateName,
-    screenshot: path.relative(process.cwd(), scenario.screenshotPath).replace(/\\/g, '/'),
+    screenshot: path.relative(process.cwd(), scenario.screenshotPath).replace(/\\/g, '/') ,
     title: pageTitle,
     shell: toElementBox(shell),
     header: toElementBox(header),
@@ -402,107 +445,421 @@ async function collectMetrics(page, scenario) {
   };
 }
 
+function getTopBudgetLimit(item) {
+  const raw = item.topBudgetMode === 'expanded' ? item.topBudgetMaxWide ?? item.topBudgetMax : item.topBudgetMaxWide ?? item.topBudgetMax;
+  return parsePx(raw);
+}
+
+function classifyIssues(item) {
+  const runtime = [];
+  const visual = [];
+
+  if (Array.isArray(item.runtimeErrors) && item.runtimeErrors.length > 0) {
+    for (const runtimeError of item.runtimeErrors) {
+      runtime.push({ code: 'runtime_error', label: runtimeError, detail: runtimeError });
+    }
+  }
+
+  if (item.error) {
+    const error = String(item.error);
+    const code = error.includes('shell_root_missing')
+      ? 'shell_root_missing'
+      : error.includes('shell_frame_missing')
+        ? 'shell_frame_missing'
+        : error.includes('shell_hydration_incomplete')
+          ? 'shell_hydration_incomplete'
+          : 'runtime_error';
+    runtime.push({ code, label: error, detail: error });
+  }
+
+  if (item.clippingViolations.length > 0) {
+    visual.push({ code: 'clipping', count: item.clippingViolations.length, label: `clipping: ${item.clippingViolations.length}` });
+  }
+  if (item.overlapViolations.length > 0) {
+    visual.push({ code: 'overlap', count: item.overlapViolations.length, label: `overlap: ${item.overlapViolations.length}` });
+  }
+  if (item.ctaOffAxis.length > 0) {
+    visual.push({ code: 'cta_off_axis', count: item.ctaOffAxis.length, label: `cta_off_axis: ${item.ctaOffAxis.length}` });
+  }
+  if (item.navObstruction.length > 0) {
+    visual.push({ code: 'nav_obstruction', count: item.navObstruction.length, label: `nav_obstruction: ${item.navObstruction.length}` });
+  }
+  if (getTopBudgetLimit(item) && item.top && item.top.height > getTopBudgetLimit(item) + 4) {
+    visual.push({ code: 'top_too_high', count: 1, label: 'top_too_high' });
+  }
+
+  return { runtime, visual };
+}
+
+function createBucket() {
+  return { total: 0, clean: 0, blocked: 0, runtime: 0, visual: 0 };
+}
+
 function summarize(metrics) {
   const summary = {
     totalCaptures: metrics.length,
-    clippingViolations: 0,
-    overlapViolations: 0,
-    ctaOffAxis: 0,
-    navObstruction: 0,
-    topHigh: 0,
+    cleanCaptures: 0,
+    blockedCaptures: 0,
+    runtimeIssues: 0,
+    visualIssues: 0,
+    totalBlockingIssues: 0,
+    blockerTypeSummary: {},
+    routeSummary: {},
+    stateSummary: {},
+    viewportSummary: {},
   };
 
   for (const item of metrics) {
-    summary.clippingViolations += item.clippingViolations.length;
-    summary.overlapViolations += item.overlapViolations.length;
-    summary.ctaOffAxis += item.ctaOffAxis.length;
-    summary.navObstruction += item.navObstruction.length;
-    const budget = parsePx(item.topBudgetMode === 'expanded' ? item.topBudgetMaxWide ?? item.topBudgetMax : item.topBudgetMaxWide ?? item.topBudgetMax);
-    if (budget && item.top && item.top.height > budget + 4) {
-      summary.topHigh += 1;
+    const classification = classifyIssues(item);
+    const isBlocked = classification.runtime.length > 0 || classification.visual.length > 0;
+
+    if (isBlocked) {
+      summary.blockedCaptures += 1;
+    } else {
+      summary.cleanCaptures += 1;
+    }
+
+    summary.runtimeIssues += classification.runtime.length;
+    summary.visualIssues += classification.visual.reduce((total, issue) => total + issue.count, 0);
+    summary.totalBlockingIssues += classification.runtime.length + classification.visual.reduce((total, issue) => total + issue.count, 0);
+
+    for (const issue of classification.runtime) {
+      summary.blockerTypeSummary[issue.code] = (summary.blockerTypeSummary[issue.code] ?? 0) + 1;
+    }
+    for (const issue of classification.visual) {
+      summary.blockerTypeSummary[issue.code] = (summary.blockerTypeSummary[issue.code] ?? 0) + issue.count;
+    }
+
+    for (const key of ['route', 'state', 'viewport']) {
+      const value = item[key];
+      if (!summary[`${key}Summary`][value]) {
+        summary[`${key}Summary`][value] = createBucket();
+      }
+      const bucket = summary[`${key}Summary`][value];
+      bucket.total += 1;
+      if (isBlocked) {
+        bucket.blocked += 1;
+      } else {
+        bucket.clean += 1;
+      }
+      bucket.runtime += classification.runtime.length;
+      bucket.visual += classification.visual.reduce((total, issue) => total + issue.count, 0);
     }
   }
 
   return summary;
 }
 
-function buildReport(baseUrl, summary, metrics, blockers = []) {
-  const verdict = blockers.length > 0 || summary.clippingViolations > 0 || summary.overlapViolations > 0 || summary.ctaOffAxis > 0 || summary.navObstruction > 0 || summary.topHigh > 0
-    ? (blockers.length > 0 ? `HOLD com blockers: ${blockers.join(', ')}` : 'HOLD')
-    : 'GO';
+function collectBlockers(metrics) {
+  const runtime = [];
+  const visual = [];
+
+  for (const item of metrics) {
+    const classification = classifyIssues(item);
+    if (classification.runtime.length > 0) {
+      runtime.push({
+        route: item.route,
+        state: item.state,
+        viewport: item.viewport,
+        screenshot: item.screenshot,
+        issues: classification.runtime.map((issue) => issue.code),
+        detail: classification.runtime.map((issue) => issue.label).join(' | '),
+      });
+    }
+    if (classification.visual.length > 0) {
+      visual.push({
+        route: item.route,
+        state: item.state,
+        viewport: item.viewport,
+        screenshot: item.screenshot,
+        issues: classification.visual.map((issue) => issue.code),
+        detail: classification.visual.map((issue) => issue.label).join(' | '),
+      });
+    }
+  }
+
+  return { runtime, visual };
+}
+
+function collectWarnings(summary, blockers) {
+  const warnings = [];
+
+  if (summary.totalCaptures > 0 && summary.cleanCaptures === summary.totalCaptures && blockers.runtime.length === 0 && blockers.visual.length === 0) {
+    warnings.push('Cobertura limpa em todos os cenários; nenhum warning nao bloqueante para registrar.');
+  }
+
+  return warnings;
+}
+
+function deriveVerdict(summary, blockers) {
+  return summary.totalBlockingIssues === 0 && blockers.runtime.length === 0 && blockers.visual.length === 0 ? 'PASS' : 'HOLD';
+}
+
+function assertReportSanity(summary, blockers) {
+  const blockerCount = blockers.runtime.length + blockers.visual.length;
+  if (summary.totalBlockingIssues === 0 && blockerCount > 0) {
+    throw new Error('Sanity failure: blockers recorded for a clean summary');
+  }
+
+  if (summary.totalBlockingIssues > 0 && blockerCount === 0) {
+    throw new Error('Sanity failure: blocking issues without blockers');
+  }
+}
+
+function buildRootCauseSummary(summary, blockers) {
+  if (summary.totalCaptures === 0) {
+    return 'nenhuma captura executada';
+  }
+
+  if (blockers.runtime.length > 0) {
+    const first = blockers.runtime[0];
+    if (first.issues.includes('shell_root_missing')) {
+      return 'shell root ausente no preview publicado ou invisível antes da estabilização';
+    }
+    if (first.issues.includes('shell_frame_missing')) {
+      return 'frame do AppShell ausente apesar do root existir';
+    }
+    if (first.issues.includes('shell_hydration_incomplete')) {
+      return 'root presente, mas o frame não estabilizou a tempo para leitura segura';
+    }
+    return `runtime: ${first.detail || first.issues.join(', ')}`;
+  }
+
+  if (blockers.visual.length > 0) {
+    const first = blockers.visual[0];
+    return `visual: ${first.issues.join(', ')} em ${first.route}/${first.state}/${first.viewport}`;
+  }
+
+  return 'sem bloqueio; root e layout coerentes';
+}
+
+function buildInventoryLines(metrics) {
+  return metrics.map((item) => {
+    const classification = classifyIssues(item);
+    const status = classification.runtime.length === 0 && classification.visual.length === 0 ? 'OK' : 'ALERTA';
+    return `- ${item.route} / ${item.state} / ${item.viewport}: ${status} | ${item.screenshot}`;
+  });
+}
+
+function buildReport(baseUrl, summary, metrics, blockers, warnings) {
+  const verdict = deriveVerdict(summary, blockers);
+  assertReportSanity(summary, blockers);
+  const rootCause = buildRootCauseSummary(summary, blockers);
 
   const lines = [];
   lines.push('# Estado da Nação — Preview Real Gate');
   lines.push('');
   lines.push(`Data: ${new Date().toISOString()}`);
   lines.push(`URL: ${baseUrl}`);
+  lines.push(`Causa raiz: ${rootCause}`);
   lines.push('');
-  lines.push('## Veredito');
-  lines.push(verdict);
-  lines.push('');
-  lines.push('## Cobertura');
+  lines.push('## Resumo Executivo');
+  lines.push(`- Veredito: ${verdict}`);
   lines.push(`- Capturas totais: ${summary.totalCaptures}`);
-  lines.push(`- Clipping: ${summary.clippingViolations}`);
-  lines.push(`- Overlap: ${summary.overlapViolations}`);
-  lines.push(`- CTA fora do eixo: ${summary.ctaOffAxis}`);
-  lines.push(`- Nav obstruindo conteudo: ${summary.navObstruction}`);
-  lines.push(`- Topo alto demais: ${summary.topHigh}`);
+  lines.push(`- Limpos: ${summary.cleanCaptures}`);
+  lines.push(`- Bloqueados: ${summary.blockedCaptures}`);
+  lines.push(`- Runtime blockers: ${summary.runtimeIssues}`);
+  lines.push(`- Visual blockers: ${summary.visualIssues}`);
   lines.push('');
-  lines.push('## Checklist Obrigatorio');
-  lines.push(`- CTA lateral solto: ${summary.ctaOffAxis > 0 ? 'HOLD' : 'OK'}`);
-  lines.push(`- Excesso de vazio preto: ${summary.clippingViolations > 0 ? 'HOLD' : 'OK'}`);
-  lines.push(`- Topo alto demais: ${summary.topHigh > 0 ? 'HOLD' : 'OK'}`);
-  lines.push(`- Overlap com nav: ${summary.overlapViolations > 0 ? 'HOLD' : 'OK'}`);
-  lines.push(`- Card principal muito alto: ${summary.topHigh > 0 ? 'HOLD' : 'OK'}`);
-  lines.push(`- Regressao de eixo visual: ${summary.ctaOffAxis > 0 ? 'HOLD' : 'OK'}`);
+  lines.push('## Métricas Agregadas');
+  lines.push(`- Runtime: ${summary.runtimeIssues}`);
+  lines.push(`- Visual: ${summary.visualIssues}`);
   lines.push('');
-  lines.push('## Inventario');
-  for (const item of metrics) {
-    const hasIssue = item.clippingViolations.length || item.overlapViolations.length || item.ctaOffAxis.length || item.navObstruction.length;
-    lines.push(`- ${item.route} / ${item.state} / ${item.viewport}: ${hasIssue ? 'ALERTA' : 'OK'} | ${item.screenshot}`);
+
+  lines.push('## Blockers por Tipo');
+  const blockerTypes = Object.entries(summary.blockerTypeSummary).sort((left, right) => right[1] - left[1]);
+  if (blockerTypes.length === 0) {
+    lines.push('- Nenhum blocker registrado.');
+  } else {
+    for (const [type, count] of blockerTypes) {
+      lines.push(`- ${type}: ${count}`);
+    }
+  }
+  lines.push('');
+
+  lines.push('### Agregado por rota');
+  for (const [route, counts] of Object.entries(summary.routeSummary)) {
+    lines.push(`- ${route}: ${counts.clean}/${counts.total} limpos, runtime ${counts.runtime}, visual ${counts.visual}`);
+  }
+  lines.push('');
+  lines.push('### Agregado por estado');
+  for (const [state, counts] of Object.entries(summary.stateSummary)) {
+    lines.push(`- ${state}: ${counts.clean}/${counts.total} limpos, runtime ${counts.runtime}, visual ${counts.visual}`);
+  }
+  lines.push('');
+  lines.push('### Agregado por viewport');
+  for (const [viewport, counts] of Object.entries(summary.viewportSummary)) {
+    lines.push(`- ${viewport}: ${counts.clean}/${counts.total} limpos, runtime ${counts.runtime}, visual ${counts.visual}`);
+  }
+  lines.push('');
+
+  lines.push('## Blockers de Runtime');
+  if (blockers.runtime.length === 0) {
+    lines.push('- Nenhum blocker de runtime.');
+  } else {
+    for (const blocker of blockers.runtime) {
+      lines.push(`- ${blocker.route} / ${blocker.state} / ${blocker.viewport}: ${blocker.issues.join(', ')} | ${blocker.screenshot}`);
+    }
+  }
+  lines.push('');
+
+  lines.push('## Blockers Visuais');
+  if (blockers.visual.length === 0) {
+    lines.push('- Nenhum blocker visual.');
+  } else {
+    for (const blocker of blockers.visual) {
+      lines.push(`- ${blocker.route} / ${blocker.state} / ${blocker.viewport}: ${blocker.issues.join(', ')} | ${blocker.screenshot}`);
+    }
+  }
+  lines.push('');
+
+  lines.push('## Warnings Nao Bloqueantes');
+  if (warnings.length === 0) {
+    lines.push('- Nenhum warning nao bloqueante.');
+  } else {
+    for (const warning of warnings) {
+      lines.push(`- ${warning}`);
+    }
+  }
+  lines.push('');
+
+  lines.push('## Inventario por rota/estado/viewport');
+  for (const line of buildInventoryLines(metrics)) {
+    lines.push(line);
   }
   lines.push('');
   lines.push('## Observacoes');
   lines.push('- O gate aponta para a URL publicada informada por --preview-url, PREVIEW_URL, VERCEL_URL, VERCEL_BRANCH_URL ou argumento na linha de comando.');
   lines.push('- O estado PWA wide e emulado por display-mode: standalone em viewport larga.');
   lines.push('- O gate grava screenshots e metrics em reports/release-gate-preview-real.');
-  return lines.join('\n');
+  return { report: lines.join('\n'), verdict };
+}
+function createSanityFixture() {
+  return [
+    {
+      route: 'fixture',
+      path: '/',
+      viewport: '1440x900',
+      state: 'normal',
+      screenshot: 'reports/release-gate-preview-real/fixture.png',
+      title: 'Fixture',
+      shell: null,
+      header: null,
+      top: { x: 0, y: 0, width: 100, height: 80, right: 100, bottom: 80 },
+      nav: null,
+      shellCta: null,
+      dockCta: null,
+      main: null,
+      rail: null,
+      clippingViolations: [],
+      overlapViolations: [],
+      ctaOffAxis: [],
+      navObstruction: [],
+      topBudgetMode: 'expanded',
+      topBudgetMax: '112px',
+      topBudgetMaxWide: '100px',
+    },
+  ];
+}
+
+function runSanityCheck() {
+  const cleanFixture = createSanityFixture();
+  const cleanSummary = summarize(cleanFixture);
+  const cleanBlockers = collectBlockers(cleanFixture);
+  const cleanVerdict = deriveVerdict(cleanSummary, cleanBlockers);
+  if (cleanVerdict !== 'PASS' || cleanSummary.totalBlockingIssues !== 0 || cleanBlockers.runtime.length !== 0 || cleanBlockers.visual.length !== 0) {
+    throw new Error('Sanity failure: clean fixture must resolve to PASS');
+  }
+
+  const missingRootFixture = [{
+    route: 'fixture',
+    state: 'normal',
+    viewport: '1440x900',
+    screenshot: 'reports/release-gate-preview-real/fixture.png',
+    error: 'shell_root_missing: [data-app-shell="root"] not found',
+    clippingViolations: [],
+    overlapViolations: [],
+    ctaOffAxis: [],
+    navObstruction: [],
+    topBudgetMode: null,
+    topBudgetMax: null,
+    topBudgetMaxWide: null,
+    top: null,
+  }];
+  const missingRootBlockers = collectBlockers(missingRootFixture);
+  if (missingRootBlockers.runtime.length === 0 || !missingRootBlockers.runtime[0].issues.includes('shell_root_missing')) {
+    throw new Error('Sanity failure: missing shell root must be classified explicitly');
+  }
+
+  const hydrationFixture = [{
+    route: 'fixture',
+    state: 'normal',
+    viewport: '1440x900',
+    screenshot: 'reports/release-gate-preview-real/fixture.png',
+    error: 'shell_hydration_incomplete: [data-app-shell-frame="root"] not visible after retry (timeout)',
+    clippingViolations: [],
+    overlapViolations: [],
+    ctaOffAxis: [],
+    navObstruction: [],
+    topBudgetMode: 'expanded',
+    topBudgetMax: '112px',
+    topBudgetMaxWide: '100px',
+    top: { x: 0, y: 0, width: 100, height: 80, right: 100, bottom: 80 },
+  }];
+  const hydrationBlockers = collectBlockers(hydrationFixture);
+  if (hydrationBlockers.runtime.length === 0 || !hydrationBlockers.runtime[0].issues.includes('shell_hydration_incomplete')) {
+    throw new Error('Sanity failure: hydrated shell timeout must be classified explicitly');
+  }
 }
 
 async function main() {
+  runSanityCheck();
   ensureDir(OUT_DIR);
 
   const baseUrl = resolvePreviewUrl();
   if (!baseUrl) {
-    const report = [
-      '# Estado da Nação — Preview Real Gate',
-      '',
-      `Data: ${new Date().toISOString()}`,
-      '',
-      '## Veredito',
-      'HOLD com blockers: preview_url_missing',
-      '',
-      '## Checklist Obrigatorio',
-      '- CTA lateral solto: HOLD',
-      '- Excesso de vazio preto: HOLD',
-      '- Topo alto demais: HOLD',
-      '- Overlap com nav: HOLD',
-      '- Card principal muito alto: HOLD',
-      '- Regressao de eixo visual: HOLD',
-      '',
-      '## Observacoes',
-      '- Defina PREVIEW_URL ou VERCEL_URL para rodar o gate contra a URL publicada.',
-    ].join('\n');
-    fs.writeFileSync(METRICS_PATH, JSON.stringify({ verdict: 'HOLD', blockers: ['preview_url_missing'] }, null, 2));
+    const pseudoMetrics = [
+      {
+        route: 'environment',
+        path: '',
+        viewport: 'n/a',
+        state: 'config',
+        screenshot: 'n/a',
+        title: 'preview_url_missing',
+        shell: null,
+        header: null,
+        top: null,
+        nav: null,
+        shellCta: null,
+        dockCta: null,
+        main: null,
+        rail: null,
+        clippingViolations: [],
+        overlapViolations: [],
+        ctaOffAxis: [],
+        navObstruction: [],
+        topBudgetMode: null,
+        topBudgetMax: null,
+        topBudgetMaxWide: null,
+        runtimeErrors: [],
+        error: 'preview_url_missing',
+      },
+    ];
+    const summary = summarize(pseudoMetrics);
+    const blockers = collectBlockers(pseudoMetrics);
+    const warnings = collectWarnings(summary, blockers);
+    const { report } = buildReport('n/a', summary, pseudoMetrics, blockers, warnings);
+    fs.writeFileSync(METRICS_PATH, JSON.stringify({ verdict: 'HOLD', blockers, summary, metrics: pseudoMetrics }, null, 2));
     fs.writeFileSync(REPORT_PATH, report);
     console.log(report);
     process.exit(1);
   }
 
-  const proxy = await startPreviewProxy(baseUrl);
+  const useProxy = process.env.RELEASE_GATE_USE_PROXY === '1';
+  const proxy = useProxy ? await startPreviewProxy(baseUrl) : null;
+  const browseBaseUrl = proxy ? proxy.baseUrl : baseUrl;
   const browser = await chromium.launch({ headless: true });
   const metrics = [];
-  const blockers = [];
 
   try {
     for (const scenario of buildScenarios()) {
@@ -510,9 +867,14 @@ async function main() {
       const page = await context.newPage();
       page.setDefaultTimeout(45000);
       page.setDefaultNavigationTimeout(60000);
+      const runtimeErrors = [];
+
+      page.on('pageerror', (error) => {
+        runtimeErrors.push(error instanceof Error ? error.message : String(error));
+      });
 
       try {
-        await page.goto(`${proxy.baseUrl}${scenario.route.path}`, { waitUntil: 'domcontentloaded', timeout: 90000 });
+        await page.goto(`${browseBaseUrl}${scenario.route.path}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
         await waitForPageReady(page, scenario.route.name, scenario.stateName);
 
         if (scenario.stateName === 'sticky') {
@@ -524,41 +886,38 @@ async function main() {
           await page.waitForFunction(() => {
             const el = document.querySelector('[data-top-system="root"]');
             return Boolean(el && el.textContent && el.textContent.includes('GPS ativo'));
-          }, { timeout: 20000 }).catch(() => null);
+          }, { timeout: 7000 }).catch(() => null);
         }
 
         if (scenario.stateName === 'snapshot-offline') {
           await page.waitForFunction(() => {
             const el = document.querySelector('[data-top-system="root"]');
             return Boolean(el && el.textContent && el.textContent.includes('Snapshot offline'));
-          }, { timeout: 20000 }).catch(() => null);
+          }, { timeout: 7000 }).catch(() => null);
         }
 
         if (scenario.stateName === 'missao-ativa') {
           await page.waitForFunction(() => {
             const el = document.querySelector('[data-top-orchestrator="root"]');
             return Boolean(el && el.textContent && el.textContent.includes('Missão ativa'));
-          }, { timeout: 20000 }).catch(() => null);
+          }, { timeout: 7000 }).catch(() => null);
         }
 
         if (scenario.viewportName === 'pwa-wide') {
           await page.waitForTimeout(1000);
         }
 
-        metrics.push(await collectMetrics(page, scenario));
+        const collected = await collectMetrics(page, scenario);
+        collected.runtimeErrors = runtimeErrors.slice();
+        metrics.push(collected);
       } catch (error) {
-        blockers.push(`${scenario.route.name}:${scenario.stateName}:${scenario.viewportName}`);
         metrics.push({
           route: scenario.route.name,
           path: scenario.route.path,
           viewport: `${scenario.viewport.width}x${scenario.viewport.height}`,
           state: scenario.stateName,
           screenshot: screenshotPath(scenario.route.name, scenario.stateName, scenario.viewportName).replace(/\\/g, '/'),
-          error: error instanceof Error ? error.message : String(error),
-          clippingViolations: [],
-          overlapViolations: [],
-          ctaOffAxis: [],
-          navObstruction: [],
+          title: error instanceof Error ? error.message : String(error),
           shell: null,
           header: null,
           top: null,
@@ -567,9 +926,15 @@ async function main() {
           dockCta: null,
           main: null,
           rail: null,
+          clippingViolations: [],
+          overlapViolations: [],
+          ctaOffAxis: [],
+          navObstruction: [],
           topBudgetMode: null,
           topBudgetMax: null,
           topBudgetMaxWide: null,
+          runtimeErrors: runtimeErrors.slice(),
+          error: error instanceof Error ? error.message : String(error),
         });
       } finally {
         await page.close().catch(() => undefined);
@@ -578,18 +943,19 @@ async function main() {
     }
   } finally {
     await browser.close().catch(() => undefined);
-    await proxy.close().catch(() => undefined);
+    await proxy?.close().catch(() => undefined);
   }
 
   const summary = summarize(metrics);
-  const report = buildReport(baseUrl, summary, metrics, blockers);
-  const verdict = blockers.length > 0 || summary.clippingViolations > 0 || summary.overlapViolations > 0 || summary.ctaOffAxis > 0 || summary.navObstruction > 0 || summary.topHigh > 0 ? 'HOLD' : 'GO';
+  const blockers = collectBlockers(metrics);
+  const warnings = collectWarnings(summary, blockers);
+  const { report, verdict } = buildReport(baseUrl, summary, metrics, blockers, warnings);
 
-  fs.writeFileSync(METRICS_PATH, JSON.stringify({ baseUrl, summary, metrics, blockers, verdict }, null, 2));
+  fs.writeFileSync(METRICS_PATH, JSON.stringify({ baseUrl, summary, metrics, blockers, warnings, verdict }, null, 2));
   fs.writeFileSync(REPORT_PATH, report);
 
   console.log(report);
-  process.exit(verdict === 'GO' ? 0 : 1);
+  process.exit(verdict === 'PASS' ? 0 : 1);
 }
 
 main().catch((error) => {
@@ -598,11 +964,11 @@ main().catch((error) => {
     '',
     `Data: ${new Date().toISOString()}`,
     '',
-    '## Veredito',
-    'HOLD com blockers: runtime_error',
+    '## Resumo Executivo',
+    '- Veredito: HOLD',
     '',
-    '## Erro',
-    `- ${error instanceof Error ? error.message : String(error)}`,
+    '## Blockers de Runtime',
+    `- runtime_error: ${error instanceof Error ? error.message : String(error)}`,
   ].join('\n');
   fs.writeFileSync(REPORT_PATH, report);
   console.error(error);
