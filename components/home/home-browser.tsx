@@ -27,6 +27,7 @@ import { filterReports, filterStations, getSelectedStationReport, hasRecentStati
 import { sortStationsForPublicView } from "@/lib/filters/sort";
 import { canShowStationOnMap, getStationPublicName, hasPendingStationLocationReview } from "@/lib/quality/stations";
 import { persistHomeContext, priorityCities, readHomeContext, readLastStationContext, rememberStationVisit } from "@/lib/navigation/home-context";
+import type { HomeDensityMode } from "@/lib/navigation/home-context";
 import { startRoute, readRouteContext } from "@/lib/navigation/route-context";
 import { RouteAssistant } from "@/components/routes/route-assistant";
 import { getNavigationHandoff, clearNavigationHandoff, type ExternalNavigationOptions } from "@/lib/navigation/external-maps";
@@ -74,16 +75,18 @@ interface HomeBrowserProps {
   initialFuelFilter?: FuelFilter;
   initialRecencyFilter?: RecencyFilter;
   initialPresenceFilter?: StationPresenceFilter;
+  initialDensityMode?: HomeDensityMode;
   killSwitches?: Partial<OperationalKillSwitches>;
 }
 
-function buildContextHref(query: string, city: string, fuelFilter: FuelFilter, recencyFilter: RecencyFilter, presenceFilter: StationPresenceFilter) {
+function buildContextHref(query: string, city: string, fuelFilter: FuelFilter, recencyFilter: RecencyFilter, presenceFilter: StationPresenceFilter, densityMode: HomeDensityMode) {
   const params = new URLSearchParams();
   if (query) params.set("q", query);
   if (city) params.set("city", city);
   if (fuelFilter !== "all") params.set("fuel", fuelFilter);
   if (recencyFilter !== "all") params.set("recency", recencyFilter);
   if (presenceFilter !== "all") params.set("presence", presenceFilter);
+  if (densityMode !== "normal") params.set("density", densityMode);
   const suffix = params.toString();
   return suffix ? `/?${suffix}` : "/";
 }
@@ -143,6 +146,7 @@ export function HomeBrowser({
   initialFuelFilter = "all",
   initialRecencyFilter = "all",
   initialPresenceFilter = "all",
+  initialDensityMode = "normal",
   killSwitches
 }: HomeBrowserProps) {
   const [showShareWelcome, setShowShareWelcome] = useState(false);
@@ -198,7 +202,7 @@ export function HomeBrowser({
   const { isLowPerf, effectiveType } = useNetworkHardening();
   const { isStreetMode, toggleStreetMode, recentIds, favoriteIds, toggleFavorite, isFavorite } = useStreetMode();
   const { recordActivity, closeSessionManual } = useStreetSession();
-  const [listMode, setListMode] = useState<'ultra-claro' | 'avancado' | 'normal'>('normal');
+  const [listMode, setListMode] = useState<'ultra-claro' | 'avancado' | 'normal'>(initialDensityMode);
   const { reporterNickname, submissions } = useMySubmissions();
   const { focus, updateTownFocus, updateSuggestedStation } = useOperationalFocus();
   const submissionsCount = submissions.length;
@@ -209,6 +213,7 @@ export function HomeBrowser({
   const [isOnline, setIsOnline] = useState(true);
   const isAssisted = isStreetMode || role === "iniciante";
   const searchParams = useSearchParams();
+  const densityParam = searchParams.get("density");
 
   useEffect(() => {
     const syncOnline = () => setIsOnline(navigator.onLine);
@@ -442,6 +447,9 @@ export function HomeBrowser({
     if (initialPresenceFilter === "all" && storedContext.presenceFilter && storedContext.presenceFilter !== "all") {
       setPresenceFilter(storedContext.presenceFilter);
     }
+    if (!densityParam && storedContext.densityMode && storedContext.densityMode !== listMode) {
+      setListMode(storedContext.densityMode);
+    }
 
     if (storedContext.isStreetMode !== undefined && storedContext.isStreetMode !== isStreetMode) {
       if (storedContext.isStreetMode) toggleStreetMode();
@@ -453,7 +461,7 @@ export function HomeBrowser({
 
     defaultApplied.current = true;
     setIsHydrated(true);
-  }, [initialCity, initialFuelFilter, initialPresenceFilter, initialQuery, initialRecencyFilter, territorialSummary, mission, missionLoaded, coords, stations]);
+  }, [densityParam, initialCity, initialFuelFilter, initialPresenceFilter, initialQuery, initialRecencyFilter, listMode, territorialSummary, mission, missionLoaded, coords, stations]);
 
   const selectedReadiness = useMemo(() => {
     if (!selectedCity || !Array.isArray(territorialSummary)) return null;
@@ -492,26 +500,6 @@ export function HomeBrowser({
     return { priority, others, allCities };
   }, [displayStations]);
 
-  useEffect(() => {
-    if (!isHydrated) {
-      return;
-    }
-
-    persistHomeContext({ query, city: selectedCity, fuelFilter, recencyFilter, presenceFilter, isStreetMode });
-    
-    if (selectedCity && isHydrated) {
-      void trackProductEvent({
-        eventType: "territorial_recorte_selected" as any,
-        pagePath: "/",
-        pageTitle: "Mapa vivo",
-        city: selectedCity,
-        payload: {
-          status: selectedReadiness?.status || "unknown",
-          score: selectedReadiness?.score || 0
-        }
-      });
-    }
-  }, [fuelFilter, isHydrated, presenceFilter, query, recencyFilter, selectedCity, selectedReadiness]);
 
   const stationsWithDistances = useMemo(() => {
     if (!coords || !location) return displayStations;
@@ -622,7 +610,7 @@ export function HomeBrowser({
       recordActivity('view', id);
     });
   }, [noRecentStations, orderedStations, recordActivity]);
-  const contextHref = useMemo(() => buildContextHref(query, selectedCity, fuelFilter, recencyFilter, presenceFilter), [fuelFilter, presenceFilter, query, recencyFilter, selectedCity]);
+  const contextHref = useMemo(() => buildContextHref(query, selectedCity, fuelFilter, recencyFilter, presenceFilter, listMode), [fuelFilter, listMode, presenceFilter, query, recencyFilter, selectedCity]);
 
   const cheapestNow = useMemo(() => {
     return orderedStations
@@ -635,7 +623,51 @@ export function HomeBrowser({
       .slice(0, 3);
   }, [fuelFilter, orderedStations]);
 
-    const hasFilters = Boolean(query || selectedCity || fuelFilter !== "all" || recencyFilter !== "all" || presenceFilter !== "all");
+    const hasFilters = Boolean(query || selectedCity || fuelFilter !== "all" || recencyFilter !== "all" || presenceFilter !== "all" || listMode !== "normal");
+  useEffect(() => {
+    if (!isHydrated) {
+      return;
+    }
+
+    const hasUsefulCut = filteredStations.length > 0 || filteredFeed.length > 0 || !hasFilters;
+    if (hasUsefulCut) {
+      persistHomeContext({ query, city: selectedCity, fuelFilter, recencyFilter, presenceFilter, densityMode: listMode, isStreetMode });
+    }
+    
+    if (selectedCity && isHydrated) {
+      void trackProductEvent({
+        eventType: "territorial_recorte_selected" as any,
+        pagePath: "/",
+        pageTitle: "Mapa vivo",
+        city: selectedCity,
+        payload: {
+          status: selectedReadiness?.status || "unknown",
+          score: selectedReadiness?.score || 0
+        }
+      });
+    }
+  }, [fuelFilter, isHydrated, presenceFilter, query, recencyFilter, selectedCity, selectedReadiness, filteredFeed.length, filteredStations.length, hasFilters, isStreetMode, listMode]);
+
+
+  useEffect(() => {
+    if (!isHydrated || typeof window === "undefined") return;
+
+    const url = new URL(window.location.href);
+    const params = url.searchParams;
+
+    if (query) params.set("q", query); else params.delete("q");
+    if (selectedCity) params.set("city", selectedCity); else params.delete("city");
+    if (fuelFilter !== "all") params.set("fuel", fuelFilter); else params.delete("fuel");
+    if (recencyFilter !== "all") params.set("recency", recencyFilter); else params.delete("recency");
+    if (presenceFilter !== "all") params.set("presence", presenceFilter); else params.delete("presence");
+    if (listMode !== "normal") params.set("density", listMode); else params.delete("density");
+
+    const nextUrl = url.pathname + (params.toString() ? "?" + params.toString() : "") + url.hash;
+    const currentUrl = window.location.pathname + window.location.search + window.location.hash;
+    if (nextUrl !== currentUrl) {
+      window.history.replaceState(null, "", nextUrl);
+    }
+  }, [isHydrated, query, selectedCity, fuelFilter, recencyFilter, presenceFilter, listMode]);
   const homeState = useMemo(() => orchestrateHomeState({
     online: isOnline,
     geoError,
@@ -706,6 +738,7 @@ export function HomeBrowser({
     setFuelFilter("all");
     setRecencyFilter("all");
     setPresenceFilter("all");
+    setListMode("normal");
   };
 
   // [Modo Foco] Update suggested station for beginners based on current recorte
@@ -1323,7 +1356,17 @@ export function HomeBrowser({
                 <ButtonLink href="/enviar" className="h-10 whitespace-nowrap px-4 text-[11px] font-black uppercase tracking-[0.18em] md:hidden">Enviar preço agora</ButtonLink>
               </div>
             </div>
-            <StationMapShell stations={mapStations} className="h-[440px] xl:h-[560px]" returnToHref={contextHref} fuelFilter={fuelFilter} center={coords} />
+            {mapStations.length > 0 ? (
+              <StationMapShell stations={mapStations} className="h-[440px] xl:h-[560px]" returnToHref={contextHref} fuelFilter={fuelFilter} center={coords} />
+            ) : (
+              <EmptyStateCard
+                title={hasFilters ? "Nenhum posto bate com este recorte." : "Nenhum posto disponível no momento."}
+                description={hasFilters ? "Limpe a busca, troque o bairro ou remova filtros para voltar ao mapa útil." : "Ajuste a cidade, o combustível ou a recência para trazer um recorte útil de volta."}
+                actionHref="/"
+                actionLabel="Limpar recorte"
+                className="text-left"
+              />
+            )}
           </SectionCard>
         </div>
 

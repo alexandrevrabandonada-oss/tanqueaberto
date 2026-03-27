@@ -6,6 +6,7 @@ import { getKillSwitches } from "@/lib/ops/kill-switches";
 import { getAuditGroupMembers } from "@/lib/audit/groups";
 import { isBetaClosed } from "@/lib/beta/gate";
 import type { FuelFilter, RecencyFilter, StationPresenceFilter } from "@/lib/filters/public";
+import type { HomeDensityMode } from "@/lib/navigation/home-context";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,11 @@ function parseRecency(value: string | string[] | undefined): RecencyFilter {
 function parsePresence(value: string | string[] | undefined): StationPresenceFilter {
   const candidate = firstValue(value);
   return candidate === "recent" ? "recent" : "all";
+}
+
+function parseDensity(value: string | string[] | undefined): HomeDensityMode {
+  const candidate = firstValue(value);
+  return candidate === "ultra-claro" || candidate === "normal" || candidate === "avancado" ? candidate : "normal";
 }
 
 function parseCity(value: string | string[] | undefined) {
@@ -70,6 +76,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         initialFuelFilter={parseFuel(params.fuel)}
         initialRecencyFilter={parseRecency(params.recency)}
         initialPresenceFilter={parsePresence(params.presence)}
+        initialDensityMode={parseDensity(params.density)}
         killSwitches={killSwitches}
       />
     </AppShell>

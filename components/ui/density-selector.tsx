@@ -3,12 +3,11 @@
 import { Sparkles, Zap, Layout } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-
-type DensityMode = "ultra-claro" | "normal" | "avancado";
+import type { HomeDensityMode } from "@/lib/navigation/home-context";
 
 interface DensitySelectorProps {
-  mode: DensityMode;
-  onChange: (mode: DensityMode) => void;
+  mode: HomeDensityMode;
+  onChange: (mode: HomeDensityMode) => void;
   className?: string;
   isCompact?: boolean;
 }

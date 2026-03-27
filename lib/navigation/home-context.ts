@@ -4,6 +4,7 @@ const HOME_CONTEXT_STORAGE_KEY = "bomba-aberta:home-context:v2";
 const LAST_STATION_STORAGE_KEY = "bomba-aberta:last-station:v2";
 
 export const priorityCities = ["Volta Redonda", "Barra Mansa", "Barra do Piraí"] as const;
+export type HomeDensityMode = "ultra-claro" | "normal" | "avancado";
 
 export interface HomeContextSnapshot {
   query: string;
@@ -11,6 +12,7 @@ export interface HomeContextSnapshot {
   fuelFilter: FuelFilter;
   recencyFilter: RecencyFilter;
   presenceFilter: StationPresenceFilter;
+  densityMode: HomeDensityMode;
   isStreetMode?: boolean;
 }
 
@@ -61,6 +63,7 @@ export function readHomeContext(): Partial<HomeContextSnapshot> {
     fuelFilter: parsed.fuelFilter,
     recencyFilter: parsed.recencyFilter,
     presenceFilter: parsed.presenceFilter,
+    densityMode: parsed.densityMode === "ultra-claro" || parsed.densityMode === "normal" || parsed.densityMode === "avancado" ? parsed.densityMode : "normal",
     isStreetMode: parsed.isStreetMode
   };
 }
@@ -96,6 +99,7 @@ export function rememberStationVisit(station: LastStationSnapshot) {
       fuelFilter: currentHome.fuelFilter ?? "all",
       recencyFilter: currentHome.recencyFilter ?? "all",
       presenceFilter: currentHome.presenceFilter ?? "all",
+      densityMode: currentHome.densityMode ?? "normal",
       isStreetMode: currentHome.isStreetMode ?? false
     })
   );
