@@ -75,9 +75,9 @@ export async function getBetaSynthesis(): Promise<BetaSynthesis> {
 
   // 4. Logic for Daily Summary
   const cameraEvents = events?.filter(e => e.event_type === "submission_camera_opened") ?? [];
-  const submissionEvents = events?.filter(e => e.event_type === "price_report_submitted" || e.event_type === "submission_success") ?? [];
+  const submissionEvents = events?.filter(e => e.event_type === "submission_accepted") ?? [];
   
-  // Calculate average submission speed: submission_camera_opened -> price_report_submitted
+  // Calculate average submission speed: submission_camera_opened -> submission_accepted
   let totalSpeed = 0;
   let speedCount = 0;
   
@@ -146,3 +146,5 @@ export async function getBetaSynthesis(): Promise<BetaSynthesis> {
     rolloutRecommendations: await getRolloutRecommendations()
   };
 }
+
+

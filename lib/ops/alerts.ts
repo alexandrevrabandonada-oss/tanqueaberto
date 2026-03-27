@@ -33,7 +33,7 @@ export async function detectActiveAlerts(): Promise<OperationalAlert[]> {
 
   if (perfEvents) {
     const cameraCount = perfEvents.filter(e => e.event_type === "submission_camera_opened").length;
-    const successCount = perfEvents.filter(e => e.event_type === "submission_success" || e.event_type === "price_report_submitted").length;
+    const successCount = perfEvents.filter(e => e.event_type === "submission_accepted").length;
     
     if (cameraCount > 10 && successCount === 0) {
       alerts.push({
@@ -89,7 +89,7 @@ export async function detectActiveAlerts(): Promise<OperationalAlert[]> {
   const { data: recentSuccessEvents } = await supabase
     .from("operational_events")
     .select("scope_id, city")
-    .eq("event_type", "submission_success")
+    .eq("event_type", "submission_accepted")
     .gte("created_at", dailyWindow.toISOString());
 
   const activeScopeIds = new Set(recentSuccessEvents?.map(e => e.scope_id) || []);
@@ -125,13 +125,13 @@ export async function detectActiveAlerts(): Promise<OperationalAlert[]> {
   const { data: latencyEvents } = await supabase
     .from("operational_events")
     .select("event_type, created_at, payload")
-    .in("event_type", ["submission_camera_opened", "submission_success"])
+    .in("event_type", ["submission_camera_opened", "submission_accepted"])
     .gte("created_at", recentWindow.toISOString());
 
   if (latencyEvents && latencyEvents.length > 5) {
     // Calcular tempo médio entre câmera aberta e sucesso nas últimas 4h
     // (Para simplificar, pareamos eventos próximos no tempo)
-    const completions = latencyEvents.filter(e => e.event_type === "submission_success");
+    const completions = latencyEvents.filter(e => e.event_type === "submission_accepted");
     if (completions.length >= 3) {
       // Regra simples: se houver sucesso, mas o volume de falhas/abandonos for anômalo
       const cameras = latencyEvents.filter(e => e.event_type === "submission_camera_opened").length;
@@ -249,3 +249,5 @@ export async function getActiveActionableAlerts(): Promise<any[]> {
     status: a.status
   }));
 }
+
+

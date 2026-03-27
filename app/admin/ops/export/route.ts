@@ -7,6 +7,7 @@ import { getBetaOpsInsights } from "@/lib/ops/insights";
 import { getCityReadinessRows } from "@/lib/ops/readiness";
 import { buildEditorialGapCsvRows, getEditorialGapDashboard } from "@/lib/ops/editorial-gaps";
 import { getOperationalTelemetry } from "@/lib/ops/observability";
+import { getLaunchObservabilityReport } from "@/lib/ops/launch-observability";
 
 function csvEscape(value: unknown) {
   const text = String(value ?? "");
@@ -110,7 +111,7 @@ export async function GET(request: Request) {
     });
   }
 
-    if (kind === "invites") {
+  if (kind === "invites") {
     const invites = await getBetaInviteCodes(Number.isFinite(days) ? days : 25);
     const rows = invites.map((item) => ({
       code: item.code,
@@ -172,6 +173,130 @@ export async function GET(request: Request) {
     });
   }
 
+  if (kind === "launch-funnel") {
+    const report = await getLaunchObservabilityReport(Number.isFinite(days) ? days : 7);
+    const rows = report.funnel.steps.map((step, index) => ({
+      step: step.step,
+      count: step.count,
+      rate_from_previous: step.rateFromPrevious,
+      order: index + 1
+    }));
+
+    return new NextResponse(toCsv(rows), {
+      headers: {
+        "content-type": "text/csv; charset=utf-8",
+        "content-disposition": 'attachment; filename="bomba-aberta-launch-funnel.csv"'
+      }
+    });
+  }
+
+  if (kind === "launch-surface") {
+    const report = await getLaunchObservabilityReport(Number.isFinite(days) ? days : 7);
+    const rows = report.funnel.bySurface.map((surface) => ({
+      surface: surface.surface,
+      opened: surface.opened,
+      converted: surface.converted,
+      conversion_rate: surface.conversionRate
+    }));
+
+    return new NextResponse(toCsv(rows), {
+      headers: {
+        "content-type": "text/csv; charset=utf-8",
+        "content-disposition": 'attachment; filename="bomba-aberta-launch-surface.csv"'
+      }
+    });
+  }
+
+  if (kind === "launch-errors") {
+    const report = await getLaunchObservabilityReport(Number.isFinite(days) ? days : 7);
+    const rows = report.errorsByRoute.flatMap((row) =>
+      row.topReasons.length > 0
+        ? row.topReasons.map((reason) => ({ route: row.route, errors: row.errors, reason: reason.reason, reason_count: reason.count }))
+        : [{ route: row.route, errors: row.errors, reason: "unknown", reason_count: 0 }]
+    );
+
+    return new NextResponse(toCsv(rows), {
+      headers: {
+        "content-type": "text/csv; charset=utf-8",
+        "content-disposition": 'attachment; filename="bomba-aberta-launch-errors.csv"'
+      }
+    });
+  }
+
+  if (kind === "launch-queue") {
+    const report = await getLaunchObservabilityReport(Number.isFinite(days) ? days : 7);
+    const rows = [
+      { metric: "queue_added", value: report.queue.added },
+      { metric: "queue_completed", value: report.queue.completed },
+      { metric: "queue_discarded", value: report.queue.discarded },
+      { metric: "queue_retried", value: report.queue.retried },
+      { metric: "completion_rate", value: report.queue.completionRate },
+      { metric: "discard_rate", value: report.queue.discardRate }
+    ];
+
+    return new NextResponse(toCsv(rows), {
+      headers: {
+        "content-type": "text/csv; charset=utf-8",
+        "content-disposition": 'attachment; filename="bomba-aberta-launch-queue.csv"'
+      }
+    });
+  }
+
+  if (kind === "launch-drafts") {
+    const report = await getLaunchObservabilityReport(Number.isFinite(days) ? days : 7);
+    const rows = [
+      { metric: "draft_restored", value: report.draftRestore.restored },
+      { metric: "photo_lost", value: report.draftRestore.photoLost },
+      { metric: "restore_rate", value: report.draftRestore.restoreRate },
+      { metric: "photo_loss_rate", value: report.draftRestore.photoLossRate }
+    ];
+
+    return new NextResponse(toCsv(rows), {
+      headers: {
+        "content-type": "text/csv; charset=utf-8",
+        "content-disposition": 'attachment; filename="bomba-aberta-launch-drafts.csv"'
+      }
+    });
+  }
+
+  if (kind === "launch-approval") {
+    const report = await getLaunchObservabilityReport(Number.isFinite(days) ? days : 7);
+    const rows = [
+      { metric: "approvals", value: report.approvalLatency.approvals },
+      { metric: "rejections", value: report.approvalLatency.rejections },
+      { metric: "pending", value: report.approvalLatency.pending },
+      { metric: "avg_minutes", value: report.approvalLatency.avgMinutes },
+      { metric: "median_minutes", value: report.approvalLatency.medianMinutes },
+      { metric: "p90_minutes", value: report.approvalLatency.p90Minutes },
+      ...report.approvalLatency.byCity.map((row) => ({ metric: `city:${row.city}`, value: row.avgMinutes }))
+    ];
+
+    return new NextResponse(toCsv(rows), {
+      headers: {
+        "content-type": "text/csv; charset=utf-8",
+        "content-disposition": 'attachment; filename="bomba-aberta-launch-approval.csv"'
+      }
+    });
+  }
+
+  if (kind === "launch-identity") {
+    const report = await getLaunchObservabilityReport(Number.isFinite(days) ? days : 7);
+    const rows = [
+      { metric: "shown", value: report.identityPrompts.shown },
+      { metric: "saved", value: report.identityPrompts.saved },
+      { metric: "dismissed", value: report.identityPrompts.dismissed },
+      { metric: "save_rate", value: report.identityPrompts.saveRate },
+      { metric: "dismiss_rate", value: report.identityPrompts.dismissRate }
+    ];
+
+    return new NextResponse(toCsv(rows), {
+      headers: {
+        "content-type": "text/csv; charset=utf-8",
+        "content-disposition": 'attachment; filename="bomba-aberta-launch-identity.csv"'
+      }
+    });
+  }
+
   const feedback = await getBetaFeedbackSummary(Number.isFinite(days) ? days : 14);
   const rows = feedback.recent.map((item) => ({
     created_at: item.createdAt,
@@ -197,5 +322,6 @@ export async function GET(request: Request) {
     }
   });
 }
+
 
 
