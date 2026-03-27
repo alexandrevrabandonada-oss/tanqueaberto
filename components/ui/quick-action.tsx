@@ -44,12 +44,22 @@ export const QuickActionButton = React.forwardRef<HTMLButtonElement, QuickAction
             </span>
           )}
           {desktopLabel ? (
-            <span className="hidden text-[9px] font-semibold leading-none tracking-[0.12em] text-white/62 xl:block">
+            <span
+              className={cn(
+                "hidden text-[9px] font-semibold leading-none tracking-[0.12em] xl:block",
+                variant === 'primary' || variant === 'accent' ? "text-black/65" : "text-white/62"
+              )}
+            >
               {desktopLabel}
             </span>
           ) : null}
           {secondaryLabel ? (
-            <span className="hidden text-[8px] font-medium leading-none tracking-[0.1em] text-white/48 xl:block">
+            <span
+              className={cn(
+                "hidden text-[8px] font-medium leading-none tracking-[0.1em] xl:block",
+                variant === 'primary' || variant === 'accent' ? "text-black/46" : "text-white/48"
+              )}
+            >
               {secondaryLabel}
             </span>
           ) : null}
