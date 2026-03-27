@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { BETA_ACCESS_COOKIE_NAME, isBetaBypassedPath, isBetaClosed } from "./lib/beta/gate";
+import { BETA_ACCESS_COOKIE_NAME, isBetaClosed, isBetaProtectedPath } from "./lib/beta/gate";
 
 export function middleware(request: NextRequest) {
   if (!isBetaClosed()) {
@@ -8,11 +8,7 @@ export function middleware(request: NextRequest) {
   }
 
   const pathname = request.nextUrl.pathname;
-  if (isBetaBypassedPath(pathname)) {
-    return NextResponse.next();
-  }
-
-  if (request.cookies.has(BETA_ACCESS_COOKIE_NAME)) {
+  if (!isBetaProtectedPath(pathname) || request.cookies.has(BETA_ACCESS_COOKIE_NAME)) {
     return NextResponse.next();
   }
 

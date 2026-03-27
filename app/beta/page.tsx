@@ -10,6 +10,8 @@ import { getSafeBetaNextPath, isBetaClosed } from "@/lib/beta/gate";
 import { hasBetaAccessFromCookies } from "@/lib/beta/session";
 import { brand } from "@/styles/design-tokens";
 
+export const metadata = { robots: { index: false, follow: false, nocache: true } };
+
 export const dynamic = "force-dynamic";
 
 const HOME_ROUTE = "/" as Route;
@@ -67,3 +69,4 @@ export default async function BetaPage({ searchParams }: BetaPageProps) {
     </AppShell>
   );
 }
+

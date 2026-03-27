@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 
-import { isBetaClosed } from "@/lib/beta/gate";
-import { hasBetaAccessFromCookies } from "@/lib/beta/session";
 import { recordOperationalEvent } from "@/lib/ops/logs";
 import { getSubmissionClientIp, hashSubmissionIp } from "@/lib/ops/rate-limit";
 
@@ -11,10 +9,6 @@ function readString(value: unknown) {
 }
 
 export async function POST(request: Request) {
-  if (isBetaClosed() && !(await hasBetaAccessFromCookies())) {
-    return new NextResponse(null, { status: 204 });
-  }
-
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body) {
     return NextResponse.json({ ok: false }, { status: 400 });
@@ -45,4 +39,3 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ ok: true });
 }
-

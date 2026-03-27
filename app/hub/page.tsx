@@ -1,3 +1,5 @@
+export const metadata = { robots: { index: false, follow: false, nocache: true } };
+
 export const dynamic = "force-dynamic";
 
 import { AppShell } from "@/components/layout/app-shell";
@@ -18,8 +20,8 @@ export default async function HubPage() {
 
   return (
     <AppShell hideShellSubmitCta>
-      <div data-layout-scope="hub-wide" className="space-y-4 pb-20">
-        <SectionCard className="space-y-2 border-white/10 bg-white/5 xl:hidden">
+      <div data-layout-scope="hub-wide" data-hero-primary="hub-continuity" className="space-y-4 pb-20">
+        <SectionCard className="hidden space-y-2 border-white/10 bg-white/5 md:block xl:hidden">
           <div className="flex flex-col gap-2">
             <p className="text-[10px] uppercase tracking-[0.24em] text-white/36">Meu Hub</p>
             <div className="space-y-1">
@@ -43,5 +45,7 @@ export default async function HubPage() {
     </AppShell>
   );
 }
+
+
 
 

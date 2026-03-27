@@ -56,3 +56,7 @@ export function isBetaBypassedPath(pathname: string) {
     pathname === "/hub"
   );
 }
+
+export function isBetaProtectedPath(pathname: string) {
+  return pathname === "/feedback" || pathname.startsWith("/beta/");
+}

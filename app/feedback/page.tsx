@@ -3,6 +3,8 @@ import { ProductEvent } from "@/components/telemetry/product-event";
 import { BetaFeedbackForm } from "@/components/feedback/beta-feedback-form";
 import { SectionCard } from "@/components/ui/section-card";
 
+export const metadata = { robots: { index: false, follow: false, nocache: true } };
+
 export const dynamic = "force-dynamic";
 
 interface FeedbackPageProps {
@@ -42,6 +44,7 @@ export default async function FeedbackPage({ searchParams }: FeedbackPageProps) 
     </AppShell>
   );
 }
+
 
 
 

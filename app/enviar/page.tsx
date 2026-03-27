@@ -11,6 +11,8 @@ import { QueueAssistant } from "@/components/routes/queue-assistant";
 import { getHomeStations } from "@/lib/data";
 import type { FuelType, StationWithReports } from "@/lib/types";
 
+export const metadata = { robots: { index: false, follow: false, nocache: true } };
+
 export const dynamic = "force-dynamic";
 
 interface SubmitPageProps {
@@ -52,8 +54,16 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
       <ProductEvent eventType="submit_opened" pagePath="/enviar" pageTitle="Enviar preço" />
       <QueueAssistant />
 
-      <div data-layout-scope="submit-wide" className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(330px,360px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(360px,400px)] xl:items-start">
+      <div data-layout-scope="submit-wide" data-hero-primary="submit-form" className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(330px,360px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(360px,400px)] xl:items-start">
         <div data-layout-role="main" className="space-y-6 min-w-0">
+          <SectionCard className="hidden space-y-2 border-white/10 bg-white/5 md:block xl:hidden">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Apoio rápido</p>
+            <h2 className="text-sm font-semibold text-white">O formulário já é a superfície principal</h2>
+            <p className="text-sm text-white/54">
+              No celular e no tablet, a lateral some para não disputar com a foto, o posto e o preço.
+            </p>
+          </SectionCard>
+
           <SectionCard className="space-y-4 xl:p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -106,7 +116,7 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
           </SectionCard>
         </div>
 
-        <aside data-layout-role="rail" className="space-y-4 xl:sticky xl:top-24">
+        <aside data-layout-role="rail" data-rail-useful="submit" className="hidden space-y-4 xl:block xl:sticky xl:top-24">
           <SectionCard className="space-y-3 border-white/10 bg-white/5 xl:p-4">
             <div className="space-y-1.5">
               <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Rail útil</p>
@@ -153,5 +163,7 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
     </AppShell>
   );
 }
+
+
 
 

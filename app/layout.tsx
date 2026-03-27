@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 
 import { PwaRegister } from "@/components/pwa-register";
-import { isBetaClosed } from "@/lib/beta/gate";
+import { getBuildInfo } from "@/lib/runtime/build-info";
 import { brand } from "@/styles/design-tokens";
 
 import "./globals.css";
@@ -22,16 +22,10 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: brand.name
   },
-  robots: isBetaClosed()
-    ? {
-        index: false,
-        follow: false,
-        nocache: true
-      }
-    : {
-        index: true,
-        follow: true
-      },
+  robots: {
+    index: true,
+    follow: true
+  },
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
@@ -80,10 +74,18 @@ import { SubmissionHistoryProvider } from "@/components/history/submission-histo
 import { TestModeIndicator } from "@/components/test/test-mode-indicator";
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const buildInfo = getBuildInfo();
+
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body className="bg-[color:var(--color-bg)] font-body text-[color:var(--color-text)]">
-        <div data-app-shell="root" className="min-h-screen">
+        <div
+          data-app-shell="root"
+          data-build-env={buildInfo.env}
+          data-build-ref={buildInfo.ref || undefined}
+          data-build-sha={buildInfo.sha}
+          className="min-h-screen"
+        >
           <PwaRegister />
           <MissionProvider>
             <SubmissionHistoryProvider>
@@ -97,4 +99,3 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     </html>
   );
 }
-
