@@ -1,4 +1,5 @@
-"use client";
+﻿"use client";
+/* eslint-disable react-hooks/exhaustive-deps */
 
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -47,12 +48,12 @@ import { InstallPromptCard } from "./install-prompt-card";
 import { useOperationalFocus } from "@/hooks/use-operational-focus";
 import { useRetentionSurfaces } from "@/components/layout/retention-hub";
 import { useMySubmissions } from "@/hooks/use-my-submissions";
+import { useProgressiveIdentity } from "@/hooks/use-progressive-identity";
+import { ProgressiveIdentityPrompt } from "@/components/identity/progressive-identity-prompt";
 import { type OperationalKillSwitches } from "@/lib/ops/kill-switches";
 import { RecortePulseWidget } from "./recorte-pulse-widget";
 import { getRecortePulseAction } from "@/app/actions/pulse";
 import { type RecorteActivity } from "@/lib/ops/recorte-activity";
-import { getUtilityStatusAction } from "@/app/actions/user";
-import { type UtilityRole } from "@/lib/ops/collector-trust";
 import { QuickActionGroup, QuickActionButton } from "@/components/ui/quick-action";
 import { OperationalMemoryBar } from "./operational-memory-bar";
 import { useOperationalMemory } from "@/hooks/use-operational-memory";
@@ -209,7 +210,8 @@ export function HomeBrowser({
   const { addRecentCut } = useOperationalMemory();
   const retentionSurfaces = useRetentionSurfaces();
   const [navHandoff, setNavHandoff] = useState<any>(null);
-  const [role, setRole] = useState<UtilityRole | null>(null);
+  const identity = useProgressiveIdentity();
+  const [role, setRole] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(true);
   const isAssisted = isStreetMode || role === "iniciante";
   const searchParams = useSearchParams();
@@ -233,10 +235,10 @@ export function HomeBrowser({
       const scrollY = window.scrollY;
       const isWideViewport = window.innerWidth >= 1280;
       const missionBoost = missionActive ? 1 : 0;
-      const collapseThreshold = isWideViewport ? 16 : 88;
-      const microThreshold = isWideViewport ? 40 : 240;
-      const shouldCollapse = scrollY > (collapseThreshold - missionBoost * 16);
-      const shouldBeMicro = scrollY > (microThreshold - missionBoost * 24);
+      const collapseThreshold = isWideViewport ? 12 : 56;
+      const microThreshold = isWideViewport ? 28 : 160;
+      const shouldCollapse = scrollY > (collapseThreshold - missionBoost * 12);
+      const shouldBeMicro = scrollY > (microThreshold - missionBoost * 20);
 
       if (shouldCollapse !== isHeroCollapsed) {
         setIsHeroCollapsed(shouldCollapse);
@@ -271,13 +273,8 @@ export function HomeBrowser({
   }, [isHeroCollapsed, isMicroMode, missionActive]);
 
   useEffect(() => {
-    async function loadRole() {
-      const result = await getUtilityStatusAction(reporterNickname, null);
-      if (result) setRole(result.status.role);
-    }
-    loadRole();
-  }, [reporterNickname]);
-
+    setRole(identity.utilityStatus.role);
+  }, [identity.utilityStatus.role]);
   // Handle background refresh for warm start
   useEffect(() => {
     if (isWarm && !isRefreshing) {
@@ -924,7 +921,7 @@ export function HomeBrowser({
   }, [surfaces, role, missionActive]);
 
   if (defaultSelectionReason) {
-    surfaces.push({
+    orchestratedSurfaces.push({
       id: "smart-default",
       type: "INFO_NOTICE",
       content: (
@@ -949,6 +946,9 @@ export function HomeBrowser({
   return (
     <>
       {debriefOverlay}
+      <div className="mb-4">
+        <ProgressiveIdentityPrompt context="home" source="return" />
+      </div>
       <TopOrchestrator
         isWarm={isWarm}
         isRefreshing={isRefreshing}
@@ -1342,18 +1342,24 @@ export function HomeBrowser({
         </SectionCard>
       ) : null}
 
+      <SectionCard className="hidden space-y-2 md:block xl:hidden">
+        <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Rail útil</p>
+        <h3 className="text-sm font-semibold text-white">{priorityLabel}</h3>
+        <p className="text-sm text-white/54">{priorityHint}</p>
+      </SectionCard>
+
       <div data-layout-scope="home-wide" className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(360px,400px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(400px,440px)] xl:items-start">
         <div data-layout-role="main" className="space-y-6">
           {homeState.state === "senior-hub" ? <OperationalMemoryBar /> : null}
 
-          <SectionCard className="space-y-4 shadow-xl shadow-black/20 xl:p-6">
+          <SectionCard data-hero-primary="home-map" className="space-y-4 shadow-xl shadow-black/20 xl:p-6">
             <div className="flex items-center gap-3 px-5 xl:px-0">
               <div className="flex items-center justify-between gap-3 w-full">
                 <div>
                   <p className="text-xs uppercase tracking-[0.2em] text-white/42">Mapa vivo</p>
                   <h3 className="mt-1 text-xl font-semibold text-white xl:text-[1.35rem]">Pins filtrados com leitura por cidade</h3>
                 </div>
-                <ButtonLink href="/enviar" className="h-10 whitespace-nowrap px-4 text-[11px] font-black uppercase tracking-[0.18em] md:hidden">Enviar preço agora</ButtonLink>
+                <ButtonLink href="/enviar" data-cta-inline="home-send-now" className="relative z-[1001] hidden h-10 whitespace-nowrap px-4 text-[11px] font-black uppercase tracking-[0.18em] md:inline-flex">Enviar preço agora</ButtonLink>
               </div>
             </div>
             {mapStations.length > 0 ? (
@@ -1370,7 +1376,7 @@ export function HomeBrowser({
           </SectionCard>
         </div>
 
-                <aside data-layout-role="rail" className="space-y-6 xl:sticky xl:top-32">
+                <aside data-layout-role="rail" data-rail-useful="home" className="hidden space-y-6 xl:block xl:sticky xl:top-32">
           <SectionCard className="space-y-4 border-white/10 bg-white/5 xl:p-5">
             <div className="space-y-1.5">
               <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Rail útil</p>
@@ -1422,7 +1428,7 @@ export function HomeBrowser({
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row xl:flex-col">
-              <ButtonLink href={railSendHref} className="w-full justify-center md:hidden">
+              <ButtonLink href={railSendHref} data-cta-inline="home-send-recorte" className="relative z-[1001] w-full justify-center md:hidden">
                 Enviar preço do recorte
               </ButtonLink>
               <ButtonLink href="/atualizacoes" variant="secondary" className="w-full justify-center">
@@ -1614,7 +1620,8 @@ export function HomeBrowser({
                   </div>
                 </div>
               );
-            })}`r`n            {summaryStations.length > 10 && (
+            })}
+            {summaryStations.length > 10 && (
               <div className="pt-2 text-center">
                 <p className="text-[10px] text-white/30 uppercase tracking-widest">
                   + {summaryStations.length - 10} {summaryStations.length - 10 === 1 ? "posto oculto" : "postos ocultos"} para performance
@@ -1813,7 +1820,7 @@ export function HomeBrowser({
             <p className="mt-1 text-sm text-white/58">Cadastro territorial e preço recente são coisas diferentes. O app mostra isso sem confundir o usuário.</p>
           </div>
         </div>
-        <ButtonLink href="/enviar" className="w-full">
+        <ButtonLink href="/enviar" data-cta-inline="home-send-map" className="relative z-[1001] w-full">
           Enviar preço para o mapa
           <ArrowRight className="h-4 w-4" />
         </ButtonLink>
@@ -1821,32 +1828,4 @@ export function HomeBrowser({
     </>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
