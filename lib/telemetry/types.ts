@@ -80,6 +80,9 @@ export type ProductTelemetryEventType =
   | "first_fold_action"
   | "hub_activation_click"
   | "first_submission_milestone"
+  | "identity_prompt_shown"
+  | "identity_prompt_saved"
+  | "identity_prompt_dismissed"
   | "public_station_view"
   | "station_action_click"
   | "memory_shortcut_click"
@@ -104,3 +107,4 @@ export interface ProductTelemetryEventInput {
   reason?: string | null;
   payload?: Record<string, unknown>;
 }
+

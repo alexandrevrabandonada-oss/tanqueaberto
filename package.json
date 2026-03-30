@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "verify": "npm run typecheck && npm run build && npm run check:drift",
+    "verify": "npm run build && npm run typecheck && npm run check:drift",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "next typegen && tsc --noEmit",
@@ -21,7 +21,8 @@
     "launch-gate": "tsx scripts/launch-gate.ts",
     "release:visual": "node scripts/release-hardening-visual.cjs",
     "release:gate:visual": "node scripts/release-gate-visual-final-pre-rua.cjs",
-    "release:preview:real": "node scripts/release-gate-preview-real.cjs"
+    "release:preview:real": "node scripts/release-gate-preview-real.cjs",
+    "go-live:check": "tsx scripts/launch-gate.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
@@ -55,6 +56,3 @@
     "typescript": "^5.8.3"
   }
 }
-
-
-
