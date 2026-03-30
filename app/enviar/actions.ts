@@ -248,11 +248,7 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
   const limitCheck = await checkSubmissionRateLimit({
     ipHash: context.ipHash,
     stationId,
-    fuelType,
-    deviceId: context.deviceId,
-    sessionId: context.sessionId,
-    surfaceType: context.surfaceType || "submit",
-    surfaceId: context.surfaceId || stationId
+    fuelType
   });
 
   if (!limitCheck.allowed) {
@@ -576,6 +572,7 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
     return failure("Houve um erro temporario ao enviar a foto. Tente novamente sem refazer o restante.", "submission_unexpected", true);
   }
 }
+
 
 
 
