@@ -7,6 +7,10 @@ export type ProductTelemetryEventType =
   | "submission_camera_opened"
   | "camera_opened_from_station"
   | "submission_started"
+  | "submission_flow_opened"
+  | "submission_context_autofilled"
+  | "submission_flow_completed"
+  | "submission_stage_abandoned"
   | "submission_step"
   | "submission_draft_restored"
   | "submission_photo_reselected"
@@ -93,7 +97,9 @@ export type ProductTelemetryEventType =
   | "inbox_item_click"
   | "inbox_cleared"
   | "quick_action_clicked"
-  | "hub_agenda_action_clicked";
+  | "hub_agenda_action_clicked"
+  | "performance_mode_detected"
+  | "low_perf_map_mounted";
 
 export interface ProductTelemetryEventInput {
   eventType: ProductTelemetryEventType;
@@ -107,4 +113,3 @@ export interface ProductTelemetryEventInput {
   reason?: string | null;
   payload?: Record<string, unknown>;
 }
-
