@@ -1,170 +1,212 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { trackProductEvent } from "@/lib/telemetry/client";
+import {
+  applyLocalSessionActivity,
+  clearCurrentLocalSession,
+  createInitialLocalSessionState,
+  deriveLocalSessionNextStep,
+  getLocalSessionMode,
+  getOrCreateLocalDeviceId,
+  isLocalSessionExpired,
+  persistCurrentLocalSession,
+  persistLastLocalSessionSummary,
+  persistLocalSessionHistory,
+  settleExpiredLocalSession,
+  summarizeLocalSession,
+  type LocalSessionGestureType,
+  type LocalSessionMode,
+  type LocalSessionNextStep,
+  type LocalSessionSnapshot,
+  type LocalSessionSummary,
+} from "@/lib/session/local-session";
 
-const SESSION_STORAGE_KEY = "bomba-aberta:street-session";
-const SUMMARY_STORAGE_KEY = "bomba-aberta:last-session-summary";
-const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes of inactivity to close session
+export type StreetSession = LocalSessionSnapshot;
+export type SessionSummary = LocalSessionSummary;
 
-export interface StreetSession {
-  id: string;
-  startTime: string;
-  lastActivity: string;
-  stationsSeen: string[];
-  stationsTouched: string[];
-  enviosIniciados: number;
-  enviosConcluidos: number;
-}
-
-export interface SessionSummary {
-  id: string;
-  date: string;
-  stationsSeenCount: number;
-  stationsTouchedCount: number;
-  gapsFilledCount: number;
-  durationMs: number;
-  completedAt: string;
-}
+const SESSION_HISTORY_LIMIT = 12;
 
 export function useStreetSession() {
   const [session, setSession] = useState<StreetSession | null>(null);
+  const [history, setHistory] = useState<SessionSummary[]>([]);
   const [lastSummary, setLastSummary] = useState<SessionSummary | null>(null);
+  const [deviceId, setDeviceId] = useState<string>("serverless");
   const [isLoaded, setIsLoaded] = useState(false);
+  const [showDebrief, setShowDebrief] = useState(false);
   const sessionRef = useRef<StreetSession | null>(null);
+  const historyRef = useRef<SessionSummary[]>([]);
+  const lastSummaryRef = useRef<SessionSummary | null>(null);
 
-  // Load from localStorage
   useEffect(() => {
-    const savedSession = localStorage.getItem(SESSION_STORAGE_KEY);
-    const savedSummary = localStorage.getItem(SUMMARY_STORAGE_KEY);
+    const initial = createInitialLocalSessionState();
+    const current = initial.current;
+    const historySnapshot = initial.history;
+    const summarySnapshot = initial.lastSummary;
 
-    if (savedSession) {
-      try {
-        const parsed = JSON.parse(savedSession) as StreetSession;
-        // Check if session has expired
-        if (Date.now() - new Date(parsed.lastActivity).getTime() > SESSION_TIMEOUT_MS) {
-          // Close it silently on load if old
-          finalizeSession(parsed);
-        } else {
-          setSession(parsed);
-          sessionRef.current = parsed;
-        }
-      } catch (e) {
-        console.error("Failed to parse street session", e);
+    if (current && isLocalSessionExpired(current)) {
+      const settled = settleExpiredLocalSession(current, historySnapshot, "timeout");
+      setSession(settled.current);
+      setHistory(settled.history);
+      setLastSummary(settled.summary ?? summarySnapshot);
+      sessionRef.current = settled.current;
+      historyRef.current = settled.history;
+      lastSummaryRef.current = settled.summary ?? summarySnapshot;
+      persistCurrentLocalSession(null);
+      persistLocalSessionHistory(settled.history);
+      if (settled.summary) {
+        persistLastLocalSessionSummary(settled.summary);
       }
+    } else {
+      setSession(current);
+      setHistory(historySnapshot);
+      setLastSummary(summarySnapshot);
+      sessionRef.current = current;
+      historyRef.current = historySnapshot;
+      lastSummaryRef.current = summarySnapshot;
     }
 
-    if (savedSummary) {
-      try {
-        setLastSummary(JSON.parse(savedSummary));
-      } catch (e) {
-        console.error("Failed to parse session summary", e);
-      }
-    }
+    setDeviceId(initial.deviceId);
     setIsLoaded(true);
   }, []);
 
-  // Persist session
   useEffect(() => {
-    if (isLoaded) {
-      if (session) {
-        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
-      } else {
-        localStorage.removeItem(SESSION_STORAGE_KEY);
-      }
+    if (!isLoaded) {
+      return;
     }
-  }, [session, isLoaded]);
 
-  const [showDebrief, setShowDebrief] = useState(false);
+    persistCurrentLocalSession(session);
+    sessionRef.current = session;
+  }, [isLoaded, session]);
 
-  function finalizeSession(s: StreetSession, isManual = false) {
-    const summary: SessionSummary = {
-      id: s.id,
-      date: new Date(s.startTime).toLocaleDateString(),
-      stationsSeenCount: s.stationsSeen.length,
-      stationsTouchedCount: s.stationsTouched.length,
-      gapsFilledCount: s.enviosConcluidos,
-      durationMs: new Date(s.lastActivity).getTime() - new Date(s.startTime).getTime(),
-      completedAt: new Date().toISOString()
-    };
+  useEffect(() => {
+    if (!isLoaded) {
+      return;
+    }
 
-    setLastSummary(summary);
-    localStorage.setItem(SUMMARY_STORAGE_KEY, JSON.stringify(summary));
-    localStorage.removeItem(SESSION_STORAGE_KEY);
+    const normalized = history.slice(0, SESSION_HISTORY_LIMIT);
+    historyRef.current = normalized;
+    persistLocalSessionHistory(normalized);
+  }, [history, isLoaded]);
+
+  useEffect(() => {
+    if (!isLoaded) {
+      return;
+    }
+
+    lastSummaryRef.current = lastSummary;
+    persistLastLocalSessionSummary(lastSummary);
+  }, [isLoaded, lastSummary]);
+
+  const finalizeSession = useCallback((snapshot: StreetSession, endReason: "manual" | "timeout" = "manual") => {
+    const summary = summarizeLocalSession(snapshot, endReason);
+    const nextHistory = [summary, ...historyRef.current.filter((entry) => entry.id !== summary.id)].slice(0, SESSION_HISTORY_LIMIT);
+
     setSession(null);
+    setHistory(nextHistory);
+    setLastSummary(summary);
     sessionRef.current = null;
-    
-    if (isManual) {
+    historyRef.current = nextHistory;
+    lastSummaryRef.current = summary;
+    persistCurrentLocalSession(null);
+    persistLocalSessionHistory(nextHistory);
+    persistLastLocalSessionSummary(summary);
+
+    if (endReason === "manual") {
       setShowDebrief(true);
     }
 
     void trackProductEvent({
       eventType: "street_session_completed" as any,
       pagePath: window.location.pathname,
-      payload: { 
+      payload: {
         ...summary,
-        inactivity_close: !isManual,
-        manual_close: isManual
+        inactivity_close: endReason === "timeout",
+        manual_close: endReason === "manual"
       }
     });
-  }
+  }, []);
+
+  useEffect(() => {
+    if (!isLoaded || !session) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      const current = sessionRef.current;
+      if (current && isLocalSessionExpired(current)) {
+        finalizeSession(current, "timeout");
+      }
+    }, 60_000);
+
+    return () => window.clearInterval(timer);
+  }, [finalizeSession, isLoaded, session]);
 
   const closeSessionManual = useCallback(() => {
     if (sessionRef.current) {
-      finalizeSession(sessionRef.current, true);
+      finalizeSession(sessionRef.current, "manual");
     }
-  }, []);
+  }, [finalizeSession]);
 
   const clearDebrief = useCallback(() => {
     setShowDebrief(false);
   }, []);
 
-  const recordActivity = useCallback((type: 'view' | 'touch' | 'start' | 'complete', stationId?: string) => {
-    setSession(prev => {
-      let current = prev;
-      const now = new Date().toISOString();
+  const recordActivity = useCallback((type: LocalSessionGestureType, stationId?: string) => {
+    if (typeof window === "undefined") {
+      return;
+    }
 
-      // Start new session if none or expired
-      if (!current || (Date.now() - new Date(current.lastActivity).getTime() > SESSION_TIMEOUT_MS)) {
-        if (current) finalizeSession(current);
-        
-        current = {
-          id: crypto.randomUUID(),
-          startTime: now,
-          lastActivity: now,
-          stationsSeen: [],
-          stationsTouched: [],
-          enviosIniciados: 0,
-          enviosConcluidos: 0
-        };
+    const now = new Date().toISOString();
+    const resolvedDeviceId = deviceId !== "serverless" ? deviceId : getOrCreateLocalDeviceId();
+    if (deviceId === "serverless") {
+      setDeviceId(resolvedDeviceId);
+    }
+    let current = sessionRef.current;
 
-        void trackProductEvent({
-          eventType: "street_session_started" as any,
-          pagePath: window.location.pathname,
-          payload: { sessionId: current.id, trigger: type }
-        });
+    if (!current || isLocalSessionExpired(current)) {
+      if (current) {
+        finalizeSession(current, "timeout");
       }
 
-      const next = { ...current, lastActivity: now };
+      current = {
+        id: crypto.randomUUID(),
+        deviceId: resolvedDeviceId,
+        startTime: now,
+        lastActivity: now,
+        stationsSeen: [],
+        stationsTouched: [],
+        enviosIniciados: 0,
+        enviosConcluidos: 0,
+        lastGesture: null
+      };
 
-      if (type === 'view' && stationId && !next.stationsSeen.includes(stationId)) {
-        next.stationsSeen = [...next.stationsSeen, stationId];
-      } else if (type === 'touch' && stationId && !next.stationsTouched.includes(stationId)) {
-        next.stationsTouched = [...next.stationsTouched, stationId];
-      } else if (type === 'start') {
-        next.enviosIniciados += 1;
-      } else if (type === 'complete') {
-        next.enviosConcluidos += 1;
-      }
+      void trackProductEvent({
+        eventType: "street_session_started" as any,
+        pagePath: window.location.pathname,
+        payload: { sessionId: current.id, trigger: type, deviceId: resolvedDeviceId }
+      });
+    }
 
-      sessionRef.current = next;
-      return next;
-    });
-  }, []);
+    const next = applyLocalSessionActivity(current, type, stationId, now);
+    sessionRef.current = next;
+    setSession(next);
+  }, [deviceId, finalizeSession]);
+
+  const sessionMode = useMemo<LocalSessionMode>(() => getLocalSessionMode(session, history), [history, session]);
+  const nextStep = useMemo<LocalSessionNextStep>(() => deriveLocalSessionNextStep(session), [session]);
+  const lastGesture = session?.lastGesture ?? lastSummary?.lastGesture ?? null;
 
   return {
+    deviceId,
     session,
+    sessionId: session?.id ?? null,
+    sessionMode,
+    history,
+    historyCount: history.length,
     lastSummary,
+    lastGesture,
+    nextStep,
     showDebrief,
     stationsSeenCount: session?.stationsSeen.length ?? 0,
     stationsTouchedCount: session?.stationsTouched.length ?? 0,
@@ -175,3 +217,4 @@ export function useStreetSession() {
     isLoaded
   };
 }
+
