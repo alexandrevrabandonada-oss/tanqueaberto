@@ -130,7 +130,7 @@ function syncProcessedFileToInput(input: HTMLInputElement | null, file: File) {
   }
 }
 
-interface StationPickerCandidate {
+export interface StationPickerCandidate {
   station: StationWithReports;
   publicName: string;
   neighborhoodLabel: string;
@@ -279,6 +279,7 @@ function PriceSubmitFormBody({
   const [showStationPicker, setShowStationPicker] = useState(true);
   const [showFuelPicker, setShowFuelPicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const priceInputRef = useRef<HTMLInputElement | null>(null);
 
   // Record history on success
@@ -347,6 +348,12 @@ function PriceSubmitFormBody({
     }
   }, [state.success, state.reportId, state.noticeCode, state.noticeTitle, state.noticeTone, addSubmission, stations, stationId, fuelType, price, nickname, recordActivity, submissions.length]);
   const [showFeedback, setShowFeedback] = useState(false);
+  const stationSuggestionShownKeyRef = useRef<string | null>(null);
+  const stationSuggestionAcceptedKeyRef = useRef<string | null>(null);
+  const stationSuggestionChangedKeyRef = useRef<string | null>(null);
+  const stationLastUsedReuseTrackedRef = useRef<string | null>(null);
+  const stationStepAbandonedTrackedRef = useRef<string | null>(null);
+  const suggestedStationIdRef = useRef<string | null>(null);
   const selectedFileRef = useRef<File | null>(null);
   const submissionFlowOpenedAtRef = useRef(Date.now());
   const submissionAutoDecisionCountRef = useRef(0);
@@ -376,6 +383,14 @@ function PriceSubmitFormBody({
   const retryAttemptRef = useRef(0);
   const lastQueuedFailureSignatureRef = useRef<string | null>(null);
   const lastQueuedAbandonmentSignatureRef = useRef<string | null>(null);
+
+  function openCameraPicker() {
+    cameraInputRef.current?.click();
+  }
+
+  function openGalleryPicker() {
+    fileInputRef.current?.click();
+  }
 
   useEffect(() => {
     telemetryContextRef.current = { stationId: stationId || null, fuelType, compactMode, lockedStation };
@@ -745,11 +760,84 @@ function PriceSubmitFormBody({
       return;
     }
 
+    const suggestionSource = suggestedStation.distance !== null && suggestedStation.geoRank >= 2
+      ? "nearby"
+      : suggestedStation.recentIndex < 999
+        ? "recent"
+        : "fallback";
+    const suggestionKey = [draftKey, suggestedStation.station.id, suggestionSource, suggestedStation.distance !== null ? "geo" : "no-geo"].join(":");
+
     stationSuggestionTrackedRef.current = true;
     submissionAutoDecisionCountRef.current += 1;
+    suggestedStationIdRef.current = suggestedStation.station.id;
     setStationId(suggestedStation.station.id);
     setIsSuggested(Boolean(suggestedStation.distance !== null));
     setShowStationPicker(false);
+
+    if (stationSuggestionShownKeyRef.current !== suggestionKey) {
+      stationSuggestionShownKeyRef.current = suggestionKey;
+      void trackProductEvent({
+        eventType: "station_suggestion_shown",
+        pagePath: "/enviar",
+        pageTitle: "Enviar preço",
+        stationId: suggestedStation.station.id,
+        city: suggestedStation.station.city,
+        fuelType,
+        scopeType: "submission",
+        scopeId: suggestedStation.station.id,
+        payload: {
+          source: suggestionSource,
+          distance: suggestedStation.distance,
+          geoReviewStatus: suggestedStation.station.geoReviewStatus ?? null,
+          visibilityRank: suggestedStation.visibilityRank,
+          geoRank: suggestedStation.geoRank,
+          cityContextMatch: suggestedStation.cityContextMatch,
+          decisionsSkipped: submissionAutoDecisionCountRef.current
+        }
+      });
+    }
+
+    if (suggestionSource === "recent" && stationLastUsedReuseTrackedRef.current !== suggestionKey) {
+      stationLastUsedReuseTrackedRef.current = suggestionKey;
+      void trackProductEvent({
+        eventType: "station_last_used_reused",
+        pagePath: "/enviar",
+        pageTitle: "Enviar preço",
+        stationId: suggestedStation.station.id,
+        city: suggestedStation.station.city,
+        fuelType,
+        scopeType: "submission",
+        scopeId: suggestedStation.station.id,
+        payload: {
+          source: suggestionSource,
+          distance: suggestedStation.distance,
+          recentIndex: suggestedStation.recentIndex,
+          cityContextMatch: suggestedStation.cityContextMatch
+        }
+      });
+    }
+
+    if (stationSuggestionAcceptedKeyRef.current !== suggestionKey) {
+      stationSuggestionAcceptedKeyRef.current = suggestionKey;
+      void trackProductEvent({
+        eventType: "station_suggestion_accepted",
+        pagePath: "/enviar",
+        pageTitle: "Enviar preço",
+        stationId: suggestedStation.station.id,
+        city: suggestedStation.station.city,
+        fuelType,
+        scopeType: "submission",
+        scopeId: suggestedStation.station.id,
+        payload: {
+          source: suggestionSource,
+          distance: suggestedStation.distance,
+          geoReviewStatus: suggestedStation.station.geoReviewStatus ?? null,
+          visibilityRank: suggestedStation.visibilityRank,
+          decisionsSkipped: submissionAutoDecisionCountRef.current
+        }
+      });
+    }
+
     void trackProductEvent({
       eventType: "submission_context_autofilled",
       pagePath: "/enviar",
@@ -761,14 +849,14 @@ function PriceSubmitFormBody({
       scopeId: suggestedStation.station.id,
       payload: {
         field: "station",
-        source: coords ? "geo_recent_rank" : "recent_rank",
+        source: suggestionSource === "nearby" ? "geo_recent_rank" : suggestionSource,
         distance: suggestedStation.distance,
         geoReviewStatus: suggestedStation.station.geoReviewStatus ?? null,
         visibilityRank: suggestedStation.visibilityRank,
         decisionsSkipped: submissionAutoDecisionCountRef.current
       }
     });
-  }, [coords, draftRestored, fuelType, lockedStation, stationCandidates, stationId]);
+  }, [coords, draftKey, draftRestored, fuelType, lockedStation, stationCandidates, stationId]);
 
   const normalizedStationSearch = useMemo(() => normalizeContextValue(stationSearch), [stationSearch]);
 
@@ -915,6 +1003,29 @@ function PriceSubmitFormBody({
 
       abandonmentSentRef.current = true;
       const hasPhoto = Boolean(selectedFileRef.current);
+      const shouldTrackStationAbandonment = currentStepRef.current === "station" || (!stationConfirmed && Boolean(stationId));
+      if (shouldTrackStationAbandonment && stationStepAbandonedTrackedRef.current !== draftKey) {
+        stationStepAbandonedTrackedRef.current = draftKey;
+        void trackProductEvent({
+          eventType: "submission_station_step_abandoned",
+          pagePath: "/enviar",
+          pageTitle: "Enviar preço",
+          stationId: telemetryContextRef.current.stationId,
+          fuelType: telemetryContextRef.current.fuelType,
+          scopeType: "submission",
+          scopeId: telemetryContextRef.current.stationId,
+          payload: {
+            lastStep: currentStepRef.current,
+            compactMode: telemetryContextRef.current.compactMode,
+            lockedStation: telemetryContextRef.current.lockedStation,
+            hasPhoto,
+            photoMissing: draftPhotoMissing,
+            locationConfidence,
+            stationConfirmed,
+            suggestionAccepted: suggestedStationIdRef.current === stationId
+          }
+        });
+      }
       void trackProductEvent({
         eventType: hasPhoto ? "submission_abandoned_after_photo" : "submission_abandoned_before_photo",
         pagePath: "/enviar",
@@ -987,7 +1098,7 @@ function PriceSubmitFormBody({
       window.removeEventListener("pagehide", sendAbandonment);
       window.removeEventListener("beforeunload", sendAbandonment);
     };
-  }, [draftKey, draftPhotoMissing, fuelType, nickname, price, safeReturnToHref, selectedStation, stationId, stations]);
+  }, [draftKey, draftPhotoMissing, fuelType, nickname, price, safeReturnToHref, selectedStation, stationConfirmed, locationConfidence, stationId, stations]);
 
   useEffect(() => {
     if (!state.error || state.errorCode === lastFailureKeyRef.current) {
@@ -1125,12 +1236,21 @@ function PriceSubmitFormBody({
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+    if (cameraInputRef.current) {
+      cameraInputRef.current.value = "";
+    }
     completedRef.current = false;
     abandonmentSentRef.current = false;
     submissionFlowCompletedTrackedRef.current = false;
     submissionFlowOpenedTrackedRef.current = false;
     submissionAutoDecisionCountRef.current = 0;
     stationSuggestionTrackedRef.current = false;
+    stationSuggestionShownKeyRef.current = null;
+    stationSuggestionAcceptedKeyRef.current = null;
+    stationSuggestionChangedKeyRef.current = null;
+    stationLastUsedReuseTrackedRef.current = null;
+    stationStepAbandonedTrackedRef.current = null;
+    suggestedStationIdRef.current = null;
     fuelSuggestionTrackedRef.current = false;
     setDraftRestored(false);
     setDraftPhotoMissing(false);
@@ -1153,6 +1273,9 @@ function PriceSubmitFormBody({
       selectedFileRef.current = null;
       setPreviewUrl(null);
       setQualityResult(null);
+      if (cameraInputRef.current) {
+        cameraInputRef.current.value = "";
+      }
       return;
     }
 
@@ -1160,6 +1283,9 @@ function PriceSubmitFormBody({
       selectedFileRef.current = null;
       setPreviewUrl(null);
       setQualityResult(null);
+      if (cameraInputRef.current) {
+        cameraInputRef.current.value = "";
+      }
       return;
     }
 
@@ -1220,6 +1346,9 @@ function PriceSubmitFormBody({
       setQualityResult(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
+      }
+      if (cameraInputRef.current) {
+        cameraInputRef.current.value = "";
       }
 
       const message = error instanceof Error ? error.message : "Erro ao preparar a foto.";
@@ -1399,6 +1528,92 @@ function PriceSubmitFormBody({
   }
 
   function handleStationSelect(candidate: StationPickerCandidate, source: "nearby" | "recent" | "search" | "fallback") {
+    const suggestionId = suggestedStationIdRef.current;
+    const isChangingSuggestedStation = Boolean(suggestionId && suggestionId !== candidate.station.id);
+    const suggestionChangedKey = suggestionId ? [draftKey, suggestionId, candidate.station.id].join(":") : null;
+    const isManualReuse = candidate.station.id === (lastStationSnapshot?.id ?? session?.lastGesture?.stationId ?? null);
+    const acceptedKey = [draftKey, candidate.station.id, "accepted"].join(":");
+
+    if (candidate.ambiguityCount > 1) {
+      void trackProductEvent({
+        eventType: "station_similar_choice_clicked",
+        pagePath: "/enviar",
+        pageTitle: "Enviar preço",
+        stationId: candidate.station.id,
+        city: candidate.station.city,
+        fuelType,
+        scopeType: "submission",
+        scopeId: candidate.station.id,
+        payload: {
+          source,
+          distance: candidate.distance,
+          ambiguityCount: candidate.ambiguityCount
+        }
+      });
+    }
+
+    if (isChangingSuggestedStation && suggestionChangedKey && stationSuggestionChangedKeyRef.current !== suggestionChangedKey) {
+      stationSuggestionChangedKeyRef.current = suggestionChangedKey;
+      void trackProductEvent({
+        eventType: "station_suggestion_changed",
+        pagePath: "/enviar",
+        pageTitle: "Enviar preço",
+        stationId: candidate.station.id,
+        city: candidate.station.city,
+        fuelType,
+        scopeType: "submission",
+        scopeId: candidate.station.id,
+        payload: {
+          fromStationId: suggestionId,
+          toStationId: candidate.station.id,
+          source,
+          distance: candidate.distance,
+          ambiguityCount: candidate.ambiguityCount
+        }
+      });
+    }
+
+    if (suggestionId === candidate.station.id && stationSuggestionAcceptedKeyRef.current !== acceptedKey) {
+      stationSuggestionAcceptedKeyRef.current = acceptedKey;
+      void trackProductEvent({
+        eventType: "station_suggestion_accepted",
+        pagePath: "/enviar",
+        pageTitle: "Enviar preço",
+        stationId: candidate.station.id,
+        city: candidate.station.city,
+        fuelType,
+        scopeType: "submission",
+        scopeId: candidate.station.id,
+        payload: {
+          source,
+          distance: candidate.distance,
+          geoReviewStatus: candidate.station.geoReviewStatus ?? null,
+          visibilityRank: candidate.visibilityRank,
+          decisionsSkipped: submissionAutoDecisionCountRef.current
+        }
+      });
+    }
+
+    if (isManualReuse && stationLastUsedReuseTrackedRef.current !== acceptedKey) {
+      stationLastUsedReuseTrackedRef.current = acceptedKey;
+      void trackProductEvent({
+        eventType: "station_last_used_reused",
+        pagePath: "/enviar",
+        pageTitle: "Enviar preço",
+        stationId: candidate.station.id,
+        city: candidate.station.city,
+        fuelType,
+        scopeType: "submission",
+        scopeId: candidate.station.id,
+        payload: {
+          source,
+          distance: candidate.distance,
+          recentIndex: candidate.recentIndex,
+          cityContextMatch: candidate.cityContextMatch
+        }
+      });
+    }
+
     setStationId(candidate.station.id);
     setStationSearch("");
     setValidationErrors((prev) => ({ ...prev, stationId: undefined }));
@@ -1466,7 +1681,7 @@ function PriceSubmitFormBody({
   }
   function handlePrimaryAction() {
     if (guidedStage === "photo") {
-      fileInputRef.current?.click();
+      openCameraPicker();
       recordActivity("start", stationId);
       return;
     }
@@ -1616,7 +1831,7 @@ function PriceSubmitFormBody({
                   hasPhoto: Boolean(selectedFileRef.current)
                 }
               });
-              fileInputRef.current?.click();
+              openCameraPicker();
               recordActivity('start', stationId);
             }}
             className={cn("w-full sm:w-auto", isStreetMode && "h-16 text-lg font-bold shadow-2xl")}
@@ -1643,7 +1858,7 @@ function PriceSubmitFormBody({
                     hasPhoto: Boolean(selectedFileRef.current)
                   }
                 });
-                fileInputRef.current?.click();
+                openCameraPicker();
                 recordActivity('start', stationId);
               }}
               className="w-full sm:w-auto"
@@ -1656,7 +1871,7 @@ function PriceSubmitFormBody({
           <div className="mt-3 rounded-[18px] border border-white/8 bg-black/30 p-3 text-sm text-white/66">
             <div className="flex items-center justify-between gap-3">
               <p className="font-medium text-white">Continuar envio salvo</p>
-              <Button type="button" variant="ghost" onClick={() => fileInputRef.current?.click()}>
+              <Button type="button" variant="ghost" onClick={() => openCameraPicker()}>
                 {draftPhotoMissing ? "Refazer foto" : "Continuar"}
               </Button>
             </div>
@@ -1767,7 +1982,7 @@ function PriceSubmitFormBody({
               >
                 Tentar novamente
               </Button>
-              <Button type="button" variant="ghost" onClick={() => fileInputRef.current?.click()}>
+              <Button type="button" variant="ghost" onClick={() => openCameraPicker()}>
                 Reabrir câmera
               </Button>
             </div>
@@ -1780,12 +1995,21 @@ function PriceSubmitFormBody({
           Foto
         </label>
         <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          tabIndex={-1}
+          aria-hidden="true"
+          onChange={handleFileChange}
+          className="hidden"
+        />
+        <input
           id="photo-input"
           name="photo"
           ref={fileInputRef}
           type="file"
           accept="image/*"
-          capture="environment"
           onFocus={() => handleFieldFocus("photo")}
           onChange={(e) => {
             setValidationErrors(prev => ({ ...prev, photo: undefined }));
@@ -1850,7 +2074,7 @@ function PriceSubmitFormBody({
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => openCameraPicker()}
                 className="h-8 rounded-full border-white/10 bg-white/10 px-3 text-[10px] font-bold text-white backdrop-blur-md hover:bg-white/20"
               >
                 REFAZER FOTO
@@ -1883,7 +2107,7 @@ function PriceSubmitFormBody({
               <p className="truncate text-sm font-semibold text-white">Foto pronta</p>
               <p className="mt-1 text-xs text-white/52">A próxima etapa é o posto.</p>
             </div>
-            <Button type="button" variant="secondary" className="shrink-0" onClick={() => fileInputRef.current?.click()}>
+            <Button type="button" variant="secondary" className="shrink-0" onClick={() => openGalleryPicker()}>
               Trocar
             </Button>
           </div>
@@ -2234,6 +2458,15 @@ export function PriceSubmitForm(props: PriceSubmitFormProps) {
 
   return <PriceSubmitFormBody key={`${props.initialStationId ?? "default"}-${formVersion}`} {...props} onResetRequest={() => setFormVersion((value) => value + 1)} />;
 }
+
+
+
+
+
+
+
+
+
 
 
 
