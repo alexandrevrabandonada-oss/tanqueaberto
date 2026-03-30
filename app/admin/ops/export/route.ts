@@ -297,6 +297,35 @@ export async function GET(request: Request) {
     });
   }
 
+  if (kind === "launch-borders") {
+    const report = await getLaunchObservabilityReport(Number.isFinite(days) ? days : 7);
+    const rows = [
+      { metric: "suggestions_shown", value: report.submissionBorders.suggestionsShown },
+      { metric: "suggestions_accepted", value: report.submissionBorders.suggestionsAccepted },
+      { metric: "suggestions_changed", value: report.submissionBorders.suggestionsChanged },
+      { metric: "suggestion_acceptance_rate", value: report.submissionBorders.suggestionAcceptanceRate },
+      { metric: "suggestion_change_rate", value: report.submissionBorders.suggestionChangeRate },
+      { metric: "last_used_reused", value: report.submissionBorders.lastUsedReused },
+      { metric: "geo_reliable", value: report.submissionBorders.geoReliable },
+      { metric: "geo_imprecise", value: report.submissionBorders.geoImprecise },
+      { metric: "geo_unavailable", value: report.submissionBorders.geoUnavailable },
+      { metric: "similar_choice_clicks", value: report.submissionBorders.similarChoiceClicks },
+      { metric: "proposal_flow_opened", value: report.submissionBorders.proposalFlowOpened },
+      { metric: "proposal_created", value: report.submissionBorders.proposalCreated },
+      { metric: "proposal_submitted_with_geo", value: report.submissionBorders.proposalSubmittedWithGeo },
+      { metric: "proposal_submitted_without_geo", value: report.submissionBorders.proposalSubmittedWithoutGeo },
+      { metric: "proposal_geo_rate", value: report.submissionBorders.proposalGeoRate },
+      { metric: "station_step_abandoned", value: report.submissionBorders.stationStepAbandoned }
+    ];
+
+    return new NextResponse(toCsv(rows), {
+      headers: {
+        "content-type": "text/csv; charset=utf-8",
+        "content-disposition": 'attachment; filename="bomba-aberta-launch-borders.csv"'
+      }
+    });
+  }
+
   const feedback = await getBetaFeedbackSummary(Number.isFinite(days) ? days : 14);
   const rows = feedback.recent.map((item) => ({
     created_at: item.createdAt,
@@ -322,6 +351,8 @@ export async function GET(request: Request) {
     }
   });
 }
+
+
 
 
 

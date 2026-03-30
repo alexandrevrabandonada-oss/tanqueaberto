@@ -55,6 +55,25 @@ export interface LaunchIdentityPromptRow {
   bySource: Array<{ source: string; shown: number; saved: number; dismissed: number }>;
 }
 
+export interface LaunchSubmissionBorderRow {
+  suggestionsShown: number;
+  suggestionsAccepted: number;
+  suggestionsChanged: number;
+  suggestionAcceptanceRate: number;
+  suggestionChangeRate: number;
+  lastUsedReused: number;
+  geoReliable: number;
+  geoImprecise: number;
+  geoUnavailable: number;
+  similarChoiceClicks: number;
+  proposalFlowOpened: number;
+  proposalCreated: number;
+  proposalSubmittedWithGeo: number;
+  proposalSubmittedWithoutGeo: number;
+  proposalGeoRate: number;
+  stationStepAbandoned: number;
+}
+
 export interface LaunchObservabilityReport {
   funnel: {
     steps: LaunchFunnelStepRow[];
@@ -65,6 +84,7 @@ export interface LaunchObservabilityReport {
   draftRestore: LaunchDraftRestoreRow;
   approvalLatency: LaunchApprovalLatencyRow;
   identityPrompts: LaunchIdentityPromptRow;
+  submissionBorders: LaunchSubmissionBorderRow;
 }
 
 const FUNNEL_ORDER = [
@@ -277,6 +297,25 @@ export async function getLaunchObservabilityReport(days = 7): Promise<LaunchObse
     identityShownBySource.set(source, sourceBucket);
   }
 
+  const submissionBorders = {
+    suggestionsShown: countEvent(operationalEvents, "station_suggestion_shown"),
+    suggestionsAccepted: countEvent(operationalEvents, "station_suggestion_accepted"),
+    suggestionsChanged: countEvent(operationalEvents, "station_suggestion_changed"),
+    suggestionAcceptanceRate: percent(countEvent(operationalEvents, "station_suggestion_accepted"), countEvent(operationalEvents, "station_suggestion_shown")),
+    suggestionChangeRate: percent(countEvent(operationalEvents, "station_suggestion_changed"), countEvent(operationalEvents, "station_suggestion_shown")),
+    lastUsedReused: countEvent(operationalEvents, "station_last_used_reused"),
+    geoReliable: operationalEvents.filter((event) => String(event.event_type) === "station_geo_state_reported" && getPayloadString(event, "state") === "reliable").length,
+    geoImprecise: operationalEvents.filter((event) => String(event.event_type) === "station_geo_state_reported" && getPayloadString(event, "state") === "imprecise").length,
+    geoUnavailable: operationalEvents.filter((event) => String(event.event_type) === "station_geo_state_reported" && getPayloadString(event, "state") === "unavailable").length,
+    similarChoiceClicks: countEvent(operationalEvents, "station_similar_choice_clicked"),
+    proposalFlowOpened: countEvent(operationalEvents, "station_proposal_flow_opened"),
+    proposalCreated: countEvent(operationalEvents, "station_proposal_created"),
+    proposalSubmittedWithGeo: countEvent(operationalEvents, "station_proposal_submitted_with_geo"),
+    proposalSubmittedWithoutGeo: countEvent(operationalEvents, "station_proposal_submitted_without_geo"),
+    proposalGeoRate: percent(countEvent(operationalEvents, "station_proposal_submitted_with_geo"), countEvent(operationalEvents, "station_proposal_created")),
+    stationStepAbandoned: countEvent(operationalEvents, "submission_station_step_abandoned")
+  };
+
   return {
     funnel: {
       steps,
@@ -317,6 +356,10 @@ export async function getLaunchObservabilityReport(days = 7): Promise<LaunchObse
       dismissRate: percent(identityDismissed, identityShown),
       byContext: Array.from(identityShownByContext.entries()).map(([context, value]) => ({ context, ...value })).sort((left, right) => right.shown - left.shown),
       bySource: Array.from(identityShownBySource.entries()).map(([source, value]) => ({ source, ...value })).sort((left, right) => right.shown - left.shown)
-    }
+    },
+    submissionBorders
   };
 }
+
+
+

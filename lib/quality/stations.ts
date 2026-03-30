@@ -4,8 +4,13 @@ export interface StationPublicIdentity extends Pick<Station, "name" | "brand" | 
   address?: string | null;
   namePublic?: string | null;
   nameOfficial?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  geoConfidence?: Station["geoConfidence"] | null;
   geoReviewStatus?: Station["geoReviewStatus"];
 }
+
+export type StationProposalReviewState = "boa_rapida" | "precisa_revisar" | "muito_vaga";
 
 export interface StationEditorialReviewItem {
   station: Station;
@@ -13,6 +18,9 @@ export interface StationEditorialReviewItem {
   reasons: string[];
   duplicateGroupSize: number;
   priorityScore: number;
+  proposalReviewState: StationProposalReviewState;
+  proposalReviewLabel: string;
+  proposalReviewReason: string;
 }
 
 function normalizeText(value: string) {
@@ -81,6 +89,64 @@ function detectStreetHint(address: string) {
 
   const firstSegment = cleaned.split(",")[0] ?? "";
   return firstSegment.trim();
+}
+
+export function getStationProposalReviewSignal(station: StationPublicIdentity, duplicateGroupSize = 1) {
+  const publicName = getStationPublicName(station);
+  const hasGeo = isValidStationCoordinate((station as Station).lat ?? null, (station as Station).lng ?? null);
+  const geoReviewStatus = station.geoReviewStatus ?? null;
+  const geoConfidence = (station as Station).geoConfidence ?? null;
+  const streetHint = detectStreetHint(station.address ?? "");
+  const neighborhood = normalizeStationPublicName(station.neighborhood ?? "");
+  const city = normalizeStationPublicName(station.city ?? "");
+  const hasLocationHint = Boolean(streetHint || neighborhood || city);
+  const hasUsefulText = Boolean(normalizeStationPublicName(station.namePublic ?? "") || normalizeStationPublicName(station.nameOfficial ?? "") || normalizeStationPublicName(station.brand ?? ""));
+  const isGenericName = detectGenericStationName(publicName);
+  const hasDuplicateRisk = duplicateGroupSize > 1 || isGenericName;
+
+  if (hasGeo && (geoReviewStatus === "ok" || geoReviewStatus === "pending") && (geoConfidence === "high" || geoConfidence === "medium") && !isGenericName && hasLocationHint) {
+    return {
+      state: "boa_rapida" as const,
+      label: "Boa para aprovar rapido",
+      reason: hasDuplicateRisk ? "Tem geo e texto bons, mas vale checar repeticao." : "Tem geo confiavel e dados suficientes."
+    };
+  }
+
+  if (!hasGeo && isGenericName && !hasLocationHint) {
+    return {
+      state: "muito_vaga" as const,
+      label: "Muito vaga",
+      reason: "Sem geo e com nome generico. Precisa de mais sinal."
+    };
+  }
+
+  if (!hasUsefulText && !hasGeo) {
+    return {
+      state: "muito_vaga" as const,
+      label: "Muito vaga",
+      reason: "Faltam nome e local minimamente distintivos."
+    };
+  }
+
+  if (geoReviewStatus === "manual_review" || geoConfidence === "low" || !hasGeo || hasDuplicateRisk) {
+    const reason = !hasGeo
+      ? "Sem geo confiavel. Revisar com cuidado."
+      : hasDuplicateRisk
+        ? "Pode repetir um posto existente."
+        : "Precisa de revisao antes de aprovar.";
+
+    return {
+      state: "precisa_revisar" as const,
+      label: "Precisa revisar",
+      reason
+    };
+  }
+
+  return {
+    state: "precisa_revisar" as const,
+    label: "Precisa revisar",
+    reason: "Ainda vale uma checagem rapida."
+  };
 }
 
 export function detectGenericStationName(name: string) {
@@ -195,6 +261,7 @@ export function getStationEditorialReviewQueue(stations: Station[]) {
     const displayName = getStationPublicName(station);
     const reasons = getStationEditorialReviewReason(station);
     const duplicateGroupSize = duplicateGroup.length;
+    const proposalReview = getStationProposalReviewSignal(station, duplicateGroupSize);
 
     if (duplicateGroupSize > 1) {
       reasons.push(`Possível repetição visual (${duplicateGroupSize} no mesmo recorte)`);
@@ -207,6 +274,8 @@ export function getStationEditorialReviewQueue(stations: Station[]) {
     if (reasons.length === 0) {
       continue;
     }
+
+    reasons.unshift(`${proposalReview.label}: ${proposalReview.reason}`);
 
     const priorityCities = new Set(["VOLTA REDONDA", "BARRA MANSA", "BARRA DO PIRAI"]);
     let priorityScore = 0;
@@ -236,7 +305,10 @@ export function getStationEditorialReviewQueue(stations: Station[]) {
       displayName,
       reasons,
       duplicateGroupSize,
-      priorityScore
+      priorityScore,
+      proposalReviewState: proposalReview.state,
+      proposalReviewLabel: proposalReview.label,
+      proposalReviewReason: proposalReview.reason
     });
   }
 
@@ -348,3 +420,4 @@ export function computeStationPriorityScore(input: {
 
   return Math.min(100, score);
 }
+
