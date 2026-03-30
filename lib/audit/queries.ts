@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+﻿import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { mapReportRow, mapReportsWithStations, mapStationRow } from "@/lib/data/mappers";
 import { getStationById } from "@/lib/data/queries";
 import type { FuelType, PriceReport, Station } from "@/lib/types";
@@ -7,9 +7,10 @@ import { buildAlerts, buildCoverageAlerts, buildDailySeries, buildOverviewPackag
 import type { AuditComparisonItem, AuditOverview, AuditWindowDays, CityAuditDetail, StationAuditDetail } from "@/lib/audit/types";
 import { auditCities, getAuditCityBySlug, getAuditCitySlug } from "@/lib/audit/cities";
 import { buildSeriesFromDailyRows, summarizeAuditSeries, type AuditDailyAggregateRow } from "@/lib/audit/series";
+import { logRuntimeIssue } from "@/lib/observability/runtime-issues";
 
 const reportSelect =
-  "id,station_id,fuel_type,price,photo_url,photo_taken_at,observed_at,submitted_at,reported_at,approved_at,rejected_at,created_at,reporter_nickname,status,moderation_note,moderation_reason,moderated_by,source_kind,photo_hash,version";
+  "id,station_id,fuel_type,price,photo_url,photo_taken_at,reported_at,approved_at,rejected_at,created_at,reporter_nickname,status,moderation_note,moderation_reason,moderated_by,source_kind,photo_hash,version";
 
 function getWindowStart(days: AuditWindowDays) {
   const start = new Date();
@@ -21,12 +22,12 @@ async function getActiveStationsWithMetadata(): Promise<Station[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("stations")
-    .select("id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,coordinate_reviewed_at,updated_at")
+    .select("id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,duplicate_of_station_id,coordinate_reviewed_at,updated_at")
     .eq("is_active", true)
     .order("name", { ascending: true });
 
   if (error || !data) {
-    console.error("Failed to load stations", error);
+    logRuntimeIssue("Failed to load stations", error, { scope: "audit", surface: "queries.getActiveStationsWithMetadata", fallback: "empty-list", optional: true, schemaSensitive: true });
     return [];
   }
 
@@ -48,7 +49,7 @@ async function getApprovedReportsWindow(options: { days: AuditWindowDays; fuelTy
   const { data, error } = await query;
 
   if (error || !data) {
-    console.error("Failed to load audit reports", error);
+    logRuntimeIssue("Failed to load audit reports", error, { scope: "audit", surface: "queries.getApprovedReportsWindow", fallback: "empty-list", optional: true, schemaSensitive: true });
     return [] as PriceReport[];
   }
 
@@ -70,7 +71,7 @@ async function getDailyStationRows(stationIds: string[], fuelType: FuelType, day
     .order("day", { ascending: true });
 
   if (error || !data) {
-    console.warn("Failed to load station audit aggregates, falling back to raw reports", error);
+    logRuntimeIssue("Failed to load station audit aggregates, falling back to raw reports", error, { scope: "audit", surface: "queries.getDailyStationRows", fallback: "raw-reports", optional: true, schemaSensitive: true });
     return null;
   }
 
@@ -88,7 +89,7 @@ async function getDailyCityRows(city: string, fuelType: FuelType, days: AuditWin
     .order("day", { ascending: true });
 
   if (error || !data) {
-    console.warn("Failed to load city audit aggregates, falling back to raw reports", error);
+    logRuntimeIssue("Failed to load city audit aggregates, falling back to raw reports", error, { scope: "audit", surface: "queries.getDailyCityRows", fallback: "raw-reports", optional: true, schemaSensitive: true });
     return null;
   }
 
@@ -241,8 +242,8 @@ export async function getStationAuditDetail(stationId: string, fuelType: FuelTyp
       price: report.price,
       photoUrl: report.photoUrl,
       reportedAt: report.reportedAt,
-      observedAt: report.observedAt,
-      submittedAt: report.submittedAt,
+      observedAt: report.reportedAt,
+      submittedAt: report.createdAt,
       reporterNickname: report.reporterNickname,
       sourceKind: report.sourceKind
     })),
@@ -286,8 +287,8 @@ export async function getCityAuditDetail(citySlug: string, fuelType: FuelType, d
       price: report.price,
       photoUrl: report.photoUrl,
       reportedAt: report.reportedAt,
-      observedAt: report.observedAt,
-      submittedAt: report.submittedAt,
+      observedAt: report.reportedAt,
+      submittedAt: report.createdAt,
       reporterNickname: report.reporterNickname,
       sourceKind: report.sourceKind
     })),
@@ -315,3 +316,10 @@ export async function getCityComparison(fuelType: FuelType, days: AuditWindowDay
   const cityRows = await Promise.all(cityNames.map((cityName) => getDailyCityRows(cityName, fuelType, days)));
   return buildCityRankingsFromRows(cityRows.flat().filter((row): row is NonNullable<typeof row> => Boolean(row)), stations, days);
 }
+
+
+
+
+
+
+

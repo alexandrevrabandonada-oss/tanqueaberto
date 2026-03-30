@@ -22,7 +22,7 @@ export async function getActiveStations(): Promise<Station[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("stations")
-    .select("id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,coordinate_reviewed_at,updated_at")
+    .select("id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,duplicate_of_station_id,coordinate_reviewed_at,updated_at")
     .eq("is_active", true)
     .order("name", { ascending: true });
 
@@ -43,7 +43,7 @@ export async function getStationById(id: string): Promise<Station | null> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("stations")
-    .select("id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,coordinate_reviewed_at,updated_at")
+    .select("id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,duplicate_of_station_id,coordinate_reviewed_at,updated_at")
     .eq("id", id)
     .maybeSingle();
 
@@ -226,7 +226,7 @@ export async function getStationOptions(): Promise<Station[]> {
 
 async function getAdminStations() {
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.from("stations").select("id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,coordinate_reviewed_at,updated_at").order("created_at", { ascending: false });
+  const { data, error } = await supabase.from("stations").select("id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,duplicate_of_station_id,coordinate_reviewed_at,updated_at").order("created_at", { ascending: false });
 
   if (error || !data) {
     console.error("Failed to load admin stations", error);
@@ -363,7 +363,7 @@ export async function getStationReviewQueue(limit = 12): Promise<Station[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("stations")
-    .select("id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,coordinate_reviewed_at,updated_at")
+    .select("id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,duplicate_of_station_id,coordinate_reviewed_at,updated_at")
     .in("geo_review_status", ["pending", "manual_review"])
     .order("priority_score", { ascending: false })
     .limit(limit);
@@ -403,7 +403,7 @@ export async function getStationsByIds(ids: string[]): Promise<Station[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("stations")
-    .select("id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,coordinate_reviewed_at,updated_at")
+    .select("id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,duplicate_of_station_id,coordinate_reviewed_at,updated_at")
     .in("id", ids)
     .eq("is_active", true);
 
@@ -439,3 +439,4 @@ export async function getRecentReportsForStations(stationIds: string[], limit = 
 
   return (data as PriceReportRow[]).map(mapReportRow);
 }
+

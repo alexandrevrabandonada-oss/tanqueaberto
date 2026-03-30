@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import type { Route } from "next";
 
 import { recordAdminActionLog, recordOperationalEvent } from "@/lib/ops/logs";
+import { recordPriceReportAuditEvent } from "@/lib/audit/events";
 import { requireAdminUser } from "@/lib/auth/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { updateCollectorScore } from "@/lib/ops/collector-trust";
@@ -252,6 +253,23 @@ async function moderateReports(reportIds: string[], decision: "approved" | "reje
     }
   });
 
+  await recordPriceReportAuditEvent({
+    reportId: reportIds[0],
+    eventType: "moderated",
+    actorId: admin.id,
+    payload: {
+      decision,
+      moderationNote: note,
+      stationId: report.station_id,
+      fuelType: report.fuel_type,
+      price: report.price,
+      reportedAt: report.reported_at,
+      version: nextVersion,
+      groupedCount: reportIds.length,
+      additionalReportIds: reportIds.slice(1)
+    }
+  });
+
   revalidatePath("/");
   revalidatePath("/atualizacoes");
   revalidatePath("/admin");
@@ -399,19 +417,20 @@ export async function updateTerritorialCurationAction(formData: FormData) {
     redirect(`${ADMIN_ROUTE}?error=invalid_request` as Route);
   }
 
-  const decision = getOptionalText(formData, "decision") as "approve" | "adjust" | "hide" | null;
+  const decision = getOptionalText(formData, "decision") as "approve" | "review" | "reject" | "duplicate" | "adjust" | "hide" | null;
   const geoReviewStatus = getOptionalText(formData, "geoReviewStatus") as "ok" | "pending" | "manual_review" | null;
   const geoConfidence = getOptionalText(formData, "geoConfidence");
   const geoSource = getOptionalText(formData, "geoSource");
   const visibilityStatus = getOptionalText(formData, "visibilityStatus") as "public" | "review" | "hidden" | null;
   const curationNote = getOptionalText(formData, "curationNote") ?? getOptionalText(formData, "moderationNote");
+  const duplicateOfStationId = getOptionalText(formData, "duplicateOfStationId");
   const lat = parseOptionalNumber(formData, "lat");
   const lng = parseOptionalNumber(formData, "lng");
 
   const supabase = await createSupabaseServerClient();
   const { data: stationRows, error: fetchError } = await supabase
     .from("stations")
-    .select("id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,coordinate_reviewed_at,updated_at")
+    .select("id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,duplicate_of_station_id,coordinate_reviewed_at,updated_at")
     .in("id", targetIds);
 
   if (fetchError || !stationRows || stationRows.length === 0) {
@@ -419,6 +438,7 @@ export async function updateTerritorialCurationAction(formData: FormData) {
   }
 
   const stations = (stationRows as any[]).map(mapStationRow);
+  const linkedStation = duplicateOfStationId ? stations.find((station) => station.id === duplicateOfStationId) ?? null : null;
   if (decision === "approve") {
     const blocked = stations.filter((station) => !canPromoteStationToMap(station));
     if (blocked.length > 0) {
@@ -458,12 +478,17 @@ export async function updateTerritorialCurationAction(formData: FormData) {
     if (geoConfidence === null) {
       updatePayload.geo_confidence = "medium";
     }
-  } else if (decision === "adjust") {
+  } else if (decision === "review" || decision === "adjust") {
     updatePayload.geo_review_status = "manual_review";
     updatePayload.visibility_status = "review";
-  } else if (decision === "hide") {
+  } else if (decision === "reject" || decision === "hide") {
     updatePayload.geo_review_status = "manual_review";
     updatePayload.visibility_status = "hidden";
+  } else if (decision === "duplicate") {
+    updatePayload.geo_review_status = "manual_review";
+    updatePayload.visibility_status = "hidden";
+    updatePayload.duplicate_of_station_id = duplicateOfStationId || null;
+    updatePayload.curation_note = [curationNote, linkedStation ? `Vinculado como duplicado de ${linkedStation.name}` : "Vinculado como duplicado"].filter(Boolean).join(" · ");
   }
 
   if ((updatePayload.geo_review_status === "ok" || updatePayload.geo_review_status === "pending") && updatePayload.geo_confidence === undefined && lat !== null && lng !== null) {
@@ -556,7 +581,7 @@ export async function updateCityRolloutAction(formData: FormData) {
   if (rolloutNote) updatePayload.rollout_notes = rolloutNote;
 
   const { error } = await supabase
-    .from("station_groups")
+    .from("audit_station_groups")
     .update(updatePayload)
     .eq("slug", groupSlug);
 
@@ -599,5 +624,8 @@ export async function updateCityRolloutAction(formData: FormData) {
   revalidatePath(`/cidade/${groupSlug}`);
   redirect(`${ADMIN_ROUTE}?notice=rollout_updated` as Route);
 }
+
+
+
 
 

@@ -1,4 +1,5 @@
-import { createSupabaseServiceClient } from "@/lib/supabase/service";
+﻿import { createSupabaseServiceClient } from "@/lib/supabase/service";
+import { logRuntimeIssue } from "@/lib/observability/runtime-issues";
 import { mapStationRow } from "@/lib/data/mappers";
 import type { Station } from "@/lib/types";
 import type { StationRow } from "@/types/supabase";
@@ -84,13 +85,13 @@ export async function seedOperationalGroups() {
   const supabase = createSupabaseServiceClient();
   const { data: stationRows, error: stationError } = await supabase
     .from("stations")
-    .select("id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,coordinate_reviewed_at,updated_at")
+    .select("id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,duplicate_of_station_id,coordinate_reviewed_at,updated_at")
     .eq("is_active", true)
     .order("name", { ascending: true });
 
   if (stationError || !stationRows) {
     if (isMissingSchemaError(stationError)) {
-      console.warn("Tabela de grupos operacionais ainda não existe no banco remoto. Seed adiado.");
+      logRuntimeIssue("Tabela de grupos operacionais ainda não existe no banco remoto. Seed adiado.", stationError, { scope: "ops", surface: "groups.seedOperationalGroups", fallback: "seed-adiado", optional: true, schemaSensitive: true });
       return [] as Array<{ slug: string; members: number }>;
     }
 
@@ -109,11 +110,11 @@ export async function seedOperationalGroups() {
 
     if (existingError) {
       if (isMissingSchemaError(existingError)) {
-        console.warn("Tabela audit_station_groups ainda não existe no banco remoto. Seed adiado.");
+        logRuntimeIssue("Tabela audit_station_groups ainda não existe no banco remoto. Seed adiado.", existingError, { scope: "ops", surface: "groups.seedOperationalGroups.read", fallback: "seed-adiado", optional: true, schemaSensitive: true });
         return results;
       }
 
-      console.error(`Failed to read group ${definition.slug}`, existingError);
+      logRuntimeIssue(`Failed to read group ${definition.slug}`, existingError, { scope: "ops", surface: "groups.seedOperationalGroups.read", fallback: "seed-continue", optional: true, schemaSensitive: true });
       continue;
     }
 
@@ -139,11 +140,11 @@ export async function seedOperationalGroups() {
 
       if (upsertResult.error || !upsertResult.data) {
         if (isMissingSchemaError(upsertResult.error)) {
-          console.warn("Tabela audit_station_groups ainda não existe no banco remoto. Seed adiado.");
+          logRuntimeIssue("Tabela audit_station_groups ainda não existe no banco remoto. Seed adiado.", upsertResult.error, { scope: "ops", surface: "groups.seedOperationalGroups.upsert", fallback: "seed-adiado", optional: true, schemaSensitive: true });
           return results;
         }
 
-        console.error(`Failed to upsert group ${definition.slug}`, upsertResult.error);
+        logRuntimeIssue(`Failed to upsert group ${definition.slug}`, upsertResult.error, { scope: "ops", surface: "groups.seedOperationalGroups.upsert", fallback: "seed-continue", optional: true, schemaSensitive: true });
         continue;
       }
 
@@ -169,11 +170,11 @@ export async function seedOperationalGroups() {
 
       if (error) {
         if (isMissingSchemaError(error)) {
-          console.warn("Tabela audit_station_group_members ainda não existe no banco remoto. Seed adiado.");
+          logRuntimeIssue("Tabela audit_station_group_members ainda não existe no banco remoto. Seed adiado.", error, { scope: "ops", surface: "groups.seedOperationalGroups.members", fallback: "seed-adiado", optional: true, schemaSensitive: true });
           return results;
         }
 
-        console.error(`Failed to seed members for ${definition.slug}`, error);
+        logRuntimeIssue(`Failed to seed members for ${definition.slug}`, error, { scope: "ops", surface: "groups.seedOperationalGroups.members", fallback: "seed-continue", optional: true, schemaSensitive: true });
         continue;
       }
     }
@@ -183,3 +184,5 @@ export async function seedOperationalGroups() {
 
   return results;
 }
+
+

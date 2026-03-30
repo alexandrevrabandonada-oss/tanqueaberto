@@ -30,6 +30,7 @@ function mapStationRow(row: StationRow): Station {
     priorityScore: row.priority_score,
     visibilityStatus: row.visibility_status as Station["visibilityStatus"],
     curationNote: row.curation_note,
+    duplicateOfStationId: row.duplicate_of_station_id ?? null,
     coordinateReviewedAt: row.coordinate_reviewed_at,
     updatedAt: row.updated_at
   };
@@ -43,8 +44,8 @@ function mapReportRow(row: PriceReportRow): PriceReport {
     price: row.price,
     photoUrl: row.photo_url,
     photoTakenAt: row.photo_taken_at,
-    observedAt: row.observed_at ?? row.reported_at,
-    submittedAt: row.submitted_at ?? row.created_at,
+    observedAt: row.reported_at,
+    submittedAt: row.created_at,
     reportedAt: row.reported_at,
     approvedAt: row.approved_at ?? null,
     rejectedAt: row.rejected_at ?? null,
@@ -123,3 +124,7 @@ export function mapReportsWithStations(reports: PriceReport[], stations: Station
 }
 
 export { mapStationRow, mapReportRow };
+
+
+
+

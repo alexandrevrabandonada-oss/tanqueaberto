@@ -26,6 +26,7 @@ export interface StationRow {
   priority_score?: number;
   visibility_status?: string;
   curation_note?: string | null;
+  duplicate_of_station_id?: string | null;
   coordinate_reviewed_at?: string | null;
   updated_at?: string | null;
 }
@@ -37,8 +38,6 @@ export interface PriceReportRow {
   price: number;
   photo_url: string;
   photo_taken_at: string | null;
-  observed_at?: string | null;
-  submitted_at?: string | null;
   reported_at: string;
   approved_at?: string | null;
   rejected_at?: string | null;
@@ -67,3 +66,7 @@ export interface PriceReportAuditEventRow {
   actor_id: string | null;
   created_at: string;
 }
+
+
+
+

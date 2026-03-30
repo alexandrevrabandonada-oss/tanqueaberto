@@ -34,6 +34,7 @@ export interface Station {
   priorityScore?: number;
   visibilityStatus?: "public" | "review" | "hidden";
   curationNote?: string | null;
+  duplicateOfStationId?: string | null;
   coordinateReviewedAt?: string | null;
   releaseStatus?: "ready" | "validating" | "limited" | "hidden";
   distance?: number; // In meters
@@ -81,3 +82,4 @@ export interface ReportWithStation extends PriceReport {
   collectorTrustScore?: number;
   collectorTrustStage?: "new" | "trusted" | "review_needed" | "blocked";
 }
+
