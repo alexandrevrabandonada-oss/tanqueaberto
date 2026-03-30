@@ -5,7 +5,7 @@ import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
-import { Camera, ShieldCheck, ArrowRight, Clock3, Trophy, Target, Zap } from "lucide-react";
+import { Camera, ShieldCheck, ArrowRight, Clock3, Trophy, Target, Zap, Search, MapPin } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +23,7 @@ import { buildSubmissionQueueHref, clearSubmissionQueueForDraftKey, loadSubmissi
 import { useStreetMode } from "@/hooks/use-street-mode";
 import { useMissionContext } from "@/components/mission/mission-context";
 import { cn } from "@/lib/utils";
-import { getStationPublicName } from "@/lib/quality/stations";
+import { getStationPublicName, hasPendingStationLocationReview, isValidStationCoordinate } from "@/lib/quality/stations";
 import { useSubmissionHistory } from "@/components/history/submission-history-context";
 import { analyzePhotoQuality, type PhotoQualityResult } from "@/lib/camera/quality-analyzer";
 import { processImageForUpload } from "@/lib/camera/image-processor";
@@ -37,6 +37,7 @@ import { ProgressiveIdentityPrompt } from "@/components/identity/progressive-ide
 import { PostSubmissionBridge } from "./post-submission-bridge";
 import { useStreetSession } from "@/hooks/use-street-session";
 import { useTestMode } from "@/hooks/use-test-mode";
+import { normalizeContextValue, readHomeContext, readLastStationContext, rememberStationVisit } from "@/lib/navigation/home-context";
 
 const fuelOptions: FuelType[] = ["gasolina_comum", "gasolina_aditivada", "etanol", "diesel_s10", "diesel_comum", "gnv"];
 const allowedFuelSet = new Set<FuelType>(fuelOptions);
@@ -111,6 +112,108 @@ function syncProcessedFileToInput(input: HTMLInputElement | null, file: File) {
   }
 }
 
+interface StationPickerCandidate {
+  station: StationWithReports;
+  publicName: string;
+  neighborhoodLabel: string;
+  addressShort: string;
+  brandLabel: string | null;
+  searchText: string;
+  distance: number | null;
+  recentIndex: number;
+  visibilityRank: number;
+  geoRank: number;
+  ambiguityCount: number;
+  cityContextMatch: boolean;
+  hasReliableCoordinate: boolean;
+}
+
+function shortAddress(address?: string | null) {
+  if (!address) return "";
+  return address
+    .split(",")
+    .slice(0, 2)
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+    .join(", ");
+}
+
+function getStationVisibilityRank(station: StationWithReports) {
+  if (station.visibilityStatus === "public") return 3;
+  if (station.releaseStatus === "ready") return 3;
+  if (station.visibilityStatus === "review") return 2;
+  if (station.releaseStatus === "validating" || station.releaseStatus === "limited") return 1;
+  return 0;
+}
+
+function getStationGeoRank(station: StationWithReports) {
+  if (!isValidStationCoordinate(station.lat, station.lng)) return -1;
+  if (station.geoReviewStatus === "ok") return 3;
+  if (station.geoReviewStatus === "pending") return 2;
+  if (station.geoReviewStatus === "manual_review") return 0;
+  return 1;
+}
+
+function getStationAmbiguityKey(station: StationWithReports, publicName: string) {
+  return [normalizeContextValue(publicName), normalizeContextValue(station.city), normalizeContextValue(station.neighborhood)].join("|");
+}
+
+function getStationSearchScore(candidate: StationPickerCandidate, query: string) {
+  const normalized = normalizeContextValue(query);
+  if (!normalized) return 0;
+
+  const tokens = normalized.split(/\s+/g).filter(Boolean);
+  if (tokens.length === 0) return 0;
+
+  const searchable = candidate.searchText;
+  if (!tokens.every((token) => searchable.includes(token))) {
+    return 0;
+  }
+
+  let score = 0;
+  if (normalizeContextValue(candidate.publicName).startsWith(normalized)) score += 120;
+  if (searchable.includes(normalized)) score += 60;
+  if (normalizeContextValue(candidate.neighborhoodLabel).includes(normalized)) score += 24;
+  if (normalizeContextValue(candidate.addressShort).includes(normalized)) score += 18;
+  if (candidate.brandLabel && normalizeContextValue(candidate.brandLabel).includes(normalized)) score += 16;
+  score += Math.max(0, 24 - candidate.recentIndex * 3);
+  score += candidate.visibilityRank * 8;
+  score += candidate.geoRank * 6;
+  if (candidate.distance !== null) {
+    score += Math.max(0, 30 - Math.round(candidate.distance / 200));
+  }
+
+  return score;
+}
+
+function compareStationCandidates(left: StationPickerCandidate, right: StationPickerCandidate) {
+  if (left.recentIndex !== right.recentIndex) return left.recentIndex - right.recentIndex;
+  if (left.visibilityRank !== right.visibilityRank) return right.visibilityRank - left.visibilityRank;
+  if (left.geoRank !== right.geoRank) return right.geoRank - left.geoRank;
+  if (left.cityContextMatch !== right.cityContextMatch) return left.cityContextMatch ? -1 : 1;
+  if (left.distance !== null && right.distance !== null && left.distance !== right.distance) return left.distance - right.distance;
+  if (left.distance !== null && right.distance === null) return -1;
+  if (left.distance === null && right.distance !== null) return 1;
+  if (left.ambiguityCount !== right.ambiguityCount) return left.ambiguityCount - right.ambiguityCount;
+  return left.publicName.localeCompare(right.publicName, "pt-BR");
+}
+
+function getGeoReviewBadge(candidate: StationPickerCandidate) {
+  if (!candidate.hasReliableCoordinate) {
+    return { label: "Geo fraca", variant: "warning" as const };
+  }
+
+  if (candidate.station.geoReviewStatus === "pending") {
+    return { label: "Geo pendente", variant: "outline" as const };
+  }
+
+  if (candidate.station.geoReviewStatus === "manual_review") {
+    return { label: "Revisar geo", variant: "danger" as const };
+  }
+
+  return { label: "Geo ok", variant: "accent" as const };
+}
+
 function PriceSubmitFormBody({
   stations,
   initialStationId,
@@ -127,7 +230,7 @@ function PriceSubmitFormBody({
   const { addSubmission } = useSubmissionHistory();
   const { submissions } = useMySubmissions();
   const safeReturnToHref = useMemo(() => safeRoute(returnToHref), [returnToHref]);
-  const { recordActivity } = useStreetSession();
+  const { recordActivity, session, history, lastSummary } = useStreetSession();
   const { isActive: isTestMode } = useTestMode();
   const draftKey = useMemo(() => createDraftKey(initialStationId), [initialStationId]);
 
@@ -142,6 +245,9 @@ function PriceSubmitFormBody({
   const [price, setPrice] = useState("");
   const [nickname, setNickname] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [stationSearch, setStationSearch] = useState("");
+  const [homeContextSnapshot, setHomeContextSnapshot] = useState<ReturnType<typeof readHomeContext>>({});
+  const [lastStationSnapshot, setLastStationSnapshot] = useState<ReturnType<typeof readLastStationContext>>(() => null);
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
   const [draftPhotoMissing, setDraftPhotoMissing] = useState(false);
@@ -268,6 +374,11 @@ function PriceSubmitFormBody({
       window.removeEventListener("online", syncOnlineState);
       window.removeEventListener("offline", syncOnlineState);
     };
+  }, []);
+
+  useEffect(() => {
+    setHomeContextSnapshot(readHomeContext());
+    setLastStationSnapshot(readLastStationContext());
   }, []);
 
   useEffect(() => {
@@ -465,6 +576,108 @@ function PriceSubmitFormBody({
       .filter(s => (s.distance || 0) <= 2000)
       .sort((a, b) => (a.distance || 0) - (b.distance || 0));
   }, [coords, stations]);
+
+  const recentStationIds = useMemo(() => {
+    const ids: string[] = [];
+    const push = (value?: string | null) => {
+      if (!value || ids.includes(value)) return;
+      ids.push(value);
+    };
+
+    push(initialStationId ?? null);
+    push(lastStationSnapshot?.id ?? null);
+    push(session?.lastGesture?.stationId ?? null);
+    session?.stationsTouched.slice().reverse().forEach((id) => push(id));
+    session?.stationsSeen.slice().reverse().forEach((id) => push(id));
+    history.forEach((entry) => push(entry.lastGesture?.stationId ?? null));
+    push(lastSummary?.lastGesture?.stationId ?? null);
+    submissions.forEach((entry) => push(entry.stationId));
+
+    return ids;
+  }, [history, initialStationId, lastStationSnapshot?.id, lastSummary?.lastGesture?.stationId, session?.lastGesture?.stationId, session?.stationsSeen, session?.stationsTouched, submissions]);
+
+  const stationCandidates = useMemo<StationPickerCandidate[]>(() => {
+    const cityContext = normalizeContextValue(homeContextSnapshot.city ?? "");
+    const publicNameCounts = new Map<string, number>();
+
+    for (const station of stations) {
+      const publicName = getStationPublicName(station);
+      const key = getStationAmbiguityKey(station, publicName);
+      publicNameCounts.set(key, (publicNameCounts.get(key) ?? 0) + 1);
+    }
+
+    return stations.map((station) => {
+      const publicName = getStationPublicName(station);
+      const addressShort = shortAddress(station.address);
+      const neighborhoodLabel = station.neighborhood?.trim() || "Bairro nao informado";
+      const brandLabel = station.distributorName?.trim() || station.brand?.trim() || null;
+      const hasReliableCoordinate = isValidStationCoordinate(station.lat, station.lng);
+      const distance = coords && hasReliableCoordinate ? calculateDistance(coords.lat, coords.lng, station.lat, station.lng) : null;
+      const ambiguityCount = publicNameCounts.get(getStationAmbiguityKey(station, publicName)) ?? 1;
+      const recentIndex = recentStationIds.indexOf(station.id);
+
+      return {
+        station,
+        publicName,
+        neighborhoodLabel,
+        addressShort,
+        brandLabel,
+        searchText: normalizeContextValue([publicName, neighborhoodLabel, addressShort, station.city, station.brand, station.distributorName].filter(Boolean).join(" ")),
+        distance,
+        recentIndex: recentIndex >= 0 ? recentIndex : 999,
+        visibilityRank: getStationVisibilityRank(station),
+        geoRank: getStationGeoRank(station),
+        ambiguityCount,
+        cityContextMatch: Boolean(cityContext) && normalizeContextValue(station.city).includes(cityContext),
+        hasReliableCoordinate
+      };
+    }).sort(compareStationCandidates);
+  }, [coords, homeContextSnapshot.city, recentStationIds, stations]);
+
+  const normalizedStationSearch = useMemo(() => normalizeContextValue(stationSearch), [stationSearch]);
+
+  const nearbyRadiusMeters = useMemo(() => {
+    const distances = stationCandidates
+      .map((candidate) => candidate.distance)
+      .filter((value): value is number => value !== null)
+      .sort((left, right) => left - right);
+
+    if (distances.length === 0) return 0;
+    return distances[0] <= 2000 ? 2000 : 5000;
+  }, [stationCandidates]);
+
+  const nearbyPickerItems = useMemo(() => {
+    const prioritized = stationCandidates.filter((candidate) => candidate.distance !== null && candidate.geoRank >= 2 && candidate.visibilityRank > 0 && (candidate.distance ?? 0) <= nearbyRadiusMeters);
+    if (prioritized.length > 0) return prioritized.slice(0, 7);
+    return stationCandidates.filter((candidate) => candidate.distance !== null && candidate.geoRank >= 0).slice(0, 7);
+  }, [nearbyRadiusMeters, stationCandidates]);
+
+  const recentPickerItems = useMemo(() => {
+    return stationCandidates
+      .filter((candidate) => candidate.recentIndex < 999)
+      .slice()
+      .sort((left, right) => left.recentIndex - right.recentIndex)
+      .slice(0, 6);
+  }, [stationCandidates]);
+
+  const fallbackPickerItems = useMemo(() => {
+    const blockedIds = new Set([...nearbyPickerItems, ...recentPickerItems].map((candidate) => candidate.station.id));
+    return stationCandidates.filter((candidate) => !blockedIds.has(candidate.station.id)).slice(0, 8);
+  }, [nearbyPickerItems, recentPickerItems, stationCandidates]);
+
+  const searchPickerItems = useMemo(() => {
+    if (!normalizedStationSearch) return [] as StationPickerCandidate[];
+
+    return stationCandidates
+      .map((candidate) => ({ candidate, score: getStationSearchScore(candidate, normalizedStationSearch) }))
+      .filter((entry) => entry.score > 0)
+      .sort((left, right) => {
+        if (left.score !== right.score) return right.score - left.score;
+        return compareStationCandidates(left.candidate, right.candidate);
+      })
+      .map((entry) => entry.candidate)
+      .slice(0, 14);
+  }, [normalizedStationSearch, stationCandidates]);
 
   const nextStationNode = useMemo(() => {
     if (!mission || mission.currentIndex + 1 >= mission.stationIds.length) return null;
@@ -1017,6 +1230,64 @@ function PriceSubmitFormBody({
     await refreshQueueItems();
   }
 
+  function handleStationSelect(candidate: StationPickerCandidate, source: "nearby" | "recent" | "search" | "fallback") {
+    setStationId(candidate.station.id);
+    setStationSearch("");
+    setValidationErrors((prev) => ({ ...prev, stationId: undefined }));
+    setIsSuggested(source === "nearby" && candidate.distance !== null);
+    markStarted("station", {
+      changed: true,
+      source,
+      distance: candidate.distance,
+      geoReviewStatus: candidate.station.geoReviewStatus ?? null,
+      ambiguityCount: candidate.ambiguityCount
+    });
+    rememberStationVisit({ id: candidate.station.id, name: candidate.publicName, city: candidate.station.city });
+    setLastStationSnapshot({ id: candidate.station.id, name: candidate.publicName, city: candidate.station.city });
+    recordActivity("touch", candidate.station.id);
+  }
+
+  function renderStationOption(candidate: StationPickerCandidate, source: "nearby" | "recent" | "search" | "fallback") {
+    const isSelected = candidate.station.id === stationId;
+    const geoBadge = getGeoReviewBadge(candidate);
+    const isGeoPending = hasPendingStationLocationReview(candidate.station);
+
+    return (
+      <button
+        key={`${source}:${candidate.station.id}`}
+        type="button"
+        onClick={() => handleStationSelect(candidate, source)}
+        className={cn(
+          "w-full rounded-[18px] border px-4 py-3 text-left transition-all",
+          isSelected
+            ? "border-[color:var(--color-accent)]/45 bg-[color:var(--color-accent)]/12 shadow-[0_12px_32px_rgba(255,212,0,0.12)]"
+            : "border-white/10 bg-black/25 hover:border-white/18 hover:bg-white/[0.04]"
+        )}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="truncate text-sm font-semibold text-white">{candidate.publicName}</p>
+              {candidate.brandLabel ? <Badge variant="secondary" className="max-w-full truncate normal-case tracking-normal">{candidate.brandLabel}</Badge> : null}
+              {isSelected ? <Badge variant="default">Selecionado</Badge> : null}
+            </div>
+            <p className="mt-1 text-xs text-white/68">{candidate.neighborhoodLabel} · {candidate.addressShort || "Endereco curto indisponivel"}</p>
+            <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-white/54">
+              <Badge variant={geoBadge.variant}>{geoBadge.label}</Badge>
+              {candidate.distance !== null ? <Badge variant="outline">{formatDistance(candidate.distance)}</Badge> : null}
+              {candidate.station.city ? <Badge variant="secondary" className="normal-case tracking-normal">{candidate.station.city}</Badge> : null}
+              {candidate.ambiguityCount > 1 ? <Badge variant="warning">Nome parecido</Badge> : null}
+              {isGeoPending ? <Badge variant="outline">Confirmar local</Badge> : null}
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2 pt-1 text-xs text-white/42">
+            <MapPin className="h-4 w-4" />
+          </div>
+        </div>
+      </button>
+    );
+  }
+
   return (
     <>
       {state.noticeTitle && state.noticeBody ? (
@@ -1358,47 +1629,108 @@ function PriceSubmitFormBody({
         </div>
       ) : null}
 
-      <div className="space-y-2 rounded-[22px] border border-white/8 bg-black/30 p-4">
+      <div className="space-y-3 rounded-[22px] border border-white/8 bg-black/30 p-4">
+        <input type="hidden" name="stationId" value={stationId} />
         <div className="flex items-center justify-between gap-3">
-          <label className="text-sm font-medium text-white" htmlFor="stationId">
+          <label className="text-sm font-medium text-white" htmlFor="station-search">
             Posto
           </label>
-          {compactMode ? <Badge variant="outline">Travado pelo contexto</Badge> : <Badge variant="outline">Escolha o posto</Badge>}
+          {compactMode ? <Badge variant="outline">Travado pelo contexto</Badge> : <Badge variant="outline">Proximidade e contexto</Badge>}
         </div>
         {lockedStation ? (
-          <>
-            <input type="hidden" name="stationId" value={stationId} />
-            <div className={cn(
-              "rounded-[18px] border bg-white/5 px-4 py-3 text-sm text-white/72 transition-all",
-              validationErrors.stationId ? "border-red-500/50 bg-red-500/5" : "border-white/8"
-            )}>
-              <p className="font-medium text-white">{selectedStation?.name}</p>
-              <p className="mt-1 text-white/54">{selectedStation?.neighborhood}, {selectedStation?.city}</p>
-              {selectedStation?.address && !isStreetMode ? <p className="mt-1 text-xs text-white/42">{selectedStation.address}</p> : null}
-            </div>
-          </>
+          <div className={cn(
+            "rounded-[18px] border bg-white/5 px-4 py-3 text-sm text-white/72 transition-all",
+            validationErrors.stationId ? "border-red-500/50 bg-red-500/5" : "border-white/8"
+          )}>
+            <p className="font-medium text-white">{selectedStation ? getStationPublicName(selectedStation) : "Posto"}</p>
+            <p className="mt-1 text-white/54">{selectedStation?.neighborhood}, {selectedStation?.city}</p>
+            {selectedStation?.address && !isStreetMode ? <p className="mt-1 text-xs text-white/42">{shortAddress(selectedStation.address)}</p> : null}
+          </div>
         ) : (
-          <select
-            id="stationId"
-            name="stationId"
-            value={stationId}
-            onFocus={() => handleFieldFocus("stationId")}
-            onChange={(event) => {
-              setStationId(event.target.value);
-              setValidationErrors(prev => ({ ...prev, stationId: undefined }));
-              markStarted("station", { changed: true });
-            }}
-            className={cn(
-              "w-full rounded-[18px] border bg-black/30 px-4 py-3 text-sm text-white outline-none ring-0 transition-all",
-              validationErrors.stationId ? "border-red-500/50 ring-1 ring-red-500/20" : "border-white/10"
+          <div className="space-y-3">
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/34" />
+                <input
+                  id="station-search"
+                  value={stationSearch}
+                  onFocus={() => handleFieldFocus("stationId")}
+                  onChange={(event) => {
+                    setStationSearch(event.target.value);
+                    setValidationErrors((prev) => ({ ...prev, stationId: undefined }));
+                  }}
+                  placeholder="Buscar por nome, bairro, endereco, cidade ou bandeira"
+                  className={cn(
+                    "h-12 w-full rounded-[18px] border bg-black/30 pl-11 pr-4 text-sm text-white outline-none transition",
+                    validationErrors.stationId ? "border-red-500/50 ring-1 ring-red-500/20" : "border-white/10"
+                  )}
+                />
+              </div>
+              {!coords ? (
+                <Button type="button" variant="secondary" className="h-12 px-4 text-xs uppercase tracking-[0.18em]" onClick={() => getLocation()}>
+                  Ver mais proximos
+                </Button>
+              ) : null}
+            </div>
+
+            {selectedStation ? (
+              <div className="rounded-[18px] border border-[color:var(--color-accent)]/22 bg-[color:var(--color-accent)]/8 px-4 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-white">{getStationPublicName(selectedStation)}</p>
+                    <p className="mt-1 text-xs text-white/62">{selectedStation.neighborhood} · {shortAddress(selectedStation.address) || selectedStation.city}</p>
+                  </div>
+                  <Badge variant="default">Escolhido</Badge>
+                </div>
+              </div>
+            ) : null}
+
+            {!normalizedStationSearch ? (
+              <div className="space-y-4">
+                {coords ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/42">Mais proximos de voce</p>
+                      <span className="text-[11px] text-white/38">Raio inicial {nearbyRadiusMeters >= 5000 ? "5 km" : "2 km"}</span>
+                    </div>
+                    <div className="space-y-2">{nearbyPickerItems.map((candidate) => renderStationOption(candidate, "nearby"))}</div>
+                  </div>
+                ) : null}
+
+                {recentPickerItems.length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/42">Recentes e por onde voce passou</p>
+                      <span className="text-[11px] text-white/38">Memoria curta do aparelho</span>
+                    </div>
+                    <div className="space-y-2">{recentPickerItems.map((candidate) => renderStationOption(candidate, "recent"))}</div>
+                  </div>
+                ) : null}
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/42">Outros postos bem ranqueados</p>
+                    <span className="text-[11px] text-white/38">Geo melhor e menos ambiguidade</span>
+                  </div>
+                  <div className="space-y-2">{fallbackPickerItems.map((candidate) => renderStationOption(candidate, "fallback"))}</div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/42">Resultados da busca</p>
+                  <span className="text-[11px] text-white/38">{searchPickerItems.length} encontrados</span>
+                </div>
+                {searchPickerItems.length > 0 ? (
+                  <div className="space-y-2">{searchPickerItems.map((candidate) => renderStationOption(candidate, "search"))}</div>
+                ) : (
+                  <div className="rounded-[18px] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white/58">
+                    Nenhum posto bateu com a busca. Tente nome, bairro, endereco, cidade ou bandeira.
+                  </div>
+                )}
+              </div>
             )}
-          >
-            {stations.map((station) => (
-              <option key={station.id} value={station.id}>
-                {station.name} - {station.neighborhood}, {station.city}
-              </option>
-            ))}
-          </select>
+          </div>
         )}
         {validationErrors.stationId && <p className="mt-1.5 px-1 text-[10px] font-bold uppercase text-red-400 tracking-wider transition-all animate-in fade-in slide-in-from-top-1">{validationErrors.stationId}</p>}
       </div>
@@ -1519,6 +1851,13 @@ export function PriceSubmitForm(props: PriceSubmitFormProps) {
 
   return <PriceSubmitFormBody key={`${props.initialStationId ?? "default"}-${formVersion}`} {...props} onResetRequest={() => setFormVersion((value) => value + 1)} />;
 }
+
+
+
+
+
+
+
 
 
 
