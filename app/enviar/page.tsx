@@ -2,13 +2,14 @@ import type { Route } from "next";
 import { Camera, ShieldCheck } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
+import { SubmissionHistoryProvider } from "@/components/history/submission-history-context";
 import { ProductEvent } from "@/components/telemetry/product-event";
 import { PriceSubmitForm } from "@/components/forms/price-submit-form";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
-import { QueueAssistant } from "@/components/routes/queue-assistant";
 import { getHomeStations } from "@/lib/data";
+import { logRuntimeIssue } from "@/lib/observability/runtime-issues";
 import type { FuelType, StationWithReports } from "@/lib/types";
 
 export const metadata = { robots: { index: false, follow: false, nocache: true } };
@@ -40,7 +41,7 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
   try {
     stations = await getHomeStations();
   } catch (err) {
-    console.error("Failed to fetch stations in SubmitPage", err);
+    logRuntimeIssue("Failed to fetch stations in SubmitPage", err, { scope: "public", surface: "pages/enviar", fallback: "empty-station-list", optional: true });
   }
 
   const initialStationId = firstValue(params.stationId);
@@ -50,120 +51,118 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
   const flowSteps = ["Foto", "Posto", "Preço", "Envio"];
 
   return (
-    <AppShell>
-      <ProductEvent eventType="submit_opened" pagePath="/enviar" pageTitle="Enviar preço" />
-      <QueueAssistant />
+    <SubmissionHistoryProvider>
+      <AppShell>
+        <ProductEvent eventType="submit_opened" pagePath="/enviar" pageTitle="Enviar preço" />
 
-      <div data-layout-scope="submit-wide" data-hero-primary="submit-form" className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(330px,360px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(360px,400px)] xl:items-start">
-        <div data-layout-role="main" className="space-y-6 min-w-0">
-          <SectionCard className="hidden space-y-2 border-white/10 bg-white/5 md:block xl:hidden">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Apoio rápido</p>
-            <h2 className="text-sm font-semibold text-white">O formulário já é a superfície principal</h2>
-            <p className="text-sm text-white/54">
-              No celular e no tablet, a lateral some para não disputar com a foto, o posto e o preço.
-            </p>
-          </SectionCard>
+        <div data-layout-scope="submit-wide" data-hero-primary="submit-form" className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(330px,360px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(360px,400px)] xl:items-start">
+          <div data-layout-role="main" className="space-y-6 min-w-0">
+            <SectionCard className="hidden space-y-2 border-white/10 bg-white/5 md:block xl:hidden">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Ajuda rápida</p>
+              <h2 className="text-sm font-semibold text-white">O formulário já é a parte principal</h2>
+              <p className="text-sm text-white/54">
+                No celular e no tablet, a lateral some para não disputar com a foto, o posto e o preço.
+              </p>
+            </SectionCard>
 
-          <SectionCard className="space-y-4 xl:p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-white/42">Envio rápido</p>
-                <h2 className="mt-1 text-[1.8rem] font-semibold leading-none text-white xl:text-[1.45rem]">Enviar preço</h2>
-              </div>
-              <Badge variant="warning">Foto + preço + horário</Badge>
-            </div>
-            <p className="text-sm text-white/62 xl:text-[13px]">
-              Fluxo direto para rua: foto cedo, posto certo, combustível, preço e envio. O report entra como aguardando moderação.
-            </p>
-            {initialStation ? (
-              <div className="rounded-[18px] border border-[color:var(--color-accent)]/18 bg-[color:var(--color-accent)]/8 px-4 py-3 text-sm text-white/72">
-                <span className="font-medium text-white/88">Posto pré-selecionado:</span> {initialStation.name} · {initialStation.neighborhood}, {initialStation.city}
-              </div>
-            ) : null}
-          </SectionCard>
-
-          <SectionCard className="space-y-3 xl:space-y-2.5">
-            <div className="flex items-center justify-between gap-3 rounded-[22px] border border-white/8 bg-black/30 p-4 xl:p-3.5">
-              <div className="flex items-center gap-3">
-                <Camera className="h-5 w-5 text-[color:var(--color-accent)]" />
+            <SectionCard className="space-y-4 xl:p-4">
+              <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-white xl:text-[13px]">Comece pela foto</p>
-                  <p className="text-sm text-white/56 xl:text-[13px]">Na rua, é mais rápido fotografar primeiro e preencher o resto em seguida.</p>
+                  <p className="text-xs uppercase tracking-[0.2em] text-white/42">Envio</p>
+                  <h2 className="mt-1 text-[1.8rem] font-semibold leading-none text-white xl:text-[1.45rem]">Enviar preço</h2>
                 </div>
+                <Badge variant="warning">Foto + preço + horário</Badge>
               </div>
-              <a
-                href="#photo"
-                className="rounded-full border border-white/10 px-3 py-2 text-xs font-medium text-white/72 transition hover:border-[color:var(--color-accent)] hover:text-[color:var(--color-accent)]"
-              >
-                Tirar foto agora
-              </a>
-            </div>
-            <PriceSubmitForm stations={stations} initialStationId={initialStation?.id} initialFuelType={initialFuelType} returnToHref={returnToHref || undefined} />
-            <div className="rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/58 xl:p-3.5">
-              <div className="flex items-center gap-2 text-white/80">
-                <ShieldCheck className="h-4 w-4 text-[color:var(--color-accent)]" />
-                Vai para moderação
-              </div>
-              <p className="mt-2">Depois do envio, o report fica em aguardando moderação e entra na fila de aprovação.</p>
-              {returnToHref ? (
-                <div className="mt-3 flex gap-2">
-                  <ButtonLink href={returnToHref as Route} variant="secondary">
-                    Voltar ao mapa
-                  </ButtonLink>
+              <p className="text-sm text-white/62 xl:text-[13px]">
+                Foto primeiro. Depois posto, combustível, preço e envio. O envio entra em revisão.
+              </p>
+              {initialStation ? (
+                <div className="rounded-[18px] border border-[color:var(--color-accent)]/18 bg-[color:var(--color-accent)]/8 px-4 py-3 text-sm text-white/72">
+                  <span className="font-medium text-white/88">Posto pré-selecionado:</span> {initialStation.name} · {initialStation.neighborhood}, {initialStation.city}
                 </div>
               ) : null}
-            </div>
-          </SectionCard>
-        </div>
+            </SectionCard>
 
-        <aside data-layout-role="rail" data-rail-useful="submit" className="hidden space-y-4 xl:block xl:sticky xl:top-24">
-          <SectionCard className="space-y-3 border-white/10 bg-white/5 xl:p-4">
-            <div className="space-y-1.5">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Rail útil</p>
-              <h3 className="text-lg font-semibold text-white xl:text-base">Fluxo, fila e atalho útil</h3>
-              <p className="text-sm leading-relaxed text-white/54 xl:text-[13px]">A lateral reforça a ordem do envio, o estado de moderação e o melhor retorno para o mapa.</p>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-              <div className="rounded-[20px] border border-white/8 bg-black/25 p-3.5">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Ordem do fluxo</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {flowSteps.map((step, index) => (
-                    <Badge key={step} variant={index === 0 ? "warning" : "outline"} className="text-[10px]">
-                      {step}
-                    </Badge>
-                  ))}
+            <SectionCard className="space-y-3 xl:space-y-2.5">
+              <div className="flex items-center justify-between gap-3 rounded-[22px] border border-white/8 bg-black/30 p-4 xl:p-3.5">
+                <div className="flex items-center gap-3">
+                  <Camera className="h-5 w-5 text-[color:var(--color-accent)]" />
+                  <div>
+                    <p className="text-sm font-semibold text-white xl:text-[13px]">Comece pela foto</p>
+                    <p className="text-sm text-white/56 xl:text-[13px]">Na rua, é mais rápido tirar a foto primeiro e completar o resto depois.</p>
+                  </div>
                 </div>
-                <p className="mt-2 text-xs text-white/48">Foto primeiro, depois posto, combustível e preço.</p>
+                <a
+                  href="#photo"
+                  className="rounded-full border border-white/10 px-3 py-2 text-xs font-medium text-white/72 transition hover:border-[color:var(--color-accent)] hover:text-[color:var(--color-accent)]"
+                >
+                  Tirar foto agora
+                </a>
+              </div>
+              <PriceSubmitForm stations={stations} initialStationId={initialStation?.id} initialFuelType={initialFuelType} returnToHref={returnToHref || undefined} />
+              <div className="rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/58 xl:p-3.5">
+                <div className="flex items-center gap-2 text-white/80">
+                  <ShieldCheck className="h-4 w-4 text-[color:var(--color-accent)]" />
+                  Vai para revisão
+                </div>
+                <p className="mt-2">Depois do envio, o preço fica em revisão e entra na fila de aprovação.</p>
+                {returnToHref ? (
+                  <div className="mt-3 flex gap-2">
+                    <ButtonLink href={returnToHref as Route} variant="secondary">
+                      Voltar ao mapa
+                    </ButtonLink>
+                  </div>
+                ) : null}
+              </div>
+            </SectionCard>
+          </div>
+
+          <aside data-layout-role="rail" data-rail-useful="submit" className="hidden space-y-4 xl:block xl:sticky xl:top-24">
+            <SectionCard className="space-y-3 border-white/10 bg-white/5 xl:p-4">
+              <div className="space-y-1.5">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Rail útil</p>
+                <h3 className="text-lg font-semibold text-white xl:text-base">Ordem, fila e atalho</h3>
+                <p className="text-sm leading-relaxed text-white/54 xl:text-[13px]">A lateral mostra a ordem do envio, o estado da fila e o melhor retorno para o mapa.</p>
               </div>
 
-              <div className="rounded-[20px] border border-white/8 bg-black/25 p-3.5">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Fila e moderação</p>
-                <p className="mt-2 text-sm font-semibold text-white">Todo envio entra em revisão antes de aparecer no mapa.</p>
-                <p className="mt-1 text-xs text-white/48">A fila protege a leitura pública sem travar o ritmo da rua.</p>
-              </div>
-            </div>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                <div className="rounded-[20px] border border-white/8 bg-black/25 p-3.5">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Ordem do fluxo</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {flowSteps.map((step, index) => (
+                      <Badge key={step} variant={index === 0 ? "warning" : "outline"} className="text-[10px]">
+                        {step}
+                      </Badge>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-xs text-white/48">Foto primeiro. Depois posto, combustível e preço.</p>
+                </div>
 
-            {initialStation ? (
-              <div className="rounded-[22px] border border-[color:var(--color-accent)]/16 bg-[color:var(--color-accent)]/8 p-3.5">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-accent)]/72">Posto escolhido</p>
-                <p className="mt-2 text-sm font-semibold text-white">{initialStation.name}</p>
-                <p className="mt-1 text-xs text-white/52">{initialStation.neighborhood}, {initialStation.city}</p>
+                <div className="rounded-[20px] border border-white/8 bg-black/25 p-3.5">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Fila e revisão</p>
+                  <p className="mt-2 text-sm font-semibold text-white">Todo envio passa por revisão antes de aparecer no mapa.</p>
+                  <p className="mt-1 text-xs text-white/48">A fila segura a leitura pública sem travar a rua.</p>
+                </div>
               </div>
-            ) : (
-              <div className="rounded-[22px] border border-white/8 bg-black/25 p-3.5 text-sm text-white/56 xl:text-[13px]">
-                Abra o mapa primeiro se quiser enviar já com o posto certo no eixo.
-              </div>
-            )}
 
-
-          </SectionCard>
-        </aside>
-      </div>
-    </AppShell>
+              {initialStation ? (
+                <div className="rounded-[22px] border border-[color:var(--color-accent)]/16 bg-[color:var(--color-accent)]/8 p-3.5">
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-accent)]/72">Posto escolhido</p>
+                  <p className="mt-2 text-sm font-semibold text-white">{initialStation.name}</p>
+                  <p className="mt-1 text-xs text-white/52">{initialStation.neighborhood}, {initialStation.city}</p>
+                </div>
+              ) : (
+                <div className="rounded-[22px] border border-white/8 bg-black/25 p-3.5 text-sm text-white/56 xl:text-[13px]">
+                  Abra o mapa primeiro se quiser enviar já com o posto certo.
+                </div>
+              )}
+            </SectionCard>
+          </aside>
+        </div>
+      </AppShell>
+    </SubmissionHistoryProvider>
   );
 }
-
 
 
 
