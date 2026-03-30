@@ -2,11 +2,31 @@
 
 import { headers } from "next/headers";
 
-import { getOrCreateCollectorTrust, getUtilityStatus, normalizeTrustStage, type UtilityStatus, type CollectorTrust } from "@/lib/ops/collector-trust";
+import { getOrCreateCollectorTrust, getUtilityStatus, type UtilityStatus, type CollectorTrust } from "@/lib/ops/collector-trust";
 import { getSubmissionClientIp, hashSubmissionIp } from "@/lib/ops/rate-limit";
 import type { ProgressiveIdentityRemoteSnapshot } from "@/lib/identity/progressive";
 import { logRuntimeIssue } from "@/lib/observability/runtime-issues";
 import { createSupabaseServiceClient } from "@/lib/supabase/admin";
+
+function normalizeTrustStage(value: string | null | undefined): CollectorTrust["trustStage"] {
+  switch ((value ?? "").toLowerCase()) {
+    case "trusted":
+      return "confiável";
+    case "review_needed":
+      return "em_revisão";
+    case "blocked":
+      return "bloqueado";
+    case "new":
+      return "novo";
+    case "muito_confiável":
+    case "confiável":
+    case "em_revisão":
+    case "bloqueado":
+      return value as CollectorTrust["trustStage"];
+    default:
+      return "novo";
+  }
+}
 
 async function findCollectorTrustReadOnly(nickname: string | null, ipHash: string | null): Promise<CollectorTrust | null> {
   const supabase = createSupabaseServiceClient();
