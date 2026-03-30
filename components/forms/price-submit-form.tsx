@@ -2,6 +2,7 @@
 "use client";
 
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import type { ChangeEvent } from "react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
@@ -12,7 +13,6 @@ import { Badge } from "@/components/ui/badge";
 import type { FuelType, StationWithReports } from "@/lib/types";
 import { fuelLabels } from "@/lib/format/labels";
 import { submitPriceReportAction, type SubmitState } from "@/app/enviar/actions";
-import { RouteAssistant } from "@/components/routes/route-assistant";
 import { completeStationInRoute, readRouteContext } from "@/lib/navigation/route-context";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { calculateDistance, formatDistance } from "@/lib/geo/distance";
@@ -20,28 +20,43 @@ import { formatCurrencyBRL } from "@/lib/format/currency";
 import { formatRecencyLabel } from "@/lib/format/time";
 import { trackProductEvent } from "@/lib/telemetry/client";
 import { clearSubmissionDraft, loadSubmissionDraft, saveSubmissionDraft, type SubmissionDraftSnapshot, type SubmissionDraftStep, type SubmissionDraftStatus } from "@/lib/drafts/submission-draft";
-import { SubmissionQueuePanel } from "@/components/forms/submission-queue-panel";
 import { buildSubmissionQueueHref, clearSubmissionQueueForDraftKey, loadSubmissionQueue, removeSubmissionQueueEntry, upsertSubmissionQueueEntry, type SubmissionQueueEntry } from "@/lib/queue/submission-queue";
 import { useStreetMode } from "@/hooks/use-street-mode";
+import { useSubmissionHistory } from "@/components/history/submission-history-context";
 import { useMissionContext } from "@/components/mission/mission-context";
 import { cn } from "@/lib/utils"
 import { getSelectedStationReport } from "@/lib/filters/public"
 import { getStationPublicName, hasPendingStationLocationReview, isValidStationCoordinate } from "@/lib/quality/stations";
-import { useSubmissionHistory } from "@/components/history/submission-history-context";
 import { analyzePhotoQuality, type PhotoQualityResult } from "@/lib/camera/quality-analyzer";
 import { processImageForUpload } from "@/lib/camera/image-processor";
 import { AlertTriangle, CheckCircle2, Loader2, Sparkles, MessageCircleQuestion } from "lucide-react";
-import { ContextualFeedback } from "@/components/feedback/contextual-feedback";
-import { submitContextualFeedbackAction } from "@/app/hub/feedback-actions";
 import { consumeHubAttribution } from "@/lib/telemetry/attribution";
 import { useMySubmissions } from "@/hooks/use-my-submissions";
 import { persistProgressiveIdentityNickname } from "@/lib/identity/progressive";
-import { ProgressiveIdentityPrompt } from "@/components/identity/progressive-identity-prompt";
-import { PostSubmissionBridge } from "./post-submission-bridge";
 import { useStreetSession } from "@/hooks/use-street-session";
 import { useTestMode } from "@/hooks/use-test-mode";
+import { submitContextualFeedbackAction } from "@/app/hub/feedback-actions";
 import { normalizeContextValue, readHomeContext, readLastStationContext, rememberStationVisit } from "@/lib/navigation/home-context";
 
+const SubmissionQueuePanel = dynamic(() => import("@/components/forms/submission-queue-panel").then((mod) => mod.SubmissionQueuePanel), {
+  ssr: false,
+  loading: () => null
+});
+
+const ProgressiveIdentityPrompt = dynamic(() => import("@/components/identity/progressive-identity-prompt").then((mod) => mod.ProgressiveIdentityPrompt), {
+  ssr: false,
+  loading: () => null
+});
+
+const PostSubmissionBridge = dynamic(() => import("./post-submission-bridge").then((mod) => mod.PostSubmissionBridge), {
+  ssr: false,
+  loading: () => null
+});
+
+const ContextualFeedback = dynamic(() => import("@/components/feedback/contextual-feedback").then((mod) => mod.ContextualFeedback), {
+  ssr: false,
+  loading: () => null
+});
 const fuelOptions: FuelType[] = ["gasolina_comum", "gasolina_aditivada", "etanol", "diesel_s10", "diesel_comum", "gnv"];
 const allowedFuelSet = new Set<FuelType>(fuelOptions);
 const initialState: SubmitState = { error: null, errorCode: null, retryable: false, success: false, noticeTitle: null, noticeBody: null, noticeTone: null, noticeCode: null };
@@ -1291,14 +1306,7 @@ function PriceSubmitFormBody({
   const canSubmit = Boolean(selectedStation && selectedFileRef.current && price.trim() && fuelType);
   const hasPhoto = Boolean(previewUrl);
   const retryableError = state.error && state.retryable;
-  const guidedStage: SubmissionDraftStep = useMemo(() => {
-    if (!hasPhoto) return "photo";
-    if (!stationConfirmed) return "station";
-    if (!fuelConfirmed) return "fuel";
-    if (!price.trim()) return "price";
-    if (!priceReviewed) return "price";
-    return "submit";
-  }, [fuelConfirmed, hasPhoto, price, priceReviewed, stationConfirmed]);
+  const guidedStage: SubmissionDraftStep = !hasPhoto ? "photo" : !stationConfirmed ? "station" : !fuelConfirmed ? "fuel" : !price.trim() ? "price" : !priceReviewed ? "price" : "submit";
   const stageLabel = {
     photo: "Foto",
     station: "Posto",
@@ -2156,7 +2164,7 @@ function PriceSubmitFormBody({
           <p className="mt-3 text-xs text-white/58">Quando você tocar em enviar, o preço entra em revisão.</p>
         </div>
       ) : null}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-black/90 px-4 py-3 backdrop-blur-xl">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-black/92 px-4 py-3 backdrop-blur-md md:backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-3xl items-center gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/36">Etapa {stageLabel}</p>
@@ -2206,6 +2214,11 @@ export function PriceSubmitForm(props: PriceSubmitFormProps) {
 
   return <PriceSubmitFormBody key={`${props.initialStationId ?? "default"}-${formVersion}`} {...props} onResetRequest={() => setFormVersion((value) => value + 1)} />;
 }
+
+
+
+
+
 
 
 

@@ -1,14 +1,14 @@
-﻿"use client";
+"use client";
 /* eslint-disable react-hooks/exhaustive-deps */
 
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { ArrowRight, Camera, Clock3, Info, Navigation, Search, SlidersHorizontal, Star, X, Zap, Sparkles } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
 
-import { StationMapShell } from "@/components/map/station-map-shell";
-import { FirstVisitGuide } from "@/components/onboarding/first-visit-guide";
+import { HomeMapSurface } from "@/components/home/home-map-surface";
 import { StationCard } from "@/components/station/station-card";
 import { Badge } from "@/components/ui/badge";
 import { GroupStatusBadge } from "@/components/ui/group-status-badge";
@@ -30,28 +30,21 @@ import { canShowStationOnMap, getStationPublicName, hasPendingStationLocationRev
 import { persistHomeContext, priorityCities, readHomeContext, readLastStationContext, rememberStationVisit } from "@/lib/navigation/home-context";
 import type { HomeDensityMode } from "@/lib/navigation/home-context";
 import { startRoute, readRouteContext } from "@/lib/navigation/route-context";
-import { RouteAssistant } from "@/components/routes/route-assistant";
 import { getNavigationHandoff, clearNavigationHandoff, type ExternalNavigationOptions } from "@/lib/navigation/external-maps";
 import { useStreetMode } from "@/hooks/use-street-mode";
 import { useNetworkHardening } from "@/hooks/use-network-hardening";
 import { useMissionContext } from "@/components/mission/mission-context";
-import { MySubmissionsList } from "@/components/history/my-submissions-list";
-import { RecorteActivityWidget } from "@/components/home/recorte-activity-widget";
 import { type EffectiveGroupStatus } from "@/lib/ops/release-control";
 import { getSmartDefaultRecorte, getSmartDefaultPhrase, type SmartDefaultReason } from "@/lib/ops/smart-default";
-import { FeedbackTrigger } from "@/components/feedback/feedback-trigger";
 import type { FuelFilter, RecencyFilter } from "@/lib/filters/public";
 import { type ReportWithStation, StationWithReports } from "@/lib/types";
 import { SurfaceOrchestrator, type SurfaceItem } from "@/components/layout/surface-orchestrator";
 import { type SurfaceType, SURFACE_PRIORITIES } from "@/lib/ui/surface-orchestrator";
-import { InstallPromptCard } from "./install-prompt-card";
 import { useOperationalFocus } from "@/hooks/use-operational-focus";
 import { useRetentionSurfaces } from "@/components/layout/retention-hub";
 import { useMySubmissions } from "@/hooks/use-my-submissions";
 import { useProgressiveIdentity } from "@/hooks/use-progressive-identity";
-import { ProgressiveIdentityPrompt } from "@/components/identity/progressive-identity-prompt";
 import { type OperationalKillSwitches } from "@/lib/ops/kill-switches";
-import { RecortePulseWidget } from "./recorte-pulse-widget";
 import { getRecortePulseAction } from "@/app/actions/pulse";
 import { type RecorteActivity } from "@/lib/ops/recorte-activity";
 import { QuickActionGroup, QuickActionButton } from "@/components/ui/quick-action";
@@ -60,9 +53,42 @@ import { useOperationalMemory } from "@/hooks/use-operational-memory";
 import { useStreetSession } from "@/hooks/use-street-session";
 import { useWarmStart } from "@/hooks/use-warm-start";
 import { TopOrchestrator } from "@/components/layout/top-orchestrator";
-import { SessionDebriefModal } from "@/components/session/session-debrief-modal";
 import { orchestrateHomeState } from "@/lib/ui/home-orchestrator";
 
+const FirstVisitGuide = dynamic(() => import("@/components/onboarding/first-visit-guide").then((mod) => mod.FirstVisitGuide), {
+  ssr: false,
+  loading: () => <div className="h-40 rounded-[24px] border border-white/8 bg-black/20" />
+});
+
+const InstallPromptCard = dynamic(() => import("./install-prompt-card").then((mod) => mod.InstallPromptCard), {
+  ssr: false,
+  loading: () => null
+});
+
+const ProgressiveIdentityPrompt = dynamic(() => import("@/components/identity/progressive-identity-prompt").then((mod) => mod.ProgressiveIdentityPrompt), {
+  ssr: false,
+  loading: () => null
+});
+
+const MySubmissionsList = dynamic(() => import("@/components/history/my-submissions-list").then((mod) => mod.MySubmissionsList), {
+  ssr: false,
+  loading: () => null
+});
+
+const RecorteActivityWidget = dynamic(() => import("@/components/home/recorte-activity-widget").then((mod) => mod.RecorteActivityWidget), {
+  ssr: false,
+  loading: () => null
+});
+
+const SessionDebriefModal = dynamic(() => import("@/components/session/session-debrief-modal").then((mod) => mod.SessionDebriefModal), {
+  ssr: false,
+  loading: () => null
+});
+
+const RouteAssistant = dynamic(() => import("@/components/routes/route-assistant").then((mod) => mod.RouteAssistant), {
+  ssr: false,
+  loading: () => <div className="h-28 rounded-[24px] border border-white/8 bg-black/20" />
+});
 interface HomeBrowserProps {
   stations: StationWithReports[];
   feed: ReportWithStation[];
@@ -77,6 +103,7 @@ interface HomeBrowserProps {
   initialRecencyFilter?: RecencyFilter;
   initialPresenceFilter?: StationPresenceFilter;
   initialDensityMode?: HomeDensityMode;
+  initialListFirstMode?: boolean;
   killSwitches?: Partial<OperationalKillSwitches>;
 }
 
@@ -148,6 +175,7 @@ export function HomeBrowser({
   initialRecencyFilter = "all",
   initialPresenceFilter = "all",
   initialDensityMode = "normal",
+  initialListFirstMode = false,
   killSwitches
 }: HomeBrowserProps) {
   const [showShareWelcome, setShowShareWelcome] = useState(false);
@@ -159,6 +187,7 @@ export function HomeBrowser({
   
   const debriefOverlay = <SessionDebriefModal />;
   const heroRef = useRef<HTMLDivElement>(null);
+  const mapSectionRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState(initialQuery);
   const [selectedCity, setSelectedCity] = useState(initialCity || "");
   const [defaultSelectionReason, setDefaultSelectionReason] = useState<string | null>(null);
@@ -679,6 +708,7 @@ export function HomeBrowser({
     selectedCity,
     hasFilters,
   }), [isOnline, geoError, missionActive, role, submissionsCount, recentCount, favoriteIds.length, isStreetMode, isWarm, isRefreshing, selectedCity, hasFilters]);
+  const isMobileLeanHome = initialListFirstMode || isLowPerf || isStreetMode;
 
   useEffect(() => {
     if (lastTrackedHomeStateRef.current === homeState.state) {
@@ -946,7 +976,33 @@ export function HomeBrowser({
   return (
     <>
       {debriefOverlay}
-      <div className="mb-4">
+      {isMobileLeanHome ? (
+        <div className="mb-4 space-y-4">
+          <SectionCard className="space-y-4 border-white/10 bg-white/5 shadow-xl shadow-black/15">
+            <div className="space-y-2">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Leitura rápida</p>
+              <h1 className="text-[1.45rem] font-semibold leading-tight text-white">Ache um posto e envie o preço.</h1>
+              <p className="text-sm leading-relaxed text-white/58">Lista primeiro no celular. O mapa entra quando ajudar.</p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <ButtonLink href={railSendHref} className="h-11 flex-1 justify-center px-4 text-[11px] font-black uppercase tracking-[0.18em]">
+                Enviar preço
+              </ButtonLink>
+              <button
+                type="button"
+                onClick={() => mapSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                className="inline-flex h-11 flex-1 items-center justify-center rounded-full border border-white/10 bg-white/5 px-4 text-[11px] font-black uppercase tracking-[0.18em] text-white/82 transition hover:border-white/20 hover:bg-white/8"
+              >
+                Abrir mapa
+              </button>
+            </div>
+          </SectionCard>
+          <div ref={mapSectionRef}>
+            <HomeMapSurface stations={mapStations} contextHref={contextHref} fuelFilter={fuelFilter} center={coords} preferListFirst={Boolean(initialListFirstMode || isLowPerf || isStreetMode)} />
+          </div>
+        </div>
+      ) : null}
+      <div className={cn("mb-4", isMobileLeanHome && "hidden")}>
         <ProgressiveIdentityPrompt context="home" source="return" />
       </div>
       <TopOrchestrator
@@ -979,7 +1035,7 @@ export function HomeBrowser({
         isMicro={isMicroMode}
         isMissionActive={missionActive}
       />
-      {homeState.state !== "operation-normal" ? (
+      {!isMobileLeanHome && homeState.state !== "operation-normal" ? (
       <div className={cn("mb-6 transition-all duration-300", (isHeroCollapsed || missionActive) && "opacity-0 h-0 overflow-hidden mb-0")}>
         <SurfaceOrchestrator 
            surfaces={orchestratedSurfaces} 
@@ -991,7 +1047,7 @@ export function HomeBrowser({
       </div>
       ) : null}
 
-      {isStreetMode && !missionActive && (
+      {!isMobileLeanHome && isStreetMode && !missionActive && (
         <div className="mb-6">
           <Button 
             variant="primary"
@@ -1348,7 +1404,7 @@ export function HomeBrowser({
         <p className="text-sm text-white/54">{priorityHint}</p>
       </SectionCard>
 
-      <div data-layout-scope="home-wide" className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(360px,400px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(400px,440px)] xl:items-start">
+      <div data-layout-scope="home-wide" className={cn("grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(360px,400px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(400px,440px)] xl:items-start", isMobileLeanHome && "hidden xl:grid") }>
         <div data-layout-role="main" className="space-y-6">
           {homeState.state === "senior-hub" ? <OperationalMemoryBar /> : null}
 
@@ -1363,7 +1419,7 @@ export function HomeBrowser({
               </div>
             </div>
             {mapStations.length > 0 ? (
-              <StationMapShell stations={mapStations} className="h-[440px] xl:h-[560px]" returnToHref={contextHref} fuelFilter={fuelFilter} center={coords} />
+              <HomeMapSurface stations={mapStations} contextHref={contextHref} fuelFilter={fuelFilter} center={coords} preferListFirst={Boolean(initialListFirstMode || isLowPerf || isStreetMode)} />
             ) : (
               <EmptyStateCard
                 title={hasFilters ? "Nenhum posto bate com este recorte." : "Nenhum posto disponível no momento."}
@@ -1828,4 +1884,10 @@ export function HomeBrowser({
     </>
   );
 }
+
+
+
+
+
+
 

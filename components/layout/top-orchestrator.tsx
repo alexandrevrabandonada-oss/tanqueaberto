@@ -11,16 +11,20 @@ type DensityMode = "ultra-claro" | "normal" | "avancado";
 
 export const TOP_BUDGETS = {
   expanded: {
-    maxHeight: "112px",
-    maxHeightWide: "100px"
+    maxHeight: "104px",
+    maxHeightWide: "94px"
+  },
+  compact: {
+    maxHeight: "84px",
+    maxHeightWide: "74px"
   },
   sticky: {
-    maxHeight: "76px",
-    maxHeightWide: "68px"
+    maxHeight: "56px",
+    maxHeightWide: "48px"
   },
   micro: {
-    maxHeight: "54px",
-    maxHeightWide: "48px"
+    maxHeight: "40px",
+    maxHeightWide: "36px"
   }
 } as const;
 
@@ -124,26 +128,22 @@ function CompactChip({
     </>
   );
 
+  const wrapperClassName = cn(
+    "inline-flex min-h-8 items-center gap-2 rounded-full border px-2.5 py-1.5 text-left transition-all xl:min-h-7 xl:px-2.5 xl:py-1",
+    toneClass,
+    isCompact && "min-h-7 px-2 py-1",
+    className
+  );
+
   if (onClick) {
     return (
-      <button
-        type="button"
-        onClick={onClick}
-        className={cn(
-          "inline-flex min-h-8 items-center gap-2 rounded-full border px-2.5 py-1.5 text-left transition-all xl:min-h-7 xl:px-2.5 xl:py-1",
-          toneClass,
-          isCompact && "px-2 py-1",
-          className
-        )}
-      >
+      <button type="button" onClick={onClick} className={wrapperClassName}>
         {content}
       </button>
     );
   }
 
-  return (
-    <div className={cn("inline-flex min-h-8 items-center gap-2 rounded-full border px-2.5 py-1.5 xl:min-h-7 xl:px-2.5 xl:py-1", toneClass, isCompact && "px-2 py-1", className)}>{content}</div>
-  );
+  return <div className={wrapperClassName}>{content}</div>;
 }
 
 export function TopOrchestrator({
@@ -168,18 +168,27 @@ export function TopOrchestrator({
   className
 }: TopOrchestratorProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [isWideDesktop, setIsWideDesktop] = useState(false);
   const stickySinceRef = useRef<number | null>(null);
-  const compactMode = isSticky || isMicro;
-  const budget = isMicro ? TOP_BUDGETS.micro : isSticky ? TOP_BUDGETS.sticky : TOP_BUDGETS.expanded;
+  const stickyMode = isSticky || isMicro;
+  const compactMode = !isWideDesktop || stickyMode;
+  const budget = isMicro ? TOP_BUDGETS.micro : !isWideDesktop ? TOP_BUDGETS.compact : isSticky ? TOP_BUDGETS.sticky : TOP_BUDGETS.expanded;
   const system = getSystemState({ coords, geoLoading, isWarm, isRefreshing });
   const SystemIcon = system.icon;
-  const priorityCities = cityOptions.priority.slice(0, compactMode ? 3 : 5);
+  const priorityCities = cityOptions.priority.slice(0, stickyMode ? 2 : compactMode ? 3 : 5);
 
   useEffect(() => {
-    if (compactMode && advancedOpen) {
+    const update = () => setIsWideDesktop(window.innerWidth >= 1280);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  useEffect(() => {
+    if (stickyMode && advancedOpen) {
       setAdvancedOpen(false);
     }
-  }, [advancedOpen, compactMode]);
+  }, [advancedOpen, stickyMode]);
 
   useEffect(() => {
     if (!isSticky) {
@@ -208,21 +217,24 @@ export function TopOrchestrator({
   const topClassName = cn(
     "flex flex-col gap-1.5 transition-all duration-300 will-change-transform",
     !compactMode && "xl:rounded-[24px] xl:border xl:border-white/8 xl:bg-black/18 xl:px-3 xl:py-2 xl:backdrop-blur-md",
-    isSticky && "sticky top-0 z-[110] -mx-4 rounded-b-[20px] border-b border-white/10 bg-black/88 px-4 py-1.5 shadow-[0_10px_28px_rgba(0,0,0,0.42)] backdrop-blur-xl lg:gap-1 lg:px-4 lg:py-1 xl:px-3 xl:py-1",
+    compactMode && !stickyMode && "xl:rounded-[20px] xl:border xl:border-white/8 xl:bg-black/20 xl:px-2.5 xl:py-1.5 xl:backdrop-blur-md",
+    isSticky && "sticky top-0 z-[110] -mx-4 rounded-b-[18px] border border-t-0 border-white/8 bg-[rgba(8,8,8,0.46)] px-3 py-1 shadow-[0_8px_20px_rgba(0,0,0,0.22)] lg:gap-0.5 lg:px-3 lg:py-1 md:backdrop-blur-lg xl:px-2.5 xl:py-1",
     isSticky && isMissionActive && "top-10 lg:top-8",
-    isMicro && "gap-1 bg-black/72 px-3 py-1 shadow-none lg:px-3 lg:py-0.5",
+    isMicro && "gap-1 bg-[rgba(8,8,8,0.52)] px-3 py-1 shadow-none lg:px-2.5 lg:py-1",
     className
   );
 
-  const showAdvancedPanel = !compactMode && advancedOpen;
+  const showAdvancedPanel = advancedOpen && !stickyMode;
+  const showToolbarToggle = !stickyMode;
 
   return (
-    <div data-top-orchestrator="root" data-top-budget-mode={isMicro ? "micro" : isSticky ? "sticky" : "expanded"} data-top-budget-max-height={budget.maxHeight} data-top-budget-max-height-wide={budget.maxHeightWide} className={topClassName}>
+    <div data-top-orchestrator="root" data-top-budget-mode={isMicro ? "micro" : isWideDesktop ? "compact" : isSticky ? "sticky" : "expanded"} data-top-budget-max-height={budget.maxHeight} data-top-budget-max-height-wide={budget.maxHeightWide} className={topClassName}>
       <div className={cn("space-y-1.5", compactMode && "space-y-1")}>
         <label
           className={cn(
             "group flex min-h-10 items-center gap-2 rounded-2xl border border-white/8 bg-black/30 px-3 py-2 text-sm text-white/52 transition-all focus-within:border-[color:var(--color-accent)]/50 xl:min-h-9 xl:rounded-[20px] xl:bg-black/22 xl:px-3 xl:py-1.5",
-            compactMode && "min-h-9 bg-black/24 px-2.5 py-1.5"
+            compactMode && "min-h-9 bg-black/24 px-2.5 py-1.5",
+            stickyMode && "min-h-8 rounded-[18px] bg-black/22 px-2.5 py-[0.375rem] xl:min-h-8"
           )}
         >
           <Search className={cn("h-4 w-4 shrink-0 text-[color:var(--color-accent)] transition-all", compactMode && "h-3.5 w-3.5")} />
@@ -246,8 +258,8 @@ export function TopOrchestrator({
           ) : null}
         </label>
 
-        <div className="grid gap-2 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
-          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+        <div className={cn("grid gap-2 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center", stickyMode && "gap-1")}>
+          <div className={cn("flex min-w-0 flex-wrap items-center gap-1.5", stickyMode && "flex-nowrap overflow-x-auto pr-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden")}>
             <CompactChip
               icon={MapPin}
               label={selectedCity || "Brasil"}
@@ -268,8 +280,7 @@ export function TopOrchestrator({
               className="max-w-full"
             />
           </div>
-
-          {!compactMode ? (
+          {showToolbarToggle ? (
             <button
               type="button"
               onClick={() => {
@@ -277,14 +288,17 @@ export function TopOrchestrator({
                 void trackProductEvent({
                   eventType: "top_toolbar_toggled" as any,
                   pagePath: window.location.pathname,
-                  payload: { open: !advancedOpen, sticky: isSticky, micro: isMicro }
+                  payload: { open: !advancedOpen, sticky: isSticky, micro: isMicro, wide: isWideDesktop }
                 });
               }}
               aria-expanded={advancedOpen}
-              className="inline-flex min-h-8 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.18em] text-white/58 transition hover:border-[color:var(--color-accent)]/28 hover:text-white xl:min-h-7 xl:px-2.5 xl:py-1"
+              className={cn(
+                "inline-flex min-h-8 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.18em] text-white/58 transition hover:border-[color:var(--color-accent)]/28 hover:text-white xl:min-h-7 xl:px-2.5 xl:py-1",
+                compactMode && "gap-1.5 px-2.5 py-1 text-[8.5px] tracking-[0.14em] xl:min-h-7"
+              )}
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
-              <span>{advancedOpen ? "Menos" : "Mais"}</span>
+              <span>{advancedOpen ? "Menos" : compactMode ? "Filtros" : "Mais"}</span>
             </button>
           ) : null}
         </div>
@@ -322,3 +336,5 @@ export function TopOrchestrator({
     </div>
   );
 }
+
+
