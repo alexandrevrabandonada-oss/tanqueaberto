@@ -26,6 +26,7 @@ interface StationMapProps {
   returnToHref?: string;
   fuelFilter?: FuelFilter;
   center?: { lat: number; lng: number } | null;
+  compact?: boolean;
 }
 
 function ChangeView({ center }: { center: { lat: number; lng: number } }) {
@@ -57,7 +58,7 @@ function getSendHref(stationId: string, returnToHref?: string, fuelFilter?: Fuel
   return returnToHref ? (`${base}&returnTo=${encodeURIComponent(returnToHref)}` as Route) : (base as Route);
 }
 
-export function StationMap({ stations, className = "h-[360px]", returnToHref, fuelFilter = "all", center }: StationMapProps) {
+export function StationMap({ stations, className = "h-[360px]", returnToHref, fuelFilter = "all", center, compact = false }: StationMapProps) {
   const mapStations = stations.filter((station) => canShowStationOnMap(station));
   const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
 
@@ -70,8 +71,8 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
     return (
       <div className={cn("grid place-items-center rounded-[28px] border border-white/8 bg-black/30 px-6 text-center text-sm text-white/58", className)}>
         <div className="space-y-2">
-          <p className="text-base font-semibold text-white">Ainda não há coordenadas confiáveis para mostrar no mapa.</p>
-          <p>Tente outra cidade, outro bairro ou aguarde a curadoria concluir a localização.</p>
+          <p className="text-base font-semibold text-white">Ainda não há mapa confiável para mostrar.</p>
+          <p>Tente outra cidade ou outro bairro. Você também pode voltar mais tarde.</p>
         </div>
       </div>
     );
@@ -79,21 +80,23 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
 
   return (
     <div className={cn("relative overflow-hidden rounded-[28px] border border-white/8", className)}>
-      <div className="absolute left-3 top-3 z-[401] flex max-w-[calc(100%-1.5rem)] flex-wrap gap-2 rounded-[18px] border border-white/8 bg-black/72 px-3 py-2 text-[11px] text-white/72 backdrop-blur-sm">
-        <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1">
-          <span className="h-2 w-2 rounded-full bg-emerald-400" />
-          Com preço recente
-        </span>
-        <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1">
-          <span className="h-2 w-2 rounded-full bg-white/42" />
-          Sem atualização recente
-        </span>
-        <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1">
-          <span className="h-2 w-2 rounded-full bg-amber-400" />
-          Em revisão territorial
-        </span>
-        <p className="w-full text-[10px] leading-relaxed text-white/48">Todos os postos mostram o cadastro visível. Só com preço recente mostra apenas o que já foi aprovado.</p>
-      </div>
+      {!compact ? (
+        <div className="absolute left-3 top-3 z-[401] flex max-w-[calc(100%-1.5rem)] flex-wrap gap-2 rounded-[18px] border border-white/8 bg-black/72 px-3 py-2 text-[11px] text-white/72 backdrop-blur-sm">
+          <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1">
+            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            Com preço
+          </span>
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1">
+            <span className="h-2 w-2 rounded-full bg-white/42" />
+            Sem preço
+          </span>
+          <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/10 px-3 py-1">
+            <span className="h-2 w-2 rounded-full bg-amber-400" />
+            Localização em ajuste
+          </span>
+          <p className="w-full text-[10px] leading-relaxed text-white/48">Os postos aparecem no mapa. O preço aprovado ganha destaque.</p>
+        </div>
+      ) : null}
       <MapContainer 
         center={[-22.53, -44.12]} 
         zoom={11} 
@@ -144,14 +147,14 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
                     <p className="text-xs text-zinc-600">
                       {station.neighborhood}, {station.city}
                     </p>
-                    <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-zinc-500">{station.brand || "Cadastro territorial"}</p>
+                    <p className="mt-1 text-[11px] uppercase tracking-[0.14em] text-zinc-500">{station.brand || "Sem bandeira"}</p>
                   </div>
                   <Badge variant={pinStatus === "recent" ? recencyToneToBadgeVariant(recencyTone) : pinStatus === "review" ? "warning" : "outline"}>
                     {pinStatus === "recent"
                       ? `Atualizado ${formatRecencyLabel(selectedReportForStation!.reportedAt)}`
                       : pinStatus === "review"
-                        ? "Localização em revisão"
-                        : "Sem atualização recente"}
+                        ? "Localização em ajuste"
+                        : "Sem preço"}
                   </Badge>
                   {selectedReportForStation ? (
                     <div className="space-y-1 text-xs text-zinc-700">
@@ -160,7 +163,7 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
                       </p>
                     </div>
                   ) : (
-                    <p className="text-xs text-zinc-600">Posto cadastrado no território, sem preço recente aprovado.</p>
+                    <p className="text-xs text-zinc-600">Posto sem preço recente.</p>
                   )}
                   <div className="flex flex-wrap gap-2 pt-1">
                     <Link
@@ -168,7 +171,7 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
                       className="text-xs font-semibold text-zinc-900 underline"
                       onClick={() => rememberStationVisit({ id: station.id, name: displayName, city: station.city })}
                     >
-                      Ver posto
+                      Abrir posto
                     </Link>
                     <Link
                       href={sendHref}
@@ -178,7 +181,7 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
                         void trackProductEvent({ eventType: "camera_opened_from_station", pagePath: sendHref, pageTitle: displayName, stationId: station.id, city: station.city, fuelType: selectedReportForStation?.fuelType ?? null, scopeType: "submission", scopeId: station.id, payload: { source: "map-popup", compactMode: true, action: "photo" } });
                       }}
                     >
-                      Foto
+                      Enviar preço
                     </Link>
                   </div>
                 </div>
@@ -192,15 +195,15 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
         "absolute inset-x-0 bottom-0 z-[402] px-3 pb-3 transition-transform duration-300 ease-out",
         selectedStation ? "translate-y-0" : "translate-y-12 pointer-events-none opacity-0"
       )}>
-        <div className="rounded-[28px] border border-white/12 bg-black/90 p-5 shadow-2xl backdrop-blur-xl">
+        <div className={cn("rounded-[28px] border border-white/12 bg-black/90 p-5 shadow-2xl backdrop-blur-xl", compact && "p-4")}>
           {selectedStation ? (
-            <div className="space-y-4">
+            <div className={cn("space-y-4", compact && "space-y-3")}>
               <div className="flex items-start justify-between">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/42">Pin Selecionado</span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/42">Posto escolhido</span>
                     {selectedStation.geoReviewStatus === "manual_review" && (
-                      <Badge variant="warning" className="h-4 py-0 text-[9px]">Revisão</Badge>
+                      <Badge variant="warning" className="h-4 py-0 text-[9px]">Ajuste</Badge>
                     )}
                   </div>
                   <h4 className="mt-1 truncate text-lg font-black tracking-tight text-white uppercase italic">{selectedStationName}</h4>
@@ -234,7 +237,7 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
               >
                 <QuickActionButton
                   icon={Camera}
-                  label="Foto"
+                  label="Enviar preço"
                   desktopLabel="Abrir câmera"
                   variant="primary"
                   isStreetMode={true}
@@ -315,5 +318,10 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
     </div>
   );
 }
+
+
+
+
+
 
 
