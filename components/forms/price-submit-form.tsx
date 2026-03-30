@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { FuelType, StationWithReports } from "@/lib/types";
 import { fuelLabels } from "@/lib/format/labels";
-import { submitPriceReportAction } from "@/app/enviar/actions";
+import { submitPriceReportAction, type SubmitState } from "@/app/enviar/actions";
 import { RouteAssistant } from "@/components/routes/route-assistant";
 import { completeStationInRoute, readRouteContext } from "@/lib/navigation/route-context";
 import { useGeolocation } from "@/hooks/use-geolocation";
@@ -32,13 +32,15 @@ import { ContextualFeedback } from "@/components/feedback/contextual-feedback";
 import { submitContextualFeedbackAction } from "@/app/hub/feedback-actions";
 import { consumeHubAttribution } from "@/lib/telemetry/attribution";
 import { useMySubmissions } from "@/hooks/use-my-submissions";
+import { persistProgressiveIdentityNickname } from "@/lib/identity/progressive";
+import { ProgressiveIdentityPrompt } from "@/components/identity/progressive-identity-prompt";
 import { PostSubmissionBridge } from "./post-submission-bridge";
 import { useStreetSession } from "@/hooks/use-street-session";
 import { useTestMode } from "@/hooks/use-test-mode";
 
 const fuelOptions: FuelType[] = ["gasolina_comum", "gasolina_aditivada", "etanol", "diesel_s10", "diesel_comum", "gnv"];
 const allowedFuelSet = new Set<FuelType>(fuelOptions);
-const initialState = { error: null, errorCode: null, retryable: false, success: false };
+const initialState: SubmitState = { error: null, errorCode: null, retryable: false, success: false, noticeTitle: null, noticeBody: null, noticeTone: null, noticeCode: null };
 
 interface PriceSubmitFormProps {
   stations: StationWithReports[];
@@ -92,6 +94,21 @@ function isPhotoMetadataPresent(snapshot: Partial<SubmissionDraftSnapshot>) {
 function getPhotoName(photoType?: string | null, fallbackName = "foto") {
   const suffix = photoType?.split("/")[1] ?? "jpg";
   return `${fallbackName}.${suffix}`;
+}
+
+function syncProcessedFileToInput(input: HTMLInputElement | null, file: File) {
+  if (!input || typeof DataTransfer === "undefined") {
+    return false;
+  }
+
+  try {
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    input.files = transfer.files;
+    return input.files?.[0]?.name === file.name && input.files?.[0]?.size === file.size;
+  } catch {
+    return false;
+  }
 }
 
 function PriceSubmitFormBody({
@@ -180,9 +197,26 @@ function PriceSubmitFormBody({
 
         // Sessão de Rua: Concluir envio
         recordActivity('complete', station.id);
+
+        if (state.noticeCode && state.noticeTone === "warning") {
+          void trackProductEvent({
+            eventType: "submission_quality_flagged",
+            pagePath: "/enviar",
+            pageTitle: "Enviar preço",
+            stationId: station.id,
+            fuelType,
+            reason: state.noticeCode,
+            payload: {
+              reportId: state.reportId,
+              noticeTitle: state.noticeTitle,
+              noticeTone: state.noticeTone,
+              reviewReason: state.noticeCode
+            }
+          });
+        }
       }
     }
-  }, [state.success, state.reportId, addSubmission, stations, stationId, fuelType, price, nickname, recordActivity]);
+  }, [state.success, state.reportId, state.noticeCode, state.noticeTitle, state.noticeTone, addSubmission, stations, stationId, fuelType, price, nickname, recordActivity, submissions.length]);
   const [showFeedback, setShowFeedback] = useState(false);
   const selectedFileRef = useRef<File | null>(null);
   const hasStartedRef = useRef(false);
@@ -259,6 +293,7 @@ function PriceSubmitFormBody({
       }
       if (typeof draft.nickname === "string") {
         setNickname(draft.nickname);
+        persistProgressiveIdentityNickname(draft.nickname, "draft");
       }
 
       if (draft.photo && draft.photo instanceof Blob) {
@@ -770,10 +805,16 @@ function PriceSubmitFormBody({
 
     setIsProcessingPhoto(true);
     setQualityResult(null);
+    setValidationErrors((prev) => ({ ...prev, photo: undefined }));
 
     try {
       // 1. Processar/Comprimir
       const processed = await processImageForUpload(nextFile);
+      const inputSynced = syncProcessedFileToInput(fileInputRef.current, processed);
+      if (!inputSynced) {
+        throw new Error("Nao foi possivel sincronizar a foto processada para envio.");
+      }
+
       selectedFileRef.current = processed;
       
       // 2. Analisar qualidade
@@ -813,6 +854,34 @@ function PriceSubmitFormBody({
       if (priceInputRef.current) {
         priceInputRef.current.focus();
       }
+    } catch (error) {
+      selectedFileRef.current = null;
+      setPreviewUrl(null);
+      setQualityResult(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+
+      const message = error instanceof Error ? error.message : "Erro ao preparar a foto.";
+      setValidationErrors((prev) => ({
+        ...prev,
+        photo: /sincronizar/i.test(message)
+          ? "Nao foi possivel preparar a foto para envio. Tire outra e tente novamente."
+          : "Nao foi possivel processar a foto. Tente outra imagem ou abra a camera novamente."
+      }));
+
+      void trackProductEvent({
+        eventType: "submission_validation_error" as any,
+        pagePath: "/enviar",
+        pageTitle: "Enviar preco",
+        stationId: stationId || null,
+        fuelType,
+        payload: {
+          field: "photo",
+          reason: "photo_processing_failed",
+          message
+        }
+      });
     } finally {
       setIsProcessingPhoto(false);
     }
@@ -950,6 +1019,26 @@ function PriceSubmitFormBody({
 
   return (
     <>
+      {state.noticeTitle && state.noticeBody ? (
+        <div
+          className={cn(
+            "mb-4 rounded-[18px] border px-4 py-3 text-sm",
+            state.noticeTone === "warning"
+              ? "border-amber-400/30 bg-amber-400/10 text-amber-50"
+              : state.noticeTone === "success"
+                ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-50"
+                : "border-sky-400/25 bg-sky-400/10 text-sky-50"
+          )}
+        >
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <div>
+              <p className="font-medium text-white">{state.noticeTitle}</p>
+              <p className="mt-1 text-white/78">{state.noticeBody}</p>
+            </div>
+          </div>
+        </div>
+      ) : null}
     <form
       ref={formRef}
       action={formAction}
@@ -1092,21 +1181,29 @@ function PriceSubmitFormBody({
         />
       ) : null}
 
-      {state.success ? (
-        <PostSubmissionBridge
-          status={currentQueueItem ? "queued" : "success"}
-          station={selectedStation!}
-          fuelType={fuelType}
-          price={price}
-          isStreetMode={isStreetMode}
-          mission={mission}
-          nextMissionStation={nextStationNode}
-          nearbyStations={nearbyStationsList}
-          safeReturnToHref={safeReturnToHref}
-          onReset={resetForAnotherSubmission}
-        />
+      {!state.success && (draftRestored || queueItems.length > 0) ? (
+        <div className="mb-4">
+          <ProgressiveIdentityPrompt context="submit" source={queueItems.length > 0 ? "queue" : "draft"} />
+        </div>
       ) : null}
 
+      {state.success ? (
+        <div className="space-y-4">
+          <ProgressiveIdentityPrompt context="submit" source="success" />
+          <PostSubmissionBridge
+            status={currentQueueItem ? "queued" : "success"}
+            station={selectedStation!}
+            fuelType={fuelType}
+            price={price}
+            isStreetMode={isStreetMode}
+            mission={mission}
+            nextMissionStation={nextStationNode}
+            nearbyStations={nearbyStationsList}
+            safeReturnToHref={safeReturnToHref}
+            onReset={resetForAnotherSubmission}
+          />
+        </div>
+      ) : null}
       {state.error ? (
         <div className={`rounded-[18px] border px-4 py-3 text-sm ${retryableError ? "border-[color:var(--color-accent)]/24 bg-[color:var(--color-accent)]/10 text-white" : "border-[color:var(--color-danger)]/30 bg-[color:var(--color-danger)]/10 text-[color:var(--color-danger)]"}`}>
           <p className="font-medium text-white">
@@ -1422,3 +1519,10 @@ export function PriceSubmitForm(props: PriceSubmitFormProps) {
 
   return <PriceSubmitFormBody key={`${props.initialStationId ?? "default"}-${formVersion}`} {...props} onResetRequest={() => setFormVersion((value) => value + 1)} />;
 }
+
+
+
+
+
+
+

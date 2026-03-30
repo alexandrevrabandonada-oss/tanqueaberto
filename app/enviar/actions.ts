@@ -10,16 +10,21 @@ import { recordPriceReportAuditEvent } from "@/lib/audit/events";
 import { buildReportPhotoPath, validateReportPhoto, REPORT_PHOTO_BUCKET } from "@/lib/upload/report-photo";
 import { NETWORK_SIM_COOKIE, getNetworkSimulationDelayMs, normalizeNetworkSimulationMode } from "@/lib/dev/network-sim";
 import { createSupabaseServiceClient } from "@/lib/supabase/admin";
+import { logRuntimeIssue } from "@/lib/observability/runtime-issues";
 import { BETA_ACCESS_COOKIE_NAME } from "@/lib/beta/gate";
 import { getReportPriorityScore } from "@/lib/ops/moderation-priority";
 import type { FuelType } from "@/lib/types";
 
-interface SubmitState {
+export interface SubmitState {
   error: string | null;
   errorCode: string | null;
   retryable: boolean;
   success: boolean;
   reportId?: string;
+  noticeTitle?: string | null;
+  noticeBody?: string | null;
+  noticeTone?: "info" | "warning" | "success" | null;
+  noticeCode?: string | null;
 }
 
 const fuelTypes: FuelType[] = ["gasolina_comum", "gasolina_aditivada", "etanol", "diesel_s10", "diesel_comum", "gnv"];
@@ -29,18 +34,65 @@ function delay(ms: number) {
 }
 
 function failure(error: string, errorCode: string, retryable = false): SubmitState {
-  return { error, errorCode, retryable, success: false };
+  return { error, errorCode, retryable, success: false, noticeTitle: null, noticeBody: null, noticeTone: null, noticeCode: null };
 }
 
-function success(reportId?: string): SubmitState {
-  return { error: null, errorCode: null, retryable: false, success: true, reportId };
+function success(reportId?: string, notice?: Pick<SubmitState, "noticeTitle" | "noticeBody" | "noticeTone" | "noticeCode">): SubmitState {
+  return {
+    error: null,
+    errorCode: null,
+    retryable: false,
+    success: true,
+    reportId,
+    noticeTitle: notice?.noticeTitle ?? null,
+    noticeBody: notice?.noticeBody ?? null,
+    noticeTone: notice?.noticeTone ?? null,
+    noticeCode: notice?.noticeCode ?? null
+  };
+}
+
+
+function buildSubmissionNotice(input: {
+  duplicateLikely: boolean;
+  alreadyRecentPrice: boolean;
+  priceConflict: boolean;
+  priceDiscrepancy: boolean;
+}) {
+  if (input.duplicateLikely) {
+    return {
+      title: "Duplicado provável",
+      body: "O envio entrou em revisão porque a foto ou o preço parecem repetir um registro recente.",
+      tone: "warning" as const,
+      code: "duplicate_likely"
+    };
+  }
+
+  if (input.priceConflict || input.priceDiscrepancy) {
+    return {
+      title: "Entrou em revisão",
+      body: "O envio foi aceito, mas vai passar por checagem porque há conflito com leituras recentes.",
+      tone: "warning" as const,
+      code: input.priceConflict ? "price_conflict" : "price_discrepancy"
+    };
+  }
+
+  if (input.alreadyRecentPrice) {
+    return {
+      title: "Já existe preço recente",
+      body: "Seu envio foi aceito e fica em continuidade com uma leitura recente desse posto.",
+      tone: "info" as const,
+      code: "recent_price"
+    };
+  }
+
+  return null;
 }
 
 function getString(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
 }
 
-async function getSubmissionContext() {
+async function getSubmissionContext(formData: FormData) {
   const currentHeaders = await headers();
   const ip = getSubmissionClientIp(currentHeaders as Headers);
   const cookieStore = await cookies();
@@ -50,18 +102,23 @@ async function getSubmissionContext() {
     ipHash: hashSubmissionIp(ip),
     userAgent: currentHeaders.get("user-agent") ?? null,
     simulationMode,
-    betaToken: (await cookies()).get(BETA_ACCESS_COOKIE_NAME)?.value ?? null
+    betaToken: cookieStore.get(BETA_ACCESS_COOKIE_NAME)?.value ?? null,
+    deviceId: getString(formData, "deviceId") || null,
+    sessionId: getString(formData, "sessionId") || null,
+    surfaceType: getString(formData, "surfaceType") || null,
+    surfaceId: getString(formData, "surfaceId") || null
   };
 }
 
 export async function submitPriceReportAction(_prevState: SubmitState, formData: FormData): Promise<SubmitState> {
+  try {
   const stationId = getString(formData, "stationId");
   const fuelType = getString(formData, "fuelType") as FuelType;
   const priceRaw = getString(formData, "price");
   const nickname = getString(formData, "nickname");
   const honeypot = getString(formData, "website");
   const photo = formData.get("photo");
-  const context = await getSubmissionContext();
+  const context = await getSubmissionContext(formData);
 
   if (honeypot) {
     await recordOperationalEvent({
@@ -108,7 +165,13 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
       ipHash: context.ipHash,
       reason: "missing_photo"
     });
-    return failure("A foto não foi anexada ou se perdeu. Tire outra antes de enviar.", "photo_missing", false);
+    return {
+      ...failure("A foto não foi anexada ou se perdeu. Tire outra antes de enviar.", "photo_missing", false),
+      noticeTitle: "Precisa refazer a foto",
+      noticeBody: "Tire outra foto. O restante do envio pode continuar salvo neste aparelho.",
+      noticeTone: "warning",
+      noticeCode: "photo_missing"
+    };
   }
 
   const validationError = validateReportPhoto(photo);
@@ -182,7 +245,15 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
     await delay(getNetworkSimulationDelayMs(context.simulationMode));
   }
 
-  const limitCheck = await checkSubmissionRateLimit({ ipHash: context.ipHash, stationId, fuelType });
+  const limitCheck = await checkSubmissionRateLimit({
+    ipHash: context.ipHash,
+    stationId,
+    fuelType,
+    deviceId: context.deviceId,
+    sessionId: context.sessionId,
+    surfaceType: context.surfaceType || "submit",
+    surfaceId: context.surfaceId || stationId
+  });
 
   if (!limitCheck.allowed) {
     const rateLimitMessage =
@@ -337,6 +408,29 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
     { betaInviteCode: context.betaToken }
   );
 
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { data: recentReports } = await supabase
+    .from("price_reports")
+    .select("id,price,status,reported_at,photo_hash")
+    .eq("station_id", stationId)
+    .eq("fuel_type", fuelType)
+    .neq("status", "rejected")
+    .gt("reported_at", twentyFourHoursAgo)
+    .order("reported_at", { ascending: false })
+    .limit(6);
+
+  const hasRecentPrice = Boolean(recentReports?.[0]);
+  const sameRecentPrice = Boolean(recentReports?.some((reportRow) => Number(reportRow.price) === price));
+  const alreadyRecentPrice = hasRecentPrice && !sameRecentPrice;
+  const duplicateLikely = potentialPhotoReuse || isDuplicate || sameRecentPrice;
+  const needsReview = duplicateLikely || isPriceConflict || priceDiscrepancy;
+  const submissionNotice = buildSubmissionNotice({
+    duplicateLikely,
+    alreadyRecentPrice,
+    priceConflict: isPriceConflict,
+    priceDiscrepancy
+  });
+
   const { data: report, error: insertError } = await supabase
     .from("price_reports")
     .insert({
@@ -345,23 +439,26 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
       price,
       photo_url: publicUrl.publicUrl,
       photo_taken_at: timestamp,
-      observed_at: timestamp,
-      submitted_at: timestamp,
       reported_at: timestamp,
       reporter_nickname: nickname || null,
       ip_hash: context.ipHash,
-      status: potentialPhotoReuse ? "flagged" : "pending",
+      status: needsReview ? "flagged" : "pending",
       source_kind: "community",
       photo_hash: photoHash,
       location_distance: distance,
       location_confidence: locationConfidence,
       reconciliation_id: reconciliationId,
       is_confirmation: isConfirmation,
-      metadata: { 
+      moderation_reason: submissionNotice?.code ?? null,
+      moderation_note: submissionNotice?.body ?? null,
+      metadata: {
         price_discrepancy: priceDiscrepancy,
         potential_photo_reuse: potentialPhotoReuse,
         is_price_conflict: isPriceConflict,
-        is_duplicate: isDuplicate
+        is_duplicate: isDuplicate,
+        duplicate_likely: duplicateLikely,
+        already_recent_price: alreadyRecentPrice,
+        review_reason: submissionNotice?.code ?? null
       },
       version: 1
     })
@@ -404,13 +501,16 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
       priceDiscrepancy,
       potentialPhotoReuse,
       isPriceConflict,
-      isDuplicate
+      isDuplicate,
+      duplicateLikely,
+      alreadyRecentPrice,
+      reviewReason: submissionNotice?.code ?? null
     }
   });
 
   await recordOperationalEvent({
     eventType: "submission_accepted",
-    severity: (potentialPhotoReuse || isPriceConflict || priceDiscrepancy) ? "warning" : "info",
+    severity: needsReview ? "warning" : "info",
     scopeType: "submission",
     stationId,
     fuelType,
@@ -425,9 +525,34 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
       priceDiscrepancy,
       potentialPhotoReuse,
       isPriceConflict,
-      isDuplicate
+      isDuplicate,
+      duplicateLikely,
+      alreadyRecentPrice,
+      reviewReason: submissionNotice?.code ?? null
     }
   });
+
+  if (needsReview) {
+    await recordOperationalEvent({
+      eventType: "submission_reviewed",
+      severity: "warning",
+      scopeType: "submission",
+      stationId,
+      fuelType,
+      ipHash: context.ipHash,
+      city: station.city,
+      reason: submissionNotice?.code ?? "review_required",
+      payload: {
+        reportId: report.id,
+        duplicateLikely,
+        alreadyRecentPrice,
+        priceConflict: isPriceConflict,
+        priceDiscrepancy,
+        stationName: station.name,
+        noticeTitle: submissionNotice?.title ?? null
+      }
+    });
+  }
 
   revalidatePath("/");
   revalidatePath("/atualizacoes");
@@ -435,8 +560,24 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
   revalidatePath("/admin");
   revalidatePath("/auditoria");
 
-  return success(report.id);
+  return success(
+    report.id,
+    submissionNotice
+      ? {
+          noticeTitle: submissionNotice.title,
+          noticeBody: submissionNotice.body,
+          noticeTone: submissionNotice.tone,
+          noticeCode: submissionNotice.code
+        }
+      : undefined
+  );
+  } catch (error) {
+    logRuntimeIssue("Unexpected failure in submitPriceReportAction", error, { scope: "public", surface: "actions/enviar.submitPriceReportAction", fallback: "return-retryable-error", optional: true });
+    return failure("Houve um erro temporario ao enviar a foto. Tente novamente sem refazer o restante.", "submission_unexpected", true);
+  }
 }
+
+
 
 
 
