@@ -38,17 +38,17 @@ interface CollectorHubProps {
 
 function HubStat({ label, value, hint, icon: Icon, tone = "white" }: { label: string; value: string | number; hint: string; icon: React.ComponentType<{ className?: string }>; tone?: "white" | "amber" | "blue" | "emerald"; }) {
   return (
-    <div className="rounded-[22px] border border-white/8 bg-black/25 p-4">
+    <div className="rounded-[20px] border border-white/8 bg-black/22 p-3.5">
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">{label}</p>
-          <p className={cn("mt-2 text-2xl font-semibold", tone === "amber" ? "text-amber-300" : tone === "blue" ? "text-blue-300" : tone === "emerald" ? "text-emerald-300" : "text-white")}>{value}</p>
+          <p className={cn("mt-1.5 text-xl font-semibold", tone === "amber" ? "text-amber-300" : tone === "blue" ? "text-blue-300" : tone === "emerald" ? "text-emerald-300" : "text-white")}>{value}</p>
         </div>
         <div className={cn("flex h-10 w-10 items-center justify-center rounded-2xl border", tone === "amber" ? "border-amber-500/20 bg-amber-500/10 text-amber-300" : tone === "blue" ? "border-blue-500/20 bg-blue-500/10 text-blue-300" : tone === "emerald" ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-300" : "border-white/10 bg-white/5 text-white/70") }>
           <Icon className="h-4 w-4" />
         </div>
       </div>
-      <p className="mt-2 text-xs text-white/48">{hint}</p>
+      <p className="mt-1.5 text-xs text-white/48">{hint}</p>
     </div>
   );
 }
@@ -251,16 +251,16 @@ export function CollectorHub({ stations }: CollectorHubProps) {
           {isZeroState ? (
             <HubActivationHero type="NEW_COLLECTOR" compact={isNarrowMobile} />
           ) : (
-            <SectionCard className={cn("space-y-4 border-[color:var(--color-accent)]/20 bg-[linear-gradient(180deg,rgba(255,204,0,0.08),rgba(255,255,255,0.03))] xl:p-5", isNarrowMobile && "p-4") }>
+            <SectionCard className={cn("space-y-3.5 border-[color:var(--color-accent)]/20 bg-[linear-gradient(180deg,rgba(255,204,0,0.08),rgba(255,255,255,0.03))] xl:p-5", isNarrowMobile && "p-4") }>
               <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <Badge variant="warning" className="text-[10px] uppercase tracking-[0.22em]">{sessionMode === "active-state" ? "Sessão local" : sessionMode === "returning-state" ? "Retomada" : "Meu Hub"}</Badge>
-                    <span className="text-[10px] uppercase tracking-[0.22em] text-white/36">{sessionMode === "active-state" ? "Ativa no aparelho" : sessionMode === "returning-state" ? "Continuação local" : "Continuidade"}</span>
+                    <span className="text-[10px] uppercase tracking-[0.22em] text-white/36">{sessionMode === "active-state" ? "Pronta aqui" : sessionMode === "returning-state" ? "Voltou por aqui" : "Continuidade"}</span>
                   </div>
                   <div className="space-y-2">
                     <h1 className="text-2xl font-bold tracking-tight text-white xl:text-[1.6rem]">{sessionMode === "zero-state" ? "Começar por aqui" : sessionMode === "active-state" ? "Continuar de onde parou" : "Próximo passo"}</h1>
-                    <p className="max-w-2xl text-sm text-white/58 xl:text-[13px]">{sessionMode === "zero-state" ? "Um caminho só para começar sem repetir passos." : sessionMode === "active-state" ? "O último gesto, a fila local e o próximo passo voltam primeiro, sem login e sem reiniciar a página." : "O último gesto segue salvo e o Hub volta pela continuidade antes de qualquer ajuda extra."}</p>
+                    <p className="max-w-2xl text-sm text-white/58 xl:text-[13px]">{sessionMode === "zero-state" ? "Um caminho só para começar sem repetir passos." : sessionMode === "active-state" ? "Seu último passo e o que falta fazer voltam primeiro." : "Você volta pelo que importa, sem precisar procurar tudo de novo."}</p>
                   </div>
                   <div className={cn("flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.2em] text-white/38 xl:gap-1.5", isNarrowMobile && "hidden sm:flex", isSimpleHub && "hidden")}> 
                     {mission ? <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-white/62">Missão ativa</span> : null}
@@ -268,7 +268,7 @@ export function CollectorHub({ stations }: CollectorHubProps) {
                       {pendingNowCount > 0 ? `${pendingNowCount} pendências` : "Sem pendências"}
                     </span>
                     <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-white/62">
-                      {lastSubmission ? "Último envio salvo" : latestLocalEntry ? "Última ação local" : sessionMode === "returning-state" ? "Memória local guardada" : session ? "Sessão local ativa" : "Sem memória ainda"}
+                      {lastSubmission ? "Último envio salvo" : latestLocalEntry ? "Última ação local" : sessionMode === "returning-state" ? "Memória guardada" : session ? "Sessão pronta" : "Sem memória ainda"}
                     </span>
                   </div>
                 </div>
@@ -291,7 +291,7 @@ export function CollectorHub({ stations }: CollectorHubProps) {
           )}
 
           {!isZeroState && showRichSections && (
-            <SectionCard className="space-y-4 border-white/10 bg-white/5 xl:p-5">
+            <SectionCard className="space-y-3.5 border-white/10 bg-white/5 xl:p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Sessão recente</p>
@@ -352,11 +352,11 @@ export function CollectorHub({ stations }: CollectorHubProps) {
           )}
 
           {!isZeroState && showRichSections && (
-            <SectionCard className="space-y-4 border-white/10 bg-white/5 xl:p-5">
+            <SectionCard className="space-y-3.5 border-white/10 bg-white/5 xl:p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Fila e revisão</p>
-                  <h2 className="text-lg font-semibold text-white">O que está pendente agora</h2>
+                  <h2 className="text-lg font-semibold text-white">Pendências agora</h2>
                 </div>
                 <Badge variant="outline" className="border-white/10 bg-white/5 text-[9px] uppercase tracking-[0.18em] text-white/48">
                   {pendingNowCount} ativos
@@ -367,7 +367,7 @@ export function CollectorHub({ stations }: CollectorHubProps) {
           )}
 
           {!isZeroState && showRichSections && (
-            <SectionCard className="space-y-4 border-white/10 bg-white/5 xl:p-5">
+            <SectionCard className="space-y-3.5 border-white/10 bg-white/5 xl:p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Impacto acumulado</p>
@@ -392,7 +392,7 @@ export function CollectorHub({ stations }: CollectorHubProps) {
           )}
 
           {!isZeroState && showRichSections && (
-            <SectionCard className="space-y-4 border-white/10 bg-white/5 xl:p-5">
+            <SectionCard className="space-y-3.5 border-white/10 bg-white/5 xl:p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Memória e atalhos</p>
@@ -426,6 +426,7 @@ export function CollectorHub({ stations }: CollectorHubProps) {
     </div>
   );
 }
+
 
 
 

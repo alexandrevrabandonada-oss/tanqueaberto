@@ -141,7 +141,7 @@ function FilterSelect({
   options: Array<{ value: string; label: string }>;
 }) {
   return (
-    <label className="space-y-2 rounded-[22px] border border-white/8 bg-black/30 px-4 py-3 text-sm text-white/58">
+    <label className="space-y-2 rounded-[20px] border border-white/8 bg-black/24 px-3.5 py-2.5 text-sm text-white/58">
       <span className="block text-xs uppercase tracking-[0.18em] text-white/42">{label}</span>
       <div className="relative">
         <select
@@ -1178,11 +1178,11 @@ export function HomeBrowser({
       )}
 
       {homeState.state === "operation-normal" && !isHeroCollapsed && (
-        <SectionCard className="space-y-4 mb-6 xl:mb-4">
-          <div className="space-y-1.5">
+        <SectionCard className="mb-4 space-y-3 border-white/8 bg-white/[0.04] py-4 xl:mb-3">
+          <div className="space-y-1">
             <Badge className="text-[10px] uppercase tracking-widest">Mapa Vivo {role === 'senior' && "· Senior"}</Badge>
-            <h2 className="text-2xl font-bold tracking-tight text-white xl:text-[1.6rem]">Transparência territorial e preço real</h2>
-            <p className="text-sm leading-relaxed text-white/40 xl:max-w-xl">Busque, filtre e colabore para manter o mapa vivo.</p>
+            <h2 className="text-2xl font-bold tracking-tight text-white xl:text-[1.6rem]">Buscar, comparar e enviar.</h2>
+            <p className="text-sm leading-relaxed text-white/40 xl:max-w-xl">Veja os postos do recorte e entre no envio sem rodeio.</p>
           </div>
 
           <div className="flex items-center justify-between min-h-[1.5rem]">
@@ -1234,9 +1234,9 @@ export function HomeBrowser({
         </SectionCard>
       )}
 
-      <SectionCard className="mb-6 space-y-4 xl:mb-4">
+      <SectionCard className="mb-4 space-y-3 xl:mb-4">
 
-          <div className={cn("grid gap-3 transition-all duration-500 xl:gap-2", (isHeroCollapsed || missionActive) ? "h-0 overflow-hidden opacity-0 pointer-events-none mb-0" : "grid-cols-1 md:grid-cols-3")}>
+          <div className={cn("grid gap-2.5 transition-all duration-500 xl:gap-2", (isHeroCollapsed || missionActive) ? "h-0 overflow-hidden opacity-0 pointer-events-none mb-0" : "grid-cols-1 md:grid-cols-3")}>
             <FilterSelect
               label="Combustível"
               value={fuelFilter}
@@ -1255,7 +1255,7 @@ export function HomeBrowser({
               }}
               options={recencyFilters.map((item) => ({ value: item.value, label: item.label }))}
             />
-            <div className="space-y-2 rounded-[22px] border border-white/8 bg-black/30 px-4 py-3 text-sm text-white/58">
+            <div className="space-y-2 rounded-[20px] border border-white/8 bg-black/24 px-3.5 py-2.5 text-sm text-white/58">
               <span className="block text-xs uppercase tracking-[0.18em] text-white/42">Exibição</span>
               <div className="grid grid-cols-2 gap-2">
                 {[
@@ -1269,7 +1269,7 @@ export function HomeBrowser({
                       setPresenceFilter(item.value);
                       void trackProductEvent({ eventType: "first_fold_action" as any, pagePath: "/", payload: { type: "filter_presence", value: item.value } });
                     }}
-                    className={`rounded-[16px] px-3 py-3 text-xs font-semibold transition ${
+                    className={`rounded-[14px] px-3 py-2.5 text-xs font-semibold transition ${
                       presenceFilter === item.value ? "bg-white text-black" : "border border-white/10 bg-white/5 text-white/66"
                     }`}
                   >
@@ -1280,7 +1280,7 @@ export function HomeBrowser({
             </div>
           </div>
 
-          <details className={cn("rounded-[22px] border border-white/8 bg-white/5 px-4 py-3 text-sm text-white/58 transition-all", (isHeroCollapsed || missionActive) && "hidden")}>
+          <details className={cn("rounded-[20px] border border-white/8 bg-white/[0.04] px-4 py-2.5 text-sm text-white/58 transition-all", (isHeroCollapsed || missionActive) && "hidden")}>
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-white/76">
               <span className="inline-flex items-center gap-2 font-medium">
                 <SlidersHorizontal className="h-4 w-4 text-[color:var(--color-accent)]" />
@@ -1308,7 +1308,7 @@ export function HomeBrowser({
               </div>
 
               {cityOptions.others.length > 0 ? (
-                <label className="space-y-2 rounded-[22px] border border-white/8 bg-black/30 px-4 py-3 text-sm text-white/58">
+                <label className="space-y-2 rounded-[20px] border border-white/8 bg-black/24 px-3.5 py-2.5 text-sm text-white/58">
                   <span className="block text-xs uppercase tracking-[0.18em] text-white/42">Outras cidades</span>
                   <div className="relative">
                     <select
@@ -1335,7 +1335,7 @@ export function HomeBrowser({
             </div>
           </details>
         
-        <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-white/44">
+        <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.16em] text-white/42">
           <div className="flex items-center gap-3">
             <span>{orderedStations.length} postos no recorte</span>
             {orderedStations.length > 0 && (
@@ -1434,7 +1434,7 @@ export function HomeBrowser({
 
                 <aside data-layout-role="rail" data-rail-useful="home" className="hidden space-y-6 xl:block xl:sticky xl:top-32">
           <SectionCard className="space-y-4 border-white/10 bg-white/5 xl:p-5">
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Rail útil</p>
               <h3 className="text-lg font-semibold text-white">Recorte, prioridade e próxima ação</h3>
               <p className="text-sm leading-relaxed text-white/54">A lateral só mostra o que ajuda a decidir o próximo gesto sem roubar foco do mapa.</p>
@@ -1517,7 +1517,7 @@ export function HomeBrowser({
             </div>
             <Badge variant="outline" className="text-[10px]">{summaryStations.length} no mapa</Badge>
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             {summaryStations.slice(0, 10).map((station) => {
               const latest = getSelectedStationReport(station, fuelFilter);
               const stationHref = `/postos/${station.id}?returnTo=${encodeURIComponent(contextHref)}` as Route;
@@ -1884,6 +1884,8 @@ export function HomeBrowser({
     </>
   );
 }
+
+
 
 
 

@@ -68,10 +68,10 @@ export function StationMapShell({ stations, className, returnToHref, fuelFilter 
 
   if (status.isLowPerf && !shouldMountMap) {
     return (
-      <div className={cn("grid w-full place-items-center rounded-[28px] border border-white/8 bg-black/30 px-6 text-center text-sm text-white/58", compact ? "h-[260px]" : "h-[360px]", className)}>
+      <div className={cn("grid w-full place-items-center rounded-[28px] border border-white/8 bg-black/24 px-5 text-center text-sm text-white/56", compact ? "h-[220px]" : "h-[320px]", className)}>
         <div className="space-y-2">
-          <p className="text-base font-semibold text-white">Mapa leve carregando.</p>
-          <p>Estamos trazendo a lista e a busca primeiro para o aparelho respirar melhor.</p>
+          <p className="text-sm font-semibold text-white">Mapa leve carregando.</p>
+          <p>A lista entra primeiro para nao travar o aparelho.</p>
         </div>
       </div>
     );
@@ -83,4 +83,6 @@ export function StationMapShell({ stations, className, returnToHref, fuelFilter 
     </div>
   );
 }
+
+
 

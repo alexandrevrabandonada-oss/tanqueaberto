@@ -1665,15 +1665,23 @@ function PriceSubmitFormBody({
         ) : null}
         {!isStreetMode && <p className="mt-3 text-xs leading-relaxed text-white/52">Se a conexão cair, os campos continuam na tela. Se a foto falhar, tente de novo sem refazer tudo.</p>}
       </div>
-
       {queueItems.length > 0 ? (
-        <SubmissionQueuePanel
-          items={queueItems}
-          online={isOnline}
-          onRetry={handleRetryQueueItem}
-          onReview={handleReviewQueueItem}
-          onDiscard={handleDiscardQueueItem}
-        />
+        <div className="rounded-[18px] border border-white/8 bg-black/24 px-4 py-3 text-sm text-white/68">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="font-medium text-white">Fila local</p>
+              <p className="text-xs text-white/48">Novo envio continua sendo a acao principal.</p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              className="shrink-0"
+              onClick={() => document.getElementById('submission-queue-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            >
+              Ver fila
+            </Button>
+          </div>
+        </div>
       ) : null}
 
       {!state.success && (draftRestored || queueItems.length > 0) ? (
@@ -1699,6 +1707,18 @@ function PriceSubmitFormBody({
           />
         </div>
       ) : null}
+      {queueItems.length > 0 ? (
+        <div id="submission-queue-panel" className="pt-1">
+          <SubmissionQueuePanel
+            items={queueItems}
+            online={isOnline}
+            onRetry={handleRetryQueueItem}
+            onReview={handleReviewQueueItem}
+            onDiscard={handleDiscardQueueItem}
+          />
+        </div>
+      ) : null}
+
       {state.error ? (
         <div className={`rounded-[18px] border px-4 py-3 text-sm ${retryableError ? "border-[color:var(--color-accent)]/24 bg-[color:var(--color-accent)]/10 text-white" : "border-[color:var(--color-danger)]/30 bg-[color:var(--color-danger)]/10 text-[color:var(--color-danger)]"}`}>
           <p className="font-medium text-white">
@@ -2214,6 +2234,9 @@ export function PriceSubmitForm(props: PriceSubmitFormProps) {
 
   return <PriceSubmitFormBody key={`${props.initialStationId ?? "default"}-${formVersion}`} {...props} onResetRequest={() => setFormVersion((value) => value + 1)} />;
 }
+
+
+
 
 
 
