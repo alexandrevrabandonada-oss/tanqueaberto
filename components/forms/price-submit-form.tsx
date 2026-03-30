@@ -16,13 +16,16 @@ import { RouteAssistant } from "@/components/routes/route-assistant";
 import { completeStationInRoute, readRouteContext } from "@/lib/navigation/route-context";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { calculateDistance, formatDistance } from "@/lib/geo/distance";
+import { formatCurrencyBRL } from "@/lib/format/currency";
+import { formatRecencyLabel } from "@/lib/format/time";
 import { trackProductEvent } from "@/lib/telemetry/client";
 import { clearSubmissionDraft, loadSubmissionDraft, saveSubmissionDraft, type SubmissionDraftSnapshot, type SubmissionDraftStep, type SubmissionDraftStatus } from "@/lib/drafts/submission-draft";
 import { SubmissionQueuePanel } from "@/components/forms/submission-queue-panel";
 import { buildSubmissionQueueHref, clearSubmissionQueueForDraftKey, loadSubmissionQueue, removeSubmissionQueueEntry, upsertSubmissionQueueEntry, type SubmissionQueueEntry } from "@/lib/queue/submission-queue";
 import { useStreetMode } from "@/hooks/use-street-mode";
 import { useMissionContext } from "@/components/mission/mission-context";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils"
+import { getSelectedStationReport } from "@/lib/filters/public"
 import { getStationPublicName, hasPendingStationLocationReview, isValidStationCoordinate } from "@/lib/quality/stations";
 import { useSubmissionHistory } from "@/components/history/submission-history-context";
 import { analyzePhotoQuality, type PhotoQualityResult } from "@/lib/camera/quality-analyzer";
@@ -252,9 +255,14 @@ function PriceSubmitFormBody({
   const [draftRestored, setDraftRestored] = useState(false);
   const [draftPhotoMissing, setDraftPhotoMissing] = useState(false);
   const [isSuggested, setIsSuggested] = useState(false);
+  const [stationConfirmed, setStationConfirmed] = useState(Boolean(lockedStation));
+  const [fuelConfirmed, setFuelConfirmed] = useState(false);
+  const [priceReviewed, setPriceReviewed] = useState(false);
   const [submittedStationId, setSubmittedStationId] = useState<string | null>(null);
   const [queueItems, setQueueItems] = useState<SubmissionQueueEntry[]>([]);
   const [isOnline, setIsOnline] = useState(true);
+  const [showStationPicker, setShowStationPicker] = useState(true);
+  const [showFuelPicker, setShowFuelPicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const priceInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -325,12 +333,20 @@ function PriceSubmitFormBody({
   }, [state.success, state.reportId, state.noticeCode, state.noticeTitle, state.noticeTone, addSubmission, stations, stationId, fuelType, price, nickname, recordActivity, submissions.length]);
   const [showFeedback, setShowFeedback] = useState(false);
   const selectedFileRef = useRef<File | null>(null);
+  const submissionFlowOpenedAtRef = useRef(Date.now());
+  const submissionAutoDecisionCountRef = useRef(0);
+  const submissionFlowOpenedTrackedRef = useRef(false);
+  const submissionFlowCompletedTrackedRef = useRef(false);
+  const stationSuggestionTrackedRef = useRef(false);
+  const fuelSuggestionTrackedRef = useRef(false);
   const hasStartedRef = useRef(false);
   const completedRef = useRef(false);
   const abandonmentSentRef = useRef(false);
   const currentStepRef = useRef<SubmissionDraftStep | null>(null);
   const telemetryContextRef = useRef({ stationId: stationId || null, fuelType, compactMode, lockedStation });
   const formRef = useRef<HTMLFormElement | null>(null);
+  const stationSearchInputRef = useRef<HTMLInputElement | null>(null);
+  const fuelSelectRef = useRef<HTMLSelectElement | null>(null);
   const restoredDraftTrackedRef = useRef(false);
   const lastFailureKeyRef = useRef<string | null>(null);
   const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
@@ -395,12 +411,15 @@ function PriceSubmitFormBody({
 
       if (draft.stationId && stations.some((station) => station.id === draft.stationId)) {
         setStationId(draft.stationId);
+        setStationConfirmed(true);
       }
       if (draft.fuelType && allowedFuelSet.has(draft.fuelType)) {
         setFuelType(draft.fuelType);
+        setFuelConfirmed(true);
       }
       if (typeof draft.price === "string") {
         setPrice(draft.price);
+        setPriceReviewed(draft.lastStep === "submit");
       }
       if (typeof draft.nickname === "string") {
         setNickname(draft.nickname);
@@ -474,6 +493,7 @@ function PriceSubmitFormBody({
   useEffect(() => {
     if (initialStation) {
       setStationId(initialStation.id);
+      setStationConfirmed(true);
       return;
     }
 
@@ -532,6 +552,72 @@ function PriceSubmitFormBody({
 
   const currentQueueItem = queueItems.find((item) => item.draftKey === draftKey) ?? null;
   const selectedStation = stations.find((station) => station.id === stationId) ?? stations[0] ?? null;
+
+  const isFirstSendFlow = useMemo(() => submissions.length === 0 && history.length === 0 && !draftRestored, [draftRestored, history.length, submissions.length]);
+
+
+
+  const suggestedFuelType = useMemo<FuelType>(() => {
+
+    const stationFuel = selectedStation ? submissions.find((entry) => entry.stationId === selectedStation.id)?.fuelType ?? null : null;
+    return initialFuelType ?? stationFuel ?? submissions[0]?.fuelType ?? defaultFuelType;
+  }, [defaultFuelType, initialFuelType, selectedStation, submissions]);
+
+  useEffect(() => {
+    if (!draftLoaded || submissionFlowOpenedTrackedRef.current) {
+      return;
+    }
+
+    submissionFlowOpenedTrackedRef.current = true;
+    void trackProductEvent({
+      eventType: "submission_flow_opened",
+      pagePath: "/enviar",
+      pageTitle: "Enviar preço",
+      stationId: stationId || null,
+      fuelType,
+      scopeType: "submission",
+      scopeId: stationId || null,
+      payload: {
+        firstSendFlow: isFirstSendFlow,
+        lockedStation,
+        draftRestored,
+        hasInitialStation: Boolean(initialStation),
+        hasSuggestedFuel: Boolean(initialFuelType),
+        queuedItems: queueItems.length
+      }
+    });
+  }, [draftLoaded, draftRestored, fuelType, initialFuelType, initialStation, isFirstSendFlow, lockedStation, queueItems.length, stationId]);
+
+  useEffect(() => {
+    if (draftRestored || fuelSuggestionTrackedRef.current || (!initialFuelType && fuelType !== defaultFuelType && fuelType !== "gasolina_comum")) {
+      return;
+    }
+
+    const stationFuel = selectedStation ? submissions.find((entry) => entry.stationId === selectedStation.id)?.fuelType ?? null : null;
+    const nextFuel = initialFuelType ?? stationFuel ?? submissions[0]?.fuelType ?? defaultFuelType;
+    if (!nextFuel || nextFuel === fuelType) {
+      return;
+    }
+
+    fuelSuggestionTrackedRef.current = true;
+    submissionAutoDecisionCountRef.current += 1;
+    setFuelType(nextFuel);
+    void trackProductEvent({
+      eventType: "submission_context_autofilled",
+      pagePath: "/enviar",
+      pageTitle: "Enviar preço",
+      stationId: (selectedStation?.id ?? stationId) || null,
+      city: selectedStation?.city ?? null,
+      fuelType: nextFuel,
+      scopeType: "submission",
+      scopeId: (selectedStation?.id ?? stationId) || null,
+      payload: {
+        field: "fuel",
+        source: initialFuelType ? "query" : stationFuel ? "station_history" : "submission_history",
+        decisionsSkipped: submissionAutoDecisionCountRef.current
+      }
+    });
+  }, [defaultFuelType, draftRestored, fuelType, initialFuelType, selectedStation, stationId, submissions]);
 
   const { currentDistance, locationConfidence, isAmbiguous, closestStationId } = useMemo(() => {
     if (!coords || !selectedStation) return { currentDistance: null, locationConfidence: "none", isAmbiguous: false, closestStationId: null };
@@ -634,6 +720,41 @@ function PriceSubmitFormBody({
     }).sort(compareStationCandidates);
   }, [coords, homeContextSnapshot.city, recentStationIds, stations]);
 
+  useEffect(() => {
+    if (lockedStation || draftRestored || stationSuggestionTrackedRef.current || stationCandidates.length === 0) {
+      return;
+    }
+
+    const suggestedStation = stationCandidates[0];
+    if (!suggestedStation || suggestedStation.station.id === stationId) {
+      return;
+    }
+
+    stationSuggestionTrackedRef.current = true;
+    submissionAutoDecisionCountRef.current += 1;
+    setStationId(suggestedStation.station.id);
+    setIsSuggested(Boolean(suggestedStation.distance !== null));
+    setShowStationPicker(false);
+    void trackProductEvent({
+      eventType: "submission_context_autofilled",
+      pagePath: "/enviar",
+      pageTitle: "Enviar preço",
+      stationId: suggestedStation.station.id,
+      city: suggestedStation.station.city,
+      fuelType: fuelType,
+      scopeType: "submission",
+      scopeId: suggestedStation.station.id,
+      payload: {
+        field: "station",
+        source: coords ? "geo_recent_rank" : "recent_rank",
+        distance: suggestedStation.distance,
+        geoReviewStatus: suggestedStation.station.geoReviewStatus ?? null,
+        visibilityRank: suggestedStation.visibilityRank,
+        decisionsSkipped: submissionAutoDecisionCountRef.current
+      }
+    });
+  }, [coords, draftRestored, fuelType, lockedStation, stationCandidates, stationId]);
+
   const normalizedStationSearch = useMemo(() => normalizeContextValue(stationSearch), [stationSearch]);
 
   const nearbyRadiusMeters = useMemo(() => {
@@ -660,6 +781,8 @@ function PriceSubmitFormBody({
       .slice(0, 6);
   }, [stationCandidates]);
 
+
+
   const fallbackPickerItems = useMemo(() => {
     const blockedIds = new Set([...nearbyPickerItems, ...recentPickerItems].map((candidate) => candidate.station.id));
     return stationCandidates.filter((candidate) => !blockedIds.has(candidate.station.id)).slice(0, 8);
@@ -685,6 +808,10 @@ function PriceSubmitFormBody({
     return stations.find(s => s.id === nextId) || null;
   }, [mission, stations]);
   const ambiguityTrackedRef = useRef<string | null>(null);
+  const [showMoreNearby, setShowMoreNearby] = useState(false);
+  const [showMoreRecent, setShowMoreRecent] = useState(false);
+  const [showMoreFallback, setShowMoreFallback] = useState(false);
+  const [showMoreSearch, setShowMoreSearch] = useState(false);
   useEffect(() => {
     if (isAmbiguous && !lockedStation && coords && ambiguityTrackedRef.current !== stationId) {
       ambiguityTrackedRef.current = stationId;
@@ -985,6 +1112,11 @@ function PriceSubmitFormBody({
     }
     completedRef.current = false;
     abandonmentSentRef.current = false;
+    submissionFlowCompletedTrackedRef.current = false;
+    submissionFlowOpenedTrackedRef.current = false;
+    submissionAutoDecisionCountRef.current = 0;
+    stationSuggestionTrackedRef.current = false;
+    fuelSuggestionTrackedRef.current = false;
     setDraftRestored(false);
     setDraftPhotoMissing(false);
     setPreviewUrl(null);
@@ -1117,13 +1249,13 @@ function PriceSubmitFormBody({
     const raw = e.target.value;
     const formatted = formatPrice(raw);
     setPrice(formatted);
-    
+    setPriceReviewed(false);
+
     // Clear error on change
     if (validationErrors.price) {
       setValidationErrors(prev => ({ ...prev, price: undefined }));
     }
   }
-
   function handleFieldFocus(fieldName: string) {
     lastFieldRef.current = fieldName;
   }
@@ -1157,8 +1289,33 @@ function PriceSubmitFormBody({
   }
 
   const canSubmit = Boolean(selectedStation && selectedFileRef.current && price.trim() && fuelType);
+  const hasPhoto = Boolean(previewUrl);
   const retryableError = state.error && state.retryable;
-  const statusLabel = previewUrl ? "foto pronta" : selectedStation ? "posto pronto" : "comece pela foto";
+  const guidedStage: SubmissionDraftStep = useMemo(() => {
+    if (!hasPhoto) return "photo";
+    if (!stationConfirmed) return "station";
+    if (!fuelConfirmed) return "fuel";
+    if (!price.trim()) return "price";
+    if (!priceReviewed) return "price";
+    return "submit";
+  }, [fuelConfirmed, hasPhoto, price, priceReviewed, stationConfirmed]);
+  const stageLabel = {
+    photo: "Foto",
+    station: "Posto",
+    fuel: "Combustível",
+    price: "Preço",
+    submit: "Revisão"
+  }[guidedStage];
+  const submitButtonLabel =
+    guidedStage === "photo"
+      ? "Abrir câmera"
+      : guidedStage === "station"
+        ? "Confirmar posto"
+        : guidedStage === "fuel"
+          ? "Confirmar combustível"
+          : guidedStage === "price"
+            ? "Ver revisão"
+            : "Enviar preço";
 
   async function refreshQueueItems() {
     const items = await loadSubmissionQueue().catch(() => [] as SubmissionQueueEntry[]);
@@ -1222,6 +1379,9 @@ function PriceSubmitFormBody({
       selectedFileRef.current = null;
       setDraftRestored(false);
       setDraftPhotoMissing(false);
+      setStationConfirmed(false);
+      setFuelConfirmed(false);
+      setPriceReviewed(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -1235,6 +1395,8 @@ function PriceSubmitFormBody({
     setStationSearch("");
     setValidationErrors((prev) => ({ ...prev, stationId: undefined }));
     setIsSuggested(source === "nearby" && candidate.distance !== null);
+    setStationConfirmed(true);
+    setFuelConfirmed(false);
     markStarted("station", {
       changed: true,
       source,
@@ -1251,6 +1413,11 @@ function PriceSubmitFormBody({
     const isSelected = candidate.station.id === stationId;
     const geoBadge = getGeoReviewBadge(candidate);
     const isGeoPending = hasPendingStationLocationReview(candidate.station);
+    const selectedReport = getSelectedStationReport(candidate.station, fuelType);
+    const recentPriceLabel = selectedReport ? formatCurrencyBRL(selectedReport.price) : null;
+    const recentTimeLabel = selectedReport ? formatRecencyLabel(selectedReport.reportedAt) : null;
+    const streetLabel = candidate.addressShort || candidate.neighborhoodLabel || "Endereco curto indisponivel";
+    const brandLabel = candidate.brandLabel ?? "Sem bandeira";
 
     return (
       <button
@@ -1258,24 +1425,26 @@ function PriceSubmitFormBody({
         type="button"
         onClick={() => handleStationSelect(candidate, source)}
         className={cn(
-          "w-full rounded-[18px] border px-4 py-3 text-left transition-all",
+          "w-full rounded-[20px] border px-4 py-3 text-left transition-all",
           isSelected
             ? "border-[color:var(--color-accent)]/45 bg-[color:var(--color-accent)]/12 shadow-[0_12px_32px_rgba(255,212,0,0.12)]"
             : "border-white/10 bg-black/25 hover:border-white/18 hover:bg-white/[0.04]"
         )}
       >
         <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <p className="truncate text-sm font-semibold text-white">{candidate.publicName}</p>
-              {candidate.brandLabel ? <Badge variant="secondary" className="max-w-full truncate normal-case tracking-normal">{candidate.brandLabel}</Badge> : null}
-              {isSelected ? <Badge variant="default">Selecionado</Badge> : null}
+              {isSelected ? <Badge variant="default">É este posto</Badge> : null}
             </div>
-            <p className="mt-1 text-xs text-white/68">{candidate.neighborhoodLabel} · {candidate.addressShort || "Endereco curto indisponivel"}</p>
-            <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-white/54">
+            <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/66">
+              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-white/78">{brandLabel}</span>
+              <span className="truncate">{streetLabel}</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-[10px] text-white/54">
+              {candidate.distance !== null ? <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1 font-semibold text-white/72">{formatDistance(candidate.distance)}</span> : null}
+              {recentPriceLabel ? <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-1 text-emerald-100">Último preço {recentPriceLabel} · {recentTimeLabel}</span> : <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1">Sem preço recente</span>}
               <Badge variant={geoBadge.variant}>{geoBadge.label}</Badge>
-              {candidate.distance !== null ? <Badge variant="outline">{formatDistance(candidate.distance)}</Badge> : null}
-              {candidate.station.city ? <Badge variant="secondary" className="normal-case tracking-normal">{candidate.station.city}</Badge> : null}
               {candidate.ambiguityCount > 1 ? <Badge variant="warning">Nome parecido</Badge> : null}
               {isGeoPending ? <Badge variant="outline">Confirmar local</Badge> : null}
             </div>
@@ -1287,7 +1456,52 @@ function PriceSubmitFormBody({
       </button>
     );
   }
+  function handlePrimaryAction() {
+    if (guidedStage === "photo") {
+      fileInputRef.current?.click();
+      recordActivity("start", stationId);
+      return;
+    }
 
+    if (guidedStage === "station") {
+      if (!selectedStation) {
+        stationSearchInputRef.current?.focus();
+        return;
+      }
+
+      setStationConfirmed(true);
+      markStarted("station", {
+        confirmed: true,
+        source: "guided_footer"
+      });
+      return;
+    }
+
+    if (guidedStage === "fuel") {
+      setFuelConfirmed(true);
+      markStarted("fuel", {
+        confirmed: true,
+        source: "guided_footer"
+      });
+      return;
+    }
+
+    if (guidedStage === "price") {
+      if (!price.trim()) {
+        priceInputRef.current?.focus();
+        return;
+      }
+
+      setPriceReviewed(true);
+      markStarted("submit", {
+        confirmed: true,
+        source: "guided_footer"
+      });
+      return;
+    }
+
+    formRef.current?.requestSubmit();
+  }
   return (
     <>
       {state.noticeTitle && state.noticeBody ? (
@@ -1313,7 +1527,7 @@ function PriceSubmitFormBody({
     <form
       ref={formRef}
       action={formAction}
-      className={cn("space-y-4", state.success && "hidden")}
+      className={cn("space-y-4 pb-32", state.success && "hidden") }
       onSubmit={(e) => {
         if (!validateForm()) {
           e.preventDefault();
@@ -1358,8 +1572,8 @@ function PriceSubmitFormBody({
             )}
             {!isStreetMode && (
               <>
-                <h3 className="mt-2 text-xl font-semibold text-white">Foto primeiro, resto rápido.</h3>
-                <p className="mt-1 text-sm text-white/62">Abra a câmera, tire a prova e complete o envio com o mínimo de toque possível.</p>
+                <h3 className="mt-2 text-xl font-semibold text-white">{isFirstSendFlow ? "Foto primeiro. O resto é guiado." : "Foto primeiro, resto rápido."}</h3>
+                <p className="mt-1 text-sm text-white/62">{isFirstSendFlow ? "Tire a foto. O posto e o combustível entram sozinhos quando der." : "Abra a câmera, tire a prova e complete o envio com o mínimo de toque possível."}</p>
               </>
             )}
           </div>
@@ -1401,32 +1615,34 @@ function PriceSubmitFormBody({
           >
             {isStreetMode ? "ABRIR CÂMERA AGORA" : "Tirar foto agora"}
           </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => {
-              void trackProductEvent({
-                eventType: "submission_camera_opened",
-                pagePath: "/enviar",
-                pageTitle: "Enviar preço",
-                stationId: stationId || null,
-                fuelType,
-                scopeType: "submission",
-                scopeId: stationId || null,
-                payload: {
-                  source: "camera-secondary",
-                  compactMode,
-                  lockedStation,
-                  hasPhoto: Boolean(selectedFileRef.current)
-                }
-              });
-              fileInputRef.current?.click();
-              recordActivity('start', stationId);
-            }}
-            className="w-full sm:w-auto"
-          >
-            Abrir câmera
-          </Button>
+          {!isFirstSendFlow && (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                void trackProductEvent({
+                  eventType: "submission_camera_opened",
+                  pagePath: "/enviar",
+                  pageTitle: "Enviar preço",
+                  stationId: stationId || null,
+                  fuelType,
+                  scopeType: "submission",
+                  scopeId: stationId || null,
+                  payload: {
+                    source: "camera-secondary",
+                    compactMode,
+                    lockedStation,
+                    hasPhoto: Boolean(selectedFileRef.current)
+                  }
+                });
+                fileInputRef.current?.click();
+                recordActivity('start', stationId);
+              }}
+              className="w-full sm:w-auto"
+            >
+              Abrir câmera
+            </Button>
+          )}
         </div>
         {draftRestored ? (
           <div className="mt-3 rounded-[18px] border border-white/8 bg-black/30 p-3 text-sm text-white/66">
@@ -1531,7 +1747,7 @@ function PriceSubmitFormBody({
         </div>
       ) : null}
 
-      <div className="space-y-2" id="photo">
+      <div className={cn("space-y-2", guidedStage !== "photo" && "hidden")} id="photo">
         <label className="text-sm font-medium text-white" htmlFor="photo-input">
           Foto
         </label>
@@ -1564,7 +1780,7 @@ function PriceSubmitFormBody({
         </div>
       )}
 
-      {previewUrl && !isProcessingPhoto ? (
+      {previewUrl && !isProcessingPhoto && guidedStage === "photo" ? (
         <div className="group relative overflow-hidden rounded-[22px] border border-white/12 bg-black/40 shadow-2xl transition-all hover:border-[color:var(--color-accent)]/30">
           <img src={previewUrl} alt="Pré-visualização da foto enviada" className="h-64 w-full object-cover transition-transform duration-500 group-hover:scale-105" />
           
@@ -1629,7 +1845,40 @@ function PriceSubmitFormBody({
         </div>
       ) : null}
 
-      <div className="space-y-3 rounded-[22px] border border-white/8 bg-black/30 p-4">
+
+      {guidedStage !== "photo" && previewUrl && !isProcessingPhoto ? (
+        <div className="rounded-[22px] border border-white/10 bg-black/25 p-3">
+          <div className="flex items-center gap-3">
+            <img src={previewUrl} alt="Foto pronta para envio" className="h-16 w-16 rounded-[16px] object-cover" />
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/42">Foto</p>
+              <p className="truncate text-sm font-semibold text-white">Foto pronta</p>
+              <p className="mt-1 text-xs text-white/52">A próxima etapa é o posto.</p>
+            </div>
+            <Button type="button" variant="secondary" className="shrink-0" onClick={() => fileInputRef.current?.click()}>
+              Trocar
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      {guidedStage !== "station" && selectedStation ? (
+        <div className="rounded-[18px] border border-[color:var(--color-accent)]/18 bg-[color:var(--color-accent)]/8 px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-accent)]/72">Posto já sugerido</p>
+              <p className="truncate text-sm font-semibold text-white">{getStationPublicName(selectedStation)}</p>
+              <p className="mt-1 text-xs text-white/62">{selectedStation.neighborhood} · {shortAddress(selectedStation.address) || selectedStation.city}</p>
+            </div>
+            <Button type="button" variant="secondary" className="shrink-0" onClick={() => { setStationConfirmed(false); setShowStationPicker(true); }}>
+
+              Trocar
+
+            </Button>
+          </div>
+        </div>
+      ) : null}
+      <div className={cn("space-y-3 rounded-[22px] border border-white/8 bg-black/30 p-4", guidedStage !== "station" && "hidden") }>
         <input type="hidden" name="stationId" value={stationId} />
         <div className="flex items-center justify-between gap-3">
           <label className="text-sm font-medium text-white" htmlFor="station-search">
@@ -1675,12 +1924,38 @@ function PriceSubmitFormBody({
 
             {selectedStation ? (
               <div className="rounded-[18px] border border-[color:var(--color-accent)]/22 bg-[color:var(--color-accent)]/8 px-4 py-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-white">{getStationPublicName(selectedStation)}</p>
-                    <p className="mt-1 text-xs text-white/62">{selectedStation.neighborhood} · {shortAddress(selectedStation.address) || selectedStation.city}</p>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="truncate text-sm font-semibold text-white">{getStationPublicName(selectedStation)}</p>
+                      <Badge variant="default">Escolhido</Badge>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/72">
+                      <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1">{selectedStation.distributorName?.trim() || selectedStation.brand?.trim() || "Sem bandeira"}</span>
+                      <span className="truncate">{shortAddress(selectedStation.address) || selectedStation.neighborhood || selectedStation.city}</span>
+                      {coords && isValidStationCoordinate(selectedStation.lat, selectedStation.lng) ? <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1">{formatDistance(calculateDistance(coords.lat, coords.lng, selectedStation.lat, selectedStation.lng))}</span> : null}
+                    </div>
+                    {getSelectedStationReport(selectedStation, fuelType) ? (
+                      <p className="text-[11px] text-emerald-100/80">Último preço {formatCurrencyBRL(getSelectedStationReport(selectedStation, fuelType)!.price)} · {formatRecencyLabel(getSelectedStationReport(selectedStation, fuelType)!.reportedAt)}</p>
+                    ) : (
+                      <p className="text-[11px] text-white/52">Sem preço recente neste posto.</p>
+                    )}
                   </div>
-                  <Badge variant="default">Escolhido</Badge>
+                </div>
+              </div>
+            ) : null}
+
+            {selectedStation && !lockedStation && isAmbiguous ? (
+              <div className="rounded-[18px] border border-yellow-400/30 bg-yellow-400/10 px-4 py-3 text-sm text-yellow-50">
+                <p className="font-semibold">É este posto?</p>
+                <p className="mt-1 text-xs text-yellow-50/80">Há outros postos parecidos por perto. Se estiver certo, siga. Se não, troque antes de enviar.</p>
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                  <button type="button" className="inline-flex h-10 flex-1 items-center justify-center rounded-full bg-white px-4 text-[11px] font-black uppercase tracking-[0.18em] text-black" onClick={() => setShowStationPicker(false)}>
+                    É este
+                  </button>
+                  <button type="button" className="inline-flex h-10 flex-1 items-center justify-center rounded-full border border-white/10 bg-white/5 px-4 text-[11px] font-black uppercase tracking-[0.18em] text-white/82" onClick={() => { setStationConfirmed(false); setShowStationPicker(true); }}>
+                    Trocar
+                  </button>
                 </div>
               </div>
             ) : null}
@@ -1693,7 +1968,12 @@ function PriceSubmitFormBody({
                       <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/42">Mais proximos de voce</p>
                       <span className="text-[11px] text-white/38">Raio inicial {nearbyRadiusMeters >= 5000 ? "5 km" : "2 km"}</span>
                     </div>
-                    <div className="space-y-2">{nearbyPickerItems.map((candidate) => renderStationOption(candidate, "nearby"))}</div>
+                    <div className="space-y-2">{(showMoreNearby ? nearbyPickerItems : nearbyPickerItems.slice(0, 3)).map((candidate) => renderStationOption(candidate, "nearby"))}</div>
+                    {nearbyPickerItems.length > 3 ? (
+                      <button type="button" className="text-[11px] font-semibold text-[color:var(--color-accent)]" onClick={() => setShowMoreNearby((value) => !value)}>
+                        {showMoreNearby ? "Mostrar menos" : "Ver mais"}
+                      </button>
+                    ) : null}
                   </div>
                 ) : null}
 
@@ -1703,7 +1983,12 @@ function PriceSubmitFormBody({
                       <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/42">Recentes e por onde voce passou</p>
                       <span className="text-[11px] text-white/38">Memoria curta do aparelho</span>
                     </div>
-                    <div className="space-y-2">{recentPickerItems.map((candidate) => renderStationOption(candidate, "recent"))}</div>
+                    <div className="space-y-2">{(showMoreRecent ? recentPickerItems : recentPickerItems.slice(0, 2)).map((candidate) => renderStationOption(candidate, "recent"))}</div>
+                    {recentPickerItems.length > 2 ? (
+                      <button type="button" className="text-[11px] font-semibold text-[color:var(--color-accent)]" onClick={() => setShowMoreRecent((value) => !value)}>
+                        {showMoreRecent ? "Mostrar menos" : "Ver mais"}
+                      </button>
+                    ) : null}
                   </div>
                 ) : null}
 
@@ -1712,7 +1997,12 @@ function PriceSubmitFormBody({
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/42">Outros postos bem ranqueados</p>
                     <span className="text-[11px] text-white/38">Geo melhor e menos ambiguidade</span>
                   </div>
-                  <div className="space-y-2">{fallbackPickerItems.map((candidate) => renderStationOption(candidate, "fallback"))}</div>
+                  <div className="space-y-2">{(showMoreFallback ? fallbackPickerItems : fallbackPickerItems.slice(0, 2)).map((candidate) => renderStationOption(candidate, "fallback"))}</div>
+                  {fallbackPickerItems.length > 2 ? (
+                    <button type="button" className="text-[11px] font-semibold text-[color:var(--color-accent)]" onClick={() => setShowMoreFallback((value) => !value)}>
+                      {showMoreFallback ? "Mostrar menos" : "Ver mais"}
+                    </button>
+                  ) : null}
                 </div>
               </div>
             ) : (
@@ -1722,7 +2012,14 @@ function PriceSubmitFormBody({
                   <span className="text-[11px] text-white/38">{searchPickerItems.length} encontrados</span>
                 </div>
                 {searchPickerItems.length > 0 ? (
-                  <div className="space-y-2">{searchPickerItems.map((candidate) => renderStationOption(candidate, "search"))}</div>
+                  <>
+                    <div className="space-y-2">{(showMoreSearch ? searchPickerItems : searchPickerItems.slice(0, 3)).map((candidate) => renderStationOption(candidate, "search"))}</div>
+                    {searchPickerItems.length > 3 ? (
+                      <button type="button" className="text-[11px] font-semibold text-[color:var(--color-accent)]" onClick={() => setShowMoreSearch((value) => !value)}>
+                        {showMoreSearch ? "Mostrar menos" : "Ver mais"}
+                      </button>
+                    ) : null}
+                  </>
                 ) : (
                   <div className="rounded-[18px] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white/58">
                     Nenhum posto bateu com a busca. Tente nome, bairro, endereco, cidade ou bandeira.
@@ -1736,7 +2033,22 @@ function PriceSubmitFormBody({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-2 rounded-[22px] border border-white/8 bg-black/30 p-4">
+        {guidedStage !== "fuel" ? (
+          <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/42">Combustível sugerido</p>
+                <p className="mt-1 truncate text-sm font-semibold text-white">{fuelLabels[fuelType]}</p>
+              </div>
+              <Button type="button" variant="secondary" className="shrink-0" onClick={() => { setShowFuelPicker(true); setFuelConfirmed(false); }} >
+
+                Trocar
+
+              </Button>
+            </div>
+          </div>
+        ) : null}
+        <div className={cn("space-y-2 rounded-[22px] border border-white/8 bg-black/30 p-4", guidedStage !== "fuel" && "hidden")}>
           <label className="text-sm font-medium text-white" htmlFor="fuelType">
             Combustível
           </label>
@@ -1764,7 +2076,21 @@ function PriceSubmitFormBody({
           {validationErrors.fuelType && <p className="mt-1.5 px-1 text-[10px] font-bold uppercase text-red-400 tracking-wider animate-in fade-in slide-in-from-top-1">{validationErrors.fuelType}</p>}
         </div>
 
-        <div className="space-y-2 rounded-[22px] border border-white/8 bg-black/30 p-4">
+
+      {guidedStage !== "price" && price ? (
+        <div className="rounded-[22px] border border-white/10 bg-black/25 p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/42">Preço</p>
+              <p className="text-sm font-semibold text-white">{price}</p>
+              <p className="mt-1 text-xs text-white/52">Falta só revisar antes de enviar.</p>
+            </div>
+            <Button type="button" variant="secondary" className="shrink-0" onClick={() => { setPriceReviewed(false); priceInputRef.current?.focus(); }}>
+              Editar
+            </Button>
+          </div>
+        </div>
+      ) : null}        <div className={cn("space-y-2 rounded-[22px] border border-white/8 bg-black/30 p-4", guidedStage !== "price" && "hidden")}>
           <label className="text-sm font-medium text-white" htmlFor="price">
             Preço
           </label>
@@ -1809,9 +2135,38 @@ function PriceSubmitFormBody({
         </details>
       )}
 
-      <Button type="submit" className={cn("w-full h-16 text-lg font-bold shadow-2xl", !canSubmit && "opacity-50")} disabled={pending || !canSubmit}>
-        {pending ? "Enviando..." : `Enviar preço ${statusLabel === "foto pronta" ? "com foto pronta" : "agora"}`}
-      </Button>
+      {guidedStage === "submit" ? (
+        <div className="rounded-[22px] border border-[color:var(--color-accent)]/18 bg-[color:var(--color-accent)]/8 p-4">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[color:var(--color-accent)]/72">Revisão final</p>
+          <p className="mt-2 text-sm font-semibold text-white">Confirme antes de enviar.</p>
+          <div className="mt-4 space-y-2 text-sm text-white/72">
+            <div className="flex items-center justify-between gap-3 rounded-[16px] border border-white/8 bg-black/20 px-3 py-2">
+              <span className="text-white/48">Posto</span>
+              <span className="truncate text-right font-medium text-white">{selectedStation ? getStationPublicName(selectedStation) : "Posto"}</span>
+            </div>
+            <div className="flex items-center justify-between gap-3 rounded-[16px] border border-white/8 bg-black/20 px-3 py-2">
+              <span className="text-white/48">Combustível</span>
+              <span className="truncate text-right font-medium text-white">{fuelLabels[fuelType]}</span>
+            </div>
+            <div className="flex items-center justify-between gap-3 rounded-[16px] border border-white/8 bg-black/20 px-3 py-2">
+              <span className="text-white/48">Preço</span>
+              <span className="truncate text-right font-medium text-white">{price}</span>
+            </div>
+          </div>
+          <p className="mt-3 text-xs text-white/58">Quando você tocar em enviar, o preço entra em revisão.</p>
+        </div>
+      ) : null}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-black/90 px-4 py-3 backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-3xl items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/36">Etapa {stageLabel}</p>
+            <p className="truncate text-sm text-white/66">{guidedStage === "submit" ? "Confira e envie." : "Uma ação por vez."}</p>
+          </div>
+          <Button type={guidedStage === "submit" ? "submit" : "button"} className="h-14 min-w-[11rem] rounded-full text-sm font-bold" disabled={pending || (guidedStage === "submit" && !canSubmit)} onClick={guidedStage === "submit" ? undefined : handlePrimaryAction}>
+            {pending ? "Enviando..." : submitButtonLabel}
+          </Button>
+        </div>
+      </div>
       </form>
 
       {showFeedback && (
@@ -1851,6 +2206,12 @@ export function PriceSubmitForm(props: PriceSubmitFormProps) {
 
   return <PriceSubmitFormBody key={`${props.initialStationId ?? "default"}-${formVersion}`} {...props} onResetRequest={() => setFormVersion((value) => value + 1)} />;
 }
+
+
+
+
+
+
 
 
 
