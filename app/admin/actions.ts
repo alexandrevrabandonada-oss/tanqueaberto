@@ -11,13 +11,27 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { updateCollectorScore } from "@/lib/ops/collector-trust";
 import { mapStationRow } from "@/lib/data/mappers";
 import { canPromoteStationToMap } from "@/lib/ops/territorial-curation";
+import { grantStationEditorRole, revokeStationEditorRole } from "@/lib/ops/station-editors";
+import { getAuditCitySlug } from "@/lib/audit/cities";
+import {
+  territoryWorkflowBlockLabel,
+  territoryWorkflowDueAtForKind,
+  territoryWorkflowDueLabel,
+  territoryWorkflowKey,
+  type TerritoryWorkflowBlockKind,
+  type TerritoryWorkflowDueKind,
+  type TerritoryWorkflowResponsibleRole,
+  type TerritoryWorkflowState
+} from "@/lib/ops/territory-workflow";
 
 export interface AdminLoginState {
   error: string | null;
   success: boolean;
+  role: "admin" | "station_editor" | null;
 }
 
 const ADMIN_ROUTE = "/admin" as Route;
+const STATION_EDITOR_ROUTE = "/postos/cadastrar" as Route;
 const ADMIN_LOGIN_ROUTE = "/admin/login" as Route;
 
 function normalizeNotice(action: "approved" | "rejected") {
@@ -56,7 +70,7 @@ export async function signInAdminAction(_prevState: AdminLoginState, formData: F
       actorEmail: email || null,
       reason: "missing_credentials"
     });
-    return { error: "Informe e-mail e senha.", success: false };
+    return { error: "Informe e-mail e senha.", success: false, role: null };
   }
 
   const supabase = await createSupabaseServerClient();
@@ -73,10 +87,10 @@ export async function signInAdminAction(_prevState: AdminLoginState, formData: F
       actorEmail: email,
       reason: signInError.message
     });
-    return { error: "Não foi possível entrar com essas credenciais.", success: false };
+    return { error: "Não foi possível entrar com essas credenciais.", success: false, role: null };
   }
 
-  const { data: adminRow, error: adminError } = await supabase.from("admin_users").select("email").eq("email", email).maybeSingle();
+  const { data: adminRow, error: adminError } = await supabase.from("admin_users").select("email,role").eq("email", email).maybeSingle();
 
   if (adminError) {
     await recordOperationalEvent({
@@ -86,7 +100,7 @@ export async function signInAdminAction(_prevState: AdminLoginState, formData: F
       actorEmail: email,
       reason: adminError.message
     });
-    return { error: "Falha ao validar acesso administrativo.", success: false };
+    return { error: "Falha ao validar acesso restrito.", success: false, role: null };
   }
 
   if (!adminRow?.email) {
@@ -98,7 +112,7 @@ export async function signInAdminAction(_prevState: AdminLoginState, formData: F
       actorEmail: email,
       reason: "email_not_allowlisted"
     });
-    return { error: "Seu e-mail não está liberado para o admin.", success: false };
+    return { error: "Seu e-mail não está liberado para o acesso restrito.", success: false, role: null };
   }
 
   await recordOperationalEvent({
@@ -109,7 +123,7 @@ export async function signInAdminAction(_prevState: AdminLoginState, formData: F
     reason: "admin_login"
   });
 
-  return { error: null, success: true };
+  return { error: null, success: true, role: adminRow.role === "station_editor" ? "station_editor" : "admin" };
 }
 
 export async function signOutAdminAction() {
@@ -629,3 +643,288 @@ export async function updateCityRolloutAction(formData: FormData) {
 
 
 
+
+
+const STATION_EDITOR_MANAGEMENT_ROUTE = "/admin/ops/station-editors" as Route;
+
+export async function grantStationEditorRoleAction(formData: FormData) {
+  const admin = await requireAdminUser();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+
+  if (!email) {
+    redirect(`${STATION_EDITOR_MANAGEMENT_ROUTE}?error=invalid_request` as Route);
+  }
+
+  try {
+    const granted = await grantStationEditorRole(email);
+
+    await recordAdminActionLog({
+      actionKind: "station_editor_granted",
+      actorId: admin.id,
+      actorEmail: admin.email,
+      targetType: "admin_user",
+      targetId: granted.userId,
+      note: `Papel station_editor concedido para ${granted.email}`,
+      payload: { email: granted.email, role: "station_editor" }
+    });
+
+    await recordOperationalEvent({
+      eventType: "operational_action_executed",
+      severity: "info",
+      scopeType: "admin_user",
+      scopeId: granted.userId,
+      actorId: admin.id,
+      actorEmail: admin.email,
+      reason: "station_editor concedido",
+      payload: { email: granted.email, role: "station_editor" }
+    });
+
+    revalidatePath("/admin");
+    revalidatePath("/admin/ops");
+    revalidatePath(STATION_EDITOR_MANAGEMENT_ROUTE);
+    redirect(`${STATION_EDITOR_MANAGEMENT_ROUTE}?notice=role_granted` as Route);
+  } catch (error) {
+    await recordOperationalEvent({
+      eventType: "operational_action_executed",
+      severity: "warning",
+      scopeType: "admin_user",
+      actorId: admin.id,
+      actorEmail: admin.email,
+      reason: error instanceof Error ? error.message : "station_editor_grant_failed",
+      payload: { email }
+    });
+    redirect(`${STATION_EDITOR_MANAGEMENT_ROUTE}?error=grant_failed` as Route);
+  }
+}
+
+export async function revokeStationEditorRoleAction(formData: FormData) {
+  const admin = await requireAdminUser();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+
+  if (!email) {
+    redirect(`${STATION_EDITOR_MANAGEMENT_ROUTE}?error=invalid_request` as Route);
+  }
+
+  try {
+    const revoked = await revokeStationEditorRole(email);
+
+    await recordAdminActionLog({
+      actionKind: "station_editor_revoked",
+      actorId: admin.id,
+      actorEmail: admin.email,
+      targetType: "admin_user",
+      targetId: revoked.userId,
+      note: `Papel station_editor removido de ${revoked.email}`,
+      payload: { email: revoked.email, role: "admin" }
+    });
+
+    await recordOperationalEvent({
+      eventType: "operational_action_executed",
+      severity: "info",
+      scopeType: "admin_user",
+      scopeId: revoked.userId,
+      actorId: admin.id,
+      actorEmail: admin.email,
+      reason: "station_editor removido",
+      payload: { email: revoked.email, role: "admin" }
+    });
+
+    revalidatePath("/admin");
+    revalidatePath("/admin/ops");
+    revalidatePath(STATION_EDITOR_MANAGEMENT_ROUTE);
+    redirect(`${STATION_EDITOR_MANAGEMENT_ROUTE}?notice=role_revoked` as Route);
+  } catch (error) {
+    await recordOperationalEvent({
+      eventType: "operational_action_executed",
+      severity: "warning",
+      scopeType: "admin_user",
+      actorId: admin.id,
+      actorEmail: admin.email,
+      reason: error instanceof Error ? error.message : "station_editor_revoke_failed",
+      payload: { email }
+    });
+    redirect(`${STATION_EDITOR_MANAGEMENT_ROUTE}?error=revoke_failed` as Route);
+  }
+}
+
+
+const TERRITORY_WORKFLOW_ROUTE = "/admin/ops" as Route;
+const TERRITORY_WORKFLOW_NOTICE = "territory_state_updated";
+
+function isTerritoryWorkflowState(value: string): value is TerritoryWorkflowState {
+  return value === "em_mutirao" || value === "em_acompanhamento" || value === "concluido_por_enquanto";
+}
+
+function isTerritoryWorkflowResponsibleRole(value: string): value is TerritoryWorkflowResponsibleRole {
+  return value === "station_editor" || value === "curadoria" || value === "operacao_admin";
+}
+
+function isTerritoryWorkflowDueKind(value: string): value is TerritoryWorkflowDueKind {
+  return value === "hoje" || value === "esta_semana" || value === "sem_prazo";
+}
+
+function isTerritoryWorkflowBlockKind(value: string): value is TerritoryWorkflowBlockKind {
+  return value === "aguardando_semeadura" || value === "aguardando_curadoria" || value === "aguardando_editor" || value === "sem_prioridade_agora";
+}
+
+function withNotice(path: string, notice: string) {
+  const [base, query = ""] = path.split("?");
+  const params = new URLSearchParams(query);
+  params.set("notice", notice);
+  return `${base}?${params.toString()}`;
+}
+
+export async function setTerritoryWorkflowStateAction(formData: FormData) {
+  const admin = await requireAdminUser();
+  const city = String(formData.get("city") ?? "").trim();
+  const neighborhood = String(formData.get("neighborhood") ?? "").trim();
+  const workflowState = String(formData.get("workflowState") ?? "").trim();
+  const responsibleRoleRaw = String(formData.get("responsibleRole") ?? "").trim();
+  const responsibleName = getOptionalText(formData, "responsibleName");
+  const dueKindRaw = String(formData.get("dueKind") ?? "").trim();
+  const blockKindRaw = String(formData.get("blockKind") ?? "").trim();
+  const returnTo = String(formData.get("returnTo") ?? "").trim();
+  const note = getOptionalText(formData, "note");
+  const territoryContext = getOptionalText(formData, "territoryContext");
+  const source = getOptionalText(formData, "source");
+
+  if (!city || !isTerritoryWorkflowState(workflowState)) {
+    redirect(`${TERRITORY_WORKFLOW_ROUTE}?error=invalid_request` as Route);
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const territoryKey = territoryWorkflowKey(city, neighborhood || null);
+  const targetReturnTo = returnTo.startsWith("/") ? returnTo : TERRITORY_WORKFLOW_ROUTE;
+  const { data: existingWorkflow } = await supabase
+    .from("territory_workflow_states")
+    .select("responsible_role,responsible_name,due_kind,block_kind")
+    .eq("territory_key", territoryKey)
+    .maybeSingle();
+
+  const resolvedResponsibleRole = isTerritoryWorkflowResponsibleRole(responsibleRoleRaw)
+    ? responsibleRoleRaw
+    : isTerritoryWorkflowResponsibleRole(existingWorkflow?.responsible_role)
+      ? existingWorkflow.responsible_role
+      : "operacao_admin";
+  const resolvedResponsibleName = responsibleName || (String(existingWorkflow?.responsible_name ?? "").trim() || null);
+  const resolvedDueKind = isTerritoryWorkflowDueKind(dueKindRaw)
+    ? dueKindRaw
+    : isTerritoryWorkflowDueKind(existingWorkflow?.due_kind)
+      ? existingWorkflow.due_kind
+      : "sem_prazo";
+  const resolvedBlockKind = isTerritoryWorkflowBlockKind(blockKindRaw)
+    ? blockKindRaw
+    : isTerritoryWorkflowBlockKind(existingWorkflow?.block_kind)
+      ? existingWorkflow.block_kind
+      : null;
+  const followUpAt = new Date().toISOString();
+
+  const { error } = await supabase.from("territory_workflow_states").upsert(
+    {
+      territory_key: territoryKey,
+      city,
+      city_slug: getAuditCitySlug(city),
+      neighborhood,
+      workflow_state: workflowState,
+      responsible_role: resolvedResponsibleRole,
+      responsible_name: resolvedResponsibleName,
+      due_kind: resolvedDueKind,
+      due_at: territoryWorkflowDueAtForKind(resolvedDueKind),
+      block_kind: resolvedBlockKind,
+      note,
+      follow_up_at: followUpAt,
+      actor_id: admin.id,
+      actor_email: admin.email,
+      payload: {
+        territoryContext,
+        source,
+        responsibleName: resolvedResponsibleName,
+        responsibleRole: resolvedResponsibleRole,
+        dueKind: resolvedDueKind,
+        dueLabel: territoryWorkflowDueLabel(resolvedDueKind),
+        blockKind: resolvedBlockKind,
+        blockLabel: territoryWorkflowBlockLabel(resolvedBlockKind)
+      },
+      updated_at: followUpAt
+    },
+    { onConflict: "territory_key" }
+  );
+
+  if (error) {
+    await recordOperationalEvent({
+      eventType: "territory_workflow_state_failed",
+      severity: "warning",
+      scopeType: "territory",
+      scopeId: territoryKey,
+      actorId: admin.id,
+      actorEmail: admin.email,
+      reason: error.message,
+      payload: {
+        city,
+        neighborhood,
+        workflowState,
+        responsibleRole: resolvedResponsibleRole,
+        responsibleName: resolvedResponsibleName,
+        dueKind: resolvedDueKind,
+        blockKind: resolvedBlockKind,
+        territoryContext,
+        source
+      }
+    });
+    redirect(`${TERRITORY_WORKFLOW_ROUTE}?error=territory_workflow_failed` as Route);
+  }
+
+  await recordAdminActionLog({
+    actionKind: "territory_workflow_state_set",
+    actorId: admin.id,
+    actorEmail: admin.email,
+    targetType: "territory",
+    targetId: territoryKey,
+    note: note || `Território marcado como ${workflowState}`,
+    payload: {
+      city,
+      neighborhood,
+      workflowState,
+      responsibleRole: resolvedResponsibleRole,
+      responsibleName: resolvedResponsibleName,
+      dueKind: resolvedDueKind,
+      blockKind: resolvedBlockKind,
+      territoryContext,
+      source
+    }
+  });
+
+  await recordOperationalEvent({
+    eventType: "territory_workflow_state_set",
+    severity: "info",
+    scopeType: "territory",
+    scopeId: territoryKey,
+    actorId: admin.id,
+    actorEmail: admin.email,
+    city,
+    reason: workflowState,
+    payload: {
+      city,
+      neighborhood,
+      workflowState,
+      responsibleRole: resolvedResponsibleRole,
+      responsibleName: resolvedResponsibleName,
+      dueKind: resolvedDueKind,
+      blockKind: resolvedBlockKind,
+      territoryContext,
+      source,
+      followUpAt
+    }
+  });
+
+  revalidatePath(TERRITORY_WORKFLOW_ROUTE);
+  revalidatePath("/admin/ops/cobertura-territorial");
+  revalidatePath("/admin/ops/impacto-semeadura-territorial");
+  revalidatePath("/admin/ops/historico-cobertura-territorial");
+  revalidatePath("/admin/ops/station-editors");
+  revalidatePath("/admin/ops/qualidade");
+  revalidatePath("/admin/ops/fila-territorial");
+  revalidatePath("/admin/ops/historico-cobertura-territorial");
+
+  redirect(withNotice(targetReturnTo, TERRITORY_WORKFLOW_NOTICE) as Route);
+}

@@ -36,3 +36,4 @@ export const auditMethodologyPoints = [
     text: "Quando um alerta entra na memória pública, ele não vira acusação automática. Ele funciona como indício rastreável para jornalismo, Procon, MP e revisão cidadã."
   }
 ];
+

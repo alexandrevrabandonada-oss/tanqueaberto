@@ -32,9 +32,9 @@ export function SubmissionQueuePanel({ items, online, className, onRetry, onRevi
       <SectionCard className={cn("space-y-3 border-dashed border-white/10 bg-black/18", className)}>
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-white/42">Envios pendentes</p>
-          <h3 className="mt-1 text-lg font-semibold text-white">Nada na fila agora</h3>
+          <h3 className="mt-1 text-lg font-semibold text-white">Nada pendente agora</h3>
         </div>
-        <p className="text-sm text-white/58">Se o envio cair no meio do caminho, ele fica guardado neste aparelho para reenviar depois.</p>
+        <p className="text-sm text-white/58">Se algo falhar, ele fica guardado neste aparelho para reenviar depois.</p>
       </SectionCard>
     );
   }
@@ -44,8 +44,8 @@ export function SubmissionQueuePanel({ items, online, className, onRetry, onRevi
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-white/42">Envios pendentes</p>
-          <h3 className="mt-1 text-xl font-semibold text-white">Guardados neste aparelho</h3>
-          <p className="mt-1 text-sm text-white/58">{online ? "A rede voltou. Você pode reenviar agora ou revisar antes." : "Sem rede agora. Os envios ficam guardados até a conexão voltar."}</p>
+          <h3 className="mt-1 text-xl font-semibold text-white">Guardados no aparelho</h3>
+          <p className="mt-1 text-sm text-white/58">{online ? "A rede voltou. Você pode reenviar ou revisar antes." : "Sem rede agora. Os envios ficam guardados até a conexão voltar."}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Badge variant="outline">{summary.total} pendência{summary.total > 1 ? "s" : ""}</Badge>
@@ -94,15 +94,15 @@ export function SubmissionQueuePanel({ items, online, className, onRetry, onRevi
                 <Badge variant="outline">{item.price}</Badge>
                 <Badge variant="outline">{formatRecencyLabel(item.updatedAt)}</Badge>
                 {item.hasPhoto ? (
-                  <Badge variant="outline" className="border-green-500/20 text-green-400">Foto preservada</Badge>
+                  <Badge variant="outline" className="border-green-500/20 text-green-400">Foto guardada</Badge>
                 ) : (
-                  <Badge variant="warning">A foto precisa ser refeita</Badge>
+                  <Badge variant="warning">Tire outra foto</Badge>
                 )}
               </div>
 
               <div className="mt-3 flex items-center gap-2 text-xs text-white/52">
                 {isSuccess ? <CheckCircle2 className="h-3.5 w-3.5 text-green-400" /> : <Clock3 className="h-3.5 w-3.5" />}
-                {isSuccess ? "Enviado com sucesso!" : item.lastErrorLabel ?? (isReady ? "Pronto para reenviar agora." : "Guardado. Reenviaremos assim que houver sinal.")}
+                {isSuccess ? "Enviado" : item.lastErrorLabel ?? (isReady ? "Pronto para reenviar agora." : "Guardado. Reenviaremos assim que houver sinal.")}
               </div>
 
               {!isSuccess && !isExpired && (
@@ -113,7 +113,7 @@ export function SubmissionQueuePanel({ items, online, className, onRetry, onRevi
                     onClick={() => onRetry(item)}
                   >
                     <RotateCcw className="h-4 w-4" />
-                    {isReady ? "Tentar agora" : "Tentar de novo"}
+                    {isReady ? "Reenviar agora" : "Reenviar"}
                   </Button>
                   <Button
                     type="button"
@@ -135,7 +135,7 @@ export function SubmissionQueuePanel({ items, online, className, onRetry, onRevi
               )}
               
               {isPhotoRequired && (
-                <p className="mt-2 text-xs text-orange-400/80">A foto local sumiu ou expirou. Clique em Revisar para tirar outra.</p>
+                <p className="mt-2 text-xs text-orange-400/80">A foto sumiu deste aparelho. Toque em Revisar para tirar outra.</p>
               )}
             </div>
           );

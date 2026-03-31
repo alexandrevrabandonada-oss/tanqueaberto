@@ -4,7 +4,9 @@ import { Camera, ShieldCheck } from "lucide-react";
 import { AppShell } from "@/components/layout/app-shell";
 import { SubmissionHistoryProvider } from "@/components/history/submission-history-context";
 import { ProductEvent } from "@/components/telemetry/product-event";
-import { PriceSubmitForm } from "@/components/forms/price-submit-form";
+import { MissionProvider } from "@/components/mission/mission-context";
+import { RouteRuntimeSignals } from "@/components/layout/route-runtime-signals";
+import { PriceSubmitIsland } from "@/components/forms/price-submit-island";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
@@ -13,7 +15,6 @@ import { logRuntimeIssue } from "@/lib/observability/runtime-issues";
 import type { FuelType, StationWithReports } from "@/lib/types";
 
 export const metadata = { robots: { index: false, follow: false, nocache: true } };
-
 export const dynamic = "force-dynamic";
 
 interface SubmitPageProps {
@@ -41,7 +42,12 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
   try {
     stations = await getHomeStations();
   } catch (err) {
-    logRuntimeIssue("Failed to fetch stations in SubmitPage", err, { scope: "public", surface: "pages/enviar", fallback: "empty-station-list", optional: true });
+    logRuntimeIssue("Failed to fetch stations in SubmitPage", err, {
+      scope: "public",
+      surface: "pages/enviar",
+      fallback: "empty-station-list",
+      optional: true
+    });
   }
 
   const initialStationId = firstValue(params.stationId);
@@ -53,10 +59,12 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
   return (
     <SubmissionHistoryProvider>
       <AppShell>
+        <MissionProvider>
+          <RouteRuntimeSignals />
         <ProductEvent eventType="submit_opened" pagePath="/enviar" pageTitle="Enviar preço" />
 
         <div data-layout-scope="submit-wide" data-hero-primary="submit-form" className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(330px,360px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(360px,400px)] xl:items-start">
-          <div data-layout-role="main" className="space-y-6 min-w-0">
+          <div data-layout-role="main" className="min-w-0 space-y-6">
             <SectionCard className="hidden space-y-2 border-white/10 bg-white/5 md:block xl:hidden">
               <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Ajuda rápida</p>
               <h2 className="text-sm font-semibold text-white">O formulário já é a parte principal</h2>
@@ -83,7 +91,7 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
               ) : null}
             </SectionCard>
 
-            <SectionCard className="space-y-3 xl:space-y-2.5">
+            <SectionCard id="photo" className="space-y-3 scroll-mt-24 xl:space-y-2.5">
               <div className="flex items-center justify-between gap-3 rounded-[22px] border border-white/8 bg-black/30 p-4 xl:p-3.5">
                 <div className="flex items-center gap-3">
                   <Camera className="h-5 w-5 text-[color:var(--color-accent)]" />
@@ -99,7 +107,9 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
                   Tirar foto agora
                 </a>
               </div>
-              <PriceSubmitForm stations={stations} initialStationId={initialStation?.id} initialFuelType={initialFuelType} returnToHref={returnToHref || undefined} />
+
+              <PriceSubmitIsland stations={stations} initialStationId={initialStation?.id} initialFuelType={initialFuelType} returnToHref={returnToHref || undefined} />
+
               <div className="rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/58 xl:p-3.5">
                 <div className="flex items-center gap-2 text-white/80">
                   <ShieldCheck className="h-4 w-4 text-[color:var(--color-accent)]" />
@@ -159,10 +169,9 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
             </SectionCard>
           </aside>
         </div>
+        </MissionProvider>
       </AppShell>
     </SubmissionHistoryProvider>
   );
 }
-
-
 

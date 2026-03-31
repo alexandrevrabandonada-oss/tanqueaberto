@@ -222,3 +222,4 @@ function MetricCard({ label, value, icon, trend, subLabel }: any) {
     </div>
   );
 }
+

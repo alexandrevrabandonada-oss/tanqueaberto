@@ -23,3 +23,4 @@ export async function handleRolloutApproval(
   revalidatePath("/admin/ops");
   revalidatePath("/admin/ops/aprendizado");
 }
+

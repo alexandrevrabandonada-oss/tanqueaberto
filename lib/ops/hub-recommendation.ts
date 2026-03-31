@@ -28,7 +28,7 @@ export async function getHubRecommendations(
     .from("operational_events")
     .select("payload, created_at")
     .eq("event_type", "mission_started")
-    .eq("actor_id", nickname)
+    .eq("scope_id", nickname)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -39,7 +39,7 @@ export async function getHubRecommendations(
       .from("operational_events")
       .select("id")
       .eq("event_type", "mission_completed")
-      .eq("actor_id", nickname)
+      .eq("scope_id", nickname)
       .gt("created_at", activeMission.created_at)
       .maybeSingle();
 
@@ -59,7 +59,7 @@ export async function getHubRecommendations(
   // 2. CHECAR PENDÊNCIAS (Local Queue ou Erros de Envio seriam ideais, mas aqui focamos em retorno de aprovados/rejeitados)
   const { data: recentReports } = await supabase
     .from("price_reports")
-    .select("id, status, rejection_reason, station_id, stations(name)")
+    .select("id, status, moderation_reason, moderation_note, station_id, stations(name)")
     .eq("reporter_nickname", nickname)
     .order("created_at", { ascending: false })
     .limit(5);
@@ -70,7 +70,7 @@ export async function getHubRecommendations(
       id: `fix-${rejected.id}`,
       type: 'pending_fix',
       title: 'Ajuste Necessário',
-      description: `Seu envio no posto ${(rejected.stations as any).name} foi recusado: ${rejected.rejection_reason || 'Foto ruim'}. Tentar novamente?`,
+      description: `Seu envio no posto ${(rejected.stations as any).name} foi recusado: ${rejected.moderation_reason || rejected.moderation_note || 'Foto ruim'}. Tentar novamente?`,
       actionLabel: 'Corrigir Agora',
       actionUrl: `/interno/posts/${rejected.station_id}`,
       priority: 9
@@ -136,3 +136,8 @@ export async function getHubRecommendations(
 
   return recommendations.sort((a, b) => b.priority - a.priority);
 }
+
+
+
+
+

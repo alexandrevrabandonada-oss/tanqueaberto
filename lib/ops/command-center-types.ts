@@ -22,3 +22,4 @@ export interface CommandCenterState {
   territorialRecommendations: RolloutRecommendation[];
   synthesis: OperationalSynthesis;
 }
+

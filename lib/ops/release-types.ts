@@ -34,3 +34,4 @@ export function getPublicStageLabel(stage: PublicOpeningStage) {
     case "consolidated": return "Consolidado";
   }
 }
+

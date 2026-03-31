@@ -31,3 +31,4 @@ export function formatDistance(meters: number): string {
   const km = meters / 1000;
   return `${km.toFixed(1).replace(".", ",")}km`;
 }
+

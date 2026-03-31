@@ -166,3 +166,4 @@ function analyzeTerritory(group: any, activity: RecorteActivity): RolloutRecomme
     }
   };
 }
+

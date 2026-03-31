@@ -32,3 +32,4 @@ export function resolveCityFromSlug(slug: string): string | null {
 
   return commonMap[normalizedSlug] || null;
 }
+

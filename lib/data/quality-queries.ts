@@ -98,3 +98,4 @@ export async function getQualityMetrics(days = 7): Promise<QualityMetrics> {
     recentFlaggedReports: mappedFlagged
   };
 }
+

@@ -83,3 +83,4 @@ export async function submitBetaInviteAction(_prevState: BetaInviteState, formDa
   revalidatePath(next);
   return { error: null, success: true };
 }
+

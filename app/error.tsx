@@ -31,3 +31,4 @@ export default function GlobalError({ error, reset }: Readonly<{ error: Error & 
     </html>
   );
 }
+

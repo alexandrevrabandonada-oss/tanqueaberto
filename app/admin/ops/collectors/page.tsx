@@ -66,10 +66,10 @@ export default async function CollectorDirectoryPage() {
                        <td className="p-4 text-center">
                           <span className={cn(
                             "text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-tighter",
-                            c.trust_stage === 'very_trusted' ? "bg-green-500 text-white" :
-                            c.trust_stage === 'trusted' ? "bg-blue-500 text-white" : 
-                            c.trust_stage === 'review_needed' ? "bg-amber-500 text-black" :
-                            c.trust_stage === 'blocked' ? "bg-red-500 text-white" : "bg-white/10 text-white/40"
+                            ['very_trusted', 'muito_confiável'].includes(c.trust_stage) ? "bg-green-500 text-white" :
+                            ['trusted', 'confiável'].includes(c.trust_stage) ? "bg-blue-500 text-white" : 
+                            ['review_needed', 'em_revisão'].includes(c.trust_stage) ? "bg-amber-500 text-black" :
+                            ['blocked', 'bloqueado'].includes(c.trust_stage) ? "bg-red-500 text-white" : "bg-white/10 text-white/40"
                           )}>
                              {c.trust_stage}
                           </span>
@@ -100,3 +100,5 @@ export default async function CollectorDirectoryPage() {
     </div>
   );
 }
+
+

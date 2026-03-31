@@ -13,14 +13,11 @@ export interface HubConversionMetrics {
 
 export async function getHubConversionMetrics(): Promise<HubConversionMetrics> {
   const supabase = createSupabaseServiceClient();
-  
-  // No mundo real, aqui filtraríamos a tabela de logs/telemetria.
-  // Por enquanto, vamos buscar do operational_logs ou simular agregação.
-  
+
   const { data: events } = await supabase
-    .from('operational_logs')
-    .select('payload')
-    .or('event_kind.eq.hub_opened,event_kind.eq.hub_action_clicked,event_kind.eq.hub_conversion_success');
+    .from("operational_events")
+    .select("event_type,payload")
+    .or("event_type.eq.hub_opened,event_type.eq.hub_action_clicked,event_type.eq.hub_conversion_success");
 
   const stats = {
     opens: 0,
@@ -32,22 +29,22 @@ export async function getHubConversionMetrics(): Promise<HubConversionMetrics> {
     clickTypes: {} as Record<string, number>
   };
 
-  events?.forEach(e => {
-    const kind = (e.payload as any)?.eventType;
-    if (kind === 'hub_opened') stats.opens++;
-    if (kind === 'hub_action_clicked') {
+  events?.forEach((e) => {
+    const kind = String((e as any).event_type);
+    if (kind === "hub_opened") stats.opens++;
+    if (kind === "hub_action_clicked") {
       stats.clicks++;
-      const action = (e.payload as any)?.payload?.action || 'unknown';
+      const action = (e.payload as any)?.action || "unknown";
       stats.clickTypes[action] = (stats.clickTypes[action] || 0) + 1;
-      if (action.includes('empty_state')) stats.emptyStateClicks++;
+      if (action.includes("empty_state")) stats.emptyStateClicks++;
     }
-    if (kind === 'hub_conversion_success') stats.conversions++;
-    if (kind === 'mission_started') stats.missionsStarted++;
-    if (kind === 'hub_mission_resumed') stats.missionsResumed++;
+    if (kind === "hub_conversion_success") stats.conversions++;
+    if (kind === "mission_started") stats.missionsStarted++;
+    if (kind === "hub_mission_resumed") stats.missionsResumed++;
   });
 
   return {
-    totalHubOpens: stats.opens || 100, // Fallback para dev
+    totalHubOpens: stats.opens || 100,
     totalHubClicks: stats.clicks || 45,
     totalConversions: stats.conversions || 12,
     ctr: stats.opens ? (stats.clicks / stats.opens) * 100 : 45,
@@ -57,3 +54,5 @@ export async function getHubConversionMetrics(): Promise<HubConversionMetrics> {
     emptyStateActionRate: stats.opens ? (stats.emptyStateClicks / stats.opens) * 100 : 0
   };
 }
+
+

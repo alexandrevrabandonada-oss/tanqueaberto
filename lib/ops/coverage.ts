@@ -101,3 +101,4 @@ export function getCoveragePressureLabel(row: OpsCoverageCityFuelRow) {
 export function getCoverageCitySlug(city: string) {
   return getAuditCitySlug(city);
 }
+

@@ -13,3 +13,4 @@ export async function GET(request: NextRequest) {
   const result = await runAuditRefreshJob({ cadence: "cron_daily", triggeredBy: "cron" });
   return NextResponse.json(result, { status: result.success ? 200 : 500 });
 }
+

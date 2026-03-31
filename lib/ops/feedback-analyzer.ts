@@ -99,3 +99,4 @@ export function generateOperationalSynthesis(feedbacks: any[], activity: any): O
     topClusters: clusters.slice(0, 5)
   };
 }
+

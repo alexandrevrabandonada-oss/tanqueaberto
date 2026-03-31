@@ -24,6 +24,7 @@ export function BottomNav() {
         <ul className="grid grid-cols-4 gap-1 md:gap-2 xl:gap-2.5">
           {items.map(({ href, label, icon: Icon }) => {
             const active = href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+            const isPrimary = href === "/enviar";
 
             return (
               <li key={href} className="min-w-0">
@@ -33,11 +34,13 @@ export function BottomNav() {
                   draggable={false}
                   className={cn(
                     "flex min-h-14 w-full touch-manipulation flex-col items-center justify-center gap-1 rounded-[18px] px-2 py-2 text-[11px] font-medium text-white/56 transition active:scale-[0.98] md:min-h-13 md:px-3 md:text-[11.5px] lg:flex-row lg:gap-2 lg:px-3 lg:text-[12px] xl:min-h-11 xl:rounded-full xl:px-4 xl:py-2 xl:text-[12px] xl:tracking-[0.06em]",
-                    active && "bg-[color:var(--color-accent)] font-bold text-black shadow-[0_0_0_1px_rgba(255,199,0,0.2)] lg:font-black"
+                    isPrimary && !active && "border border-[color:var(--color-accent)]/18 bg-[color:var(--color-accent)]/12 text-[color:var(--color-accent)] shadow-[0_0_0_1px_rgba(255,199,0,0.14)]",
+                    isPrimary && active && "bg-[color:var(--color-accent)] font-bold text-black shadow-[0_0_0_1px_rgba(255,199,0,0.2)] lg:font-black",
+                    !isPrimary && active && "bg-[color:var(--color-accent)] font-bold text-black shadow-[0_0_0_1px_rgba(255,199,0,0.2)] lg:font-black"
                   )}
                 >
-                  <Icon className="h-4 w-4 shrink-0 xl:h-[15px] xl:w-[15px]" />
-                  <span className="truncate xl:uppercase xl:tracking-widest">{label}</span>
+                  <Icon className={cn("h-4 w-4 shrink-0 xl:h-[15px] xl:w-[15px]", isPrimary && !active && "text-[color:var(--color-accent)]", active && "text-black")} />
+                  <span className={cn("truncate xl:uppercase xl:tracking-widest", isPrimary && !active && "font-semibold")}>{label}</span>
                 </a>
               </li>
             );

@@ -289,3 +289,4 @@ export async function getCollectorTerritorialImpact(nickname: string): Promise<C
     gapsClosedCount
   };
 }
+

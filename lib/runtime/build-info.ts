@@ -35,3 +35,4 @@ export function getBuildInfo(): BuildInfo {
     label: labelParts.filter(Boolean).join(" · ")
   };
 }
+

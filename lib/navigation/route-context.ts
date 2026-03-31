@@ -75,3 +75,4 @@ export function isStationInRoute(stationId: string): boolean {
   const context = readRouteContext();
   return context.active && (context.skippedStationIds.includes(stationId) || context.completedStationIds.includes(stationId));
 }
+

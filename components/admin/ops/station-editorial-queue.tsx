@@ -30,7 +30,10 @@ export function StationEditorialQueue({ items }: StationEditorialQueueProps) {
                 <p className="truncate text-base font-semibold text-white">{item.displayName}</p>
                 <p className="text-sm text-white/54">{item.station.neighborhood}, {item.station.city}</p>
               </div>
-              <Badge variant={item.duplicateGroupSize > 1 ? "warning" : "outline"}>{item.duplicateGroupSize > 1 ? `${item.duplicateGroupSize} repetidos` : "revisar"}</Badge>
+              <div className="flex flex-col items-end gap-1">
+                <Badge variant={item.proposalReviewState === "boa_rapida" ? "accent" : item.proposalReviewState === "muito_vaga" ? "danger" : "warning"}>{item.proposalReviewLabel}</Badge>
+                <Badge variant={item.duplicateGroupSize > 1 ? "warning" : "outline"}>{item.duplicateGroupSize > 1 ? `${item.duplicateGroupSize} repetidos` : "revisar"}</Badge>
+              </div>
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
               {item.reasons.map((reason) => (

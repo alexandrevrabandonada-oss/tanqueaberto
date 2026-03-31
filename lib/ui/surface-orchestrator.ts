@@ -24,3 +24,4 @@ export function getTopSurfaces(activeSurfaces: SurfaceType[], limit = 2): Surfac
     .sort((a, b) => SURFACE_PRIORITIES[b] - SURFACE_PRIORITIES[a])
     .slice(0, limit);
 }
+

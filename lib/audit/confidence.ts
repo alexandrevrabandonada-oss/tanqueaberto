@@ -19,3 +19,4 @@ export function getTrendLabel(changePercent: number | null): AuditTrendLabel {
   if (changePercent <= -2) return "queda";
   return "estável";
 }
+

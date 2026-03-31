@@ -5,3 +5,4 @@ import { getRecorteActivity, type RecorteActivity } from "@/lib/ops/recorte-acti
 export async function fetchRecorteActivity(city: string, groupSlug?: string): Promise<RecorteActivity> {
   return await getRecorteActivity(city, groupSlug);
 }
+

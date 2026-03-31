@@ -160,3 +160,4 @@ export async function getOperationalTelemetry(days = 7): Promise<OperationalTele
     recentAdminActions: adminLogs.map((row) => toAdminActionItem(row as Record<string, unknown>))
   };
 }
+

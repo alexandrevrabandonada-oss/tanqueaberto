@@ -39,3 +39,4 @@ export const auditWindowFilters: Array<{ value: AuditWindowDays; label: string }
   { value: 30, label: "30 dias" },
   { value: 90, label: "90 dias" }
 ];
+

@@ -1,9 +1,12 @@
+import { headers } from "next/headers";
 import { AppShell } from "@/components/layout/app-shell";
 import { HomeBrowser } from "@/components/home/home-browser";
+import { HomeServerLead } from "@/components/home/home-server-lead";
+import { SubmissionHistoryProvider } from "@/components/history/submission-history-context";
+import { MissionProvider } from "@/components/mission/mission-context";
+import { RouteRuntimeSignals } from "@/components/layout/route-runtime-signals";
 import { getHomeStations, getRecentApprovedCount, getRecentFeed } from "@/lib/data";
 import { getTerritorialReleaseSummary } from "@/lib/ops/release-control";
-import { getKillSwitches } from "@/lib/ops/kill-switches";
-import { getAuditGroupMembers } from "@/lib/audit/groups";
 import { isBetaClosed } from "@/lib/beta/gate";
 import type { FuelFilter, RecencyFilter, StationPresenceFilter } from "@/lib/filters/public";
 import type { HomeDensityMode } from "@/lib/navigation/home-context";
@@ -44,41 +47,83 @@ function parseCity(value: string | string[] | undefined) {
 }
 
 export default async function HomePage({ searchParams }: HomePageProps) {
+  const currentHeaders = await headers();
+  const userAgent = currentHeaders.get("user-agent") ?? "";
+  const initialListFirstMode = /Mobi|Android|iPhone|iPad|iPod/i.test(userAgent);
+
   const params = (await searchParams) ?? {};
   const groupId = firstValue(params.groupId);
-  
-  const [stations, feed, recentCount, territorialSummary, killSwitches] = await Promise.all([
-    getHomeStations(), 
-    getRecentFeed(), 
+  const initialQuery = firstValue(params.q).trim();
+  const initialCity = parseCity(params.city);
+  const initialFuelFilter = parseFuel(params.fuel);
+  const initialRecencyFilter = parseRecency(params.recency);
+  const initialPresenceFilter = parsePresence(params.presence);
+  const initialDensityMode = parseDensity(params.density);
+  const hasActiveRecorte = Boolean(
+    initialQuery ||
+      initialCity ||
+      initialFuelFilter !== "all" ||
+      initialRecencyFilter !== "all" ||
+      initialPresenceFilter !== "all" ||
+      initialDensityMode !== "normal" ||
+      groupId
+  );
+
+  const [stations, feed, recentCount, territorialSummary] = await Promise.all([
+    getHomeStations(),
+    getRecentFeed(),
     getRecentApprovedCount(),
-    getTerritorialReleaseSummary(),
-    getKillSwitches()
+    getTerritorialReleaseSummary()
   ]);
 
   let initialGroupStationIds: string[] = [];
   if (groupId) {
+    const { getAuditGroupMembers } = await import("@/lib/audit/groups");
     const members = await getAuditGroupMembers(groupId);
-    initialGroupStationIds = members.map(m => m.stationId);
+    initialGroupStationIds = members.map((m) => m.stationId);
   }
 
   return (
-    <AppShell killSwitches={killSwitches}>
-      <HomeBrowser
-        stations={stations}
-        feed={feed}
-        recentCount={recentCount}
-        territorialSummary={territorialSummary}
-        betaClosed={isBetaClosed()}
-        initialQuery={firstValue(params.q)}
-        initialCity={parseCity(params.city)}
-        initialGroupId={groupId}
-        initialGroupStationIds={initialGroupStationIds}
-        initialFuelFilter={parseFuel(params.fuel)}
-        initialRecencyFilter={parseRecency(params.recency)}
-        initialPresenceFilter={parsePresence(params.presence)}
-        initialDensityMode={parseDensity(params.density)}
-        killSwitches={killSwitches}
-      />
-    </AppShell>
+    <SubmissionHistoryProvider>
+      <AppShell
+        globalSubmitCta={hasActiveRecorte && !initialListFirstMode ? {
+          href: "/enviar",
+          label: "Enviar preço",
+          note: "Avance este recorte com um envio real."
+        } : null}
+      >
+        <MissionProvider>
+          <RouteRuntimeSignals />
+        {initialListFirstMode ? (
+          <HomeServerLead
+            stations={stations}
+            recentCount={recentCount}
+            initialCity={initialCity}
+            initialQuery={initialQuery}
+            initialFuelFilter={initialFuelFilter}
+            initialRecencyFilter={initialRecencyFilter}
+            initialPresenceFilter={initialPresenceFilter}
+          />
+        ) : null}
+        <HomeBrowser
+          stations={stations}
+          feed={feed}
+          recentCount={recentCount}
+          territorialSummary={territorialSummary}
+          betaClosed={isBetaClosed()}
+          initialQuery={initialQuery}
+          initialCity={initialCity}
+          initialGroupId={groupId}
+          initialGroupStationIds={initialGroupStationIds}
+          initialFuelFilter={initialFuelFilter}
+          initialRecencyFilter={initialRecencyFilter}
+          initialPresenceFilter={initialPresenceFilter}
+          initialDensityMode={initialDensityMode}
+          initialListFirstMode={initialListFirstMode}
+          suppressMobileLead={initialListFirstMode}
+        />
+        </MissionProvider>
+      </AppShell>
+    </SubmissionHistoryProvider>
   );
 }

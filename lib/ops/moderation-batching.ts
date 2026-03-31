@@ -93,3 +93,4 @@ function createBatch(reports: PriceReport[], stationMap: Map<string, Station>): 
     isSafe: variance < 2.0 // Guardrail: Consideramos seguro até 2% de divergência
   };
 }
+

@@ -76,3 +76,4 @@ export function RolloutHistoryPanel({ logs }: RolloutHistoryPanelProps) {
     </div>
   );
 }
+

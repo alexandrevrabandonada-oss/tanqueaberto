@@ -1,4 +1,6 @@
-import { createSupabaseServiceClient } from "@/lib/supabase/admin";
+﻿import { createSupabaseServiceClient } from "@/lib/supabase/admin";
+import { isMissingSchemaError } from "@/lib/supabase/schema-cache";
+import { logRuntimeIssue } from "@/lib/observability/runtime-issues";
 
 export interface OperationalKillSwitches {
   disable_mission_mode: boolean;
@@ -30,13 +32,15 @@ export async function getKillSwitches(): Promise<OperationalKillSwitches> {
       .maybeSingle();
 
     if (error || !data) {
-      if (error) console.warn("Kill switches table access failed, using defaults", error);
+      if (error) {
+        logRuntimeIssue("Kill switches table access failed, using defaults", error, { scope: "ops", surface: "kill-switches.getKillSwitches", fallback: "defaults", optional: true, schemaSensitive: true });
+      }
       return DEFAULT_SWITCHES;
     }
 
     return { ...DEFAULT_SWITCHES, ...(data.value as Partial<OperationalKillSwitches>) };
   } catch (err) {
-    console.error("Failed to fetch kill switches", err);
+    logRuntimeIssue("Failed to fetch kill switches", err, { scope: "ops", surface: "kill-switches.getKillSwitches", fallback: "defaults", optional: true, schemaSensitive: true });
     return DEFAULT_SWITCHES;
   }
 }
@@ -45,7 +49,7 @@ export async function getKillSwitches(): Promise<OperationalKillSwitches> {
  * Updates a kill switch value in the database.
  */
 export async function updateKillSwitch(
-  key: keyof OperationalKillSwitches, 
+  key: keyof OperationalKillSwitches,
   value: boolean,
   actorId: string = "system"
 ): Promise<boolean> {
@@ -61,16 +65,21 @@ export async function updateKillSwitch(
       updated_at: new Date().toISOString()
     });
 
-  if (!error) {
-    // Log change history
-    await supabase.from("operational_logs").insert({
-      event_kind: "kill_switch_change",
-      message: `${value ? 'ATIVADO' : 'DESATIVADO'} Kill Switch: ${key}`,
-      payload: { key, value, previous: current[key] },
-      actor_id: actorId
-    });
-    return true;
+  if (error) {
+    if (!isMissingSchemaError(error)) {
+      return false;
+    }
+    return false;
   }
 
-  return false;
+  await supabase.from("operational_logs").insert({
+    event_kind: "kill_switch_change",
+    message: `${value ? "ATIVADO" : "DESATIVADO"} Kill Switch: ${key}`,
+    payload: { key, value, previous: current[key] },
+    actor_id: actorId
+  });
+
+  return true;
 }
+
+

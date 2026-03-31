@@ -3,18 +3,26 @@ import type { Route } from "next";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+export type AdminRole = "admin" | "station_editor";
+
 export interface AdminUser {
   id: string;
   email: string;
+  role: AdminRole;
 }
 
 const ADMIN_LOGIN_ROUTE = "/admin/login" as Route;
+const STATION_EDITOR_LOGIN_ROUTE = "/admin/login?target=postos" as Route;
 
 async function lookupAdminUser(email: string) {
   const supabase = await createSupabaseServerClient();
   const normalizedEmail = email.trim().toLowerCase();
 
-  return supabase.from("admin_users").select("user_id,email").eq("email", normalizedEmail).maybeSingle();
+  return supabase.from("admin_users").select("user_id,email,role").eq("email", normalizedEmail).maybeSingle();
+}
+
+function normalizeRole(role: string | null | undefined): AdminRole {
+  return role === "station_editor" ? "station_editor" : "admin";
 }
 
 export async function getCurrentAdminUser(): Promise<AdminUser | null> {
@@ -35,15 +43,15 @@ export async function getCurrentAdminUser(): Promise<AdminUser | null> {
     return null;
   }
 
-  return { id: data.user_id, email: data.email };
+  return { id: data.user_id, email: data.email, role: normalizeRole(data.role) };
 }
 
-export async function requireAdminUser() {
+async function requireUserForRoute(allowedRoles: AdminRole[], loginRoute: Route): Promise<AdminUser> {
   const supabase = await createSupabaseServerClient();
   const { data: userResult, error: userError } = await supabase.auth.getUser();
 
   if (userError || !userResult.user?.email || !userResult.user.id) {
-    redirect(`${ADMIN_LOGIN_ROUTE}?error=session_expired` as Route);
+    redirect(`${loginRoute}?error=session_expired` as Route);
   }
 
   const { data, error } = await lookupAdminUser(userResult.user.email);
@@ -54,8 +62,21 @@ export async function requireAdminUser() {
 
   if (!data?.email || !data?.user_id) {
     await supabase.auth.signOut();
-    redirect(`${ADMIN_LOGIN_ROUTE}?error=not_authorized` as Route);
+    redirect(`${loginRoute}?error=not_authorized` as Route);
   }
 
-  return { id: data.user_id, email: data.email } satisfies AdminUser;
+  const role = normalizeRole(data.role);
+  if (!allowedRoles.includes(role)) {
+    redirect(`${loginRoute}?error=not_authorized` as Route);
+  }
+
+  return { id: data.user_id, email: data.email, role };
+}
+
+export async function requireAdminUser() {
+  return requireUserForRoute(["admin"], ADMIN_LOGIN_ROUTE);
+}
+
+export async function requireStationEditorUser() {
+  return requireUserForRoute(["admin", "station_editor"], STATION_EDITOR_LOGIN_ROUTE);
 }

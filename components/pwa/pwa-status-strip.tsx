@@ -1,13 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Download, RotateCcw, WifiOff, WifiHigh, Sparkles } from "lucide-react";
+import { Download, RotateCcw, WifiOff, WifiHigh } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { getNetworkSimulationLabel, normalizeNetworkSimulationMode, type NetworkSimulationMode, NETWORK_SIM_COOKIE } from "@/lib/dev/network-sim";
-import { useOperationalFocus } from "@/hooks/use-operational-focus";
-import { useMissionContext } from "@/components/mission/mission-context";
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -21,6 +18,29 @@ interface ConnectionInfo {
   label: string;
 }
 
+function getNetworkLabel(mode: string) {
+  switch (mode) {
+    case "slow":
+      return "rede lenta";
+    case "timeout":
+      return "timeout de teste";
+    case "upload_fail":
+      return "falha de upload";
+    case "offline":
+      return "modo offline";
+    default:
+      return "normal";
+  }
+}
+
+function normalizeSimulationMode(value: string | null): "normal" | "slow" | "timeout" | "upload_fail" | "offline" {
+  const normalized = value?.trim().toLowerCase();
+  if (normalized === "slow" || normalized === "timeout" || normalized === "upload_fail" || normalized === "offline") {
+    return normalized;
+  }
+  return "normal";
+}
+
 function readCookieValue(name: string) {
   if (typeof document === "undefined") {
     return null;
@@ -32,14 +52,6 @@ function readCookieValue(name: string) {
     .find((item) => item.startsWith(`${name}=`));
 
   return part ? decodeURIComponent(part.slice(name.length + 1)) : null;
-}
-
-function setCookieValue(name: string, value: string) {
-  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=31536000; samesite=lax`;
-}
-
-function clearCookieValue(name: string) {
-  document.cookie = `${name}=; path=/; max-age=0; samesite=lax`;
 }
 
 function getConnectionInfo(): ConnectionInfo {
@@ -57,19 +69,16 @@ export function PwaStatusStrip({ killSwitches }: { killSwitches?: any }) {
   const [isInstalled, setIsInstalled] = useState(false);
   const [updateReady, setUpdateReady] = useState(false);
   const [connection, setConnection] = useState<ConnectionInfo>(() => getConnectionInfo());
-  const [simulationMode, setSimulationMode] = useState<NetworkSimulationMode>("normal");
-  
-  const { mission } = useMissionContext();
-  const { pendingSubmissionsCount } = useOperationalFocus();
+  const [simulationMode, setSimulationMode] = useState<"normal" | "slow" | "timeout" | "upload_fail" | "offline">("normal");
 
-  const simulationLabel = useMemo(() => getNetworkSimulationLabel(simulationMode), [simulationMode]);
+  const simulationLabel = useMemo(() => getNetworkLabel(simulationMode), [simulationMode]);
 
   useEffect(() => {
     const standalone = window.matchMedia?.("(display-mode: standalone)").matches || (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
     setIsInstalled(Boolean(standalone));
 
     const refreshConnection = () => setConnection(getConnectionInfo());
-    const refreshSimulation = () => setSimulationMode(normalizeNetworkSimulationMode(readCookieValue(NETWORK_SIM_COOKIE)));
+    const refreshSimulation = () => setSimulationMode(normalizeSimulationMode(readCookieValue("bomba_aberta_net_sim")));
 
     refreshConnection();
     refreshSimulation();
@@ -159,7 +168,6 @@ export function PwaStatusStrip({ killSwitches }: { killSwitches?: any }) {
   const showOffline = !connection.online || simulationMode === "offline";
   const showPoorConnection = !showOffline && (connection.poor || simulationMode === "slow" || simulationMode === "timeout");
   const showInstall = !isInstalled && Boolean(installPrompt) && !killSwitches?.disable_pwa_prompts;
-  const devMode = process.env.NODE_ENV !== "production";
 
   const updateBanner = updateReady ? (
     <div className="flex items-center justify-between gap-3 rounded-[18px] border border-[color:var(--color-accent)]/20 bg-[color:var(--color-accent)]/10 px-4 py-3 text-sm text-white/82 backdrop-blur-md">
@@ -194,14 +202,7 @@ export function PwaStatusStrip({ killSwitches }: { killSwitches?: any }) {
     <div className="flex items-center justify-between gap-3 rounded-[18px] border border-white/8 bg-white/5 px-4 py-3 text-sm text-white/78 backdrop-blur-md">
       <div className="flex items-center gap-2">
         <Download className="h-4 w-4 text-[color:var(--color-accent)]" />
-        <span>
-          {mission 
-            ? "Instale o app para nunca perder o progresso da sua missão." 
-            : pendingSubmissionsCount > 0
-              ? `Instale agora para garantir o envio dos seus ${pendingSubmissionsCount} preços.`
-              : "Instale o app para abrir mais rápido e voltar com um toque."
-          }
-        </span>
+        <span>Instale o app para abrir mais rápido e voltar com um toque.</span>
       </div>
       <Button type="button" variant="secondary" className="h-9 px-3 py-2 text-xs" onClick={() => void installApp()}>
         Instalar
@@ -209,41 +210,7 @@ export function PwaStatusStrip({ killSwitches }: { killSwitches?: any }) {
     </div>
   ) : null;
 
-  const devBanner = devMode ? (
-    <div className="rounded-[18px] border border-dashed border-white/10 bg-white/5 p-3 text-xs text-white/70 backdrop-blur-md">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-[color:var(--color-accent)]" />
-          <span>Laboratório de rede</span>
-        </div>
-        <Badge variant="outline">{simulationLabel}</Badge>
-      </div>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {(["normal", "slow", "timeout", "upload_fail", "offline"] as NetworkSimulationMode[]).map((mode) => (
-          <Button
-            key={mode}
-            type="button"
-            variant={simulationMode === mode ? "primary" : "secondary"}
-            className="h-9 px-3 py-2 text-xs"
-            onClick={() => {
-              if (mode === "normal") {
-                clearCookieValue(NETWORK_SIM_COOKIE);
-              } else {
-                setCookieValue(NETWORK_SIM_COOKIE, mode);
-              }
-              setSimulationMode(mode);
-              window.location.reload();
-            }}
-          >
-            {getNetworkSimulationLabel(mode)}
-          </Button>
-        ))}
-      </div>
-      <p className="mt-2 text-[11px] text-white/48">Use só em desenvolvimento para testar reconexão, timeout e falha de upload.</p>
-    </div>
-  ) : null;
-
-  if (!networkBanner && !updateBanner && !installBanner && !devBanner) {
+  if (!networkBanner && !updateBanner && !installBanner) {
     return null;
   }
 
@@ -252,7 +219,6 @@ export function PwaStatusStrip({ killSwitches }: { killSwitches?: any }) {
       {networkBanner}
       {updateBanner}
       {installBanner}
-      {devBanner}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getAuditGroups } from "@/lib/audit/groups";
 export const dynamic = 'force-dynamic';
 import { detectActiveAlerts, type OperationalAlert } from "@/lib/ops/alerts";
@@ -28,7 +29,8 @@ import {
   UserCheck,
   Star,
   MessageSquare,
-  Sparkles
+  Sparkles,
+  ArrowUpRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { KillSwitchToggle } from "./components/kill-switch-toggle";
@@ -44,6 +46,7 @@ import { Badge } from "@/components/ui/badge";
 import { Copy, FlaskConical } from "lucide-react";
 import { TesterMonitorPanel } from "./components/tester-monitor-panel";
 import { BetaReadinessPanel } from "./components/beta-readiness-panel";
+import { getTerritoryWorkflowReadout } from "@/lib/ops/territory-workflow";
 
 export default async function OpsDashboardPage() {
   const supabase = await createSupabaseServerClient();
@@ -52,14 +55,15 @@ export default async function OpsDashboardPage() {
     .select('*')
     .order('created_at', { ascending: false })
     .limit(10);
-  const [killSwitches, groups, alerts, history, collectors, territorialHistory, synthesis] = await Promise.all([
+  const [killSwitches, groups, alerts, history, collectors, territorialHistory, synthesis, territoryWorkflow] = await Promise.all([
     getKillSwitches(),
     getAuditGroups(),
     detectActiveAlerts(),
     getOperationalHistory(15),
     getCollectorTrustList(10),
     getTerritorialRolloutHistory(15),
-    getOperationalSynthesisAction()
+    getOperationalSynthesisAction(),
+    getTerritoryWorkflowReadout(120)
   ]);
 
   return (
@@ -84,6 +88,95 @@ export default async function OpsDashboardPage() {
 
       <div className="mb-8">
         <BetaReadinessPanel />
+      </div>
+
+      <div className="mb-8 rounded-2xl border border-white/5 bg-[#111] p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-widest text-white/30">Cobertura territorial</p>
+            <p className="mt-1 text-lg font-semibold text-white">Onde a base está fraca</p>
+            <p className="mt-1 text-sm text-white/50">Leitura por cidade e bairro para orientar station_editor.</p>
+          </div>
+          <Link href="/admin/ops/cobertura-territorial" className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/72 hover:bg-white/10">
+            Abrir cobertura territorial
+            <ArrowUpRight className="h-3 w-3" />
+          </Link>
+        </div>
+      </div>
+
+      <div className="mb-8">
+        <div className="rounded-2xl border border-white/5 bg-[#111] p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-widest text-white/30">Impacto da semeadura</p>
+              <p className="mt-1 text-lg font-semibold text-white">Quem semeia e o que mudou no território</p>
+              <p className="mt-1 text-sm text-white/50">Leitura por período, bairro e editor para medir base útil de campo.</p>
+            </div>
+            <Link href="/admin/ops/impacto-semeadura-territorial" className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/72 hover:bg-white/10">
+              Abrir impacto da semeadura
+              <ArrowUpRight className="h-3 w-3" />
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <div className="mb-8">
+        <div className="rounded-2xl border border-white/5 bg-[#111] p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-widest text-white/30">Histórico de cobertura</p>
+              <p className="mt-1 text-lg font-semibold text-white">Snapshots persistidos do território</p>
+              <p className="mt-1 text-sm text-white/50">Acompanha evolução por cidade e bairro sem inferência de janela.</p>
+            </div>
+            <Link href="/admin/ops/historico-cobertura-territorial" className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/72 hover:bg-white/10">
+              Abrir histórico territorial
+              <ArrowUpRight className="h-3 w-3" />
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <div className="mb-8 rounded-2xl border border-[color:var(--color-accent)]/20 bg-[color:var(--color-accent)]/8 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-widest text-[color:var(--color-accent)]">Rotina territorial</p>
+            <h2 className="mt-1 text-lg font-semibold text-white">Marcar o próximo passo da operação</h2>
+            <p className="mt-1 text-sm text-white/54">Use o status do território para guiar mutirão, acompanhamento, pausa e a fila do dia.</p>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-3">
+            <div className="rounded-[18px] border border-white/8 bg-black/25 px-4 py-3">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Em mutirão</p>
+              <p className="mt-1 text-2xl font-semibold text-white">{territoryWorkflow.summary.emMutirao}</p>
+            </div>
+            <div className="rounded-[18px] border border-white/8 bg-black/25 px-4 py-3">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Em acompanhamento</p>
+              <p className="mt-1 text-2xl font-semibold text-white">{territoryWorkflow.summary.emAcompanhamento}</p>
+            </div>
+            <div className="rounded-[18px] border border-white/8 bg-black/25 px-4 py-3">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Concluído</p>
+              <p className="mt-1 text-2xl font-semibold text-white">{territoryWorkflow.summary.concluidoPorEnquanto}</p>
+            </div>
+          </div>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link href="/admin/ops/cobertura-territorial" className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/72 hover:bg-white/10">
+            Abrir cobertura territorial
+            <ArrowUpRight className="h-3 w-3" />
+          </Link>
+          <Link href="/admin/ops/impacto-semeadura-territorial" className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/72 hover:bg-white/10">
+            Ver impacto da semeadura
+          </Link>
+          <Link href="/admin/ops/historico-cobertura-territorial" className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/72 hover:bg-white/10">
+            Ver histórico territorial
+          </Link>
+          <Link href="/admin/ops/fila-territorial" className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/72 hover:bg-white/10">
+            Abrir fila do dia
+          </Link>
+          <Link href="/admin/ops/resumo-semanal-postos" className="inline-flex items-center gap-2 rounded-full border border-[color:var(--color-accent)]/30 bg-[color:var(--color-accent)]/12 px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white hover:bg-[color:var(--color-accent)]/18">
+            Resumo semanal
+          </Link>
+        </div>
+        <p className="mt-3 text-[11px] text-white/42">Última marca: {territoryWorkflow.summary.latestUpdatedAt ? territoryWorkflow.summary.latestUpdatedAt : "sem registro"}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -154,10 +247,10 @@ export default async function OpsDashboardPage() {
                       <div className="flex items-center gap-2 text-right">
                          <span className={cn(
                            "text-[8px] font-black px-1.5 py-0.5 rounded-sm uppercase tracking-tighter",
-                           c.trust_stage === 'muito_confiável' ? "bg-green-500/20 text-green-400 border border-green-500/30" :
-                           c.trust_stage === 'confiável' ? "bg-blue-500/20 text-blue-400 border border-blue-500/30" :
-                           c.trust_stage === 'em_revisão' ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" :
-                           c.trust_stage === 'bloqueado' ? "bg-red-500/20 text-red-400 border border-red-500/30" :
+                           ['muito_confiável', 'very_trusted'].includes(c.trust_stage) ? "bg-green-500/20 text-green-400 border border-green-500/30" :
+                           ['confiável', 'trusted'].includes(c.trust_stage) ? "bg-blue-500/20 text-blue-400 border border-blue-500/30" :
+                           ['em_revisão', 'review_needed'].includes(c.trust_stage) ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" :
+                           ['bloqueado', 'blocked'].includes(c.trust_stage) ? "bg-red-500/20 text-red-400 border border-red-500/30" :
                            "bg-white/5 text-white/40 border border-white/10"
                          )}>
                            {c.trust_stage.replace('_', ' ')}
@@ -295,3 +388,19 @@ export default async function OpsDashboardPage() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

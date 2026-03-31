@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 
-import { PwaRegister } from "@/components/pwa-register";
 import { getBuildInfo } from "@/lib/runtime/build-info";
 import { brand } from "@/styles/design-tokens";
+import { RootErrorBoundary } from "@/components/ui/root-error-boundary";
 
 import "./globals.css";
 
@@ -67,12 +67,6 @@ export const viewport: Viewport = {
   viewportFit: "cover"
 };
 
-import { ErrorBoundary } from "@/components/ui/error-boundary";
-import { MissionProvider } from "@/components/mission/mission-context";
-import { MissionOverlay } from "@/components/mission/mission-overlay";
-import { SubmissionHistoryProvider } from "@/components/history/submission-history-context";
-import { TestModeIndicator } from "@/components/test/test-mode-indicator";
-
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const buildInfo = getBuildInfo();
 
@@ -86,14 +80,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           data-build-sha={buildInfo.sha}
           className="min-h-screen"
         >
-          <PwaRegister />
-          <MissionProvider>
-            <SubmissionHistoryProvider>
-              <TestModeIndicator />
-              <MissionOverlay />
-              <ErrorBoundary name="RootLayout">{children}</ErrorBoundary>
-            </SubmissionHistoryProvider>
-          </MissionProvider>
+          <RootErrorBoundary name="RootLayout">{children}</RootErrorBoundary>
         </div>
       </body>
     </html>

@@ -16,7 +16,7 @@ const requiredMigrationPatterns = [
   { label: "operational_events", pattern: /create\s+table\s+if\s+not\s+exists\s+public\.operational_events/i },
   { label: "sys_config", pattern: /create\s+table\s+if\s+not\s+exists\s+public\.sys_config/i },
   { label: "price_report_audit_events", pattern: /create\s+table\s+if\s+not\s+exists\s+public\.price_report_audit_events/i },
-  { label: "price_reports.observed_at", pattern: /add\s+column\s+if\s+not\s+exists\s+observed_at\s+timestamptz/i }
+  { label: "price_reports.reported_at", pattern: /create\s+index\s+if\s+not\s+exists\s+price_reports_reported_at_idx/i }
 ];
 
 const forbiddenSourcePatterns = [
@@ -99,4 +99,6 @@ main().catch((error) => {
   console.error(error);
   process.exit(1);
 });
+
+
 

@@ -47,3 +47,4 @@ export async function getPriorityTargets(limit = 12): Promise<OpsPriorityTarget[
     .sort((left, right) => right.priorityScore - left.priorityScore || left.city.localeCompare(right.city))
     .slice(0, limit);
 }
+

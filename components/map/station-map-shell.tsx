@@ -10,7 +10,7 @@ import { trackProductEvent } from "@/lib/telemetry/client";
 
 const StationMap = dynamic(() => import("@/components/map/station-map").then((mod) => mod.StationMap), {
   ssr: false,
-  loading: () => <div className={cn("w-full rounded-[28px] bg-white/6", "h-[360px]")} />
+  loading: () => <div className={cn("w-full rounded-[28px] bg-white/6", "h-[280px]")} />
 });
 
 interface StationMapShellProps {
@@ -68,7 +68,7 @@ export function StationMapShell({ stations, className, returnToHref, fuelFilter 
 
   if (status.isLowPerf && !shouldMountMap) {
     return (
-      <div className={cn("grid w-full place-items-center rounded-[28px] border border-white/8 bg-black/24 px-5 text-center text-sm text-white/56", compact ? "h-[220px]" : "h-[320px]", className)}>
+      <div className={cn("grid w-full place-items-center rounded-[28px] border border-white/8 bg-black/24 px-5 text-center text-sm text-white/56", compact ? "h-[200px]" : "h-[260px]", className)}>
         <div className="space-y-2">
           <p className="text-sm font-semibold text-white">Mapa leve carregando.</p>
           <p>A lista entra primeiro para nao travar o aparelho.</p>

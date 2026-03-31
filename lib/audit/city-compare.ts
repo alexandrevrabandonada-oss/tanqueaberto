@@ -25,3 +25,4 @@ export function summarizeComparison(items: AuditComparisonItem[]) {
     spread: leading && trailing && leading.medianPrice !== null && trailing.medianPrice !== null ? trailing.medianPrice - leading.medianPrice : null
   };
 }
+

@@ -30,3 +30,4 @@ export function formatDateTime(date: string) {
     timeStyle: "short"
   }).format(new Date(date));
 }
+

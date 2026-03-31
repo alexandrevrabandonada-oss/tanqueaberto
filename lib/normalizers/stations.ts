@@ -185,3 +185,4 @@ export function stationRowToComparableKey(row: Pick<StationRow, "name" | "addres
 export type FuelLabelMap = Record<FuelType, string>;
 
 
+

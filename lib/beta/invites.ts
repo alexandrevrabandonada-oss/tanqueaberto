@@ -222,3 +222,4 @@ export async function disableBetaInviteCode(id: string, disabledByEmail?: string
 export function getEnvBetaInviteCode() {
   return readEnvInviteCode();
 }
+

@@ -60,3 +60,4 @@ export function isBetaBypassedPath(pathname: string) {
 export function isBetaProtectedPath(pathname: string) {
   return pathname === "/feedback" || pathname.startsWith("/beta/");
 }
+

@@ -15,3 +15,4 @@ export default function AdminLayout({ children }: Readonly<{ children: React.Rea
     </div>
   );
 }
+

@@ -76,6 +76,24 @@ a {
   text-shadow: none !important;
 }
 
+body.low-perf-mode .backdrop-blur-xl,
+body.low-perf-mode .backdrop-blur-lg,
+body.low-perf-mode .backdrop-blur-md,
+body.low-perf-mode .backdrop-blur-sm {
+  backdrop-filter: none !important;
+}
+
+body.low-perf-mode [data-low-perf-hide="true"] {
+  display: none !important;
+}
+
+body.low-perf-mode .animate-pulse,
+body.low-perf-mode .animate-bounce,
+body.low-perf-mode .animate-in,
+body.low-perf-mode .animate-spin {
+  animation: none !important;
+}
+
 .custom-map-pin {
   background: transparent;
   border: 0;

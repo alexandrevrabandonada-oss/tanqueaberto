@@ -11,3 +11,4 @@ export function isAuthorizedCronRequest(request: NextRequest) {
 
   return providedHeader === expected || providedQuery === expected || request.headers.get("x-vercel-cron") === "1";
 }
+

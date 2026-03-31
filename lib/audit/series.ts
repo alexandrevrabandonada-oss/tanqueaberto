@@ -127,3 +127,4 @@ export function summarizeAuditSeries(series: AuditSeriesPoint[], stationCount: n
     confidenceLabel: getConfidenceLabel(coverageRatio, observations, Math.max(1, stationCount || cityCount || 1), days)
   };
 }
+

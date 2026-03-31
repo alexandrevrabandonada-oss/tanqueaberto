@@ -73,3 +73,4 @@ export async function clearOldPhotos(validDraftKeys: string[]): Promise<void> {
     request.onerror = () => reject(request.error);
   });
 }
+

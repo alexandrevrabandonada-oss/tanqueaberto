@@ -3,9 +3,8 @@ import { FeedBrowser } from "@/components/feed/feed-browser";
 import { getRecentFeed } from "@/lib/data";
 import type { ReportWithStation } from "@/lib/types";
 
-
 import { SectionCard } from "@/components/ui/section-card";
-
+import { logRuntimeIssue } from "@/lib/observability/runtime-issues";
 
 export const dynamic = "force-dynamic";
 
@@ -14,33 +13,49 @@ export default async function UpdatesPage() {
   try {
     feed = await getRecentFeed();
   } catch (err) {
-    console.error("Failed to fetch feed in UpdatesPage", err);
+    logRuntimeIssue("Failed to fetch feed in UpdatesPage", err, { scope: "public", surface: "pages/atualizacoes", fallback: "empty-feed", optional: true });
     feed = [];
   }
 
   const latestReport = [...feed].sort((left, right) => new Date(right.reportedAt).getTime() - new Date(left.reportedAt).getTime())[0] ?? null;
-  const actionLabel = feed.length > 0 ? "Fechar lacunas do mapa" : "Abrir mapa";
+  const actionLabel = feed.length > 0 ? "Fechar lacunas" : "Abrir mapa";
 
   return (
-    <AppShell>
-      <div data-layout-scope="updates-wide" className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(330px,360px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(360px,400px)] xl:items-start">
-        <div data-layout-role="main" className="min-w-0">
+    <AppShell
+      globalSubmitCta={{
+        href: feed.length > 0 ? "/postos/sem-atualizacao" : "/",
+        label: actionLabel,
+        note: feed.length > 0 ? "Leitura do feed que ajuda o mapa." : "Sem feed útil, volte ao mapa para ver mais contexto."
+      }}
+    >
+      <div data-layout-scope="updates-wide" data-hero-primary="updates-feed" className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(330px,360px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(360px,400px)] xl:items-start">
+        <div data-layout-role="main" className="space-y-4 min-w-0">
+          <SectionCard className="hidden space-y-2 border-white/10 bg-white/5 md:block xl:hidden">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Apoio rápido</p>
+            <h2 className="text-sm font-semibold text-white">{actionLabel}</h2>
+            <p className="text-sm text-white/54">
+              {feed.length > 0
+                ? "O feed principal já mostra a leitura. O apoio curto só orienta o próximo passo sem repetir a lista."
+                : "Sem entradas recentes, o foco volta para o mapa para gerar contexto novo."}
+            </p>
+          </SectionCard>
+
           <FeedBrowser feed={feed} />
         </div>
 
-        <aside data-layout-role="rail" className="space-y-4 xl:sticky xl:top-24">
+        <aside data-layout-role="rail" data-rail-useful="updates" className="hidden space-y-4 xl:block xl:sticky xl:top-24">
           <SectionCard className="space-y-3 border-white/10 bg-white/5 xl:p-4">
             <div className="space-y-1.5">
               <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Rail útil</p>
               <h2 className="text-lg font-semibold text-white xl:text-base">Estado do feed e ação recomendada</h2>
-              <p className="text-sm leading-relaxed text-white/54 xl:text-[13px]">A lateral mostra volume aprovado, última leitura e o melhor próximo gesto sem competir com os filtros.</p>
+              <p className="text-sm leading-relaxed text-white/54 xl:text-[13px]">A lateral mostra o volume aprovado, a última leitura e o próximo passo sem competir com os filtros.</p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
               <div className="rounded-[20px] border border-white/8 bg-black/25 p-3.5">
                 <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Atualizações</p>
                 <p className="mt-2 text-2xl font-semibold text-white">{feed.length}</p>
-                <p className="mt-1 text-xs text-white/48">Só entradas aprovadas.</p>
+                <p className="mt-1 text-xs text-white/48">Só o que já foi aprovado.</p>
               </div>
               <div className="rounded-[20px] border border-white/8 bg-black/25 p-3.5">
                 <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Última leitura</p>
@@ -63,6 +78,9 @@ export default async function UpdatesPage() {
     </AppShell>
   );
 }
+
+
+
 
 
 

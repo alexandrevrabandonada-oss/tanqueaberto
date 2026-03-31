@@ -8,10 +8,10 @@ export interface SubmissionRateLimitResult {
   attemptCount: number;
   blockedUntil: string | null;
   windowStart: string;
+  bucketKey: string;
+  scopeKind: "ip" | "device" | "session" | "surface";
+  reason: string | null;
 }
-
-const SUBMISSION_WINDOW_MINUTES = 15;
-const SUBMISSION_LIMIT = 3;
 
 function getWindowStart(windowMinutes: number, now = new Date()) {
   const start = new Date(now);
@@ -31,14 +31,36 @@ export function getSubmissionClientIp(headers: Headers) {
   return candidate || "unknown";
 }
 
-export function getSubmissionBucketKey(input: { ipHash: string; stationId: string; fuelType: FuelType; windowStart: string }) {
-  return createHash("sha256").update(`${input.ipHash}:${input.stationId}:${input.fuelType}:${input.windowStart}`).digest("hex");
+function buildBucketKey(input: {
+  scopeKind: SubmissionRateLimitResult["scopeKind"];
+  scopeId: string;
+  ipHash: string;
+  stationId: string;
+  fuelType: FuelType;
+  windowStart: string;
+}) {
+  return createHash("sha256").update(`${input.scopeKind}:${input.scopeId}:${input.ipHash}:${input.stationId}:${input.fuelType}:${input.windowStart}`).digest("hex");
 }
 
-export async function checkSubmissionRateLimit(input: { ipHash: string; stationId: string; fuelType: FuelType }) {
+async function checkSubmissionRateLimitBucket(input: {
+  scopeKind: SubmissionRateLimitResult["scopeKind"];
+  scopeId: string;
+  ipHash: string;
+  stationId: string;
+  fuelType: FuelType;
+  windowMinutes: number;
+  limit: number;
+}) {
   const supabase = createSupabaseServiceClient();
-  const windowStart = getWindowStart(SUBMISSION_WINDOW_MINUTES);
-  const bucketKey = getSubmissionBucketKey({ ipHash: input.ipHash, stationId: input.stationId, fuelType: input.fuelType, windowStart });
+  const windowStart = getWindowStart(input.windowMinutes);
+  const bucketKey = buildBucketKey({
+    scopeKind: input.scopeKind,
+    scopeId: input.scopeId,
+    ipHash: input.ipHash,
+    stationId: input.stationId,
+    fuelType: input.fuelType,
+    windowStart
+  });
   const now = new Date().toISOString();
 
   const { data: existing, error: lookupError } = await supabase
@@ -54,6 +76,8 @@ export async function checkSubmissionRateLimit(input: { ipHash: string; stationI
       attemptCount: 0,
       blockedUntil: now,
       windowStart,
+      bucketKey,
+      scopeKind: input.scopeKind,
       reason: "proteção temporariamente indisponível"
     } as const;
   }
@@ -64,19 +88,22 @@ export async function checkSubmissionRateLimit(input: { ipHash: string; stationI
       attemptCount: existing.attempt_count,
       blockedUntil: existing.blocked_until,
       windowStart,
+      bucketKey,
+      scopeKind: input.scopeKind,
       reason: "limite excedido"
     } as const;
   }
 
   const nextAttemptCount = (existing?.attempt_count ?? 0) + 1;
-  const blockedUntil = nextAttemptCount > SUBMISSION_LIMIT ? new Date(Date.now() + SUBMISSION_WINDOW_MINUTES * 60 * 1000).toISOString() : null;
+  const blockedUntil = nextAttemptCount > input.limit ? new Date(Date.now() + input.windowMinutes * 60 * 1000).toISOString() : null;
 
   const payload = {
     bucket_key: bucketKey,
     ip_hash: input.ipHash,
     station_id: input.stationId,
     fuel_type: input.fuelType,
-    window_minutes: SUBMISSION_WINDOW_MINUTES,
+    scope_kind: input.scopeKind,
+    window_minutes: input.windowMinutes,
     window_start: windowStart,
     attempt_count: nextAttemptCount,
     blocked_until: blockedUntil,
@@ -92,15 +119,71 @@ export async function checkSubmissionRateLimit(input: { ipHash: string; stationI
       attemptCount: 0,
       blockedUntil: now,
       windowStart,
+      bucketKey,
+      scopeKind: input.scopeKind,
       reason: "proteção temporariamente indisponível"
     } as const;
   }
 
   return {
-    allowed: nextAttemptCount <= SUBMISSION_LIMIT,
+    allowed: nextAttemptCount <= input.limit,
     attemptCount: nextAttemptCount,
     blockedUntil,
     windowStart,
-    reason: nextAttemptCount <= SUBMISSION_LIMIT ? null : "limite excedido"
+    bucketKey,
+    scopeKind: input.scopeKind,
+    reason: nextAttemptCount <= input.limit ? null : "limite excedido"
   } as const;
 }
+
+export async function checkSubmissionRateLimit(input: {
+  ipHash: string;
+  stationId: string;
+  fuelType: FuelType;
+  deviceId?: string | null;
+  sessionId?: string | null;
+  surfaceType?: string | null;
+  surfaceId?: string | null;
+}) {
+  const buckets = [
+    { scopeKind: "ip" as const, scopeId: input.ipHash, windowMinutes: 15, limit: 3 },
+    { scopeKind: "device" as const, scopeId: input.deviceId || input.ipHash, windowMinutes: 30, limit: 6 },
+    { scopeKind: "session" as const, scopeId: input.sessionId || `${input.ipHash}:sessionless`, windowMinutes: 20, limit: 4 },
+    { scopeKind: "surface" as const, scopeId: `${input.surfaceType || "submit"}:${input.surfaceId || input.stationId}`, windowMinutes: 8, limit: 3 }
+  ];
+
+  const results = [] as Array<Awaited<ReturnType<typeof checkSubmissionRateLimitBucket>>>;
+  for (const bucket of buckets) {
+    const result = await checkSubmissionRateLimitBucket({
+      ...bucket,
+      ipHash: input.ipHash,
+      stationId: input.stationId,
+      fuelType: input.fuelType
+    });
+    results.push(result);
+    if (!result.allowed) {
+      return {
+        allowed: false,
+        attemptCount: result.attemptCount,
+        blockedUntil: result.blockedUntil,
+        windowStart: result.windowStart,
+        bucketKey: result.bucketKey,
+        scopeKind: result.scopeKind,
+        reason: result.reason ?? "limite excedido",
+        results
+      } as const;
+    }
+  }
+
+  return {
+    allowed: true,
+    attemptCount: Math.max(...results.map((result) => result.attemptCount), 0),
+    blockedUntil: null,
+    windowStart: results[0]?.windowStart ?? new Date().toISOString(),
+    bucketKey: results[0]?.bucketKey ?? "",
+    scopeKind: results[0]?.scopeKind ?? "ip",
+    reason: null,
+    results
+  } as const;
+}
+

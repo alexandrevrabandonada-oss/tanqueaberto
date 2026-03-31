@@ -1,6 +1,8 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { SubmissionHistoryProvider } from "@/components/history/submission-history-context";
 import { CollectorHub } from "@/components/hub/collector-hub";
+import { MissionProvider } from "@/components/mission/mission-context";
+import { RouteRuntimeSignals } from "@/components/layout/route-runtime-signals";
 import { Suspense } from "react";
 import { Loader2 } from "lucide-react";
 import { getHomeStations } from "@/lib/data";
@@ -23,6 +25,8 @@ export default async function HubPage() {
   return (
     <SubmissionHistoryProvider>
       <AppShell hideShellSubmitCta>
+        <MissionProvider>
+          <RouteRuntimeSignals />
         <div data-layout-scope="hub-wide" data-hero-primary="hub-continuity" className="space-y-4 pb-20">
           <SectionCard className="hidden space-y-2 border-white/10 bg-white/5 md:block xl:hidden">
             <div className="flex flex-col gap-2">
@@ -45,6 +49,7 @@ export default async function HubPage() {
             <CollectorHub stations={stations} />
           </Suspense>
         </div>
+        </MissionProvider>
       </AppShell>
     </SubmissionHistoryProvider>
   );

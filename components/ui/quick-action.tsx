@@ -80,7 +80,7 @@ export const QuickActionButton = React.forwardRef<HTMLButtonElement, QuickAction
       ),
       variant === 'primary' && "bg-white text-black hover:bg-white/95 shadow-[0_12px_24px_rgba(255,255,255,0.16)]",
       variant === 'secondary' && "bg-white/7 border border-white/16 text-white/92 hover:bg-white/12 hover:border-white/24 shadow-[0_10px_22px_rgba(0,0,0,0.18)]",
-      variant === 'accent' && "bg-[color:var(--color-accent)] text-black hover:brightness-95 shadow-[0_12px_24px_rgba(255,212,0,0.22)]",
+      variant === 'accent' && "bg-[color:var(--color-accent)] text-black hover:brightness-95 shadow-[0_12px_24px_rgba(255,212,0,0.3)] ring-1 ring-black/10",
       variant === 'outline' && "border border-white/18 bg-black/18 text-white/84 hover:bg-white/8 hover:text-white hover:border-white/28 shadow-[0_8px_20px_rgba(0,0,0,0.12)]",
       (isAssisted || isUltraClaro) && variant === 'primary' && "ring-2 ring-white/20 ring-offset-2 ring-offset-black",
       isUltraClaro && variant === 'primary' && "bg-white scale-105 z-10 shadow-[0_0_30px_rgba(255,255,255,0.15)]",
@@ -123,7 +123,7 @@ interface QuickActionGroupProps {
 export function QuickActionGroup({ children, className, onMisclick }: QuickActionGroupProps) {
   return (
     <div 
-      className={cn("grid grid-cols-3 gap-2 rounded-[22px] border border-white/6 bg-black/20 p-1.5", className)}
+      className={cn("grid grid-cols-2 gap-2 rounded-[22px] border border-white/6 bg-black/20 p-1.5", className)}
       onClick={(e) => {
         if (e.target === e.currentTarget && onMisclick) {
           onMisclick();
@@ -134,4 +134,7 @@ export function QuickActionGroup({ children, className, onMisclick }: QuickActio
     </div>
   );
 }
+
+
+
 

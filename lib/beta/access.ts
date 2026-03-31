@@ -20,3 +20,4 @@ export async function isBetaAccessTokenValid(token: string | undefined | null) {
 }
 
 export { isBetaClosed };
+

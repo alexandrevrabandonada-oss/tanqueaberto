@@ -206,3 +206,4 @@ export function getSubmissionQueueStatusLabel(status: SubmissionQueueStatus) {
     default: return "Pendente";
   }
 }
+

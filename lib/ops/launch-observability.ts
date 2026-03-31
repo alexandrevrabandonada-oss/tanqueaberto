@@ -74,6 +74,22 @@ export interface LaunchSubmissionBorderRow {
   stationStepAbandoned: number;
 }
 
+export type OperationalThresholdState = "saudavel" | "atencao" | "problema";
+
+export interface BorderThresholdInterpretation {
+  state: OperationalThresholdState;
+  label: string;
+  summary: string;
+}
+
+export interface LaunchSubmissionBorderThresholds {
+  suggestionAcceptance: BorderThresholdInterpretation;
+  suggestionChange: BorderThresholdInterpretation;
+  stationAbandonment: BorderThresholdInterpretation;
+  lastUsedReuse: BorderThresholdInterpretation;
+  proposalWithoutGeo: BorderThresholdInterpretation;
+}
+
 export interface LaunchObservabilityReport {
   funnel: {
     steps: LaunchFunnelStepRow[];
@@ -85,6 +101,60 @@ export interface LaunchObservabilityReport {
   approvalLatency: LaunchApprovalLatencyRow;
   identityPrompts: LaunchIdentityPromptRow;
   submissionBorders: LaunchSubmissionBorderRow;
+}
+
+function classifyHigherBetter(value: number, healthyMin: number, attentionMin: number, labels: { healthy: string; attention: string; problem: string }) {
+  if (value >= healthyMin) {
+    return { state: "saudavel" as const, label: "Saudável", summary: labels.healthy };
+  }
+
+  if (value >= attentionMin) {
+    return { state: "atencao" as const, label: "Atenção", summary: labels.attention };
+  }
+
+  return { state: "problema" as const, label: "Problema", summary: labels.problem };
+}
+
+function classifyLowerBetter(value: number, healthyMax: number, attentionMax: number, labels: { healthy: string; attention: string; problem: string }) {
+  if (value <= healthyMax) {
+    return { state: "saudavel" as const, label: "Saudável", summary: labels.healthy };
+  }
+
+  if (value <= attentionMax) {
+    return { state: "atencao" as const, label: "Atenção", summary: labels.attention };
+  }
+
+  return { state: "problema" as const, label: "Problema", summary: labels.problem };
+}
+
+export function getSubmissionBorderThresholds(report: LaunchSubmissionBorderRow): LaunchSubmissionBorderThresholds {
+  return {
+    suggestionAcceptance: classifyHigherBetter(report.suggestionAcceptanceRate, 60, 40, {
+      healthy: "Sugestão forte. O posto sugerido costuma bater com a escolha.",
+      attention: "A sugestão ajuda, mas ainda gera hesitação.",
+      problem: "A sugestão não está ajudando. Rever ranking e contexto."
+    }),
+    suggestionChange: classifyLowerBetter(report.suggestionChangeRate, 15, 30, {
+      healthy: "Troca baixa. A sugestão costuma ser útil.",
+      attention: "A troca está alta o bastante para merecer leitura.",
+      problem: "Muita troca. O posto sugerido provavelmente está errado ou fraco."
+    }),
+    stationAbandonment: classifyLowerBetter(report.stationStepAbandoned, 10, 20, {
+      healthy: "Pouca perda no passo do posto.",
+      attention: "Há pessoas travando no passo do posto.",
+      problem: "Muita desistência no posto. Esse passo virou gargalo."
+    }),
+    lastUsedReuse: classifyHigherBetter(report.lastUsedReused, 25, 12, {
+      healthy: "O aparelho reaproveita bem o último posto.",
+      attention: "O último posto ajuda, mas não resolve sempre.",
+      problem: "O contexto anterior não está ajudando."
+    }),
+    proposalWithoutGeo: classifyLowerBetter(report.proposalSubmittedWithoutGeo, 25, 45, {
+      healthy: "O cadastro sem GPS existe, mas fica sob controle.",
+      attention: "Muitos cadastros seguem sem geo. Moderar com cuidado.",
+      problem: "Sem geo demais. O cadastro novo pode estar virando fuga."
+    })
+  };
 }
 
 const FUNNEL_ORDER = [

@@ -114,3 +114,4 @@ export async function submitBetaFeedbackAction(_prevState: BetaFeedbackState, fo
   revalidatePath("/admin");
   return { error: null, success: true };
 }
+

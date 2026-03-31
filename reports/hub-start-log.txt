@@ -1,0 +1,4762 @@
+
+> bomba-aberta@0.1.0 start
+> next start --port 4010
+
+   ▲ Next.js 15.5.14
+   - Local:        http://localhost:4010
+   - Network:      http://192.168.29.78:4010
+
+ ✓ Starting...
+ ✓ Ready in 660ms
+Failed to load beta feedback summary {
+  code: 'PGRST205',
+  details: null,
+  hint: null,
+  message: "Could not find the table 'public.beta_feedback_submissions' in the schema cache"
+}
+Failed to load operational job runs
+Failed to load last run for audit_dossiers
+Failed to load last run for audit_refresh
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to record operational event {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.station_quality_reviews'",
+  message: "Could not find the table 'public.operational_events' in the schema cache"
+}
+Failed to load last run for audit_refresh
+Failed to load last run for audit_refresh
+Failed to load operational job runs
+Failed to load last run for audit_dossiers
+Failed to load beta feedback summary {
+  code: 'PGRST205',
+  details: null,
+  hint: null,
+  message: "Could not find the table 'public.beta_feedback_submissions' in the schema cache"
+}
+Kill switches table access failed, using defaults {
+  code: 'PGRST205',
+  details: null,
+  hint: null,
+  message: "Could not find the table 'public.sys_config' in the schema cache"
+}
+Failed to load last run for audit_dossiers
+Failed to load beta feedback summary {
+  code: 'PGRST205',
+  details: null,
+  hint: null,
+  message: "Could not find the table 'public.beta_feedback_submissions' in the schema cache"
+}
+Failed to load operational job runs
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load last run for audit_refresh
+Failed to load last run for audit_dossiers
+Failed to load operational job runs
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load beta feedback summary {
+  code: 'PGRST205',
+  details: null,
+  hint: null,
+  message: "Could not find the table 'public.beta_feedback_submissions' in the schema cache"
+}
+Failed to load last run for audit_dossiers
+Failed to load last run for audit_refresh
+Failed to load operational job runs
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load beta feedback summary {
+  code: 'PGRST205',
+  details: null,
+  hint: null,
+  message: "Could not find the table 'public.beta_feedback_submissions' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load station audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_station_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to record operational event {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.station_quality_reviews'",
+  message: "Could not find the table 'public.operational_events' in the schema cache"
+}
+Failed to create collector trust {
+  code: 'PGRST205',
+  details: null,
+  hint: null,
+  message: "Could not find the table 'public.collector_trust' in the schema cache"
+}
+Failed to record operational event {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.station_quality_reviews'",
+  message: "Could not find the table 'public.operational_events' in the schema cache"
+}
+Failed to load last run for audit_refresh
+Failed to load beta feedback summary {
+  code: 'PGRST205',
+  details: null,
+  hint: null,
+  message: "Could not find the table 'public.beta_feedback_submissions' in the schema cache"
+}
+Failed to load last run for audit_dossiers
+Failed to load operational job runs
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to record operational event {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.station_quality_reviews'",
+  message: "Could not find the table 'public.operational_events' in the schema cache"
+}
+Failed to create collector trust {
+  code: 'PGRST205',
+  details: null,
+  hint: null,
+  message: "Could not find the table 'public.collector_trust' in the schema cache"
+}
+Failed to record operational event {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.station_quality_reviews'",
+  message: "Could not find the table 'public.operational_events' in the schema cache"
+}
+Failed to record operational event {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.station_quality_reviews'",
+  message: "Could not find the table 'public.operational_events' in the schema cache"
+}
+Failed to load last run for audit_dossiers
+Failed to load last run for audit_refresh
+Failed to load beta feedback summary {
+  code: 'PGRST205',
+  details: null,
+  hint: null,
+  message: "Could not find the table 'public.beta_feedback_submissions' in the schema cache"
+}
+Failed to load operational job runs
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to record operational event {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.station_quality_reviews'",
+  message: "Could not find the table 'public.operational_events' in the schema cache"
+}
+Failed to create collector trust {
+  code: 'PGRST205',
+  details: null,
+  hint: null,
+  message: "Could not find the table 'public.collector_trust' in the schema cache"
+}
+Failed to record operational event {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.station_quality_reviews'",
+  message: "Could not find the table 'public.operational_events' in the schema cache"
+}
+Failed to record operational event {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.station_quality_reviews'",
+  message: "Could not find the table 'public.operational_events' in the schema cache"
+}
+Failed to load last run for audit_refresh
+Failed to load beta feedback summary {
+  code: 'PGRST205',
+  details: null,
+  hint: null,
+  message: "Could not find the table 'public.beta_feedback_submissions' in the schema cache"
+}
+Failed to load last run for audit_dossiers
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load operational job runs
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to record operational event {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.station_quality_reviews'",
+  message: "Could not find the table 'public.operational_events' in the schema cache"
+}
+Failed to create collector trust {
+  code: 'PGRST205',
+  details: null,
+  hint: null,
+  message: "Could not find the table 'public.collector_trust' in the schema cache"
+}
+Failed to record operational event {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.station_quality_reviews'",
+  message: "Could not find the table 'public.operational_events' in the schema cache"
+}
+Failed to load last run for audit_dossiers
+Failed to load last run for audit_refresh
+Failed to load operational job runs
+Failed to load beta feedback summary {
+  code: 'PGRST205',
+  details: null,
+  hint: null,
+  message: "Could not find the table 'public.beta_feedback_submissions' in the schema cache"
+}
+Kill switches table access failed, using defaults {
+  code: 'PGRST205',
+  details: null,
+  hint: null,
+  message: "Could not find the table 'public.sys_config' in the schema cache"
+}
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load last run for audit_refresh
+Failed to load last run for audit_dossiers
+Failed to load operational job runs
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load beta feedback summary {
+  code: 'PGRST205',
+  details: null,
+  hint: null,
+  message: "Could not find the table 'public.beta_feedback_submissions' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load city audit aggregates, falling back to raw reports {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_daily_city_prices' in the schema cache"
+}
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}
+Failed to load audit reports {
+  code: '42703',
+  details: null,
+  hint: null,
+  message: 'column price_reports.observed_at does not exist'
+}
+Failed to load audit station groups {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.latest_station_prices'",
+  message: "Could not find the table 'public.audit_station_groups' in the schema cache"
+}

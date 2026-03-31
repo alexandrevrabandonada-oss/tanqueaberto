@@ -1,0 +1,145 @@
+import Link from "next/link";
+import type { Route } from "next";
+import { MapPinned, Search, Sparkles } from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
+import { Button, ButtonLink } from "@/components/ui/button";
+import { SectionCard } from "@/components/ui/section-card";
+import { formatCurrencyBRL } from "@/lib/format/currency";
+import { formatRecencyLabel } from "@/lib/format/time";
+import { getSelectedStationReport } from "@/lib/filters/public";
+import { getStationPublicName } from "@/lib/quality/stations";
+import { cn } from "@/lib/utils";
+import type { FuelFilter, RecencyFilter, StationPresenceFilter } from "@/lib/filters/public";
+import type { StationWithReports } from "@/lib/types";
+
+interface HomeServerLeadProps {
+  stations: StationWithReports[];
+  recentCount: number;
+  initialCity: string;
+  initialQuery: string;
+  initialFuelFilter: FuelFilter;
+  initialRecencyFilter: RecencyFilter;
+  initialPresenceFilter: StationPresenceFilter;
+}
+
+export function HomeServerLead({
+  stations,
+  recentCount,
+  initialCity,
+  initialQuery,
+  initialFuelFilter,
+  initialRecencyFilter,
+  initialPresenceFilter
+}: HomeServerLeadProps) {
+  const nearbyStations = (initialCity
+    ? stations.filter((station) => station.city?.trim().toUpperCase() === initialCity.trim().toUpperCase())
+    : stations
+  ).slice(0, 3);
+
+  const selectedModeLabel =
+    initialFuelFilter !== "all"
+      ? `Combustível: ${initialFuelFilter}`
+      : initialRecencyFilter !== "all"
+        ? `Recência: ${initialRecencyFilter}`
+        : initialPresenceFilter === "recent"
+          ? "Só preço recente"
+          : initialCity
+            ? initialCity
+            : "Busca livre";
+
+  return (
+    <SectionCard className="mb-3 space-y-3 border-white/10 bg-white/5 shadow-lg shadow-black/12 md:hidden">
+      <div className="space-y-1.5">
+        <p className="text-[10px] uppercase tracking-[0.22em] text-white/42">Leitura rápida</p>
+        <h1 className="text-[1.32rem] font-semibold leading-tight text-white">Ache um posto. Envie o preço.</h1>
+        <p className="text-sm leading-relaxed text-white/56">Busca, proximidade e lista útil primeiro.</p>
+      </div>
+
+      <form action="/" method="get" className="space-y-2 rounded-[20px] border border-white/8 bg-black/24 p-3">
+        <label className="space-y-2 text-sm text-white/58">
+          <span className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-white/42">
+            <Search className="h-3.5 w-3.5 text-[color:var(--color-accent)]" />
+            Buscar posto, bairro ou cidade
+          </span>
+          <input
+            name="q"
+            defaultValue={initialQuery}
+            placeholder="Digite o nome ou bairro"
+            className="w-full rounded-[16px] border border-white/8 bg-black/45 px-3 py-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-[color:var(--color-accent)]"
+          />
+        </label>
+        <input type="hidden" name="city" value={initialCity} />
+        <input type="hidden" name="fuel" value={initialFuelFilter} />
+        <input type="hidden" name="recency" value={initialRecencyFilter} />
+        <input type="hidden" name="presence" value={initialPresenceFilter} />
+        <div className="flex gap-2">
+          <Button type="submit" variant="secondary" className="flex-1 justify-center">
+            Buscar
+          </Button>
+          <ButtonLink href="/enviar" className="flex-1 justify-center">
+            Enviar preço
+          </ButtonLink>
+        </div>
+      </form>
+
+      <div className="flex items-center justify-between gap-3">
+        <Badge variant="outline" className="text-[10px]">{selectedModeLabel}</Badge>
+        <span className="text-[10px] uppercase tracking-[0.18em] text-white/34">{recentCount} envios recentes</span>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {initialCity ? (
+          <Badge variant="accent" className="text-[10px]">
+            <MapPinned className="mr-1 h-3 w-3" />
+            {initialCity}
+          </Badge>
+        ) : null}
+        <Badge variant="secondary" className="text-[10px]">Mapa quando precisar</Badge>
+        <Badge variant="secondary" className="text-[10px]">Lista primeiro</Badge>
+        <Badge variant="secondary" className="text-[10px]">Preços recentes</Badge>
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Postos úteis agora</p>
+          <ButtonLink href={"/#mapa-ao-vivo" as Route} variant="ghost" className="h-auto px-0 py-0 text-[10px] uppercase tracking-[0.18em] text-white/42">
+            Abrir mapa
+          </ButtonLink>
+        </div>
+        <div className="space-y-2">
+          {nearbyStations.map((station) => {
+            const latest = getSelectedStationReport(station, initialFuelFilter);
+            return (
+              <Link
+                key={station.id}
+                href={`/postos/${station.id}` as Route}
+                className={cn("block rounded-[18px] border border-white/8 bg-white/[0.04] px-3 py-2.5 transition hover:border-white/12 hover:bg-white/8")}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-white">{getStationPublicName(station)}</p>
+                    <p className="truncate text-xs text-white/44">
+                      {station.neighborhood || "Bairro"}{station.city ? ` · ${station.city}` : ""}
+                    </p>
+                    <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-white/34">
+                      {station.brand || "Sem bandeira"} · {latest ? `${formatCurrencyBRL(latest.price)} · ${formatRecencyLabel(latest.reportedAt)}` : "Sem preço recente"}
+                    </p>
+                  </div>
+                  <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--color-accent)]/70" />
+                </div>
+              </Link>
+            );
+          })}
+          {nearbyStations.length === 0 ? (
+            <div className="rounded-[18px] border border-white/8 bg-white/[0.04] px-3 py-3 text-sm text-white/56">
+              Ajuste a busca para trazer postos mais próximos ou recentes.
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </SectionCard>
+  );
+}
+
+

@@ -15,6 +15,15 @@ export type ProductTelemetryEventType =
   | "station_last_used_reused"
   | "station_geo_state_reported"
   | "station_proposal_flow_opened"
+  | "station_seed_flow_opened"
+  | "station_seed_gps_ok"
+  | "station_seed_gps_imprecise"
+  | "station_seed_no_gps"
+  | "station_seed_similar_chosen"
+  | "station_seed_new_station_created"
+  | "station_seed_new_station_active"
+  | "station_seed_new_station_manual_review"
+  | "station_seed_flow_abandoned"
   | "station_similar_choice_clicked"
   | "station_proposal_created"
   | "station_proposal_submitted_with_geo"
@@ -124,4 +133,6 @@ export interface ProductTelemetryEventInput {
   reason?: string | null;
   payload?: Record<string, unknown>;
 }
+
+
 

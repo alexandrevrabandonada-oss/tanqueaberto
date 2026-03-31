@@ -1,4 +1,5 @@
-import { createSupabaseServiceClient } from "@/lib/supabase/admin";
+﻿import { createSupabaseServiceClient } from "@/lib/supabase/admin";
+import { logRuntimeIssue } from "@/lib/observability/runtime-issues";
 
 export async function recordOperationalEvent(input: {
   eventType: string;
@@ -33,7 +34,7 @@ export async function recordOperationalEvent(input: {
   });
 
   if (error) {
-    console.error("Failed to record operational event", error);
+    logRuntimeIssue("Failed to record operational event", error, { scope: "ops", surface: "logs.recordOperationalEvent", fallback: "drop-event", optional: true, schemaSensitive: true });
   }
 }
 
@@ -58,6 +59,8 @@ export async function recordAdminActionLog(input: {
   });
 
   if (error) {
-    console.error("Failed to record admin action log", error);
+    logRuntimeIssue("Failed to record admin action log", error, { scope: "admin", surface: "logs.recordAdminActionLog", fallback: "drop-event", optional: true, schemaSensitive: true });
   }
 }
+
+

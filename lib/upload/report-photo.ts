@@ -21,3 +21,4 @@ export function validateReportPhoto(file: File) {
 
   return null;
 }
+

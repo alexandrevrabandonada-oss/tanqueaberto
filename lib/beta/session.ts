@@ -29,3 +29,4 @@ export async function clearBetaAccessCookie() {
   const cookieStore = await cookies();
   cookieStore.delete(BETA_ACCESS_COOKIE_NAME);
 }
+

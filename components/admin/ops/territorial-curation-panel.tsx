@@ -66,11 +66,11 @@ function bucketItems(items: TerritorialCurationQueueItem[]) {
   }
 
   return [
-    { title: "Boa para aprovar rápido", items: fastApprove.sort((left, right) => right.priorityScore - left.priorityScore) },
-    { title: "Duplicidade provável", items: duplicates.sort((left, right) => right.priorityScore - left.priorityScore) },
-    { title: "Sem geo", items: missingGeo.sort((left, right) => right.priorityScore - left.priorityScore) },
-    { title: "Muito vaga", items: vague.sort((left, right) => right.priorityScore - left.priorityScore) },
-    { title: "Precisa revisar", items: review.sort((left, right) => right.priorityScore - left.priorityScore) }
+    { title: "Aprovar rápido", subtitle: "Sinais bons, decisão curta.", items: fastApprove.sort((left, right) => right.priorityScore - left.priorityScore) },
+    { title: "Conflito / duplicidade", subtitle: "Vincule antes de aprovar.", items: duplicates.sort((left, right) => right.priorityScore - left.priorityScore) },
+    { title: "Sem geo", subtitle: "Precisa de sinal mínimo.", items: missingGeo.sort((left, right) => right.priorityScore - left.priorityScore) },
+    { title: "Muito vaga", subtitle: "Falta rua, nome ou contexto.", items: vague.sort((left, right) => right.priorityScore - left.priorityScore) },
+    { title: "Precisa revisar", subtitle: "Fila restante para checagem.", items: review.sort((left, right) => right.priorityScore - left.priorityScore) }
   ].filter((bucket) => bucket.items.length > 0);
 }
 
@@ -156,6 +156,7 @@ export function TerritorialCurationPanel({ items, citySummaries }: TerritorialCu
                 <div>
                   <p className="text-xs uppercase tracking-[0.2em] text-white/42">Triagem rápida</p>
                   <h3 className="mt-1 text-xl font-semibold text-white">{bucket.title}</h3>
+                  <p className="mt-1 text-sm text-white/52">{bucket.subtitle}</p>
                 </div>
                 <Badge variant="warning">{bucket.items.length} itens</Badge>
               </div>
@@ -225,6 +226,13 @@ export function TerritorialCurationPanel({ items, citySummaries }: TerritorialCu
                         <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Prioridade</p>
                         <p className="mt-2 text-2xl font-semibold text-white">{item.priorityScore}</p>
                       </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 rounded-[18px] border border-white/8 bg-black/20 p-3">
+                      <Badge variant={item.proposalReviewState === "boa_rapida" ? "accent" : "outline"}>Sem geo: {item.needsCoordinate ? "sim" : "não"}</Badge>
+                      <Badge variant={item.duplicateCandidates.length > 0 ? "warning" : "outline"}>Duplicado: {item.duplicateCandidates.length > 0 ? "sim" : "não"}</Badge>
+                      <Badge variant={item.proposalReviewState === "muito_vaga" ? "danger" : "outline"}>Vaga: {item.proposalReviewState === "muito_vaga" ? "sim" : "não"}</Badge>
+                      <Badge variant={item.lowConfidence ? "warning" : "outline"}>Confiança: {item.lowConfidence ? "baixa" : "boa"}</Badge>
                     </div>
 
                     <form action={updateTerritorialCurationAction} className="grid gap-2 lg:grid-cols-[1.1fr_1fr_1fr_1fr]">

@@ -1,4 +1,5 @@
-import { createSupabaseServiceClient } from "@/lib/supabase/admin";
+﻿import { createSupabaseServiceClient } from "@/lib/supabase/admin";
+import { logRuntimeIssue } from "@/lib/observability/runtime-issues";
 import { recordOperationalEvent } from "./logs";
 
 export type TrustStage = 'novo' | 'confiável' | 'muito_confiável' | 'em_revisão' | 'bloqueado';
@@ -39,6 +40,42 @@ export function getTrustStage(score: number, totalReports: number): TrustStage {
   return 'novo';
 }
 
+export function normalizeTrustStage(value: string | null | undefined): TrustStage {
+  switch ((value ?? '').toLowerCase()) {
+    case 'trusted':
+      return 'confiável';
+    case 'review_needed':
+      return 'em_revisão';
+    case 'blocked':
+      return 'bloqueado';
+    case 'new':
+      return 'novo';
+    case 'muito_confiável':
+    case 'confiável':
+    case 'em_revisão':
+    case 'bloqueado':
+      return value as TrustStage;
+    default:
+      return 'novo';
+  }
+}
+
+function mapCollectorTrustRow(row: any): CollectorTrust {
+  return {
+    nickname: row.nickname,
+    ipHash: row.ip_hash,
+    score: row.score,
+    totalReports: row.total_reports,
+    approvedReports: row.approved_reports,
+    rejectedReports: row.rejected_reports,
+    trustStage: normalizeTrustStage(row.trust_stage),
+    streakDays: row.streak_days || 0,
+    missionsCompleted: row.missions_completed || 0,
+    lastReportAt: row.last_report_at,
+    isTester: !!row.is_tester,
+    cohort: row.cohort || 'NEWBIE'
+  };
+}
 /**
  * Interface para os sinais de qualidade de um envio
  */
@@ -87,32 +124,10 @@ export function calculateScoreDelta(signals: ReputationSignals): number {
  * Garante que o coletor existe na tabela de trust e retorna seus dados
  */
 export async function getOrCreateCollectorTrust(nickname: string | null, ipHash: string | null): Promise<CollectorTrust> {
+  const existing = await findCollectorTrust(nickname, ipHash);
+  if (existing) return existing;
+
   const supabase = createSupabaseServiceClient();
-  
-  const { data, error } = await supabase
-    .from('collector_trust')
-    .select('nickname, ip_hash, score, total_reports, approved_reports, rejected_reports, trust_stage, streak_days, missions_completed, last_report_at, is_tester, cohort')
-    .eq('nickname', nickname || '')
-    .eq('ip_hash', ipHash || '')
-    .maybeSingle();
-
-  if (data) {
-    return {
-      nickname: data.nickname,
-      ipHash: data.ip_hash,
-      score: data.score,
-      totalReports: data.total_reports,
-      approvedReports: data.approved_reports,
-      rejectedReports: data.rejected_reports,
-      trustStage: data.trust_stage as TrustStage,
-      streakDays: data.streak_days || 0,
-      missionsCompleted: data.missions_completed || 0,
-      lastReportAt: data.last_report_at,
-      isTester: !!data.is_tester,
-      cohort: (data as any).cohort || 'NEWBIE'
-    };
-  }
-
   const defaultTrust = {
     nickname: nickname || '',
     ip_hash: ipHash || '',
@@ -131,7 +146,7 @@ export async function getOrCreateCollectorTrust(nickname: string | null, ipHash:
     .single();
 
   if (createError) {
-    console.error("Failed to create collector trust", createError);
+    logRuntimeIssue("Failed to create collector trust", createError, { scope: "public", surface: "collector-trust.getOrCreateCollectorTrust", fallback: "default-trust", optional: true, schemaSensitive: true });
     return {
       nickname,
       ipHash,
@@ -146,20 +161,24 @@ export async function getOrCreateCollectorTrust(nickname: string | null, ipHash:
     };
   }
 
-  return {
-    nickname: created.nickname,
-    ipHash: created.ip_hash,
-    score: created.score,
-    totalReports: created.total_reports,
-    approvedReports: created.approved_reports,
-    rejectedReports: created.rejected_reports,
-    trustStage: created.trust_stage as TrustStage,
-    streakDays: created.streak_days || 0,
-    missionsCompleted: created.missions_completed || 0,
-    lastReportAt: created.last_report_at,
-    isTester: !!created.is_tester,
-    cohort: (created as any).cohort || 'NEWBIE'
-  };
+  return mapCollectorTrustRow(created);
+}
+
+export async function findCollectorTrust(nickname: string | null, ipHash: string | null): Promise<CollectorTrust | null> {
+  const supabase = createSupabaseServiceClient();
+  const columns = 'nickname, ip_hash, score, total_reports, approved_reports, rejected_reports, trust_stage, streak_days, missions_completed, last_report_at, is_tester, cohort';
+
+  if (nickname) {
+    const { data } = await supabase.from('collector_trust').select(columns).eq('nickname', nickname).maybeSingle();
+    if (data) return mapCollectorTrustRow(data);
+  }
+
+  if (ipHash) {
+    const { data } = await supabase.from('collector_trust').select(columns).eq('ip_hash', ipHash).maybeSingle();
+    if (data) return mapCollectorTrustRow(data);
+  }
+
+  return null;
 }
 
 /**
@@ -367,3 +386,7 @@ export function getCohortFlags(cohort: string) {
 
   return flags;
 }
+
+
+
+

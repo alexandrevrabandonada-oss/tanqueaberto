@@ -56,7 +56,7 @@ export function FeedBrowser({ feed: initialFeed }: FeedBrowserProps) {
         <div className="space-y-2">
           <p className="text-xs uppercase tracking-[0.2em] text-white/42">Feed</p>
           <h2 className="text-[1.8rem] font-semibold leading-none text-white xl:text-[1.45rem]">Atualizações recentes</h2>
-          <p className="text-sm text-white/58 xl:text-[13px]">Linha do tempo com foco em preço, recência e evidência. Só entra o que já foi aprovado.</p>
+          <p className="text-sm text-white/58 xl:text-[13px]">Só entra o que já foi aprovado.</p>
         </div>
 
         <div className="flex items-center gap-3 rounded-[22px] border border-white/8 bg-black/30 px-4 py-3 text-sm text-white/50 xl:py-2.5">
@@ -110,10 +110,10 @@ export function FeedBrowser({ feed: initialFeed }: FeedBrowserProps) {
         </div>
 
         <div className="rounded-[22px] border border-white/8 bg-white/5 px-4 py-3 text-sm text-white/62 xl:px-3 xl:py-2.5">
-          O feed mostra envios aprovados. Se você quer ajudar a completar o mapa, abra a lista de lacunas ou envie um novo preço.
+          O feed mostra o que já foi aprovado. Se quiser ajudar o mapa, veja os postos sem preço ou envie um preço.
           <div className="mt-3">
             <ButtonLink href="/postos/sem-atualizacao" variant="secondary">
-              Ver lacunas do mapa
+              Ver postos sem preço
             </ButtonLink>
           </div>
         </div>
@@ -129,7 +129,7 @@ export function FeedBrowser({ feed: initialFeed }: FeedBrowserProps) {
             }}
             className="text-white/60 transition hover:text-white"
           >
-            Limpar filtros
+            Limpar
           </button>
         </div>
       </SectionCard>
@@ -137,17 +137,17 @@ export function FeedBrowser({ feed: initialFeed }: FeedBrowserProps) {
       <SectionCard className="space-y-3 xl:p-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Linha do tempo</p>
-            <h3 className="mt-1 text-xl font-semibold text-white xl:text-[1.35rem]">Entradas mais recentes</h3>
+            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Lista recente</p>
+            <h3 className="mt-1 text-xl font-semibold text-white xl:text-[1.35rem]">Últimos preços</h3>
           </div>
           <Clock3 className="h-5 w-5 text-[color:var(--color-accent)]" />
         </div>
         {filteredFeed.length === 0 ? (
           <EmptyStateCard
-            title="Nenhuma atualização recente neste filtro."
-            description="Tente outro bairro, cidade, combustível ou recência. Se quiser contribuir, envie o primeiro preço."
+            title="Nenhum resultado com esse filtro."
+            description="Tente outro bairro, cidade, combustível ou período. Se quiser contribuir, envie um preço."
             actionHref="/enviar"
-            actionLabel="Enviar primeiro preço"
+            actionLabel="Enviar preço"
             className="text-left"
           />
         ) : (

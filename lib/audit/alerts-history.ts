@@ -84,3 +84,4 @@ export async function getRecentAuditAlertHistory(limit = 24): Promise<AuditAlert
     createdAt: row.created_at
   }));
 }
+

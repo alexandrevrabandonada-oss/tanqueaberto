@@ -142,3 +142,4 @@ export function getStationCheapestReports(stations: StationWithReports[], fuelFi
     .sort((left, right) => left.report.price - right.report.price)
     .slice(0, 3);
 }
+

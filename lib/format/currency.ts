@@ -4,3 +4,4 @@ export function formatCurrencyBRL(value: number) {
     currency: "BRL"
   }).format(value);
 }
+

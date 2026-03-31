@@ -24,3 +24,4 @@ export function createSupabaseServiceClient() {
 
   return cachedClient;
 }
+

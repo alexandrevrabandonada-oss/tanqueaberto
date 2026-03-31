@@ -65,3 +65,4 @@ export function deriveFeedbackStatus(feedbackType: string, message: string) {
   if (/(confusa|confuso|difícil|dificil|faltou|sugest|melhorar)/.test(haystack)) return "em_analise";
   return "novo";
 }
+

@@ -1,8 +1,13 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServiceClient } from "@/lib/supabase/admin";
+import { isMissingSchemaError } from "@/lib/supabase/schema-cache";
 import type { AuditStationGroup, AuditStationGroupMember } from "@/lib/audit/types";
 
+function emptyGroupList() {
+  return [] as AuditStationGroup[];
+}
+
 export async function getAuditGroups() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient();
   const { data, error } = await supabase
     .from("audit_station_groups")
     .select("id,slug,name,description,group_type,city,release_status,is_published,rollout_notes,operational_state,recommended_state,is_active,created_at,updated_at")
@@ -10,8 +15,10 @@ export async function getAuditGroups() {
     .order("name", { ascending: true });
 
   if (error || !data) {
-    console.error("Failed to load audit station groups", error);
-    return [] as AuditStationGroup[];
+    if (error && !isMissingSchemaError(error)) {
+      console.error("Failed to load audit station groups", error);
+    }
+    return emptyGroupList();
   }
 
   return data.map((row) => ({
@@ -33,7 +40,7 @@ export async function getAuditGroups() {
 }
 
 export async function getAuditGroupBySlug(slug: string): Promise<AuditStationGroup | null> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient();
   const { data, error } = await supabase
     .from("audit_station_groups")
     .select("id,slug,name,description,group_type,city,release_status,is_published,rollout_notes,operational_state,recommended_state,is_active,created_at,updated_at")
@@ -41,7 +48,7 @@ export async function getAuditGroupBySlug(slug: string): Promise<AuditStationGro
     .maybeSingle();
 
   if (error || !data) {
-    if (error) {
+    if (error && !isMissingSchemaError(error)) {
       console.error("Failed to load audit station group", error);
     }
     return null;
@@ -66,7 +73,7 @@ export async function getAuditGroupBySlug(slug: string): Promise<AuditStationGro
 }
 
 export async function getAuditGroupMembers(groupId: string): Promise<AuditStationGroupMember[]> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient();
   const { data, error } = await supabase
     .from("audit_station_group_members")
     .select("id,group_id,station_id,notes,created_at")
@@ -74,7 +81,9 @@ export async function getAuditGroupMembers(groupId: string): Promise<AuditStatio
     .order("created_at", { ascending: true });
 
   if (error || !data) {
-    console.error("Failed to load audit group members", error);
+    if (error && !isMissingSchemaError(error)) {
+      console.error("Failed to load audit group members", error);
+    }
     return [];
   }
 
@@ -86,3 +95,4 @@ export async function getAuditGroupMembers(groupId: string): Promise<AuditStatio
     createdAt: row.created_at
   }));
 }
+

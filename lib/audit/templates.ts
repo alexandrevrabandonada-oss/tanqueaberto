@@ -54,3 +54,4 @@ export function buildComparisonHeadline(items: AuditComparisonItem[], fuelType: 
     subtitle: top ? `${top.city} lidera a mediana no recorte de ${days} dias` : `Sem dados suficientes para ${days} dias`,
   };
 }
+

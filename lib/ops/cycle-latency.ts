@@ -19,7 +19,7 @@ export async function calculateCycleLatencyMetrics(): Promise<CycleLatencyMetric
   // 1. Fetch recent approved/rejected reports
   const { data: reports, error } = await supabase
     .from('price_reports')
-    .select('submitted_at, approved_at, rejected_at, city')
+    .select('reported_at, approved_at, rejected_at, city')
     .or(`approved_at.gt.${yesterday},rejected_at.gt.${yesterday}`);
 
   if (error || !reports) {
@@ -36,7 +36,7 @@ export async function calculateCycleLatencyMetrics(): Promise<CycleLatencyMetric
   const cityLatencies: Record<string, { total: number; count: number }> = {};
 
   reports.forEach(r => {
-    const start = new Date(r.submitted_at).getTime();
+    const start = new Date(r.reported_at).getTime();
     const end = new Date(r.approved_at || r.rejected_at).getTime();
     const diffMin = (end - start) / (1000 * 60);
 
@@ -85,3 +85,6 @@ export async function calculateCycleLatencyMetrics(): Promise<CycleLatencyMetric
     totalProcessed24h: reports.length
   };
 }
+
+
+

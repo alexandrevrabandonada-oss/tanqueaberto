@@ -13,3 +13,4 @@ export async function GET(request: NextRequest) {
   const result = await runAuditDossiersJob({ cadence: "cron_weekly", triggeredBy: "cron" });
   return NextResponse.json(result, { status: result.success ? 200 : 500 });
 }
+

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
 
 export const dynamic = "force-dynamic";
 
@@ -12,9 +12,8 @@ export async function GET() {
   };
 
   try {
-    // 1. Database Check
-    const supabase = await createSupabaseServerClient();
-    const { data: dbData, error: dbError } = await supabase
+    const supabase = createSupabaseServiceClient();
+    const { error: dbError } = await supabase
       .from("stations")
       .select("id")
       .limit(1);
@@ -27,27 +26,26 @@ export async function GET() {
 
     if (dbError) checks.status = "error";
 
-    // 2. Storage Check
     const { data: storageData, error: storageError } = await supabase
       .storage
-      .getBucket("reports");
+      .getBucket("price-report-photos");
 
     checks.components.storage = {
       status: storageError ? "error" : "ok",
-      message: storageError?.message || "Bucket accessible"
+      message: storageError?.message || "Bucket accessible",
+      bucket: storageData?.name ?? "price-report-photos"
     };
 
     if (storageError) checks.status = "error";
 
-    // 3. Environment Variables Check
     const requiredEnvs = [
       "NEXT_PUBLIC_SUPABASE_URL",
       "NEXT_PUBLIC_SUPABASE_ANON_KEY",
       "SUPABASE_SERVICE_ROLE_KEY"
     ];
-    
+
     const missingEnvs = requiredEnvs.filter(env => !process.env[env]);
-    
+
     checks.components.environment = {
       status: missingEnvs.length > 0 ? "error" : "ok",
       missing: missingEnvs.length > 0 ? missingEnvs : undefined
@@ -56,7 +54,7 @@ export async function GET() {
     if (missingEnvs.length > 0) checks.status = "error";
 
     const responseStatus = checks.status === "ok" ? 200 : 500;
-    
+
     return NextResponse.json(checks, { status: responseStatus });
 
   } catch (error: any) {
@@ -67,3 +65,4 @@ export async function GET() {
     }, { status: 500 });
   }
 }
+

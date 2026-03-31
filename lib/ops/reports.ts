@@ -54,3 +54,4 @@ export async function getOperationalSummary(days = 30) {
     dashboard
   };
 }
+

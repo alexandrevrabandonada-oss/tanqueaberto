@@ -233,3 +233,4 @@ export default async function BetaLearningPage() {
     </div>
   );
 }
+

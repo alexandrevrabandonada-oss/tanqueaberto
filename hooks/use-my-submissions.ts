@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { FuelType, ReportStatus } from "@/lib/types";
+import { normalizeProgressiveNickname, persistProgressiveIdentityNickname, readProgressiveIdentityProfile } from "@/lib/identity/progressive";
 
 export interface MySubmission {
   reportId: string;
@@ -20,17 +21,32 @@ const STORAGE_KEY = "bomba-aberta:my-submissions";
 
 export function useMySubmissions() {
   const [submissions, setSubmissions] = useState<MySubmission[]>([]);
+  const [reporterNickname, setReporterNickname] = useState<string | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
+    let parsedSubmissions: MySubmission[] = [];
+
     if (saved) {
       try {
-        setSubmissions(JSON.parse(saved));
+        parsedSubmissions = JSON.parse(saved);
+        setSubmissions(parsedSubmissions);
       } catch (e) {
         console.error("Failed to parse my submissions", e);
       }
     }
+
+    const savedProfile = readProgressiveIdentityProfile();
+    const normalizedProfileNickname = normalizeProgressiveNickname(savedProfile?.nickname ?? null);
+    const firstSubmissionNickname = normalizeProgressiveNickname(parsedSubmissions[0]?.reporterNickname ?? null);
+    const nextNickname = normalizedProfileNickname ?? firstSubmissionNickname;
+
+    if (!normalizedProfileNickname && firstSubmissionNickname) {
+      persistProgressiveIdentityNickname(firstSubmissionNickname, "submission");
+    }
+
+    setReporterNickname(nextNickname);
     setIsLoaded(true);
   }, []);
 
@@ -41,10 +57,15 @@ export function useMySubmissions() {
   }, [submissions, isLoaded]);
 
   const addSubmission = useCallback((entry: Omit<MySubmission, "updatedAt">) => {
+    const normalizedNickname = normalizeProgressiveNickname(entry.reporterNickname ?? null);
+    if (normalizedNickname) {
+      persistProgressiveIdentityNickname(normalizedNickname, "submission");
+      setReporterNickname(normalizedNickname);
+    }
+
     setSubmissions(prev => {
-      // Avoid duplicates
       if (prev.find(s => s.reportId === entry.reportId)) return prev;
-      return [{ ...entry, updatedAt: new Date().toISOString() }, ...prev].slice(0, 20);
+      return [{ ...entry, reporterNickname: normalizedNickname, updatedAt: new Date().toISOString() }, ...prev].slice(0, 20);
     });
   }, []);
 
@@ -58,7 +79,7 @@ export function useMySubmissions() {
     submissions,
     addSubmission,
     updateSubmissionStatus,
-    reporterNickname: submissions[0]?.reporterNickname ?? null,
+    reporterNickname,
     isLoaded
   };
 }

@@ -1,17 +1,19 @@
+import dynamic from "next/dynamic";
 import type { Route } from "next";
 import Link from "next/link";
 import { Flame, MapPinned, MessageSquareMore } from "lucide-react";
 
-import { BottomNav } from "@/components/layout/bottom-nav";
 import { BrandMark } from "@/components/brand/brand-mark";
 import { VrAbandonadaBadge } from "@/components/brand/vr-abandonada-badge";
-import { PwaStatusStrip } from "@/components/pwa/pwa-status-strip";
-import { GlobalSubmitCta } from "@/components/layout/global-submit-cta";
-import { PerformanceModeSync } from "@/components/layout/performance-mode-sync";
 import { isBetaClosed } from "@/lib/beta/gate";
 import { getBuildInfo } from "@/lib/runtime/build-info";
 
 import { type OperationalKillSwitches } from "@/lib/ops/kill-switches";
+
+const GlobalSubmitCta = dynamic(() => import("@/components/layout/global-submit-cta").then((mod) => mod.GlobalSubmitCta));
+const ShellDeferredChrome = dynamic(() => import("@/components/layout/shell-deferred-chrome").then((mod) => mod.ShellDeferredChrome), {
+  loading: () => null
+});
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -86,8 +88,7 @@ export function AppShell({ children, killSwitches, hideShellSubmitCta = false, g
           </div>
         ) : null}
 
-        <PerformanceModeSync />
-        <PwaStatusStrip killSwitches={killSwitches} />
+        <ShellDeferredChrome killSwitches={killSwitches} />
 
         {showBuildStamp ? (
           <div className="relative z-10 mb-2.5 flex items-center justify-end md:mb-3">
@@ -101,11 +102,7 @@ export function AppShell({ children, killSwitches, hideShellSubmitCta = false, g
         ) : null}
 
         <main className="relative z-10 flex-1 space-y-3 md:space-y-4 xl:space-y-5">{children}</main>
-
-        <BottomNav />
       </div>
     </div>
   );
 }
-
-

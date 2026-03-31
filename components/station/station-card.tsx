@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import type { Route } from "next";
 import Link from "next/link";
@@ -64,9 +66,9 @@ export function StationCard({
   const latestTone = latest ? getRecencyTone(latest.reportedAt) : "stale";
   const latestLabel = latest
     ? latestTone === "stale"
-      ? "Sem atualização recente"
+      ? "Sem preço"
       : `Atualizado ${formatRecencyLabel(latest.reportedAt)}`
-    : "Sem preço recente";
+    : "Sem preço";
   const showReviewBadge = hasPendingStationLocationReview(station) && !latest;
   const isContributionPriority = !latest || latestTone === "stale" || showReviewBadge || station.releaseStatus !== "ready";
   const { isActive: isTestMode } = useTestMode();
@@ -76,11 +78,11 @@ export function StationCard({
   const statusBadge = station.releaseStatus && station.releaseStatus !== "ready" ? (
     <GroupStatusBadge status={station.releaseStatus} />
   ) : showReviewBadge ? (
-    <Badge variant="warning">Localização em revisão</Badge>
+    <Badge variant="warning">Localização em ajuste</Badge>
   ) : latest ? (
-    <Badge variant={recencyToneToBadgeVariant(latestTone)}>{latestTone === "stale" ? "Sem atualização" : "Preço recente"}</Badge>
+    <Badge variant={recencyToneToBadgeVariant(latestTone)}>{latestTone === "stale" ? "Sem preço" : "Com preço"}</Badge>
   ) : (
-    <Badge variant="outline">Aguardando preço</Badge>
+    <Badge variant="outline">Sem preço ainda</Badge>
   );
 
   return (
@@ -181,7 +183,7 @@ export function StationCard({
           </div>
         ) : !isStreetMode && !isAdvanced ? (
           <div className="rounded-[20px] border border-white/5 bg-white/5 p-4 text-sm leading-relaxed text-white/42">
-            Posto cadastrado sem preço recente. Colabore com a primeira foto.
+            Posto sem preço. Envie a primeira foto.
           </div>
         ) : null}
 
@@ -201,7 +203,7 @@ export function StationCard({
             <>
               <QuickActionButton
                 icon={Camera}
-                label={(isAssisted || isUltraClaro) ? "FOTO" : "Foto"}
+                label="Enviar preço"
                 desktopLabel="Abrir câmera"
                 variant="accent"
                 isStreetMode={isStreetMode}
@@ -231,7 +233,7 @@ export function StationCard({
 
               <QuickActionButton
                 icon={Navigation}
-                label={(isAssisted || isUltraClaro) ? "ROTA" : "Rota"}
+                label={(isAssisted || isUltraClaro) ? "Rota" : "Rota"}
                 desktopLabel="Traçar rota"
                 variant="outline"
                 isStreetMode={isStreetMode}
@@ -298,7 +300,7 @@ export function StationCard({
 
               <QuickActionButton
                 icon={Navigation}
-                label={(isAssisted || isUltraClaro) ? "ROTA" : "Rota"}
+                label={(isAssisted || isUltraClaro) ? "Rota" : "Rota"}
                 desktopLabel="Traçar rota"
                 variant="outline"
                 isStreetMode={isStreetMode}
@@ -337,3 +339,6 @@ export function StationCard({
     </SectionCard>
   );
 }
+
+
+

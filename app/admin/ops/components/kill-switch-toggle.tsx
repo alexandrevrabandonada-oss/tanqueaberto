@@ -55,3 +55,4 @@ export function KillSwitchToggle({ label, description, switchKey, active }: Kill
     </div>
   );
 }
+

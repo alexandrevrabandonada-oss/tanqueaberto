@@ -7,8 +7,9 @@ import type { Route } from "next";
 import { AdminLoginState, signInAdminAction } from "@/app/admin/actions";
 import { Button } from "@/components/ui/button";
 
-const initialState: AdminLoginState = { error: null, success: false };
+const initialState: AdminLoginState = { error: null, success: false, role: null };
 const ADMIN_ROUTE = "/admin" as Route;
+const STATION_EDITOR_ROUTE = "/postos/cadastrar" as Route;
 
 interface AdminLoginFormProps {
   notice?: string;
@@ -37,11 +38,13 @@ export function AdminLoginForm({ notice, error }: AdminLoginFormProps) {
   const banner = state.error ?? resolveMessage(notice, error);
 
   useEffect(() => {
-    if (state.success) {
-      router.replace(ADMIN_ROUTE);
-      router.refresh();
+    if (!state.success) {
+      return;
     }
-  }, [router, state.success]);
+
+    router.replace(state.role === "station_editor" ? STATION_EDITOR_ROUTE : ADMIN_ROUTE);
+    router.refresh();
+  }, [router, state.role, state.success]);
 
   return (
     <form action={formAction} className="space-y-4">
@@ -76,7 +79,7 @@ export function AdminLoginForm({ notice, error }: AdminLoginFormProps) {
       {banner ? <div className="rounded-[18px] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/74">{banner}</div> : null}
 
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Entrando..." : "Entrar no admin"}
+        {pending ? "Entrando..." : "Entrar"}
       </Button>
     </form>
   );

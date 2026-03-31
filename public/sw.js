@@ -1,4 +1,4 @@
-const CACHE_NAME = "bomba-aberta-v6";
+const CACHE_NAME = "bomba-aberta-v7";
 const APP_SHELL = [
   "/",
   "/atualizacoes",

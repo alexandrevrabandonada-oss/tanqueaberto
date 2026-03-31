@@ -76,3 +76,4 @@ export function getNavigationHandoff() {
 export function clearNavigationHandoff() {
   localStorage.removeItem("bomba-aberta:navigation-handoff");
 }
+

@@ -30,3 +30,4 @@ export function consumeHubAttribution(): boolean {
     return false;
   }
 }
+

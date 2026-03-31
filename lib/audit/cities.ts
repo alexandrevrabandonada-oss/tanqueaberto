@@ -24,3 +24,4 @@ export function getAuditCitySlug(cityName: string) {
     normalized.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
   );
 }
+

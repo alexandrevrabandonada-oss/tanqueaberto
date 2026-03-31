@@ -13,6 +13,7 @@ import { createSupabaseServiceClient } from "@/lib/supabase/admin";
 import { logRuntimeIssue } from "@/lib/observability/runtime-issues";
 import { BETA_ACCESS_COOKIE_NAME } from "@/lib/beta/gate";
 import { getReportPriorityScore } from "@/lib/ops/moderation-priority";
+import { getStationProposalReviewSignal } from "@/lib/quality/stations";
 import type { FuelType } from "@/lib/types";
 
 export interface SubmitState {
@@ -21,6 +22,7 @@ export interface SubmitState {
   retryable: boolean;
   success: boolean;
   reportId?: string;
+  stationId?: string;
   noticeTitle?: string | null;
   noticeBody?: string | null;
   noticeTone?: "info" | "warning" | "success" | null;
@@ -37,13 +39,14 @@ function failure(error: string, errorCode: string, retryable = false): SubmitSta
   return { error, errorCode, retryable, success: false, noticeTitle: null, noticeBody: null, noticeTone: null, noticeCode: null };
 }
 
-function success(reportId?: string, notice?: Pick<SubmitState, "noticeTitle" | "noticeBody" | "noticeTone" | "noticeCode">): SubmitState {
+function success(reportId?: string, notice?: Pick<SubmitState, "noticeTitle" | "noticeBody" | "noticeTone" | "noticeCode">, stationId?: string): SubmitState {
   return {
     error: null,
     errorCode: null,
     retryable: false,
     success: true,
     reportId,
+    stationId,
     noticeTitle: notice?.noticeTitle ?? null,
     noticeBody: notice?.noticeBody ?? null,
     noticeTone: notice?.noticeTone ?? null,
@@ -61,7 +64,7 @@ function buildSubmissionNotice(input: {
   if (input.duplicateLikely) {
     return {
       title: "Duplicado provável",
-      body: "O envio entrou em revisão porque a foto ou o preço parecem repetir um registro recente.",
+      body: "O envio entrou em revisão porque parece repetido.",
       tone: "warning" as const,
       code: "duplicate_likely"
     };
@@ -70,7 +73,7 @@ function buildSubmissionNotice(input: {
   if (input.priceConflict || input.priceDiscrepancy) {
     return {
       title: "Entrou em revisão",
-      body: "O envio foi aceito, mas vai passar por checagem porque há conflito com leituras recentes.",
+      body: "O envio foi salvo e vai passar por revisão.",
       tone: "warning" as const,
       code: input.priceConflict ? "price_conflict" : "price_discrepancy"
     };
@@ -79,7 +82,7 @@ function buildSubmissionNotice(input: {
   if (input.alreadyRecentPrice) {
     return {
       title: "Já existe preço recente",
-      body: "Seu envio foi aceito e fica em continuidade com uma leitura recente desse posto.",
+      body: "Seu envio segue junto de uma leitura recente.",
       tone: "info" as const,
       code: "recent_price"
     };
@@ -91,6 +94,22 @@ function buildSubmissionNotice(input: {
 function getString(formData: FormData, name: string) {
   return String(formData.get(name) ?? "").trim();
 }
+function normalizeStationProposalText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+function buildStationProposalStreet(name: string, street: string, neighborhood: string) {
+  return [street, neighborhood, name]
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .join(" · ")
+    .trim();
+}
+
 
 async function getSubmissionContext(formData: FormData) {
   const currentHeaders = await headers();
@@ -112,13 +131,24 @@ async function getSubmissionContext(formData: FormData) {
 
 export async function submitPriceReportAction(_prevState: SubmitState, formData: FormData): Promise<SubmitState> {
   try {
-  const stationId = getString(formData, "stationId");
+  let stationId = getString(formData, "stationId");
   const fuelType = getString(formData, "fuelType") as FuelType;
   const priceRaw = getString(formData, "price");
   const nickname = getString(formData, "nickname");
   const honeypot = getString(formData, "website");
   const photo = formData.get("photo");
   const context = await getSubmissionContext(formData);
+  const stationProposalMode = getString(formData, "stationProposalMode") === "1";
+  const stationProposalConfirmed = getString(formData, "stationProposalConfirmed") === "1";
+  const stationProposalName = getString(formData, "stationProposalName");
+  const stationProposalStreet = getString(formData, "stationProposalStreet");
+  const stationProposalNeighborhood = getString(formData, "stationProposalNeighborhood");
+  const stationProposalBrand = getString(formData, "stationProposalBrand");
+  const stationProposalCity = getString(formData, "stationProposalCity");
+  const stationProposalLatRaw = getString(formData, "stationProposalLat");
+  const stationProposalLngRaw = getString(formData, "stationProposalLng");
+  const stationProposalLat = stationProposalLatRaw ? Number(stationProposalLatRaw) : null;
+  const stationProposalLng = stationProposalLngRaw ? Number(stationProposalLngRaw) : null;
 
   if (honeypot) {
     await recordOperationalEvent({
@@ -133,7 +163,7 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
     return failure("Não foi possível enviar agora.", "submission_blocked", false);
   }
 
-  if (!stationId) {
+  if (!stationId && !stationProposalMode) {
     return failure("Selecione um posto.", "validation", false);
   }
 
@@ -168,7 +198,7 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
     return {
       ...failure("A foto não foi anexada ou se perdeu. Tire outra antes de enviar.", "photo_missing", false),
       noticeTitle: "Precisa refazer a foto",
-      noticeBody: "Tire outra foto. O restante do envio pode continuar salvo neste aparelho.",
+      noticeBody: "Tire outra foto e siga o envio.",
       noticeTone: "warning",
       noticeCode: "photo_missing"
     };
@@ -190,11 +220,155 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
 
   const supabase = createSupabaseServiceClient();
 
-  const { data: station, error: stationError } = await supabase
-    .from("stations")
-    .select("id,is_active,name,city")
-    .eq("id", stationId)
-    .maybeSingle();
+  let station: { id: string; is_active: boolean; name: string; city: string } | null = null;
+  let stationError: { message: string } | null = null;
+
+  if (!stationId && stationProposalMode) {
+    await recordOperationalEvent({
+      eventType: "station_proposal_flow_opened",
+      severity: "info",
+      scopeType: "submission",
+      stationId: null,
+      fuelType,
+      ipHash: context.ipHash,
+      reason: "proposal_mode",
+      payload: {
+        hasGeo: stationProposalLat !== null && stationProposalLng !== null && !Number.isNaN(stationProposalLat) && !Number.isNaN(stationProposalLng),
+        hasName: Boolean(stationProposalName),
+        hasStreet: Boolean(stationProposalStreet),
+        hasNeighborhood: Boolean(stationProposalNeighborhood),
+        hasBrand: Boolean(stationProposalBrand)
+      }
+    });
+
+    if (!stationProposalConfirmed) {
+      return failure("Confirme o posto novo ou escolha um posto da lista.", "station_proposal_unconfirmed", false);
+    }
+
+    if (!stationProposalName || !stationProposalStreet || !stationProposalCity) {
+      return failure("Preencha nome, rua e cidade antes de criar um posto novo.", "validation", false);
+    }
+
+    const proposalName = stationProposalName.trim();
+    const proposalStreet = stationProposalStreet.trim();
+    const proposalNeighborhood = stationProposalNeighborhood.trim();
+    const proposalBrand = stationProposalBrand.trim();
+    const proposalCity = stationProposalCity.trim();
+    const proposalAddress = buildStationProposalStreet(proposalName, proposalStreet, proposalNeighborhood || proposalCity);
+    const hasProposalCoords =
+      stationProposalLat !== null &&
+      stationProposalLng !== null &&
+      !Number.isNaN(stationProposalLat) &&
+      !Number.isNaN(stationProposalLng);
+
+    const proposalReview = getStationProposalReviewSignal({
+      name: proposalName,
+      brand: proposalBrand || "",
+      namePublic: proposalName,
+      nameOfficial: proposalName,
+      address: proposalAddress,
+      city: proposalCity,
+      neighborhood: proposalNeighborhood || proposalCity,
+      lat: hasProposalCoords ? stationProposalLat : null,
+      lng: hasProposalCoords ? stationProposalLng : null,
+      geoReviewStatus: hasProposalCoords ? "pending" : "manual_review",
+      geoConfidence: "low"
+    });
+
+    const { data: createdStation, error: createStationError } = await supabase
+      .from("stations")
+      .insert({
+        name: proposalName,
+        brand: proposalBrand || "Sem bandeira",
+        address: proposalAddress,
+        city: proposalCity,
+        neighborhood: proposalNeighborhood || proposalCity,
+        lat: hasProposalCoords ? stationProposalLat : null,
+        lng: hasProposalCoords ? stationProposalLng : null,
+        is_active: true,
+        source: "community",
+        official_status: "unknown",
+        sigaf_status: null,
+        products: [],
+        distributor_name: proposalBrand || null,
+        geo_source: hasProposalCoords ? (context.simulationMode === "offline" ? "manual" : "user_proposed") : "manual",
+        geo_confidence: "low",
+        geo_review_status: hasProposalCoords ? "pending" : "manual_review",
+        visibility_status: "review",
+        curation_note: `${proposalReview.label}: ${proposalReview.reason} | ${proposalAddress}`,
+        updated_at: new Date().toISOString()
+      })
+      .select("id,is_active,name,city")
+      .single();
+
+    if (createStationError || !createdStation) {
+      await recordOperationalEvent({
+        eventType: "submission_blocked",
+        severity: "error",
+        scopeType: "submission",
+        stationId: null,
+        fuelType,
+        ipHash: context.ipHash,
+        reason: createStationError?.message ?? "failed_to_create_station"
+      });
+      return failure("Não foi possível registrar o posto novo agora. Escolha um posto parecido ou tente de novo.", "station_create_failed", false);
+    }
+
+    await recordOperationalEvent({
+      eventType: "station_proposal_created",
+      severity: "info",
+      scopeType: "submission",
+      stationId: createdStation.id,
+      city: proposalCity,
+      fuelType,
+      ipHash: context.ipHash,
+      reason: proposalReview.label,
+      payload: {
+        proposalReviewState: proposalReview.state,
+        proposalReviewLabel: proposalReview.label,
+        proposalReviewReason: proposalReview.reason,
+        hasGeo: hasProposalCoords,
+        geoReviewStatus: hasProposalCoords ? "pending" : "manual_review",
+        geoConfidence: "low",
+        proposalCity,
+        proposalNeighborhood,
+        proposalBrand,
+        proposalStreet
+      }
+    });
+
+    await recordOperationalEvent({
+      eventType: hasProposalCoords ? "station_proposal_submitted_with_geo" : "station_proposal_submitted_without_geo",
+      severity: "info",
+      scopeType: "submission",
+      stationId: createdStation.id,
+      city: proposalCity,
+      fuelType,
+      ipHash: context.ipHash,
+      reason: hasProposalCoords ? "geo_attached" : "geo_missing",
+      payload: {
+        proposalReviewState: proposalReview.state,
+        hasGeo: hasProposalCoords,
+        geoReviewStatus: hasProposalCoords ? "pending" : "manual_review",
+        proposalCity,
+        proposalNeighborhood,
+        proposalBrand,
+        proposalStreet
+      }
+    });
+
+    stationId = createdStation.id;
+    station = createdStation;
+  } else {
+    const { data: fetchedStation, error: fetchedStationError } = await supabase
+      .from("stations")
+      .select("id,is_active,name,city")
+      .eq("id", stationId)
+      .maybeSingle();
+
+    station = fetchedStation;
+    stationError = fetchedStationError as { message: string } | null;
+  }
 
   if (stationError || !station?.is_active) {
     await recordOperationalEvent({
@@ -565,13 +739,19 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
           noticeTone: submissionNotice.tone,
           noticeCode: submissionNotice.code
         }
-      : undefined
+      : undefined,
+    stationId
   );
   } catch (error) {
     logRuntimeIssue("Unexpected failure in submitPriceReportAction", error, { scope: "public", surface: "actions/enviar.submitPriceReportAction", fallback: "return-retryable-error", optional: true });
     return failure("Houve um erro temporario ao enviar a foto. Tente novamente sem refazer o restante.", "submission_unexpected", true);
   }
 }
+
+
+
+
+
 
 
 

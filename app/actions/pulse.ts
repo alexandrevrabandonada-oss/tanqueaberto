@@ -10,3 +10,4 @@ export async function getRecortePulseAction(city: string, groupSlug?: string) {
     return null;
   }
 }
+

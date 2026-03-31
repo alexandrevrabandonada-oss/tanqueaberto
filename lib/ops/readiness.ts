@@ -274,3 +274,4 @@ export async function getGroupReadinessRows(days = 30): Promise<GroupReadinessRo
     })
     .sort((left, right) => right.score - left.score || left.groupName.localeCompare(right.groupName, "pt-BR"));
 }
+

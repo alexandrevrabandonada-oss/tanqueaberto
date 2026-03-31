@@ -84,3 +84,4 @@ export function getSuggestedCollectorAction(city: string, activity: RecorteActiv
     icon: 'MapPin'
   };
 }
+

@@ -42,3 +42,4 @@ export function getNetworkSimulationDelayMs(mode: NetworkSimulationMode) {
       return 0;
   }
 }
+

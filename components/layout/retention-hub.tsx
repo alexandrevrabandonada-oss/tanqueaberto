@@ -3,6 +3,7 @@
 import React from "react";
 import { MapPin, LayoutList, WifiOff, ArrowRight, Sparkles, CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 import { useOperationalFocus } from "@/hooks/use-operational-focus";
 import { useMissionContext } from "@/components/mission/mission-context";
@@ -10,10 +11,8 @@ import { type SurfaceType } from "@/lib/ui/surface-orchestrator";
 import { trackProductEvent } from "@/lib/telemetry/client";
 import { Route } from "next";
 import { UtilityStatusCard } from "@/components/user/utility-status-card";
-import { getUtilityStatusAction } from "@/app/actions/user";
 import { useMySubmissions } from "@/hooks/use-my-submissions";
-import { useEffect, useState } from "react";
-import type { UtilityRole, CollectorTrust } from "@/lib/ops/collector-trust";
+import { useProgressiveIdentity } from "@/hooks/use-progressive-identity";
 import { SubmissionStatusLine } from "@/components/history/submission-status-line";
 import { formatRecencyLabel } from "@/lib/format/time";
 import { Trophy, Target, Zap, Clock3 } from "lucide-react";
@@ -36,24 +35,11 @@ export function useRetentionSurfaces() {
   const { mission, stats, progress } = useMissionContext();
   const { reporterNickname, submissions } = useMySubmissions();
   const { items: inboxItems, unreadCount } = useInbox();
-  const [trust, setTrust] = useState<CollectorTrust | null>(null);
-  const [role, setRole] = useState<UtilityRole>('iniciante');
-
-  useEffect(() => {
-    async function checkRole() {
-      const result = await getUtilityStatusAction(reporterNickname, null, {
-        hasMission: !!mission,
-        hasPending: pendingSubmissionsCount > 0
-      });
-      if (result) {
-        setRole(result.status.role);
-        setTrust(result.trust);
-      }
-    }
-    checkRole();
-  }, [reporterNickname, mission, pendingSubmissionsCount]);
-
+  const identity = useProgressiveIdentity();
+  const trust = identity.trust;
+  const role = identity.utilityStatus.role;
   const surfaces: RetentionSurfaceItem[] = [];
+
 
   // --- PRIORIDADE 0: ATIVAÇÃO DE INICIANTE (FUNIL 1.0) ---
   const isTrueBeginner = role === 'iniciante' && submissions.length === 0;
@@ -122,15 +108,17 @@ export function useRetentionSurfaces() {
     });
   }
 
+  const surfaceCount = surfaces.length;
+
   useEffect(() => {
-    if (surfaces.length > 0) {
+    if (surfaceCount > 0) {
       void trackProductEvent({
         eventType: "hub_retention_view" as any,
         pagePath: "/",
-        payload: { surfacesCount: surfaces.length, role }
+        payload: { surfacesCount: surfaceCount, role }
       });
     }
-  }, [surfaces.length > 0]);
+  }, [role, surfaceCount]);
 
   // 0. Utility Status (Main Hub Identity)
   surfaces.push({

@@ -68,3 +68,4 @@ export function getReportPriorityScore(
 
   return Math.max(-100, Math.min(100, score));
 }
+

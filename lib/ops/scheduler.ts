@@ -4,6 +4,7 @@ import { generateRecurringAuditDossiers } from "@/lib/audit/scheduler";
 import type { AuditReportRunItem } from "@/lib/audit/types";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { recordOperationalEvent } from "@/lib/ops/logs";
+import { persistTerritorialCoverageSnapshot } from "@/lib/ops/territorial-coverage-snapshots";
 import type { OpsCadence, OpsJobRun, OpsJobStatus, OpsJobType } from "./types";
 
 function getConnectionString() {
@@ -154,6 +155,42 @@ export async function runAuditRefreshJob(input?: { cadence?: OpsCadence; trigger
   }
 }
 
+
+export async function runTerritorialCoverageSnapshotJob(input?: { cadence?: OpsCadence; triggeredBy?: string | null }) {
+  const jobRun = await insertJobRun("coverage_snapshot", input?.cadence ?? "cron_daily", input?.triggeredBy ?? null, { source: "ops-panel" });
+
+  try {
+    const result = await persistTerritorialCoverageSnapshot({
+      jobRunId: jobRun.id,
+      createdBy: input?.triggeredBy ?? null,
+      snapshotKind: input?.cadence === "cron_weekly" ? "weekly" : "daily"
+    });
+
+    const success = await finishJobRun(jobRun.id, "success", {
+      snapshotsWritten: result.rowCount,
+      snapshotDate: result.snapshotDate,
+      snapshotKind: result.snapshotKind,
+      cities: result.coverage.summary.cities,
+      neighborhoods: result.coverage.summary.neighborhoods,
+      goodZones: result.coverage.summary.goodZones,
+      weakZones: result.coverage.summary.weakZones,
+      emptyZones: result.coverage.summary.emptyZones
+    });
+
+    return {
+      jobRun: success,
+      success: true,
+      message: `${result.rowCount} snapshots gravados.`,
+      snapshotDate: result.snapshotDate,
+      snapshotKind: result.snapshotKind,
+      rowCount: result.rowCount
+    };
+  } catch (error) {
+    const failure = await finishJobRun(jobRun.id, "failed", {}, error instanceof Error ? error.message : "Falha ao gravar snapshot territorial.");
+    return { jobRun: failure, success: false, message: failure.errorMessage };
+  }
+}
+
 export async function runAuditDossiersJob(input?: { cadence?: OpsCadence; triggeredBy?: string | null }) {
   const jobRun = await insertJobRun("audit_dossiers", input?.cadence ?? "manual", input?.triggeredBy ?? null, { source: "ops-panel" });
 
@@ -174,3 +211,7 @@ export async function runAuditDossiersJob(input?: { cadence?: OpsCadence; trigge
     return { jobRun: failure, generatedRuns: [] as AuditReportRunItem[], success: false, message: failure.errorMessage };
   }
 }
+
+
+
+

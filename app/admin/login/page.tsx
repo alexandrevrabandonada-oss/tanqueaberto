@@ -11,6 +11,7 @@ import { brand } from "@/styles/design-tokens";
 export const dynamic = "force-dynamic";
 
 const ADMIN_ROUTE = "/admin" as Route;
+const STATION_EDITOR_ROUTE = "/postos/cadastrar" as Route;
 
 interface AdminLoginPageProps {
   searchParams?: Promise<{
@@ -23,6 +24,10 @@ export default async function AdminLoginPage({ searchParams }: AdminLoginPagePro
   const currentAdmin = await getCurrentAdminUser();
   const resolvedSearchParams = (await searchParams) ?? {};
 
+  if (currentAdmin?.role === "station_editor") {
+    redirect(STATION_EDITOR_ROUTE);
+  }
+
   if (currentAdmin) {
     redirect(ADMIN_ROUTE);
   }
@@ -34,17 +39,17 @@ export default async function AdminLoginPage({ searchParams }: AdminLoginPagePro
           <div className="flex items-center gap-3">
             <BrandMark variant="icon" className="h-11 w-11" decorative />
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Área restrita</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Acesso restrito</p>
               <h1 className="font-display text-2xl text-white">{brand.name}</h1>
             </div>
           </div>
-          <p className="text-sm text-white/62">Acesso administrativo para moderação, curadoria territorial e operação do beta.</p>
+          <p className="text-sm text-white/62">Entrar como admin ou como curador de postos. Cada papel leva para sua área.</p>
         </SectionCard>
 
         <SectionCard className="space-y-4">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-white/42">Entrar</p>
-            <h2 className="mt-1 text-xl font-semibold text-white">Login do admin</h2>
+            <h2 className="mt-1 text-xl font-semibold text-white">Acesso restrito</h2>
           </div>
 
           <AdminLoginForm notice={resolvedSearchParams.notice} error={resolvedSearchParams.error} />

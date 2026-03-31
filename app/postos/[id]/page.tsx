@@ -15,7 +15,8 @@ import { Metadata } from "next";
 import { SharePack } from "@/components/ui/share-pack";
 import { getStationDetail } from "@/lib/data";
 import { getStationAuditDetail } from "@/lib/audit/queries";
-import { getKillSwitches } from "@/lib/ops/kill-switches";
+import { getCurrentAdminUser } from "@/lib/auth/admin";
+
 import { 
   getStationStatus,
   getStationStatusLabel,
@@ -118,11 +119,11 @@ export default async function StationPage({ params, searchParams }: StationPageP
   const selectedFuel = parseFuel(query.fuel);
   const selectedDays = parseDays(query.days);
   const returnToHref = safeReturnTo(query.returnTo);
-  const [station, audit, killSwitches] = await Promise.all([
+  const [station, audit] = await Promise.all([
     getStationDetail(id), 
-    getStationAuditDetail(id, selectedFuel, selectedDays),
-    getKillSwitches()
+    getStationAuditDetail(id, selectedFuel, selectedDays)
   ]);
+  const currentAdmin = await getCurrentAdminUser();
 
   if (!station || !audit) {
     notFound();
@@ -136,7 +137,7 @@ export default async function StationPage({ params, searchParams }: StationPageP
   const publicName = getStationPublicName(station);
 
   return (
-    <AppShell killSwitches={killSwitches}>
+    <AppShell>
       <ProductEvent 
         eventType="station_opened" 
         pagePath={"/postos/" + id} 
@@ -166,6 +167,13 @@ export default async function StationPage({ params, searchParams }: StationPageP
             <ButtonLink href={backHref} variant="secondary" className="h-9 px-3">
               <ArrowLeft className="h-4 w-4" /> Voltar ao mapa
             </ButtonLink>
+            <div className="flex items-center gap-2">
+              {currentAdmin ? (
+                <ButtonLink href={`/postos/${id}/editar` as Route} variant="secondary" className="h-9 px-3">
+                  <ArrowRight className="h-4 w-4" />
+                  Editar posto
+                </ButtonLink>
+              ) : null}
             <SharePack 
               type="station" 
               id={id} 
@@ -177,6 +185,7 @@ export default async function StationPage({ params, searchParams }: StationPageP
                 recency: latest ? formatRecencyLabel(latest.reportedAt) : undefined
               }}
             />
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -395,6 +404,9 @@ export default async function StationPage({ params, searchParams }: StationPageP
     </AppShell>
   );
 }
+
+
+
 
 
 

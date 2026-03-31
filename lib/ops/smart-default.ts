@@ -104,3 +104,4 @@ export function getSmartDefaultPhrase(result: SmartDefaultResult): string | null
     default: return null;
   }
 }
+

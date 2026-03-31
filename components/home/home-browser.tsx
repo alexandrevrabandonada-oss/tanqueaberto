@@ -8,7 +8,6 @@ import { ArrowRight, Camera, Clock3, Info, Navigation, Search, SlidersHorizontal
 import Link from "next/link";
 import type { Route } from "next";
 
-import { HomeMapSurface } from "@/components/home/home-map-surface";
 import { StationCard } from "@/components/station/station-card";
 import { Badge } from "@/components/ui/badge";
 import { GroupStatusBadge } from "@/components/ui/group-status-badge";
@@ -38,7 +37,7 @@ import { type EffectiveGroupStatus } from "@/lib/ops/release-control";
 import { getSmartDefaultRecorte, getSmartDefaultPhrase, type SmartDefaultReason } from "@/lib/ops/smart-default";
 import type { FuelFilter, RecencyFilter } from "@/lib/filters/public";
 import { type ReportWithStation, StationWithReports } from "@/lib/types";
-import { SurfaceOrchestrator, type SurfaceItem } from "@/components/layout/surface-orchestrator";
+import { type SurfaceItem } from "@/components/layout/surface-orchestrator";
 import { type SurfaceType, SURFACE_PRIORITIES } from "@/lib/ui/surface-orchestrator";
 import { useOperationalFocus } from "@/hooks/use-operational-focus";
 import { useRetentionSurfaces } from "@/components/layout/retention-hub";
@@ -48,12 +47,16 @@ import { type OperationalKillSwitches } from "@/lib/ops/kill-switches";
 import { getRecortePulseAction } from "@/app/actions/pulse";
 import { type RecorteActivity } from "@/lib/ops/recorte-activity";
 import { QuickActionGroup, QuickActionButton } from "@/components/ui/quick-action";
-import { OperationalMemoryBar } from "./operational-memory-bar";
 import { useOperationalMemory } from "@/hooks/use-operational-memory";
 import { useStreetSession } from "@/hooks/use-street-session";
 import { useWarmStart } from "@/hooks/use-warm-start";
-import { TopOrchestrator } from "@/components/layout/top-orchestrator";
 import { orchestrateHomeState } from "@/lib/ui/home-orchestrator";
+
+const HomeMapSurface = dynamic(() => import("@/components/home/home-map-surface").then((mod) => mod.HomeMapSurface), {
+  ssr: false,
+  loading: () => <SectionCard className="space-y-2 overflow-hidden shadow-xl shadow-black/20 xl:p-6"><div className="h-[220px] rounded-[22px] border border-white/8 bg-white/[0.04]" /></SectionCard>
+});
+const OperationalMemoryBar = dynamic(() => import("./operational-memory-bar").then((mod) => mod.OperationalMemoryBar), { ssr: false, loading: () => null });
 
 const FirstVisitGuide = dynamic(() => import("@/components/onboarding/first-visit-guide").then((mod) => mod.FirstVisitGuide), {
   ssr: false,
@@ -89,6 +92,13 @@ const RouteAssistant = dynamic(() => import("@/components/routes/route-assistant
   ssr: false,
   loading: () => <div className="h-28 rounded-[24px] border border-white/8 bg-black/20" />
 });
+const TopOrchestrator = dynamic(() => import("@/components/layout/top-orchestrator").then((mod) => mod.TopOrchestrator), {
+  ssr: false,
+  loading: () => <div className="rounded-[22px] border border-white/8 bg-black/24 p-3 text-sm text-white/42">Carregando busca e filtros...</div>
+});
+const SurfaceOrchestrator = dynamic(() => import("@/components/layout/surface-orchestrator").then((mod) => mod.SurfaceOrchestrator), { ssr: false, loading: () => null });
+const DeferredHomeSections = dynamic(() => import("@/components/home/home-deferred-sections").then((mod) => mod.HomeDeferredSections), { ssr: false, loading: () => null });
+
 interface HomeBrowserProps {
   stations: StationWithReports[];
   feed: ReportWithStation[];
@@ -105,6 +115,7 @@ interface HomeBrowserProps {
   initialDensityMode?: HomeDensityMode;
   initialListFirstMode?: boolean;
   killSwitches?: Partial<OperationalKillSwitches>;
+  suppressMobileLead?: boolean;
 }
 
 function buildContextHref(query: string, city: string, fuelFilter: FuelFilter, recencyFilter: RecencyFilter, presenceFilter: StationPresenceFilter, densityMode: HomeDensityMode) {
@@ -176,12 +187,14 @@ export function HomeBrowser({
   initialPresenceFilter = "all",
   initialDensityMode = "normal",
   initialListFirstMode = false,
-  killSwitches
+  killSwitches,
+  suppressMobileLead = false
 }: HomeBrowserProps) {
   const [showShareWelcome, setShowShareWelcome] = useState(false);
   const [shareContext, setShareContext] = useState<string | null>(null);
   const [isHeroCollapsed, setIsHeroCollapsed] = useState(false);
   const [isMicroMode, setIsMicroMode] = useState(false);
+  const [showDeferredHomeSections, setShowDeferredHomeSections] = useState(false);
   const { mission, startMission, isLoaded: missionLoaded } = useMissionContext();
   const missionActive = !!mission;
   
@@ -245,6 +258,35 @@ export function HomeBrowser({
   const isAssisted = isStreetMode || role === "iniciante";
   const searchParams = useSearchParams();
   const densityParam = searchParams.get("density");
+
+  useEffect(() => {
+    let cancelled = false;
+    const reveal = () => {
+      if (!cancelled) {
+        setShowDeferredHomeSections(true);
+      }
+    };
+
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+
+    const activeWindow = globalThis as Window & typeof globalThis;
+
+    if ("requestIdleCallback" in activeWindow) {
+      const handle = activeWindow.requestIdleCallback(reveal, { timeout: 1200 });
+      return () => {
+        cancelled = true;
+        activeWindow.cancelIdleCallback(handle);
+      };
+    }
+
+    const handle = globalThis.setTimeout(reveal, 250);
+    return () => {
+      cancelled = true;
+      globalThis.clearTimeout(handle);
+    };
+  }, []);
 
   useEffect(() => {
     const syncOnline = () => setIsOnline(navigator.onLine);
@@ -709,6 +751,7 @@ export function HomeBrowser({
     hasFilters,
   }), [isOnline, geoError, missionActive, role, submissionsCount, recentCount, favoriteIds.length, isStreetMode, isWarm, isRefreshing, selectedCity, hasFilters]);
   const isMobileLeanHome = initialListFirstMode || isLowPerf || isStreetMode;
+  const showMobileLead = isMobileLeanHome && !suppressMobileLead;
 
   useEffect(() => {
     if (lastTrackedHomeStateRef.current === homeState.state) {
@@ -976,13 +1019,13 @@ export function HomeBrowser({
   return (
     <>
       {debriefOverlay}
-      {isMobileLeanHome ? (
-        <div className="mb-4 space-y-4">
-          <SectionCard className="space-y-4 border-white/10 bg-white/5 shadow-xl shadow-black/15">
-            <div className="space-y-2">
+      {showMobileLead ? (
+        <div className="mb-4 space-y-3">
+          <SectionCard className="space-y-3 border-white/10 bg-white/5 shadow-lg shadow-black/12">
+            <div className="space-y-1.5">
               <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Leitura rápida</p>
-              <h1 className="text-[1.45rem] font-semibold leading-tight text-white">Ache um posto e envie o preço.</h1>
-              <p className="text-sm leading-relaxed text-white/58">Lista primeiro no celular. O mapa entra quando ajudar.</p>
+              <h1 className="text-[1.3rem] font-semibold leading-tight text-white">Ache um posto. Envie o preço.</h1>
+              <p className="text-sm leading-relaxed text-white/56">Lista primeiro. O mapa fica abaixo.</p>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
               <ButtonLink href={railSendHref} className="h-11 flex-1 justify-center px-4 text-[11px] font-black uppercase tracking-[0.18em]">
@@ -1002,7 +1045,7 @@ export function HomeBrowser({
           </div>
         </div>
       ) : null}
-      <div className={cn("mb-4", isMobileLeanHome && "hidden")}>
+      <div className={cn("mb-4", showMobileLead && "hidden")}>
         <ProgressiveIdentityPrompt context="home" source="return" />
       </div>
       <TopOrchestrator
@@ -1059,837 +1102,64 @@ export function HomeBrowser({
         </div>
       )}
 
-      {/* 4. Home Main Action & Quick Access (Adaptive) */}
-      {homeState.showQuickAccess && !mission && (recentIds.length > 0 || favoriteIds.length > 0) && (
-        <SectionCard 
-          className="mb-4 space-y-4 p-5 border-white/10 bg-white/5 xl:hidden"
-          onClick={() => {
+
+      {showDeferredHomeSections ? (
+        <DeferredHomeSections
+          homeState={homeState}
+          missionActive={missionActive}
+          isStreetMode={isStreetMode}
+          isAssisted={isAssisted}
+          toggleStreetMode={toggleStreetMode}
+          recentIds={recentIds}
+          favoriteIds={favoriteIds}
+          stations={stations}
+          recentCount={recentCount}
+          selectedCity={selectedCity}
+          selectedReadiness={selectedReadiness}
+          contextHref={contextHref}
+          fuelFilter={fuelFilter}
+          listMode={listMode}
+          isLowPerf={isLowPerf}
+          recordActivity={recordActivity}
+          toggleFavorite={toggleFavorite}
+          isFavorite={isFavorite}
+          startMission={startMission}
+          mapStations={mapStations}
+          summaryStations={summaryStations}
+          priorityStations={priorityStations}
+          priorityLabel={priorityLabel}
+          priorityHint={priorityHint}
+          noRecentStations={noRecentStations}
+          cheapestNow={cheapestNow}
+          filteredFeed={filteredFeed}
+          orderedStations={orderedStations}
+          stationsWithRecentPrice={stationsWithRecentPrice}
+          stationsWithoutRecentPrice={stationsWithoutRecentPrice}
+          railSendHref={railSendHref}
+          isHeroCollapsed={isHeroCollapsed}
+          role={role}
+          onQuickAccessTrack={(stationId: string, kind: string) => {
+            void trackProductEvent({
+              eventType: "quick_action_clicked",
+              pagePath: "/",
+              pageTitle: "Home",
+              stationId,
+              payload: { source: "quick_access", type: kind, isAssisted, action: "photo" }
+            });
+          }}
+          onStationTrack={(scopeId: string) => {
             void trackProductEvent({
               eventType: "home_block_interacted",
               pagePath: "/",
               scopeType: "block",
-              scopeId: "quick_access",
+              scopeId,
               payload: { role: role || 'unknown' }
             });
           }}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Zap className="h-3 w-3 text-[color:var(--color-accent)]" />
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/42">Acesso Rápido</p>
-            </div>
-            <Badge variant="outline" className="h-5 px-2 text-[9px] border-white/10 text-white/30 font-black uppercase tracking-tighter">Polegar amigável</Badge>
-          </div>
-          
-          <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
-            {favoriteIds.map(fid => {
-              const s = stations.find(st => st.id === fid);
-              if (!s) return null;
-              const displayName = getStationPublicName(s);
-              return (
-                <Link 
-                  key={`fav-${fid}`}
-                  href={getSendHref(fid, contextHref, fuelFilter)}
-                  className={cn(
-                    "flex min-w-[160px] h-20 items-center gap-3 rounded-[24px] border border-yellow-400/30 bg-yellow-400/5 pl-4 pr-5 transition duration-200 active:scale-95 active:brightness-125 hover:bg-yellow-400/10",
-                    isAssisted && "border-yellow-400/50 bg-yellow-400/10"
-                  )}
-                  onClick={() => {
-                     void trackProductEvent({ 
-                       eventType: "quick_action_clicked", 
-                       pagePath: "/", 
-                       pageTitle: "Home", 
-                       stationId: fid, 
-                       payload: { source: "quick_access", type: "favorite", isAssisted, action: "photo" } 
-                     });
-                  }}
-                >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-yellow-400 text-black shadow-lg shadow-yellow-400/20">
-                    <Star className="h-5 w-5 fill-current" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-black text-white truncate uppercase italic tracking-tight">{displayName}</p>
-                    <p className="text-[10px] font-bold text-yellow-400/50 truncate uppercase tracking-widest">{isAssisted ? "ENVIAR FOTO" : s.neighborhood}</p>
-                  </div>
-                </Link>
-              );
-            })}
-            {recentIds.filter(rid => !favoriteIds.includes(rid)).map(rid => {
-              const s = stations.find(st => st.id === rid);
-              if (!s) return null;
-              const displayName = getStationPublicName(s);
-              return (
-                <Link 
-                  key={`rec-${rid}`}
-                  href={getSendHref(rid, contextHref, fuelFilter)}
-                  className={cn(
-                    "flex min-w-[160px] h-20 items-center gap-3 rounded-[24px] border border-white/10 bg-white/5 pl-4 pr-5 transition duration-200 active:scale-95 active:brightness-125 hover:bg-white/10",
-                    isAssisted && "border-white/20 bg-white/8"
-                  )}
-                  onClick={() => {
-                     void trackProductEvent({ 
-                       eventType: "quick_action_clicked", 
-                       pagePath: "/", 
-                       pageTitle: "Home", 
-                       stationId: rid, 
-                       payload: { source: "quick_access", type: "recent", isAssisted, action: "photo" } 
-                     });
-                  }}
-                >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white/42 group-hover:bg-white/20">
-                    <Clock3 className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-black text-white truncate uppercase italic tracking-tight">{displayName}</p>
-                    <p className="text-[10px] font-bold text-white/30 truncate uppercase tracking-widest">{isAssisted ? "RETOMAR ENVIO" : s.neighborhood}</p>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </SectionCard>
-      )}
-
-      {homeState.state === "senior-hub" ? (
-      <div 
-        className="mb-6"
-        onClick={() => {
-          void trackProductEvent({
-            eventType: "home_block_interacted",
-            pagePath: "/",
-            scopeType: "block",
-            scopeId: "my_submissions",
-            payload: { role: role || 'unknown' }
-          });
-        }}
-      >
-        <MySubmissionsList />
-      </div>
+        />
       ) : null}
-
-      {homeState.state === "senior-hub" && selectedCity && !isLowPerf && (
-        <div className="mb-6">
-          <RecorteActivityWidget 
-            city={selectedCity} 
-            groupSlug={selectedReadiness?.slug} 
-            isReady={selectedReadiness?.status === "ready"}
-          />
-        </div>
-      )}
-
-      {homeState.state === "operation-normal" && !isHeroCollapsed && (
-        <SectionCard className="mb-4 space-y-3 border-white/8 bg-white/[0.04] py-4 xl:mb-3">
-          <div className="space-y-1">
-            <Badge className="text-[10px] uppercase tracking-widest">Mapa Vivo {role === 'senior' && "· Senior"}</Badge>
-            <h2 className="text-2xl font-bold tracking-tight text-white xl:text-[1.6rem]">Buscar, comparar e enviar.</h2>
-            <p className="text-sm leading-relaxed text-white/40 xl:max-w-xl">Veja os postos do recorte e entre no envio sem rodeio.</p>
-          </div>
-
-          <div className="flex items-center justify-between min-h-[1.5rem]">
-            {expansionSignal ? (
-              <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
-                <span className="text-xs text-white/40">{expansionSignal.icon} {expansionSignal.text}</span>
-                {selectedReadiness && <ReadinessBadge status={selectedReadiness.status} className="h-4 py-0" />}
-              </div>
-            ) : (
-              <p className="text-xs leading-relaxed text-white/44">Comece por Volta Redonda, Barra Mansa ou Barra do Piraí.</p>
-            )}
-            
-            {selectedReadiness && selectedReadiness.status !== "ready" && (
-              <Button 
-                variant="primary" 
-                className="h-7 px-3 text-[9px] font-bold uppercase tracking-wider rounded-lg animate-pulse"
-                onClick={() => {
-                  const cityStations = stations.filter(s => 
-                    s?.city && 
-                    selectedCity && 
-                    s.city.trim().toUpperCase() === selectedCity.trim().toUpperCase()
-                  );
-                  const cityStationIds = cityStations.map(s => s.id);
-                  if (selectedReadiness) {
-                    startMission(selectedReadiness.slug || "general", selectedReadiness.name || (selectedCity || "Cidade"), cityStationIds);
-                  }
-                  
-                  void trackProductEvent({
-                    eventType: "first_fold_action" as any,
-                    pagePath: "/",
-                    payload: { type: "mission_start", city: selectedCity }
-                  });
-
-                  void trackProductEvent({
-                    eventType: "mission_start_from_home_cta" as any,
-                    pagePath: "/",
-                    pageTitle: "Home",
-                    payload: { 
-                      city: selectedCity,
-                      defaultReason: defaultSelectionReason
-                    }
-                  });
-                }}
-              >
-                Missão Coleta
-              </Button>
-            )}
-          </div>
-        </SectionCard>
-      )}
-
-      <SectionCard className="mb-4 space-y-3 xl:mb-4">
-
-          <div className={cn("grid gap-2.5 transition-all duration-500 xl:gap-2", (isHeroCollapsed || missionActive) ? "h-0 overflow-hidden opacity-0 pointer-events-none mb-0" : "grid-cols-1 md:grid-cols-3")}>
-            <FilterSelect
-              label="Combustível"
-              value={fuelFilter}
-              onChange={(value) => {
-                setFuelFilter(value as FuelFilter);
-                void trackProductEvent({ eventType: "first_fold_action" as any, pagePath: "/", payload: { type: "filter_fuel", value } });
-              }}
-              options={publicFuelFilters.map((item) => ({ value: item.value, label: item.label }))}
-            />
-            <FilterSelect
-              label="Recência"
-              value={recencyFilter}
-              onChange={(value) => {
-                setRecencyFilter(value as RecencyFilter);
-                void trackProductEvent({ eventType: "first_fold_action" as any, pagePath: "/", payload: { type: "filter_recency", value } });
-              }}
-              options={recencyFilters.map((item) => ({ value: item.value, label: item.label }))}
-            />
-            <div className="space-y-2 rounded-[20px] border border-white/8 bg-black/24 px-3.5 py-2.5 text-sm text-white/58">
-              <span className="block text-xs uppercase tracking-[0.18em] text-white/42">Exibição</span>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { value: "all" as const, label: "Todos os postos" },
-                  { value: "recent" as const, label: "Só com preço recente" }
-                ].map((item) => (
-                  <button
-                    key={item.value}
-                    type="button"
-                    onClick={() => {
-                      setPresenceFilter(item.value);
-                      void trackProductEvent({ eventType: "first_fold_action" as any, pagePath: "/", payload: { type: "filter_presence", value: item.value } });
-                    }}
-                    className={`rounded-[14px] px-3 py-2.5 text-xs font-semibold transition ${
-                      presenceFilter === item.value ? "bg-white text-black" : "border border-white/10 bg-white/5 text-white/66"
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <details className={cn("rounded-[20px] border border-white/8 bg-white/[0.04] px-4 py-2.5 text-sm text-white/58 transition-all", (isHeroCollapsed || missionActive) && "hidden")}>
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-white/76">
-              <span className="inline-flex items-center gap-2 font-medium">
-                <SlidersHorizontal className="h-4 w-4 text-[color:var(--color-accent)]" />
-                Mais filtros
-              </span>
-              <span className="text-xs uppercase tracking-[0.18em] text-white/42">Avançado</span>
-            </summary>
-            <div className="mt-4 space-y-4">
-              <div className="space-y-2">
-                <p className="text-xs uppercase tracking-[0.18em] text-white/42">Combustíveis rápidos</p>
-                <div className="flex flex-wrap gap-2">
-                  {publicFuelFilters.map((item) => (
-                    <button
-                      key={item.value}
-                      type="button"
-                      onClick={() => setFuelFilter(item.value)}
-                      className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition ${
-                        fuelFilter === item.value ? "bg-[color:var(--color-accent)] text-black" : "border border-white/10 bg-white/5 text-white/66"
-                      }`}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {cityOptions.others.length > 0 ? (
-                <label className="space-y-2 rounded-[20px] border border-white/8 bg-black/24 px-3.5 py-2.5 text-sm text-white/58">
-                  <span className="block text-xs uppercase tracking-[0.18em] text-white/42">Outras cidades</span>
-                  <div className="relative">
-                    <select
-                      value={selectedCity && !priorityCities.some((city) => city.localeCompare(selectedCity, "pt-BR") === 0) ? selectedCity : ""}
-                      onChange={(event) => {
-                        setSelectedCity(event.target.value);
-                        setDefaultSelectionReason(null);
-                      }}
-                      className="w-full appearance-none rounded-[16px] border border-white/8 bg-black/45 px-3 py-3 pr-10 text-sm text-white outline-none transition focus:border-[color:var(--color-accent)]"
-                    >
-                      <option value="" className="bg-zinc-900 text-white">Selecionar cidade</option>
-                      {cityOptions.others.map((city) => (
-                        <option key={city} value={city} className="bg-zinc-900 text-white">
-                          {city}
-                        </option>
-                      ))}
-                    </select>
-                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-white/40">▾</span>
-                  </div>
-                </label>
-              ) : null}
-
-              <p className="text-xs leading-relaxed text-white/46">Os filtros avançados continuam disponíveis, mas ficam abaixo da decisão inicial para reduzir ruído na primeira leitura.</p>
-            </div>
-          </details>
-        
-        <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.16em] text-white/42">
-          <div className="flex items-center gap-3">
-            <span>{orderedStations.length} postos no recorte</span>
-            {orderedStations.length > 0 && (
-               <button 
-                 type="button" 
-                 onClick={() => {
-                   const stationIds = orderedStations.map(s => s.id);
-                   const missionName = selectedCity || "Personalizada";
-                   startMission(selectedCity || "custom", missionName, stationIds);
-                  
-                  void trackProductEvent({
-                    eventType: "first_fold_action" as any,
-                    pagePath: "/",
-                    payload: { type: "mission_start_list", city: selectedCity }
-                  });
-                }}
-                 className="font-bold text-yellow-400 hover:underline"
-               >
-                 · Iniciar Missão de Rua
-               </button>
-            )}
-            {selectedCity && !readRouteContext().active && (
-              <button 
-                type="button" 
-                onClick={() => {
-                  startRoute(selectedCity, null, fuelFilter);
-                  
-                  void trackProductEvent({
-                    eventType: "first_fold_action" as any,
-                    pagePath: "/",
-                    payload: { type: "route_start", city: selectedCity }
-                  });
-
-                  window.location.reload(); // Refresh to show assistant
-                }}
-                className="font-bold text-[color:var(--color-accent)] hover:underline"
-              >
-                · Iniciar Rota de Coleta
-              </button>
-            )}
-          </div>
-          {hasFilters ? (
-            <button type="button" onClick={resetFilters} className="text-white/60 transition hover:text-white">
-              Limpar filtros
-            </button>
-          ) : null}
-        </div>
-      </SectionCard>
-
-      {lastStation ? (
-        <SectionCard className="flex items-center justify-between gap-3 border-white/8 bg-white/5">
-          <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-white/42">Retomar contexto</p>
-            <h3 className="mt-1 text-lg font-semibold text-white">Último posto visto: {lastStation.name}</h3>
-            <p className="text-sm text-white/54">{lastStation.city}</p>
-          </div>
-          <ButtonLink href={(`/postos/${lastStation.id}?returnTo=${encodeURIComponent(contextHref)}` as Route)} variant="secondary">
-            Abrir novamente
-          </ButtonLink>
-        </SectionCard>
-      ) : null}
-
-      <SectionCard className="hidden space-y-2 md:block xl:hidden">
-        <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Rail útil</p>
-        <h3 className="text-sm font-semibold text-white">{priorityLabel}</h3>
-        <p className="text-sm text-white/54">{priorityHint}</p>
-      </SectionCard>
-
-      <div data-layout-scope="home-wide" className={cn("grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(360px,400px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(400px,440px)] xl:items-start", isMobileLeanHome && "hidden xl:grid") }>
-        <div data-layout-role="main" className="space-y-6">
-          {homeState.state === "senior-hub" ? <OperationalMemoryBar /> : null}
-
-          <SectionCard data-hero-primary="home-map" className="space-y-4 shadow-xl shadow-black/20 xl:p-6">
-            <div className="flex items-center gap-3 px-5 xl:px-0">
-              <div className="flex items-center justify-between gap-3 w-full">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-white/42">Mapa vivo</p>
-                  <h3 className="mt-1 text-xl font-semibold text-white xl:text-[1.35rem]">Pins filtrados com leitura por cidade</h3>
-                </div>
-                <ButtonLink href="/enviar" data-cta-inline="home-send-now" className="relative z-[1001] hidden h-10 whitespace-nowrap px-4 text-[11px] font-black uppercase tracking-[0.18em] md:inline-flex">Enviar preço agora</ButtonLink>
-              </div>
-            </div>
-            {mapStations.length > 0 ? (
-              <HomeMapSurface stations={mapStations} contextHref={contextHref} fuelFilter={fuelFilter} center={coords} preferListFirst={Boolean(initialListFirstMode || isLowPerf || isStreetMode)} />
-            ) : (
-              <EmptyStateCard
-                title={hasFilters ? "Nenhum posto bate com este recorte." : "Nenhum posto disponível no momento."}
-                description={hasFilters ? "Limpe a busca, troque o bairro ou remova filtros para voltar ao mapa útil." : "Ajuste a cidade, o combustível ou a recência para trazer um recorte útil de volta."}
-                actionHref="/"
-                actionLabel="Limpar recorte"
-                className="text-left"
-              />
-            )}
-          </SectionCard>
-        </div>
-
-                <aside data-layout-role="rail" data-rail-useful="home" className="hidden space-y-6 xl:block xl:sticky xl:top-32">
-          <SectionCard className="space-y-4 border-white/10 bg-white/5 xl:p-5">
-            <div className="space-y-1">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Rail útil</p>
-              <h3 className="text-lg font-semibold text-white">Recorte, prioridade e próxima ação</h3>
-              <p className="text-sm leading-relaxed text-white/54">A lateral só mostra o que ajuda a decidir o próximo gesto sem roubar foco do mapa.</p>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
-              <div className="rounded-[20px] border border-white/8 bg-black/25 p-4">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Recorte atual</p>
-                <p className="mt-2 text-2xl font-semibold text-white">{orderedStations.length}</p>
-                <p className="mt-1 text-xs text-white/48">{selectedCity || "Visão geral territorial"}</p>
-              </div>
-              <div className="rounded-[20px] border border-white/8 bg-black/25 p-4">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Prioridade agora</p>
-                <p className="mt-2 text-2xl font-semibold text-white">{priorityLabel}</p>
-                <p className="mt-1 text-xs text-white/48">{priorityHint}</p>
-              </div>
-              <div className="rounded-[20px] border border-white/8 bg-black/25 p-4">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Atualizações</p>
-                <p className="mt-2 text-2xl font-semibold text-white">{recentCount}</p>
-                <p className="mt-1 text-xs text-white/48">Entradas recentes aprovadas.</p>
-              </div>
-            </div>
-
-            <div className="space-y-3 rounded-[22px] border border-white/8 bg-black/25 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/30">Postos sem preço recente</p>
-                  <h4 className="text-sm font-semibold text-white">Melhor chance de ajudar agora</h4>
-                </div>
-                <Badge variant="outline" className="text-[10px]">{priorityStations.length || 0} itens</Badge>
-              </div>
-              <div className="space-y-2">
-                {priorityStations.length > 0 ? priorityStations.map((station, index) => (
-                  <div key={station.id} className="flex items-center justify-between gap-3 rounded-[18px] border border-white/5 bg-white/5 px-3 py-2.5">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-white">{index + 1}. {station.name}</p>
-                      <p className="truncate text-xs text-white/42">{station.neighborhood}, {station.city}</p>
-                    </div>
-                    <Badge variant="warning" className="shrink-0 text-[10px]">sem preço</Badge>
-                  </div>
-                )) : (
-                  <div className="rounded-[18px] border border-white/5 bg-white/5 px-3 py-3 text-sm text-white/56">
-                    Nenhum posto sem preço recente no recorte atual.
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2 sm:flex-row xl:flex-col">
-              <ButtonLink href={railSendHref} data-cta-inline="home-send-recorte" className="relative z-[1001] w-full justify-center md:hidden">
-                Enviar preço do recorte
-              </ButtonLink>
-              <ButtonLink href="/atualizacoes" variant="secondary" className="w-full justify-center">
-                Ver atualizações
-              </ButtonLink>
-            </div>
-          </SectionCard>
-
-          {homeState.state === "senior-hub" && selectedCity && !isLowPerf ? (
-            <RecorteActivityWidget
-              city={selectedCity}
-              groupSlug={selectedReadiness?.slug}
-              isReady={selectedReadiness?.status === "ready"}
-            />
-          ) : null}
-        </aside>
-      </div>
-
-      {summaryStations.length > 0 ? (
-        <SectionCard className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Lista do recorte</p>
-              <div className="flex items-center gap-2">
-                <h2 className="mt-1 text-lg font-semibold text-white">Postos no seu filtro atual</h2>
-                {selectedCity && orderedStations.length > 0 && orderedStations[0].releaseStatus && (
-                  <GroupStatusBadge status={orderedStations[0].releaseStatus} className="mt-1" />
-                )}
-              </div>
-            </div>
-            <Badge variant="outline" className="text-[10px]">{summaryStations.length} no mapa</Badge>
-          </div>
-          <div className="space-y-1">
-            {summaryStations.slice(0, 10).map((station) => {
-              const latest = getSelectedStationReport(station, fuelFilter);
-              const stationHref = `/postos/${station.id}?returnTo=${encodeURIComponent(contextHref)}` as Route;
-              const latestTone = latest ? getRecencyTone(latest.reportedAt) : "stale";
-              const isContributionPriority = !latest || latestTone === "stale" || hasPendingStationLocationReview(station) || station.releaseStatus !== "ready";
-              return (
-                <div
-                  key={station.id}
-                  className="group relative overflow-hidden rounded-[18px] border border-white/5 bg-white/5 px-4 py-3 transition hover:border-white/12 hover:bg-white/8"
-                >
-                  <Link
-                    href={stationHref}
-                    aria-label={`Abrir posto ${getStationPublicName(station)}`}
-                    onClick={() => {
-                      rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
-                      void trackProductEvent({ eventType: "station_clicked", pagePath: contextHref, pageTitle: "Mapa vivo", stationId: station.id, city: station.city, fuelType: latest?.fuelType ?? null, scopeType: "station", scopeId: station.id, payload: { source: "recorte-lista" } });
-                    }}
-                    className="absolute inset-0 z-0 rounded-[18px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-accent)]/40"
-                  />
-                  <div className="relative z-10 flex items-center justify-between gap-3">
-                    <div className="min-w-0 flex-1 pr-2">
-                      <p className="truncate text-sm font-semibold text-white group-hover:text-[color:var(--color-accent)]">{getStationPublicName(station)}</p>
-                      <p className="truncate text-xs text-white/40">{station.neighborhood}{station.city ? `, ${station.city}` : ""}</p>
-                      <div className="mt-1 flex items-center gap-2 text-[10px] text-white/32">
-                        {station.distance !== undefined && (
-                          <span className="shrink-0 font-semibold text-white/42">{formatDistance(station.distance)}</span>
-                        )}
-                        {latest ? (
-                          <span className="truncate">{latestTone === "stale" ? "Sem atualização recente" : formatRecencyLabel(latest.reportedAt)}</span>
-                        ) : (
-                          <span className="truncate">Sem preço recente</span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="relative z-10">
-                      <div className="grid grid-cols-2 gap-1.5 rounded-[18px] border border-white/6 bg-black/20 p-1.5">
-                        {isContributionPriority ? (
-                          <>
-                            <QuickActionButton
-                              icon={Camera}
-                              label={isAssisted ? "FOTO" : "Foto"}
-                              variant="primary"
-                              isStreetMode={isStreetMode}
-                              isAssisted={isAssisted}
-                              href={getSendHref(station.id, contextHref, fuelFilter)}
-                              className={cn("h-9 min-w-0 transition-all", isAssisted ? "w-auto px-3" : "w-9 p-0 xl:w-auto xl:px-3 xl:gap-1.5")}
-                              showLabel={isAssisted}
-                              desktopLabel="Abrir câmera"
-                              layout={isAssisted ? 'horizontal' : 'vertical'}
-                              onClick={() => {
-                                rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
-                                void trackProductEvent({ 
-                                  eventType: "quick_action_clicked", 
-                                  pagePath: getSendHref(station.id, contextHref, fuelFilter), 
-                                  pageTitle: getStationPublicName(station), 
-                                  stationId: station.id, 
-                                  payload: { 
-                                    source: "home_list", 
-                                    action: "photo",
-                                    isAssisted
-                                  } 
-                                });
-                              }}
-                            />
-                            <QuickActionButton
-                              icon={Navigation}
-                              label={isAssisted ? "ROTA" : "Rota"}
-                              variant="secondary"
-                              isStreetMode={isStreetMode}
-                              isAssisted={isAssisted}
-                              className={cn("h-9 min-w-0 transition-all", isAssisted ? "w-auto px-3" : "w-9 p-0 xl:w-auto xl:px-3 xl:gap-1.5")}
-                              showLabel={isAssisted}
-                              desktopLabel="Traçar rota"
-                              layout={isAssisted ? 'horizontal' : 'vertical'}
-                              onClick={() => {
-                                const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                                void trackProductEvent({ 
-                                  eventType: "quick_action_clicked", 
-                                  pagePath: "/", 
-                                  stationId: station.id, 
-                                  payload: { action: "route", method: isMobile ? "waze" : "google", isAssisted } 
-                                });
-                                import("@/lib/navigation/external-maps").then(({ openExternalNavigation }) => {
-                                  openExternalNavigation(isMobile ? "waze" : "google", {
-                                    lat: station.lat,
-                                    lng: station.lng,
-                                    stationId: station.id,
-                                    stationName: getStationPublicName(station),
-                                    source: "home_list"
-                                  });
-                                });
-                              }}
-                            />
-                          </>
-                        ) : (
-                          <>
-                            <QuickActionButton
-                              icon={Navigation}
-                              label={isAssisted ? "ROTA" : "Rota"}
-                              variant="primary"
-                              isStreetMode={isStreetMode}
-                              isAssisted={isAssisted}
-                              className={cn("h-9 min-w-0 transition-all", isAssisted ? "w-auto px-3" : "w-9 p-0 xl:w-auto xl:px-3 xl:gap-1.5")}
-                              showLabel={isAssisted}
-                              desktopLabel="Traçar rota"
-                              layout={isAssisted ? 'horizontal' : 'vertical'}
-                              onClick={() => {
-                                const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                                void trackProductEvent({ 
-                                  eventType: "quick_action_clicked", 
-                                  pagePath: "/", 
-                                  stationId: station.id, 
-                                  payload: { action: "route", method: isMobile ? "waze" : "google", isAssisted } 
-                                });
-                                import("@/lib/navigation/external-maps").then(({ openExternalNavigation }) => {
-                                  openExternalNavigation(isMobile ? "waze" : "google", {
-                                    lat: station.lat,
-                                    lng: station.lng,
-                                    stationId: station.id,
-                                    stationName: getStationPublicName(station),
-                                    source: "home_list"
-                                  });
-                                });
-                              }}
-                            />
-                            <QuickActionButton
-                              icon={Camera}
-                              label={isAssisted ? "FOTO" : "Foto"}
-                              variant="secondary"
-                              isStreetMode={isStreetMode}
-                              isAssisted={isAssisted}
-                              href={getSendHref(station.id, contextHref, fuelFilter)}
-                              className={cn("h-9 min-w-0 transition-all", isAssisted ? "w-auto px-3" : "w-9 p-0 xl:w-auto xl:px-3 xl:gap-1.5")}
-                              showLabel={isAssisted}
-                              desktopLabel="Abrir câmera"
-                              layout={isAssisted ? 'horizontal' : 'vertical'}
-                              onClick={() => {
-                                rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
-                                void trackProductEvent({ 
-                                  eventType: "quick_action_clicked", 
-                                  pagePath: getSendHref(station.id, contextHref, fuelFilter), 
-                                  pageTitle: getStationPublicName(station), 
-                                  stationId: station.id, 
-                                  payload: { 
-                                    source: "home_list", 
-                                    action: "photo",
-                                    isAssisted
-                                  } 
-                                });
-                              }}
-                            />
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-            {summaryStations.length > 10 && (
-              <div className="pt-2 text-center">
-                <p className="text-[10px] text-white/30 uppercase tracking-widest">
-                  + {summaryStations.length - 10} {summaryStations.length - 10 === 1 ? "posto oculto" : "postos ocultos"} para performance
-                </p>
-                <div className="mt-3 flex gap-2">
-                   <ButtonLink 
-                     href={("/postos/sem-atualizacao" as Route)} 
-                     variant="secondary" 
-                     className="flex-1 h-9 text-[10px] font-bold"
-                   >
-                     Ver todos
-                   </ButtonLink>
-                </div>
-              </div>
-            )}
-          </div>
-        </SectionCard>
-      ) : null}
-
-      <SectionCard className="grid grid-cols-2 gap-2 p-2 sm:grid-cols-4">
-        {[
-          { label: "No Recorte", value: mapStations.length, note: "Postos visíveis" },
-          { label: "Com Preço", value: stationsWithRecentPrice.length, note: "Recentemente" },
-          { label: "Falta Atualizar", value: stationsWithoutRecentPrice, note: "Sem preço recente", tone: "warning" },
-          { label: "No Ar 24h", value: recentCount, note: "Últimos envios", tone: "accent" }
-        ].map((stat) => (
-          <div key={stat.label} className="flex flex-col rounded-[18px] border border-white/5 bg-white/5 p-4">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">{stat.label}</p>
-            <p className={`mt-1 text-2xl font-bold tracking-tighter ${stat.tone === 'accent' ? 'text-[color:var(--color-accent)]' : stat.tone === 'warning' ? 'text-orange-400' : 'text-white'}`}>
-              {stat.value}
-            </p>
-            <p className="text-[10px] text-white/20">{stat.note}</p>
-          </div>
-        ))}
-      </SectionCard>
-
-      <SectionCard className="space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Mais baratos agora</p>
-            <h2 className="mt-1 text-xl font-semibold text-white">Leitura rápida do filtro atual</h2>
-          </div>
-          <Badge variant="warning">{fuelFilter === "all" ? "Todos os combustíveis" : fuelLabels[fuelFilter]}</Badge>
-        </div>
-        {cheapestNow.length === 0 ? (
-          <EmptyStateCard
-            title={mapStations.length > 0 ? "Há postos cadastrados, mas ainda sem preço recente neste recorte." : "Nenhum preço disponível para este recorte."}
-            description={mapStations.length > 0 ? "Abra a lista dos postos sem atualização e envie a primeira foto onde puder." : "Tente outro bairro, cidade, combustível ou remova os filtros para voltar ao mapa completo."}
-            actionHref="/postos/sem-atualizacao"
-            actionLabel="Ver postos sem atualização"
-            className="text-left"
-          />
-        ) : (
-          <div className="grid gap-2 sm:grid-cols-3">
-            {cheapestNow.map(({ station, report }) => (
-              <div key={report.id} className="rounded-[18px] border border-white/5 bg-white/5 p-4 flex flex-col justify-between">
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider text-white/30 truncate">{getStationPublicName(station)}</p>
-                  <p className="mt-1 text-2xl font-bold tracking-tight text-white">{formatCurrencyBRL(report.price)}</p>
-                </div>
-                <div className="mt-3 flex items-center justify-between text-[10px] text-white/40">
-                  <span className="truncate">{fuelLabels[report.fuelType]}</span>
-                  <span className="shrink-0">{formatRecencyLabel(report.reportedAt)}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </SectionCard>
-
-      {noRecentStations.length > 0 ? (
-        <SectionCard className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Postos sem atualização recente</p>
-              <h2 className="mt-1 text-xl font-semibold text-white">Onde ainda falta preço aprovado</h2>
-            </div>
-            <Link href="/postos/sem-atualizacao" className="text-sm text-[color:var(--color-accent)]">
-              Ver lista completa
-            </Link>
-          </div>
-          <div className="space-y-3">
-            {noRecentStations.map((station) => (
-              <StationCard 
-                key={station.id} 
-                station={station} 
-                fuelFilter={fuelFilter} 
-                returnToHref={contextHref}
-                isStreetMode={isStreetMode}
-                isAssisted={isAssisted}
-                isUltraClaro={listMode === 'ultra-claro'}
-                isAdvanced={listMode === 'avancado'}
-                isFavorite={isFavorite(station.id)}
-                onFavoriteToggle={() => toggleFavorite(station.id)}
-                recordActivity={recordActivity}
-                isHeaderSticky={isHeroCollapsed || missionActive}
-                isHeaderMicro={isMicroMode}
-              />
-            ))}
-          </div>
-        </SectionCard>
-      ) : null}
-
-      <SectionCard className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Agora no mapa</p>
-            <h2 className="mt-1 text-xl font-semibold text-white">Consulta rápida</h2>
-          </div>
-          <Clock3 className="h-5 w-5 text-[color:var(--color-accent)]" />
-        </div>
-        <div className="space-y-3">
-          {orderedStations.length === 0 ? (
-            <EmptyStateCard
-              title="Nenhum posto encontrado para essa busca."
-              description="Tente outra cidade, combustível ou janela de recência. Se quiser, abra os postos sem atualização para colaborar."
-              actionHref="/postos/sem-atualizacao"
-              actionLabel="Ver postos sem atualização"
-              className="text-left"
-            />
-          ) : (
-            orderedStations.map((station) => (
-              <StationCard 
-                key={station.id} 
-                station={station} 
-                fuelFilter={fuelFilter} 
-                returnToHref={contextHref}
-                isStreetMode={isStreetMode}
-                isAssisted={isAssisted}
-                isUltraClaro={listMode === 'ultra-claro'}
-                isAdvanced={listMode === 'avancado'}
-                isFavorite={isFavorite(station.id)}
-                onFavoriteToggle={() => toggleFavorite(station.id)}
-                recordActivity={recordActivity}
-                isHeaderSticky={isHeroCollapsed || missionActive}
-                isHeaderMicro={isMicroMode}
-              />
-            ))
-          )}
-        </div>
-      </SectionCard>
-
-      <SectionCard className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Atualizações recentes</p>
-            <h2 className="mt-1 text-xl font-semibold text-white">Transparência popular</h2>
-          </div>
-          <Badge variant={filteredFeed.length === 0 ? "outline" : "warning"}>{filteredFeed.length} itens</Badge>
-        </div>
-        <div className="space-y-2">
-          {filteredFeed.slice(0, 3).length === 0 ? (
-            <EmptyStateCard
-              title="Nenhuma atualização recente neste filtro."
-              description="Ajuste o combustível, a cidade ou a janela de recência. Se quiser colaborar, envie o primeiro preço."
-              actionHref="/postos/sem-atualizacao"
-              actionLabel="Ver postos sem atualização"
-              className="text-left"
-            />
-          ) : (
-            filteredFeed.slice(0, 3).map((report) => (
-              <div key={report.id} className="flex items-center justify-between rounded-[18px] border border-white/5 bg-white/5 px-4 py-3">
-                <div className="min-w-0 pr-4">
-                  <p className="truncate text-sm font-medium text-white/80">{getStationPublicName(report.station)}</p>
-                  <p className="truncate text-[10px] text-white/30">
-                    {report.station.neighborhood} · {fuelLabels[report.fuelType]}
-                  </p>
-                </div>
-                <div className="flex shrink-0 flex-col items-end">
-                  <p className="text-lg font-bold text-white">{formatCurrencyBRL(report.price)}</p>
-                  <p className="text-[10px] text-white/20">{formatRecencyLabel(report.reportedAt)}</p>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </SectionCard>
-
-      <SectionCard className="space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Colaboração</p>
-            <h2 className="mt-1 text-xl font-semibold text-white">Ajudar a base a ficar viva</h2>
-          </div>
-          <Link href="/postos/sem-atualizacao" className="text-sm text-[color:var(--color-accent)]">
-            Ver lacunas do mapa
-          </Link>
-        </div>
-        <div className="grid gap-3 md:grid-cols-2">
-          <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
-            <p className="text-sm font-semibold text-white">Há postos cadastrados sem preço recente ({reviewStations.length} em revisão territorial).</p>
-            <p className="mt-1 text-sm text-white/58">Se você passou por algum deles, envie a primeira foto. Isso transforma lacuna em dado útil.</p>
-          </div>
-          <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
-            <p className="text-sm font-semibold text-white">O mapa não fica vazio quando o cadastro existe.</p>
-            <p className="mt-1 text-sm text-white/58">Cadastro territorial e preço recente são coisas diferentes. O app mostra isso sem confundir o usuário.</p>
-          </div>
-        </div>
-        <ButtonLink href="/enviar" data-cta-inline="home-send-map" className="relative z-[1001] w-full">
-          Enviar preço para o mapa
-          <ArrowRight className="h-4 w-4" />
-        </ButtonLink>
-      </SectionCard>
     </>
   );
 }
-
-
-
-
-
-
-
 
 

@@ -1,7 +1,8 @@
-"use server";
+﻿"use server";
 
 import { revalidatePath } from "next/cache";
 import { createSupabaseServiceClient } from "@/lib/supabase/admin";
+import { logRuntimeIssue } from "@/lib/observability/runtime-issues";
 import { calculateBetaReadiness, type ReadinessResult } from "@/lib/ops/readiness-engine";
 import { updateKillSwitch, getKillSwitches, type OperationalKillSwitches } from "@/lib/ops/kill-switches";
 import { getAuditGroupBySlug } from "@/lib/audit/groups";
@@ -56,7 +57,7 @@ export async function updateGroupRolloutAction(
     .eq("slug", slug);
 
   if (error) {
-    console.error("Failed to update group rollout", error);
+    logRuntimeIssue("Failed to update group rollout", error, { scope: "admin", surface: "ops.updateGroupRolloutAction", fallback: "return-error", optional: true, schemaSensitive: true });
     return { success: false, error: error.message };
   }
 
@@ -103,7 +104,7 @@ export async function getOperationalHistory(limit = 20) {
     .limit(limit);
 
   if (error) {
-    console.error("Failed to fetch operational history", error);
+    logRuntimeIssue("Failed to fetch operational history", error, { scope: "admin", surface: "ops.getOperationalHistory", fallback: "empty-list", optional: true, schemaSensitive: true });
     return [];
   }
 
@@ -198,9 +199,10 @@ export async function updateBetaFeedbackTriageAction(formData: FormData): Promis
 
   const supabase = createSupabaseServiceClient();
   await supabase
-    .from("beta_feedback")
+    .from("beta_feedback_submissions")
     .update({ 
-      status: status,
+      triage_status: status,
+      status: status === "novo" ? "new" : status === "em_analise" ? "reviewing" : status === "resolvido" ? "resolved" : "reviewing",
       triage_notes: triageNotes,
       updated_at: new Date().toISOString()
     })
@@ -222,7 +224,7 @@ export async function createBetaInviteAction(formData: FormData): Promise<void> 
   const generatedCode = code || Math.random().toString(36).substring(2, 10).toUpperCase();
 
   await supabase
-    .from("beta_invites")
+    .from("beta_invite_codes")
     .insert({
       code: generatedCode,
       max_uses: maxUses,
@@ -241,7 +243,7 @@ export async function disableBetaInviteAction(formData: FormData): Promise<void>
   const supabase = createSupabaseServiceClient();
 
   await supabase
-    .from("beta_invites")
+    .from("beta_invite_codes")
     .update({ is_active: false })
     .eq("id", inviteId);
 
@@ -257,7 +259,7 @@ export async function getTerritorialRolloutHistory(limit = 20) {
     .limit(limit);
 
   if (error) {
-    console.error("Failed to fetch territorial rollout history", error);
+    logRuntimeIssue("Failed to fetch territorial rollout history", error, { scope: "admin", surface: "ops.getTerritorialRolloutHistory", fallback: "empty-list", optional: true, schemaSensitive: true });
     return [];
   }
 
@@ -273,7 +275,7 @@ export async function getCommandCenterHistory(limit = 30) {
     .limit(limit);
 
   if (error) {
-    console.error("Failed to fetch command center history", error);
+    logRuntimeIssue("Failed to fetch command center history", error, { scope: "admin", surface: "ops.getCommandCenterHistory", fallback: "empty-list", optional: true, schemaSensitive: true });
     return [];
   }
 
@@ -469,7 +471,7 @@ export async function executeOperationalAction(
     
     return { success: true };
   } catch (error: any) {
-    console.error("Failed to execute operational action", error);
+    logRuntimeIssue("Failed to execute operational action", error, { scope: "admin", surface: "ops.executeOperationalAction", fallback: "return-error", optional: true, schemaSensitive: true });
     return { success: false, error: error.message };
   }
 }
@@ -507,7 +509,7 @@ export async function submitQuickFeedbackAction(data: {
     });
 
   if (error) {
-    console.error("Failed to submit quick feedback", error);
+    logRuntimeIssue("Failed to submit quick feedback", error, { scope: "admin", surface: "ops.submitQuickFeedbackAction", fallback: "return-error", optional: true, schemaSensitive: true });
     return { success: false, error: error.message };
   }
 
@@ -616,3 +618,6 @@ export async function getDecisionHistoryAction() {
 
   return data || [];
 }
+
+
+

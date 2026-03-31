@@ -99,3 +99,4 @@ export function sortStationsForPublicView(stations: StationWithReports[], option
     return left.name.localeCompare(right.name, "pt-BR");
   });
 }
+

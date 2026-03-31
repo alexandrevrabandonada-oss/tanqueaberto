@@ -81,3 +81,4 @@ export async function analyzePhotoQuality(file: File): Promise<PhotoQualityResul
     img.src = objectUrl;
   });
 }
+

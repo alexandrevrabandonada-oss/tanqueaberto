@@ -1,5 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const testUrl = process.env.PLAYWRIGHT_TEST_URL || "http://localhost:3000";
+const useWebServer = !process.env.PLAYWRIGHT_NO_WEB_SERVER;
+
 export default defineConfig({
   testDir: "./tests",
   fullyParallel: false,
@@ -8,7 +11,7 @@ export default defineConfig({
   workers: 1,
   reporter: "list",
   use: {
-    baseURL: process.env.PLAYWRIGHT_TEST_URL || "http://localhost:3000",
+    baseURL: testUrl,
     trace: "on-first-retry",
     video: "on-first-retry",
     screenshot: "only-on-failure",
@@ -23,10 +26,14 @@ export default defineConfig({
       use: { ...devices["iPhone 13"] },
     },
   ],
-  webServer: {
-    command: "npm run start",
-    url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-  },
+  ...(useWebServer
+    ? {
+        webServer: {
+          command: "npm run start",
+          url: testUrl,
+          reuseExistingServer: !process.env.CI,
+          timeout: 120 * 1000,
+        },
+      }
+    : {}),
 });

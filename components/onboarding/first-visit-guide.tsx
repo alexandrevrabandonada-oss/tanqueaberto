@@ -49,9 +49,9 @@ export function FirstVisitGuide({ isCondensed = false }: FirstVisitGuideProps) {
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-2">
           <Badge variant="warning">Primeira visita</Badge>
-          <h2 className="text-[1.35rem] font-semibold leading-tight text-white">Comece pelo mapa. Leva poucos segundos para entender.</h2>
+          <h2 className="text-[1.35rem] font-semibold leading-tight text-white">Comece pelo mapa. É o jeito mais rápido de entender.</h2>
           <p className="text-sm text-white/60">
-            O app mostra o que já está cadastrado no território, o que já tem preço recente aprovado e onde ainda falta atualização.
+            O app mostra quais postos já têm preço, quais ainda faltam e onde olhar primeiro.
           </p>
         </div>
         <button
@@ -73,34 +73,34 @@ export function FirstVisitGuide({ isCondensed = false }: FirstVisitGuideProps) {
             <MapPinned className="h-4 w-4 text-[color:var(--color-accent)]" />
             Posto cadastrado
           </div>
-          <p className="mt-2 text-sm text-white/56">O posto existe no mapa, mesmo que ainda não tenha preço recente.</p>
+          <p className="mt-2 text-sm text-white/56">O posto aparece no mapa, mesmo sem preço recente.</p>
         </div>
         <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
           <div className="flex items-center gap-2 text-white">
             <Camera className="h-4 w-4 text-[color:var(--color-accent)]" />
             Preço recente
           </div>
-          <p className="mt-2 text-sm text-white/56">É o último preço aprovado com foto e horário visível para consulta.</p>
+          <p className="mt-2 text-sm text-white/56">É o último preço aprovado, com foto e horário.</p>
         </div>
         <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
           <div className="flex items-center gap-2 text-white">
             <ShieldCheck className="h-4 w-4 text-[color:var(--color-accent)]" />
             Seu envio
           </div>
-          <p className="mt-2 text-sm text-white/56">Foto + preço + horário entram como aguardando moderação.</p>
+          <p className="mt-2 text-sm text-white/56">Sua foto e o preço ficam em revisão antes de aparecer no mapa.</p>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <ButtonLink href="/enviar">Enviar o primeiro preço</ButtonLink>
+        <ButtonLink href="/enviar">Enviar preço</ButtonLink>
         <ButtonLink href="/auditoria/metodologia" variant="secondary">
-          Entender como funciona
+          Como funciona
         </ButtonLink>
         <Link
           href="/postos/sem-atualizacao"
           className="inline-flex items-center justify-center rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-white transition hover:border-[color:var(--color-accent)] hover:text-[color:var(--color-accent)]"
         >
-          Ver postos sem atualização
+          Ver postos sem preço
         </Link>
       </div>
     </SectionCard>

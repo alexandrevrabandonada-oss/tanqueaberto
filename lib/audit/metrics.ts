@@ -252,3 +252,4 @@ export function buildOverviewPackage(reports: PriceReport[], stations: Station[]
     topCities: citySummaries.slice(0, 6)
   };
 }
+

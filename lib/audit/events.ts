@@ -18,3 +18,4 @@ export async function recordPriceReportAuditEvent(input: {
     console.error("Failed to record price report audit event", error);
   }
 }
+

@@ -61,3 +61,4 @@ export function getNextPriorityStation(
 
   return ranked[0]?.station ?? null;
 }
+

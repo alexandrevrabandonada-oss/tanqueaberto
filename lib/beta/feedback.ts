@@ -1,4 +1,6 @@
-import { createSupabaseServiceClient } from "@/lib/supabase/admin";
+﻿import { createSupabaseServiceClient } from "@/lib/supabase/admin";
+import { isMissingSchemaError } from "@/lib/supabase/schema-cache";
+import { logRuntimeIssue } from "@/lib/observability/runtime-issues";
 
 export interface BetaFeedbackItem {
   id: string;
@@ -55,6 +57,21 @@ function toFeedbackItem(row: Record<string, unknown>): BetaFeedbackItem {
   };
 }
 
+function emptySummary(): BetaFeedbackSummary {
+  return {
+    total: 0,
+    byType: [],
+    byScreen: [],
+    byTopic: [],
+    byPriority: [],
+    byStatus: [],
+    byTag: [],
+    byPage: [],
+    byCity: [],
+    recent: []
+  };
+}
+
 export async function getRecentBetaFeedback(limit = 12): Promise<BetaFeedbackItem[]> {
   const supabase = createSupabaseServiceClient();
   const { data, error } = await supabase
@@ -64,7 +81,9 @@ export async function getRecentBetaFeedback(limit = 12): Promise<BetaFeedbackIte
     .limit(limit);
 
   if (error || !data) {
-    console.error("Failed to load beta feedback", error);
+    if (error && !isMissingSchemaError(error)) {
+      logRuntimeIssue("Failed to load beta feedback", error, { scope: "beta", surface: "feedback.getRecentBetaFeedback", fallback: "empty-list", optional: true, schemaSensitive: true });
+    }
     return [];
   }
 
@@ -81,19 +100,10 @@ export async function getBetaFeedbackSummary(days = 14): Promise<BetaFeedbackSum
     .order("created_at", { ascending: false });
 
   if (error || !data) {
-    console.error("Failed to load beta feedback summary", error);
-    return {
-      total: 0,
-      byType: [],
-      byScreen: [],
-      byTopic: [],
-      byPriority: [],
-      byStatus: [],
-      byTag: [],
-      byPage: [],
-      byCity: [],
-      recent: []
-    };
+    if (error && !isMissingSchemaError(error)) {
+      logRuntimeIssue("Failed to load beta feedback summary", error, { scope: "beta", surface: "feedback.getBetaFeedbackSummary", fallback: "empty-summary", optional: true, schemaSensitive: true });
+    }
+    return emptySummary();
   }
 
   const recent = data.map((row) => toFeedbackItem(row as Record<string, unknown>));
@@ -123,30 +133,16 @@ export async function getBetaFeedbackSummary(days = 14): Promise<BetaFeedbackSum
 
   return {
     total: recent.length,
-    byType: Array.from(byTypeMap.entries())
-      .map(([feedbackType, count]) => ({ feedbackType, count }))
-      .sort((left, right) => right.count - left.count),
-    byScreen: Array.from(byScreenMap.entries())
-      .map(([screenGroup, count]) => ({ screenGroup, count }))
-      .sort((left, right) => right.count - left.count),
-    byTopic: Array.from(byTopicMap.entries())
-      .map(([triageTopic, count]) => ({ triageTopic, count }))
-      .sort((left, right) => right.count - left.count),
-    byPriority: Array.from(byPriorityMap.entries())
-      .map(([triagePriority, count]) => ({ triagePriority, count }))
-      .sort((left, right) => right.count - left.count),
-    byStatus: Array.from(byStatusMap.entries())
-      .map(([triageStatus, count]) => ({ triageStatus, count }))
-      .sort((left, right) => right.count - left.count),
-    byTag: Array.from(byTagMap.entries())
-      .map(([tag, count]) => ({ tag, count }))
-      .sort((left, right) => right.count - left.count),
-    byPage: Array.from(byPageMap.entries())
-      .map(([pagePath, count]) => ({ pagePath, count }))
-      .sort((left, right) => right.count - left.count),
-    byCity: Array.from(byCityMap.entries())
-      .map(([city, count]) => ({ city, count }))
-      .sort((left, right) => right.count - left.count),
+    byType: Array.from(byTypeMap.entries()).map(([feedbackType, count]) => ({ feedbackType, count })).sort((left, right) => right.count - left.count),
+    byScreen: Array.from(byScreenMap.entries()).map(([screenGroup, count]) => ({ screenGroup, count })).sort((left, right) => right.count - left.count),
+    byTopic: Array.from(byTopicMap.entries()).map(([triageTopic, count]) => ({ triageTopic, count })).sort((left, right) => right.count - left.count),
+    byPriority: Array.from(byPriorityMap.entries()).map(([triagePriority, count]) => ({ triagePriority, count })).sort((left, right) => right.count - left.count),
+    byStatus: Array.from(byStatusMap.entries()).map(([triageStatus, count]) => ({ triageStatus, count })).sort((left, right) => right.count - left.count),
+    byTag: Array.from(byTagMap.entries()).map(([tag, count]) => ({ tag, count })).sort((left, right) => right.count - left.count),
+    byPage: Array.from(byPageMap.entries()).map(([pagePath, count]) => ({ pagePath, count })).sort((left, right) => right.count - left.count),
+    byCity: Array.from(byCityMap.entries()).map(([city, count]) => ({ city, count })).sort((left, right) => right.count - left.count),
     recent: recent.slice(0, 10)
   };
 }
+
+
