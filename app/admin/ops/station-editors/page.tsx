@@ -3,12 +3,14 @@ import type { Metadata } from "next";
 import type { Route } from "next";
 import { ArrowUpRight, MapPinPlus, ShieldCheck, ShieldOff, Users } from "lucide-react";
 
-import { grantStationEditorRoleAction, revokeStationEditorRoleAction } from "@/app/admin/actions";
+import { createStationEditorInviteAction, grantStationEditorRoleAction, revokeStationEditorInviteAction, revokeStationEditorRoleAction } from "@/app/admin/actions";
 import { SectionCard } from "@/components/ui/section-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CopyTextButton } from "@/components/ui/copy-text-button";
 import { requireAdminUser } from "@/lib/auth/admin";
 import { getStationEditorRoster } from "@/lib/ops/station-editors";
+import { getStationEditorInviteReadout } from "@/lib/ops/station-editor-invites";
 import { getStationLightEditAudit } from "@/lib/ops/station-light-edits";
 import { TerritoryWorkflowControls } from "@/components/admin/ops/territory-workflow-controls";
 import { buildTerritoryWorkflowReturnTo, getTerritoryWorkflowReadout, resolveTerritoryWorkflowState } from "@/lib/ops/territory-workflow";
@@ -31,8 +33,12 @@ function getBanner(searchParams: Record<string, string | string[] | undefined>) 
 
   if (notice === "role_granted") return "Papel station_editor concedido.";
   if (notice === "role_revoked") return "Papel station_editor removido.";
+  if (notice === "invite_created") return "Convite leve criado para station_editor.";
+  if (notice === "invite_revoked") return "Convite leve revogado e sessoes vinculadas encerradas.";
   if (error === "grant_failed") return "Nao foi possivel conceder o papel.";
   if (error === "revoke_failed") return "Nao foi possivel remover o papel.";
+  if (error === "invite_create_failed") return "Nao foi possivel criar o convite agora.";
+  if (error === "invite_revoke_failed") return "Nao foi possivel revogar o convite agora.";
   if (error === "invalid_request") return "Pedido invalido.";
 
   return null;
@@ -93,8 +99,9 @@ export default async function StationEditorsPage({ searchParams }: StationEditor
   await requireAdminUser();
   const resolvedSearchParams = (await searchParams) ?? {};
   const territory = readTerritory(resolvedSearchParams);
-  const [roster, lightEditAudit] = await Promise.all([
+  const [roster, inviteReadout, lightEditAudit] = await Promise.all([
     getStationEditorRoster(territory.city || territory.neighborhood ? { city: territory.city || null, neighborhood: territory.neighborhood || null } : undefined),
+    getStationEditorInviteReadout(40),
     getStationLightEditAudit(20, territory.city || territory.neighborhood ? { city: territory.city || null, neighborhood: territory.neighborhood || null } : undefined)
   ]);
   const workflowReadout = await getTerritoryWorkflowReadout(120);
@@ -169,7 +176,109 @@ export default async function StationEditorsPage({ searchParams }: StationEditor
             <p className="mt-2 text-2xl font-semibold text-red-300">{roster.totals.duplicateCount}</p>
           </div>
         </div>
+
+        <div className="grid gap-3 md:grid-cols-4">
+          <div className="rounded-[18px] border border-white/8 bg-black/25 p-4">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Convites</p>
+            <p className="mt-2 text-2xl font-semibold text-white">{inviteReadout.totals.total}</p>
+          </div>
+          <div className="rounded-[18px] border border-white/8 bg-black/25 p-4">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Pendentes</p>
+            <p className="mt-2 text-2xl font-semibold text-emerald-300">{inviteReadout.totals.pendente}</p>
+          </div>
+          <div className="rounded-[18px] border border-white/8 bg-black/25 p-4">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Aceitos</p>
+            <p className="mt-2 text-2xl font-semibold text-white">{inviteReadout.totals.aceito}</p>
+          </div>
+          <div className="rounded-[18px] border border-white/8 bg-black/25 p-4">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Revogados/expirados</p>
+            <p className="mt-2 text-2xl font-semibold text-red-300">{inviteReadout.totals.revogado + inviteReadout.totals.expirado}</p>
+          </div>
+        </div>
         {banner ? <div className="rounded-[18px] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/74">{banner}</div> : null}
+      </SectionCard>
+
+      <SectionCard className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Convite leve</p>
+            <h2 className="mt-1 text-xl font-semibold text-white">Gerar acesso por link/codigo</h2>
+            <p className="mt-1 text-sm text-white/58">Pensado para WhatsApp. Papel estreito, revogavel e com validade curta.</p>
+          </div>
+          <Badge variant="outline">mobile-first</Badge>
+        </div>
+
+        <form action={createStationEditorInviteAction} className="grid gap-3 sm:grid-cols-3">
+          <label className="space-y-2">
+            <span className="text-xs uppercase tracking-[0.18em] text-white/42">Validade (horas)</span>
+            <input name="ttlHours" type="number" min={1} max={720} defaultValue={72} className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/30" />
+          </label>
+          <label className="space-y-2">
+            <span className="text-xs uppercase tracking-[0.18em] text-white/42">Limite de usos</span>
+            <input name="maxUses" type="number" min={1} max={10} defaultValue={1} className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/30" />
+          </label>
+          <div className="flex items-end">
+            <Button type="submit" className="w-full">Gerar convite station_editor</Button>
+          </div>
+        </form>
+      </SectionCard>
+
+      <SectionCard className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Convites emitidos</p>
+            <h2 className="mt-1 text-xl font-semibold text-white">Pendentes, aceitos, revogados e expirados</h2>
+          </div>
+          <Badge variant="outline">Ops</Badge>
+        </div>
+
+        {inviteReadout.invites.length === 0 ? (
+          <div className="rounded-[18px] border border-white/8 bg-black/20 p-4 text-sm text-white/58">Nenhum convite emitido ainda.</div>
+        ) : (
+          <div className="space-y-3">
+            {inviteReadout.invites.map((invite) => {
+              const statusTone = invite.effectiveStatus === "pendente"
+                ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-100"
+                : invite.effectiveStatus === "aceito"
+                  ? "border-white/20 bg-white/10 text-white"
+                  : "border-red-400/30 bg-red-400/10 text-red-100";
+
+              return (
+                <div key={invite.id} className="space-y-3 rounded-[18px] border border-white/8 bg-black/20 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/78">{invite.inviteCode}</span>
+                        <span className={`rounded-full border px-2 py-1 text-[11px] uppercase tracking-[0.16em] ${statusTone}`}>{invite.effectiveStatus}</span>
+                      </div>
+                      <p className="text-xs text-white/48">Criado por {invite.createdByEmail || "admin"} · expira em {formatDateTimeBR(invite.expiresAt)}</p>
+                      <p className="text-xs text-white/48">Uso: {invite.useCount}/{invite.maxUses}</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <CopyTextButton value={invite.inviteLink} label="Copiar link" className="h-8 border-white/10 text-white" />
+                      <CopyTextButton value={invite.inviteCode} label="Copiar codigo" className="h-8 border-white/10 text-white" />
+                      {invite.effectiveStatus === "pendente" ? (
+                        <form action={revokeStationEditorInviteAction}>
+                          <input type="hidden" name="inviteId" value={invite.id} />
+                          <Button type="submit" variant="secondary" className="h-8 border-white/10 text-white">Revogar</Button>
+                        </form>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-[11px] uppercase tracking-[0.16em] text-white/38">Link curto WhatsApp</p>
+                    <div className="rounded-[14px] border border-white/10 bg-black/35 px-3 py-2 text-xs text-white/80 break-all">{invite.inviteLink}</div>
+                  </div>
+
+                  {invite.acceptedAt ? (
+                    <p className="text-xs text-white/54">Aceito em {formatDateTimeBR(invite.acceptedAt)} por {invite.acceptedName || "sem nome"}</p>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </SectionCard>
 
       <SectionCard className="space-y-4">

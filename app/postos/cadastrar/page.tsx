@@ -121,6 +121,12 @@ export default async function StationSeedPage({ searchParams }: StationSeedPageP
             </div>
           </div>
         ) : null}
+
+        {notice === "invite_accepted" ? (
+          <div className="rounded-[18px] border border-[color:var(--color-accent)]/22 bg-[color:var(--color-accent)]/10 px-4 py-3 text-sm text-white/78">
+            Convite confirmado. Sessao leve ativa neste aparelho para semeadura e edicao de postos.
+          </div>
+        ) : null}
       </SectionCard>
 
       {seedOrigin ? (

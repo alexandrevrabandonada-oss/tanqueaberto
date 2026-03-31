@@ -12,6 +12,7 @@ import { updateCollectorScore } from "@/lib/ops/collector-trust";
 import { mapStationRow } from "@/lib/data/mappers";
 import { canPromoteStationToMap } from "@/lib/ops/territorial-curation";
 import { grantStationEditorRole, revokeStationEditorRole } from "@/lib/ops/station-editors";
+import { createStationEditorInvite, revokeStationEditorInvite } from "@/lib/ops/station-editor-invites";
 import { getAuditCitySlug } from "@/lib/audit/cities";
 import {
   territoryWorkflowBlockLabel,
@@ -744,6 +745,129 @@ export async function revokeStationEditorRoleAction(formData: FormData) {
       payload: { email }
     });
     redirect(`${STATION_EDITOR_MANAGEMENT_ROUTE}?error=revoke_failed` as Route);
+  }
+}
+
+export async function createStationEditorInviteAction(formData: FormData) {
+  const admin = await requireAdminUser();
+  const ttlHoursRaw = String(formData.get("ttlHours") ?? "").trim();
+  const maxUsesRaw = String(formData.get("maxUses") ?? "").trim();
+  const ttlHours = Number(ttlHoursRaw || "72");
+  const maxUses = Number(maxUsesRaw || "1");
+
+  try {
+    const invite = await createStationEditorInvite({
+      createdById: admin.id,
+      createdByEmail: admin.email,
+      ttlHours: Number.isFinite(ttlHours) ? ttlHours : 72,
+      maxUses: Number.isFinite(maxUses) ? maxUses : 1
+    });
+
+    await recordAdminActionLog({
+      actionKind: "station_editor_invite_created",
+      actorId: admin.id,
+      actorEmail: admin.email,
+      targetType: "station_editor_invite",
+      targetId: invite.id,
+      note: `Convite station_editor criado (${invite.inviteCode})`,
+      payload: {
+        inviteCode: invite.inviteCode,
+        expiresAt: invite.expiresAt,
+        maxUses: invite.maxUses,
+        inviteLink: invite.inviteLink
+      }
+    });
+
+    await recordOperationalEvent({
+      eventType: "station_editor_invite_created",
+      severity: "info",
+      scopeType: "station_editor_invite",
+      scopeId: invite.id,
+      actorId: admin.id,
+      actorEmail: admin.email,
+      reason: "invite_created",
+      payload: {
+        inviteCode: invite.inviteCode,
+        expiresAt: invite.expiresAt,
+        maxUses: invite.maxUses,
+        inviteLink: invite.inviteLink
+      }
+    });
+
+    revalidatePath(STATION_EDITOR_MANAGEMENT_ROUTE);
+    redirect(`${STATION_EDITOR_MANAGEMENT_ROUTE}?notice=invite_created` as Route);
+  } catch (error) {
+    await recordOperationalEvent({
+      eventType: "station_editor_invite_create_failed",
+      severity: "warning",
+      scopeType: "station_editor_invite",
+      actorId: admin.id,
+      actorEmail: admin.email,
+      reason: error instanceof Error ? error.message : "invite_create_failed",
+      payload: {
+        ttlHours: ttlHoursRaw,
+        maxUses: maxUsesRaw
+      }
+    });
+    redirect(`${STATION_EDITOR_MANAGEMENT_ROUTE}?error=invite_create_failed` as Route);
+  }
+}
+
+export async function revokeStationEditorInviteAction(formData: FormData) {
+  const admin = await requireAdminUser();
+  const inviteId = String(formData.get("inviteId") ?? "").trim();
+
+  if (!inviteId) {
+    redirect(`${STATION_EDITOR_MANAGEMENT_ROUTE}?error=invalid_request` as Route);
+  }
+
+  try {
+    const invite = await revokeStationEditorInvite({
+      inviteId,
+      revokedById: admin.id,
+      revokedByEmail: admin.email
+    });
+
+    await recordAdminActionLog({
+      actionKind: "station_editor_invite_revoked",
+      actorId: admin.id,
+      actorEmail: admin.email,
+      targetType: "station_editor_invite",
+      targetId: invite.id,
+      note: `Convite station_editor revogado (${invite.inviteCode})`,
+      payload: {
+        inviteCode: invite.inviteCode,
+        revokedAt: invite.revokedAt
+      }
+    });
+
+    await recordOperationalEvent({
+      eventType: "station_editor_invite_revoked",
+      severity: "info",
+      scopeType: "station_editor_invite",
+      scopeId: invite.id,
+      actorId: admin.id,
+      actorEmail: admin.email,
+      reason: "invite_revoked",
+      payload: {
+        inviteCode: invite.inviteCode,
+        revokedAt: invite.revokedAt
+      }
+    });
+
+    revalidatePath(STATION_EDITOR_MANAGEMENT_ROUTE);
+    redirect(`${STATION_EDITOR_MANAGEMENT_ROUTE}?notice=invite_revoked` as Route);
+  } catch (error) {
+    await recordOperationalEvent({
+      eventType: "station_editor_invite_revoke_failed",
+      severity: "warning",
+      scopeType: "station_editor_invite",
+      scopeId: inviteId,
+      actorId: admin.id,
+      actorEmail: admin.email,
+      reason: error instanceof Error ? error.message : "invite_revoke_failed"
+    });
+    redirect(`${STATION_EDITOR_MANAGEMENT_ROUTE}?error=invite_revoke_failed` as Route);
   }
 }
 

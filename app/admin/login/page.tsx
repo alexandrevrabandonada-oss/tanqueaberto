@@ -56,9 +56,14 @@ export default async function AdminLoginPage({ searchParams }: AdminLoginPagePro
 
           <div className="flex items-center justify-between text-xs text-white/48">
             <span>Use um e-mail liberado em `admin_users`.</span>
-            <Link href="/" className="text-[color:var(--color-accent)]">
-              Voltar ao app
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link href="/convite/station-editor" className="text-[color:var(--color-accent)]">
+                Entrar por convite
+              </Link>
+              <Link href="/" className="text-[color:var(--color-accent)]">
+                Voltar ao app
+              </Link>
+            </div>
           </div>
         </SectionCard>
       </div>
