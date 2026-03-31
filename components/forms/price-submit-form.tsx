@@ -218,18 +218,38 @@ function compareStationCandidates(left: StationPickerCandidate, right: StationPi
 
 function getGeoReviewBadge(candidate: StationPickerCandidate) {
   if (!candidate.hasReliableCoordinate) {
-    return { label: "Geo fraca", variant: "warning" as const };
+    return { label: "Sem geo", variant: "warning" as const };
   }
 
   if (candidate.station.geoReviewStatus === "pending") {
-    return { label: "Geo pendente", variant: "outline" as const };
+    return { label: "Geo em revisão", variant: "outline" as const };
   }
 
   if (candidate.station.geoReviewStatus === "manual_review") {
-    return { label: "Revisar geo", variant: "danger" as const };
+    return { label: "Geo em revisão", variant: "danger" as const };
   }
 
   return { label: "Geo ok", variant: "accent" as const };
+}
+
+function getStationSourceBadge(candidate: StationPickerCandidate, source: "nearby" | "recent" | "search" | "fallback") {
+  if (source === "nearby" && candidate.hasReliableCoordinate) {
+    return { label: "GPS", variant: "accent" as const };
+  }
+
+  if (source === "recent" || candidate.recentIndex < 999) {
+    return { label: "Usado antes", variant: "outline" as const };
+  }
+
+  if (source === "search") {
+    return { label: "Busca", variant: "secondary" as const };
+  }
+
+  if (candidate.cityContextMatch) {
+    return { label: "Cidade", variant: "secondary" as const };
+  }
+
+  return { label: "Ranqueado", variant: "secondary" as const };
 }
 
 function PriceSubmitFormBody({
@@ -1635,6 +1655,7 @@ function PriceSubmitFormBody({
   function renderStationOption(candidate: StationPickerCandidate, source: "nearby" | "recent" | "search" | "fallback") {
     const isSelected = candidate.station.id === stationId;
     const geoBadge = getGeoReviewBadge(candidate);
+    const sourceBadge = getStationSourceBadge(candidate, source);
     const isGeoPending = hasPendingStationLocationReview(candidate.station);
     const selectedReport = getSelectedStationReport(candidate.station, fuelType);
     const recentPriceLabel = selectedReport ? formatCurrencyBRL(selectedReport.price) : null;
@@ -1658,18 +1679,19 @@ function PriceSubmitFormBody({
           <div className="min-w-0 flex-1 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
               <p className="truncate text-sm font-semibold text-white">{candidate.publicName}</p>
-              {isSelected ? <Badge variant="default">É este posto</Badge> : null}
+              {isSelected ? <Badge variant="default">Escolhido</Badge> : null}
             </div>
             <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/66">
               <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-white/78">{brandLabel}</span>
               <span className="truncate">{streetLabel}</span>
             </div>
             <div className="flex flex-wrap items-center gap-2 text-[10px] text-white/54">
+              <Badge variant={sourceBadge.variant}>{sourceBadge.label}</Badge>
               {candidate.distance !== null ? <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1 font-semibold text-white/72">{formatDistance(candidate.distance)}</span> : null}
-              {recentPriceLabel ? <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-1 text-emerald-100">Último preço {recentPriceLabel} · {recentTimeLabel}</span> : <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1">Sem preço recente</span>}
+              {recentPriceLabel ? <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-1 text-emerald-100">Preço {recentPriceLabel} · {recentTimeLabel}</span> : <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1">Sem preço</span>}
               <Badge variant={geoBadge.variant}>{geoBadge.label}</Badge>
-              {candidate.ambiguityCount > 1 ? <Badge variant="warning">Nome parecido</Badge> : null}
-              {isGeoPending ? <Badge variant="outline">Confirmar local</Badge> : null}
+              {candidate.ambiguityCount > 1 ? <Badge variant="warning">Parecido</Badge> : null}
+              {isGeoPending ? <Badge variant="outline">Geo em revisão</Badge> : null}
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2 pt-1 text-xs text-white/42">
@@ -1770,7 +1792,7 @@ function PriceSubmitFormBody({
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-white/40">{isStreetMode ? "Modo Rua Ativo" : "Selecione o posto"}</p>
               {isSuggested && (
-                <p className="text-[10px] font-medium text-[color:var(--color-accent)]">📍 Sugerido por proximidade</p>
+                <p className="text-[10px] font-medium text-[color:var(--color-accent)]">📍 GPS</p>
               )}
             </div>
             {!coords && !lockedStation && (
@@ -2118,7 +2140,7 @@ function PriceSubmitFormBody({
         <div className="rounded-[18px] border border-[color:var(--color-accent)]/18 bg-[color:var(--color-accent)]/8 px-4 py-3">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-accent)]/72">Posto já sugerido</p>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-accent)]/72">Posto sugerido</p>
               <p className="truncate text-sm font-semibold text-white">{getStationPublicName(selectedStation)}</p>
               <p className="mt-1 text-xs text-white/62">{selectedStation.neighborhood} · {shortAddress(selectedStation.address) || selectedStation.city}</p>
             </div>
@@ -2188,9 +2210,9 @@ function PriceSubmitFormBody({
                       {coords && isValidStationCoordinate(selectedStation.lat, selectedStation.lng) ? <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1">{formatDistance(calculateDistance(coords.lat, coords.lng, selectedStation.lat, selectedStation.lng))}</span> : null}
                     </div>
                     {getSelectedStationReport(selectedStation, fuelType) ? (
-                      <p className="text-[11px] text-emerald-100/80">Último preço {formatCurrencyBRL(getSelectedStationReport(selectedStation, fuelType)!.price)} · {formatRecencyLabel(getSelectedStationReport(selectedStation, fuelType)!.reportedAt)}</p>
+                      <p className="text-[11px] text-emerald-100/80">Preço {formatCurrencyBRL(getSelectedStationReport(selectedStation, fuelType)!.price)} · {formatRecencyLabel(getSelectedStationReport(selectedStation, fuelType)!.reportedAt)}</p>
                     ) : (
-                      <p className="text-[11px] text-white/52">Sem preço recente neste posto.</p>
+                      <p className="text-[11px] text-white/52">Sem preço.</p>
                     )}
                   </div>
                 </div>
@@ -2199,14 +2221,14 @@ function PriceSubmitFormBody({
 
             {selectedStation && !lockedStation && isAmbiguous ? (
               <div className="rounded-[18px] border border-yellow-400/30 bg-yellow-400/10 px-4 py-3 text-sm text-yellow-50">
-                <p className="font-semibold">É este posto?</p>
-                <p className="mt-1 text-xs text-yellow-50/80">Há outros postos parecidos por perto. Se estiver certo, siga. Se não, troque antes de enviar.</p>
+                <p className="font-semibold">Tem parecido?</p>
+                <p className="mt-1 text-xs text-yellow-50/80">Se for o certo, siga. Se houver outro igual, troque antes de enviar.</p>
                 <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                   <button type="button" className="inline-flex h-10 flex-1 items-center justify-center rounded-full bg-white px-4 text-[11px] font-black uppercase tracking-[0.18em] text-black" onClick={() => setShowStationPicker(false)}>
-                    É este
+                    Seguir com este
                   </button>
                   <button type="button" className="inline-flex h-10 flex-1 items-center justify-center rounded-full border border-white/10 bg-white/5 px-4 text-[11px] font-black uppercase tracking-[0.18em] text-white/82" onClick={() => { setStationConfirmed(false); setShowStationPicker(true); }}>
-                    Trocar
+                    Trocar por parecido
                   </button>
                 </div>
               </div>
