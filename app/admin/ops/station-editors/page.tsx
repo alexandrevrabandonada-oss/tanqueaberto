@@ -37,6 +37,7 @@ function getBanner(searchParams: Record<string, string | string[] | undefined>) 
   if (notice === "invite_revoked") return "Convite leve revogado e sessoes vinculadas encerradas.";
   if (error === "grant_failed") return "Nao foi possivel conceder o papel.";
   if (error === "revoke_failed") return "Nao foi possivel remover o papel.";
+  if (error === "invite_schema_missing") return "Schema de convites ainda nao aplicado no banco de producao.";
   if (error === "invite_create_failed") return "Nao foi possivel criar o convite agora.";
   if (error === "invite_revoke_failed") return "Nao foi possivel revogar o convite agora.";
   if (error === "invalid_request") return "Pedido invalido.";

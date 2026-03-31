@@ -12,7 +12,7 @@ import { updateCollectorScore } from "@/lib/ops/collector-trust";
 import { mapStationRow } from "@/lib/data/mappers";
 import { canPromoteStationToMap } from "@/lib/ops/territorial-curation";
 import { grantStationEditorRole, revokeStationEditorRole } from "@/lib/ops/station-editors";
-import { createStationEditorInvite, revokeStationEditorInvite } from "@/lib/ops/station-editor-invites";
+import { StationEditorInviteError, createStationEditorInvite, revokeStationEditorInvite } from "@/lib/ops/station-editor-invites";
 import { getAuditCitySlug } from "@/lib/audit/cities";
 import {
   territoryWorkflowBlockLabel,
@@ -797,6 +797,9 @@ export async function createStationEditorInviteAction(formData: FormData) {
     revalidatePath(STATION_EDITOR_MANAGEMENT_ROUTE);
     redirect(`${STATION_EDITOR_MANAGEMENT_ROUTE}?notice=invite_created` as Route);
   } catch (error) {
+    const isSchemaMissing = error instanceof StationEditorInviteError
+      && (error.code === "42P01" || error.message.toLowerCase().includes("does not exist"));
+
     await recordOperationalEvent({
       eventType: "station_editor_invite_create_failed",
       severity: "warning",
@@ -805,10 +808,17 @@ export async function createStationEditorInviteAction(formData: FormData) {
       actorEmail: admin.email,
       reason: error instanceof Error ? error.message : "invite_create_failed",
       payload: {
+        schemaMissing: isSchemaMissing,
+        errorCode: error instanceof StationEditorInviteError ? error.code ?? null : null,
         ttlHours: ttlHoursRaw,
         maxUses: maxUsesRaw
       }
     });
+
+    if (isSchemaMissing) {
+      redirect(`${STATION_EDITOR_MANAGEMENT_ROUTE}?error=invite_schema_missing` as Route);
+    }
+
     redirect(`${STATION_EDITOR_MANAGEMENT_ROUTE}?error=invite_create_failed` as Route);
   }
 }

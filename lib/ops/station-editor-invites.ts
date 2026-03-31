@@ -6,6 +6,16 @@ import { createSupabaseServiceClient } from "@/lib/supabase/admin";
 
 export type StationEditorInviteStatus = "pendente" | "aceito" | "revogado" | "expirado";
 
+export class StationEditorInviteError extends Error {
+  constructor(
+    message: string,
+    public readonly code?: string
+  ) {
+    super(message);
+    this.name = "StationEditorInviteError";
+  }
+}
+
 interface StationEditorInviteRow {
   id: string;
   invite_token: string;
@@ -240,7 +250,10 @@ export async function createStationEditorInvite(input: {
     .single();
 
   if (error || !data) {
-    throw new Error(error?.message ?? "failed_to_create_station_editor_invite");
+    throw new StationEditorInviteError(
+      error?.message ?? "failed_to_create_station_editor_invite",
+      error?.code
+    );
   }
 
   return mapInvite(data as StationEditorInviteRow);
