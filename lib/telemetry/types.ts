@@ -9,6 +9,17 @@ export type ProductTelemetryEventType =
   | "submission_started"
   | "submission_flow_opened"
   | "submission_context_autofilled"
+  | "station_suggestion_shown"
+  | "station_suggestion_accepted"
+  | "station_suggestion_changed"
+  | "station_last_used_reused"
+  | "station_geo_state_reported"
+  | "station_proposal_flow_opened"
+  | "station_similar_choice_clicked"
+  | "station_proposal_created"
+  | "station_proposal_submitted_with_geo"
+  | "station_proposal_submitted_without_geo"
+  | "submission_station_step_abandoned"
   | "submission_flow_completed"
   | "submission_stage_abandoned"
   | "submission_step"
@@ -113,3 +124,4 @@ export interface ProductTelemetryEventInput {
   reason?: string | null;
   payload?: Record<string, unknown>;
 }
+
