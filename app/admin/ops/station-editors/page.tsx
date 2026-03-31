@@ -38,6 +38,9 @@ function getBanner(searchParams: Record<string, string | string[] | undefined>) 
   if (error === "grant_failed") return "Nao foi possivel conceder o papel.";
   if (error === "revoke_failed") return "Nao foi possivel remover o papel.";
   if (error === "invite_schema_missing") return "Schema de convites ainda nao aplicado no banco de producao.";
+  if (error === "invite_schema_partial") return "Schema de convites aplicado parcialmente: faltam colunas ou indices esperados.";
+  if (error === "invite_service_unavailable") return "Servico admin indisponivel: faltando SUPABASE_SERVICE_ROLE_KEY no deploy.";
+  if (error === "invite_permission_denied") return "Permissao negada ao criar convite no banco. Verifique grants/policies e service role.";
   if (error === "invite_create_failed") return "Nao foi possivel criar o convite agora.";
   if (error === "invite_revoke_failed") return "Nao foi possivel revogar o convite agora.";
   if (error === "invalid_request") return "Pedido invalido.";

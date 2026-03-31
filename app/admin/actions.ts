@@ -35,6 +35,48 @@ const ADMIN_ROUTE = "/admin" as Route;
 const STATION_EDITOR_ROUTE = "/postos/cadastrar" as Route;
 const ADMIN_LOGIN_ROUTE = "/admin/login" as Route;
 
+function resolveStationEditorInviteCreateFailure(error: unknown): {
+  reason: string;
+  schemaMissing: boolean;
+  schemaPartial: boolean;
+  serviceUnavailable: boolean;
+  permissionDenied: boolean;
+  errorCode: string | null;
+} {
+  const errorCode = error instanceof StationEditorInviteError ? (error.code ?? null) : null;
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+  const isSchemaMissing = (
+    errorCode === "42P01"
+    || errorCode === "PGRST205"
+    || message.includes("does not exist")
+    || message.includes("schema cache")
+    || message.includes("not found")
+  );
+  const isSchemaPartial = (
+    errorCode === "42703"
+    || errorCode === "PGRST204"
+    || message.includes("could not find the '")
+    || message.includes("column")
+  );
+  const isServiceUnavailable = message.includes("supabase_service_role_key") || message.includes("service_role");
+  const isPermissionDenied = errorCode === "42501" || message.includes("permission denied");
+
+  let reason = "invite_create_failed";
+  if (isServiceUnavailable) reason = "invite_service_unavailable";
+  else if (isPermissionDenied) reason = "invite_permission_denied";
+  else if (isSchemaPartial) reason = "invite_schema_partial";
+  else if (isSchemaMissing) reason = "invite_schema_missing";
+
+  return {
+    reason,
+    schemaMissing: isSchemaMissing,
+    schemaPartial: isSchemaPartial,
+    serviceUnavailable: isServiceUnavailable,
+    permissionDenied: isPermissionDenied,
+    errorCode
+  };
+}
+
 function normalizeNotice(action: "approved" | "rejected") {
   return action === "approved" ? "Aprovado no painel." : "Rejeitado no painel.";
 }
@@ -797,8 +839,7 @@ export async function createStationEditorInviteAction(formData: FormData) {
     revalidatePath(STATION_EDITOR_MANAGEMENT_ROUTE);
     redirect(`${STATION_EDITOR_MANAGEMENT_ROUTE}?notice=invite_created` as Route);
   } catch (error) {
-    const isSchemaMissing = error instanceof StationEditorInviteError
-      && (error.code === "42P01" || error.message.toLowerCase().includes("does not exist"));
+    const failure = resolveStationEditorInviteCreateFailure(error);
 
     await recordOperationalEvent({
       eventType: "station_editor_invite_create_failed",
@@ -808,18 +849,17 @@ export async function createStationEditorInviteAction(formData: FormData) {
       actorEmail: admin.email,
       reason: error instanceof Error ? error.message : "invite_create_failed",
       payload: {
-        schemaMissing: isSchemaMissing,
-        errorCode: error instanceof StationEditorInviteError ? error.code ?? null : null,
+        schemaMissing: failure.schemaMissing,
+        schemaPartial: failure.schemaPartial,
+        serviceUnavailable: failure.serviceUnavailable,
+        permissionDenied: failure.permissionDenied,
+        errorCode: failure.errorCode,
         ttlHours: ttlHoursRaw,
         maxUses: maxUsesRaw
       }
     });
 
-    if (isSchemaMissing) {
-      redirect(`${STATION_EDITOR_MANAGEMENT_ROUTE}?error=invite_schema_missing` as Route);
-    }
-
-    redirect(`${STATION_EDITOR_MANAGEMENT_ROUTE}?error=invite_create_failed` as Route);
+    redirect(`${STATION_EDITOR_MANAGEMENT_ROUTE}?error=${failure.reason}` as Route);
   }
 }
 
