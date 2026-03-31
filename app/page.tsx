@@ -86,6 +86,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   return (
     <SubmissionHistoryProvider>
       <AppShell
+        activeNavPath="/"
         globalSubmitCta={hasActiveRecorte && !initialListFirstMode ? {
           href: "/enviar",
           label: "Enviar preço",

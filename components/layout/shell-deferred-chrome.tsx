@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 
-import { BottomNav } from "@/components/layout/bottom-nav";
 import { PerformanceModeSync } from "@/components/layout/performance-mode-sync";
 import { PwaStatusStrip } from "@/components/pwa/pwa-status-strip";
 import { type OperationalKillSwitches } from "@/lib/ops/kill-switches";
@@ -68,7 +67,6 @@ export function ShellDeferredChrome({ killSwitches }: { killSwitches?: Partial<O
     <>
       <PerformanceModeSync />
       <PwaStatusStrip killSwitches={killSwitches} />
-      <BottomNav />
     </>
   );
 }

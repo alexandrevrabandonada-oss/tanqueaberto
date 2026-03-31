@@ -22,6 +22,7 @@ export default async function UpdatesPage() {
 
   return (
     <AppShell
+      activeNavPath="/atualizacoes"
       globalSubmitCta={{
         href: feed.length > 0 ? "/postos/sem-atualizacao" : "/",
         label: actionLabel,

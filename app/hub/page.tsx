@@ -24,7 +24,7 @@ export default async function HubPage() {
 
   return (
     <SubmissionHistoryProvider>
-      <AppShell hideShellSubmitCta>
+      <AppShell hideShellSubmitCta activeNavPath="/hub">
         <MissionProvider>
           <RouteRuntimeSignals />
         <div data-layout-scope="hub-wide" data-hero-primary="hub-continuity" className="space-y-4 pb-20">

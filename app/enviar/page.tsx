@@ -58,7 +58,7 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
 
   return (
     <SubmissionHistoryProvider>
-      <AppShell>
+      <AppShell activeNavPath="/enviar">
         <MissionProvider>
           <RouteRuntimeSignals />
         <ProductEvent eventType="submit_opened" pagePath="/enviar" pageTitle="Enviar preço" />

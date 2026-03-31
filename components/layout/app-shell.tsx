@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Flame, MapPinned, MessageSquareMore } from "lucide-react";
 
 import { BrandMark } from "@/components/brand/brand-mark";
+import { BottomNav } from "@/components/layout/bottom-nav";
 import { VrAbandonadaBadge } from "@/components/brand/vr-abandonada-badge";
 import { isBetaClosed } from "@/lib/beta/gate";
 import { getBuildInfo } from "@/lib/runtime/build-info";
@@ -19,6 +20,7 @@ interface AppShellProps {
   children: React.ReactNode;
   killSwitches?: Partial<OperationalKillSwitches>;
   hideShellSubmitCta?: boolean;
+  activeNavPath?: string;
   globalSubmitCta?: {
     href: Route;
     label: string;
@@ -26,7 +28,7 @@ interface AppShellProps {
   } | null;
 }
 
-export function AppShell({ children, killSwitches, hideShellSubmitCta = false, globalSubmitCta = null }: AppShellProps) {
+export function AppShell({ children, killSwitches, hideShellSubmitCta = false, activeNavPath = "", globalSubmitCta = null }: AppShellProps) {
   const betaClosed = isBetaClosed();
   const buildInfo = getBuildInfo();
   const showBuildStamp = buildInfo.env !== "production";
@@ -88,6 +90,7 @@ export function AppShell({ children, killSwitches, hideShellSubmitCta = false, g
           </div>
         ) : null}
 
+        <BottomNav activePath={activeNavPath} />
         <ShellDeferredChrome killSwitches={killSwitches} />
 
         {showBuildStamp ? (
