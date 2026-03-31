@@ -8,6 +8,12 @@ import { getCityReadinessRows } from "@/lib/ops/readiness";
 import { buildEditorialGapCsvRows, getEditorialGapDashboard } from "@/lib/ops/editorial-gaps";
 import { getOperationalTelemetry } from "@/lib/ops/observability";
 import { getLaunchObservabilityReport } from "@/lib/ops/launch-observability";
+import { getTerritorialCoverageReadout } from "@/lib/ops/territorial-coverage";
+import { getTerritorialCoverageHistoryReadout } from "@/lib/ops/territorial-coverage-snapshots";
+import { getTerritorialSeedingImpactReadout } from "@/lib/ops/territorial-seeding-impact";
+import { getTerritoryWorkflowQueueReadout } from "@/lib/ops/territory-workflow";
+import { getStationEditorRoster } from "@/lib/ops/station-editors";
+import { buildWeeklyPostsCsvRows, buildWeeklyPostsSummary } from "@/lib/ops/weekly-posts";
 
 function csvEscape(value: unknown) {
   const text = String(value ?? "");
@@ -41,6 +47,27 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const kind = url.searchParams.get("kind") ?? "feedback";
   const days = Number(url.searchParams.get("days") ?? "14");
+
+  if (kind === "weekly-posts") {
+    const [coverage, history, impact, workflow, editors] = await Promise.all([
+      getTerritorialCoverageReadout(30),
+      getTerritorialCoverageHistoryReadout(90),
+      getTerritorialSeedingImpactReadout(30),
+      getTerritoryWorkflowQueueReadout(200),
+      getStationEditorRoster()
+    ]);
+    const summary = buildWeeklyPostsSummary({ coverage, history, impact, workflow, editors });
+    const rows = buildWeeklyPostsCsvRows(summary);
+
+    return new NextResponse(toCsv(rows as Array<Record<string, unknown>>), {
+      headers: {
+        "content-type": "text/csv; charset=utf-8",
+        "content-disposition": 'attachment; filename="bomba-aberta-weekly-posts.csv"'
+      }
+    });
+  }
+
+
 
   if (kind === "events") {
     const dashboard = await getOperationalTelemetry(Number.isFinite(days) ? days : 7);
