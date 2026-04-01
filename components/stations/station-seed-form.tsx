@@ -666,7 +666,7 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
           <div className="rounded-[16px] border border-orange-400/30 bg-orange-400/10 px-4 py-3 text-sm">
             <p className="font-semibold text-orange-100">{blockReason}</p>
             {locationMode === "address" && !locationConfirmed && currentCoords ? (
-              <p className="mt-1 text-xs text-orange-100/72">Role para cima, ajuste o pin se necessário e clique em "Confirmar este ponto no mapa".</p>
+              <p className="mt-1 text-xs text-orange-100/72">{"Role para cima, ajuste o pin se necessário e clique em \"Confirmar este ponto no mapa\"."}</p>
             ) : null}
           </div>
         ) : null}
