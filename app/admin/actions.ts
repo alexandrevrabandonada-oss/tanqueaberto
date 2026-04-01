@@ -845,6 +845,7 @@ export async function createStationEditorInviteAction(formData: FormData) {
     });
 
     revalidatePath(STATION_EDITOR_MANAGEMENT_ROUTE);
+    nextRoute = `${STATION_EDITOR_MANAGEMENT_ROUTE}?notice=invite_created&inviteCode=${encodeURIComponent(invite.inviteCode)}` as Route;
   } catch (error) {
     const failure = resolveStationEditorInviteCreateFailure(error);
 

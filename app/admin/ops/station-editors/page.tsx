@@ -8,6 +8,7 @@ import { SectionCard } from "@/components/ui/section-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CopyTextButton } from "@/components/ui/copy-text-button";
+import { WhatsAppShareButton } from "@/components/ui/whatsapp-share-button";
 import { requireAdminUser } from "@/lib/auth/admin";
 import { getStationEditorRoster } from "@/lib/ops/station-editors";
 import { getStationEditorInviteReadout } from "@/lib/ops/station-editor-invites";
@@ -111,6 +112,8 @@ export default async function StationEditorsPage({ searchParams }: StationEditor
   const workflowReadout = await getTerritoryWorkflowReadout(120);
   const currentWorkflow = territory.city || territory.neighborhood ? resolveTerritoryWorkflowState(workflowReadout.records, territory.city || undefined, territory.neighborhood || undefined) : null;
   const banner = getBanner(resolvedSearchParams);
+  const inviteCode = typeof resolvedSearchParams.inviteCode === "string" ? resolvedSearchParams.inviteCode.trim().toUpperCase() : "";
+  const latestCreatedInvite = inviteCode ? inviteReadout.invites.find((invite) => invite.inviteCode === inviteCode) ?? null : null;
   const territoryLabel = territory.neighborhood || territory.city || "";
 
   return (
@@ -225,6 +228,29 @@ export default async function StationEditorsPage({ searchParams }: StationEditor
             <Button type="submit" className="w-full">Gerar convite station_editor</Button>
           </div>
         </form>
+
+        {latestCreatedInvite ? (
+          <div className="space-y-3 rounded-[18px] border border-[color:var(--color-accent)]/30 bg-[color:var(--color-accent)]/8 p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-[0.18em] text-[color:var(--color-accent)]">Convite pronto</p>
+                <p className="text-lg font-semibold text-white">{latestCreatedInvite.inviteCode}</p>
+                <p className="text-sm text-white/68">Expira em {formatDateTimeBR(latestCreatedInvite.expiresAt)} · uso {latestCreatedInvite.maxUses}x</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <WhatsAppShareButton
+                  url={latestCreatedInvite.inviteLink}
+                  message={`Convite Bomba Aberta para station_editor. Abra este link e entre com seu nome operacional:`}
+                  label="Enviar no WhatsApp"
+                  className="h-9 border-white/10 text-white"
+                />
+                <CopyTextButton value={latestCreatedInvite.inviteLink} label="Copiar link" className="h-9 border-white/10 text-white" />
+                <CopyTextButton value={latestCreatedInvite.inviteCode} label="Copiar codigo" className="h-9 border-white/10 text-white" />
+              </div>
+            </div>
+            <div className="rounded-[14px] border border-white/10 bg-black/35 px-3 py-2 text-xs text-white/84 break-all">{latestCreatedInvite.inviteLink}</div>
+          </div>
+        ) : null}
       </SectionCard>
 
       <SectionCard className="space-y-4">
@@ -259,6 +285,11 @@ export default async function StationEditorsPage({ searchParams }: StationEditor
                       <p className="text-xs text-white/48">Uso: {invite.useCount}/{invite.maxUses}</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
+                      <WhatsAppShareButton
+                        url={invite.inviteLink}
+                        message={`Convite Bomba Aberta para station_editor. Abra este link e entre com seu nome operacional:`}
+                        className="h-8 border-white/10 text-white"
+                      />
                       <CopyTextButton value={invite.inviteLink} label="Copiar link" className="h-8 border-white/10 text-white" />
                       <CopyTextButton value={invite.inviteCode} label="Copiar codigo" className="h-8 border-white/10 text-white" />
                       {invite.effectiveStatus === "pendente" ? (
