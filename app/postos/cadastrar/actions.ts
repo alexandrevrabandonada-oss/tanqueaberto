@@ -322,8 +322,8 @@ export async function createStationSeedAction(_prevState: StationSeedState, form
   revalidatePath("/postos");
   revalidatePath(`/postos/${data.id}`);
 
-  const nextParams = new URLSearchParams({ notice: "station_saved", stationId: data.id, outcome, city, neighborhood: neighborhood || city, seedOrigin: source });
-  redirect(`${STATION_SEED_ROUTE}?${nextParams.toString()}` as Route);
+  const nextParams = new URLSearchParams({ notice: "station_saved", stationId: data.id });
+  redirect(`/postos?${nextParams.toString()}` as Route);
 }
 
 

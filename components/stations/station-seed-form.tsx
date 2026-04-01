@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Route } from "next";
-import { LocateFixed, MapPin, MapPinned, Navigation, Search, ShieldCheck } from "lucide-react";
+import { LocateFixed, Loader2, MapPin, MapPinned, Navigation, Search, ShieldCheck } from "lucide-react";
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 
@@ -420,7 +420,31 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
     router.push((`/postos/${station.id}` as Route));
   }
 
+  const blockReason = !canCreateNew
+    ? !nickname.trim()
+      ? "Informe o apelido do posto."
+      : !city.trim() && !homeContextCity && !lastStationCity
+        ? "Informe a cidade do posto."
+        : locationMode === "address" && !currentCoords
+          ? "Geocodifique o endereço antes de salvar."
+          : locationMode === "address" && !locationConfirmed
+            ? "Confirme o ponto no mapa antes de salvar."
+            : null
+    : null;
+
   return (
+    <>
+      {pending && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/85 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-4 rounded-[28px] border border-white/12 bg-black/90 px-10 py-8 shadow-2xl">
+            <Loader2 className="h-9 w-9 animate-spin text-[color:var(--color-accent)]" />
+            <div className="text-center">
+              <p className="text-base font-semibold text-white">Salvando posto...</p>
+              <p className="mt-1 text-sm text-white/54">Aguarde enquanto o cadastro é registrado.</p>
+            </div>
+          </div>
+        </div>
+      )}
     <form action={formAction} onSubmit={() => { hasSubmittedRef.current = true; }} className="space-y-4">
       <input type="hidden" name="source" value="station_editor" />
       <input type="hidden" name="locationMode" value={locationMode} />
@@ -638,22 +662,31 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
               : "Sem geo forte, o posto vai para revisao antes de aparecer para todo mundo."}
         </div>
 
-        {locationMode === "address" && !locationConfirmed ? <p className="text-[11px] text-white/46">Confirme o local no mapa para concluir o cadastro por endereco.</p> : null}
+        {blockReason ? (
+          <div className="rounded-[16px] border border-orange-400/30 bg-orange-400/10 px-4 py-3 text-sm">
+            <p className="font-semibold text-orange-100">{blockReason}</p>
+            {locationMode === "address" && !locationConfirmed && currentCoords ? (
+              <p className="mt-1 text-xs text-orange-100/72">Role para cima, ajuste o pin se necessário e clique em "Confirmar este ponto no mapa".</p>
+            ) : null}
+          </div>
+        ) : null}
 
         <input type="hidden" name="confirmCreate" value={confirmCreate ? "1" : "0"} />
         <div className="flex flex-col gap-2 sm:flex-row">
-          <Button type="submit" disabled={pending || !canCreateNew || (duplicateCandidates.length > 0 && !confirmCreate)} className="w-full justify-center sm:flex-1">
-            {pending ? "Salvando..." : duplicateCandidates.length > 0 && !confirmCreate ? "Confirmar criacao" : "Salvar posto"}
-          </Button>
-          {duplicateCandidates.length > 0 ? (
-            <Button type="button" variant="secondary" className="w-full justify-center sm:flex-1" onClick={() => setConfirmCreate(true)}>
-              Criar novo mesmo assim
+          {duplicateCandidates.length > 0 && !confirmCreate ? (
+            <Button type="button" disabled={!canCreateNew} className="w-full justify-center sm:flex-1" onClick={() => setConfirmCreate(true)}>
+              Confirmar criacao mesmo assim
             </Button>
-          ) : null}
+          ) : (
+            <Button type="submit" disabled={pending || !canCreateNew} className="w-full justify-center sm:flex-1">
+              {pending ? "Salvando..." : "Salvar posto"}
+            </Button>
+          )}
         </div>
         {duplicateCandidates.length > 0 ? <p className="text-[11px] text-white/46">Se um dos parecidos for o certo, abra ele e evite duplicidade.</p> : null}
       </section>
     </form>
+    </>
   );
 }
 

@@ -92,6 +92,8 @@ export default async function StationManagerPage({ searchParams }: StationManage
 
   const readout = await getStationEditorStationList({ q, city, neighborhood, brand, price, review, page, pageSize: 24 });
   const banner = resolveBanner(resolvedSearchParams);
+  const noticeType = readString(resolvedSearchParams, "notice");
+  const noticeSeedStationId = readString(resolvedSearchParams, "stationId");
   const baseParams = new URLSearchParams();
   if (q) baseParams.set("q", q);
   if (city) baseParams.set("city", city);
@@ -117,7 +119,24 @@ export default async function StationManagerPage({ searchParams }: StationManage
           </div>
         </div>
 
-        {banner ? <div className="rounded-[18px] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/74">{banner}</div> : null}
+        {noticeType === "station_saved" ? (
+          <div className="rounded-[18px] border border-emerald-400/22 bg-emerald-400/10 px-4 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="space-y-1">
+                <p className="text-xs uppercase tracking-[0.2em] text-emerald-100/72">Salvo</p>
+                <p className="text-base font-semibold text-emerald-50">Posto cadastrado com sucesso.</p>
+                <p className="text-sm text-emerald-50/72">Ele entra na fila de curadoria antes de aparecer publicamente.</p>
+              </div>
+              {noticeSeedStationId ? (
+                <Link href={`/postos/${noticeSeedStationId}` as Route} className="inline-flex shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white hover:bg-white/15">
+                  Ver posto criado
+                </Link>
+              ) : null}
+            </div>
+          </div>
+        ) : banner ? (
+          <div className="rounded-[18px] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/74">{banner}</div>
+        ) : null}
 
         <div className="grid gap-3 md:grid-cols-4">
           <div className="rounded-[18px] border border-white/8 bg-black/25 p-4">

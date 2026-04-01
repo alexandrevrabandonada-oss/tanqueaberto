@@ -149,27 +149,31 @@ export default async function StationSeedPage({ searchParams }: StationSeedPageP
         </SectionCard>
       ) : null}
 
-      <SectionCard className="space-y-4">
-        <div className="flex items-center gap-2">
-          <MapPinPlus className="h-5 w-5 text-[color:var(--color-accent)]" />
-          <h2 className="text-xl font-semibold text-white">Novo posto</h2>
-        </div>
-        <p className="text-sm text-white/56">Use GPS atual ou informe endereco curto para geocodificar, ajustar o pin e confirmar o local antes de salvar.</p>
-        <StationSeedForm stations={stations} notice={notice} initialCity={city} initialNeighborhood={neighborhood} seedOrigin={seedOrigin} />
-      </SectionCard>
+      {notice !== "station_saved" ? (
+        <SectionCard className="space-y-4">
+          <div className="flex items-center gap-2">
+            <MapPinPlus className="h-5 w-5 text-[color:var(--color-accent)]" />
+            <h2 className="text-xl font-semibold text-white">Novo posto</h2>
+          </div>
+          <p className="text-sm text-white/56">Use GPS atual ou informe endereco curto para geocodificar, ajustar o pin e confirmar o local antes de salvar.</p>
+          <StationSeedForm stations={stations} notice={notice} initialCity={city} initialNeighborhood={neighborhood} seedOrigin={seedOrigin} />
+        </SectionCard>
+      ) : null}
 
-      <SectionCard className="space-y-3">
-        <div className="flex flex-wrap gap-2">
-          <Link href="/postos" className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/74 hover:bg-white/10">
-            Navegar na base existente
-          </Link>
-        </div>
-        <div className="flex items-center gap-2">
-          <TriangleAlert className="h-4 w-4 text-yellow-300" />
-          <h2 className="text-base font-semibold text-white">Dica rápida</h2>
-        </div>
-        <p className="text-sm text-white/58">Antes de criar, confira os parecidos acima e use o posto existente quando for o mesmo lugar.</p>
-      </SectionCard>
+      {notice !== "station_saved" ? (
+        <SectionCard className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <Link href="/postos" className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/74 hover:bg-white/10">
+              Navegar na base existente
+            </Link>
+          </div>
+          <div className="flex items-center gap-2">
+            <TriangleAlert className="h-4 w-4 text-yellow-300" />
+            <h2 className="text-base font-semibold text-white">Dica rápida</h2>
+          </div>
+          <p className="text-sm text-white/58">Antes de criar, confira os parecidos acima e use o posto existente quando for o mesmo lugar.</p>
+        </SectionCard>
+      ) : null}
     </div>
   );
 }
