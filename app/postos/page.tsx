@@ -3,7 +3,9 @@ import type { Metadata } from "next";
 import type { Route } from "next";
 import { MapPinPlus, PencilLine, Search, ShieldCheck, TriangleAlert } from "lucide-react";
 
-import { requireStationEditorUser } from "@/lib/auth/admin";
+import { getCurrentAdminUser } from "@/lib/auth/admin";
+import { getStationEditorSessionFromCookie } from "@/lib/auth/station-editor-session";
+import { StationEditorInviteAcceptForm } from "@/components/station/station-editor-invite-accept-form";
 import { getStationEditorStationList } from "@/lib/ops/station-editor-station-list";
 import { SectionCard } from "@/components/ui/section-card";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +21,10 @@ export const metadata: Metadata = {
 
 interface StationManagerPageProps {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}
+
+function hasEditorAccess(currentAdmin: Awaited<ReturnType<typeof getCurrentAdminUser>>, lightSession: Awaited<ReturnType<typeof getStationEditorSessionFromCookie>>) {
+  return Boolean(currentAdmin || lightSession);
 }
 
 function readString(searchParams: Record<string, string | string[] | undefined>, key: string) {
@@ -62,8 +68,43 @@ function resolveBanner(searchParams: Record<string, string | string[] | undefine
 }
 
 export default async function StationManagerPage({ searchParams }: StationManagerPageProps) {
-  const editor = await requireStationEditorUser();
   const resolvedSearchParams = (await searchParams) ?? {};
+  const currentAdmin = await getCurrentAdminUser();
+  const lightSession = await getStationEditorSessionFromCookie();
+  const inviteToken = readString(resolvedSearchParams, "token");
+  const inviteCode = readString(resolvedSearchParams, "code");
+
+  if (!hasEditorAccess(currentAdmin, lightSession)) {
+    return (
+      <div className="mx-auto flex min-h-screen w-full max-w-md items-center px-4 py-6">
+        <div className="w-full space-y-4">
+          <SectionCard className="space-y-4">
+            <div className="flex items-center gap-3">
+              <ShieldCheck className="h-10 w-10 text-[color:var(--color-accent)]" />
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-white/42">Acesso de campo</p>
+                <h1 className="text-2xl font-semibold text-white">Station editor</h1>
+              </div>
+            </div>
+            <p className="text-sm text-white/64">Recebeu convite leve? Confirme o codigo e o nome operacional para entrar direto na lista e na edicao leve. Nao precisa login do admin.</p>
+            {inviteToken || inviteCode ? <div className="rounded-[16px] border border-[color:var(--color-accent)]/25 bg-[color:var(--color-accent)]/12 px-3 py-2 text-xs text-white/80">Convite detectado. Preencha os dados abaixo para ativar a sessao leve neste aparelho.</div> : null}
+          </SectionCard>
+
+          <SectionCard className="space-y-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Entrar sem login</p>
+              <h2 className="mt-1 text-xl font-semibold text-white">Ativar acesso leve</h2>
+            </div>
+
+            <StationEditorInviteAcceptForm inviteToken={inviteToken} inviteCode={inviteCode} />
+
+            <p className="text-xs text-white/48">Se voce recebeu o link por WhatsApp, ele deve abrir esta tela com token e codigo preenchidos. Depois de aceitar, a lista operacional aparece automaticamente em /postos.</p>
+          </SectionCard>
+        </div>
+      </div>
+    );
+  }
+
   const q = readString(resolvedSearchParams, "q");
   const city = readString(resolvedSearchParams, "city");
   const neighborhood = readString(resolvedSearchParams, "neighborhood");
@@ -82,6 +123,7 @@ export default async function StationManagerPage({ searchParams }: StationManage
   if (price !== "all") baseParams.set("price", price);
   if (review !== "all") baseParams.set("review", review);
   const returnTo = buildReturnTo(baseParams);
+  const editorLabel = currentAdmin ? (currentAdmin.role === "station_editor" ? "station_editor" : "admin") : "station_editor";
 
   return (
     <div className="space-y-4 pb-16 pt-1">
@@ -94,7 +136,7 @@ export default async function StationManagerPage({ searchParams }: StationManage
           </div>
           <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60">
             <ShieldCheck className="h-4 w-4 text-[color:var(--color-accent)]" />
-            {editor.role === "station_editor" ? "station_editor" : "admin"}
+            {editorLabel}
           </div>
         </div>
 
