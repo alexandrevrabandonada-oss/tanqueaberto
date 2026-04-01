@@ -42,7 +42,8 @@ export async function getStationEditorSessionFromCookie(): Promise<StationEditor
   }
 
   const invite = await getStationEditorInviteByCodeOrToken({ inviteCode: signedSession.inviteCode ?? signedSession.inviteId, inviteToken: null });
-  if (!invite || invite.effectiveStatus === "revogado" || invite.effectiveStatus === "expirado") {
+  // Only reject on explicit revocation — invite expiry does not invalidate an active session.
+  if (!invite || invite.effectiveStatus === "revogado") {
     return null;
   }
 

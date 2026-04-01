@@ -139,11 +139,12 @@ const FALLBACK_EVENT_TYPE = "station_editor_invite_state";
 const FALLBACK_SCOPE_TYPE = "station_editor_invite";
 
 function normalizeInviteCode(code: string) {
-  return code
-    .trim()
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, "")
-    .slice(0, 12);
+  const stripped = code.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  // Canonicalize SE-XXXXXX format: SEABC123 and SE-ABC123 both map to SE-ABC123
+  if (/^SE[A-Z0-9]{6}$/.test(stripped)) {
+    return `SE-${stripped.slice(2)}`;
+  }
+  return stripped.slice(0, 12);
 }
 
 function randomHex(length: number) {
@@ -508,7 +509,7 @@ export async function createStationEditorInvite(input: {
   const maxUses = Number.isFinite(input.maxUses) ? Math.max(1, Math.min(10, Number(input.maxUses))) : 1;
   const expiresAt = new Date(now.getTime() + ttlHours * 60 * 60 * 1000).toISOString();
   const inviteToken = generateStationEditorInviteToken();
-  const inviteCode = normalizeInviteCode(input.inviteCode ?? "") || generateStationEditorInviteCode();
+  const inviteCode = normalizeInviteCode(input.inviteCode || generateStationEditorInviteCode());
 
   const { data, error } = await supabase
     .from("station_editor_invites")
@@ -830,12 +831,12 @@ export async function getStationEditorSessionByToken(token: string | null | unde
   const inviteMeta = Array.isArray(row.station_editor_invites) ? row.station_editor_invites[0] : row.station_editor_invites;
   const now = Date.now();
   const sessionExpired = new Date(row.expires_at).getTime() <= now;
-  const inviteStatus = inviteMeta?.status;
-  const inviteExpired = inviteMeta ? new Date(inviteMeta.expires_at).getTime() <= now : true;
-  const inviteRevoked = inviteStatus === "revogado" || Boolean(inviteMeta?.revoked_at);
+  // Only kill the session on explicit admin revocation — not on invite expiry.
+  // The session has its own expires_at; the invite TTL is only for first activation.
+  const inviteRevoked = Boolean(inviteMeta) && (inviteMeta!.status === "revogado" || Boolean(inviteMeta!.revoked_at));
 
-  if (row.status !== "active" || sessionExpired || inviteExpired || inviteRevoked) {
-    const nextStatus = row.status === "revoked" || inviteRevoked ? "revoked" : "expired";
+  if (row.status !== "active" || sessionExpired || inviteRevoked) {
+    const nextStatus = inviteRevoked ? "revoked" : "expired";
     await supabase
       .from("station_editor_sessions")
       .update({ status: nextStatus, updated_at: new Date().toISOString() })
