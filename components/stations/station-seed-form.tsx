@@ -465,6 +465,38 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
             <button type="button" onClick={() => handleLocationModeChange("address")} className={cn("rounded-[16px] border px-3 py-2 text-left text-sm", locationMode === "address" ? "border-[color:var(--color-accent)]/45 bg-[color:var(--color-accent)]/12 text-white" : "border-white/10 bg-black/20 text-white/74")}>Informar endereco</button>
           </div>
           <p className="text-sm text-white/58">{locationMode === "gps" ? locationStatus : "Digite endereco curto, geocodifique e confirme o pin no mapa."}</p>
+          {locationMode === "address" ? (
+            <div className="space-y-2 rounded-[16px] border border-[color:var(--color-accent)]/25 bg-[color:var(--color-accent)]/10 p-3">
+              <label className="space-y-1">
+                <span className="text-[10px] uppercase tracking-[0.18em] text-white/60">Rua</span>
+                <input value={street} onChange={(event) => { setStreet(event.target.value); setConfirmCreate(false); }} placeholder="Ex.: Av. Sávio Cota" className="w-full rounded-[14px] border border-white/12 bg-black/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/34" />
+              </label>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <label className="space-y-1">
+                  <span className="text-[10px] uppercase tracking-[0.18em] text-white/60">Numero</span>
+                  <input value={streetNumber} onChange={(event) => { setStreetNumber(event.target.value); setConfirmCreate(false); }} placeholder="Ex.: 245" className="w-full rounded-[14px] border border-white/12 bg-black/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/34" />
+                </label>
+                <label className="space-y-1">
+                  <span className="text-[10px] uppercase tracking-[0.18em] text-white/60">Bairro</span>
+                  <input value={neighborhood} onChange={(event) => { setNeighborhood(event.target.value); setConfirmCreate(false); }} placeholder="Ex.: Aterrado" className="w-full rounded-[14px] border border-white/12 bg-black/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/34" />
+                </label>
+              </div>
+              <label className="space-y-1">
+                <span className="text-[10px] uppercase tracking-[0.18em] text-white/60">Cidade</span>
+                <input ref={cityInputRef} value={city} onChange={(event) => { setCity(event.target.value); setConfirmCreate(false); }} placeholder={homeContextCity || lastStationCity || "Ex.: Volta Redonda"} className="w-full rounded-[14px] border border-white/12 bg-black/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/34" required />
+              </label>
+              <label className="space-y-1">
+                <span className="text-[10px] uppercase tracking-[0.18em] text-white/60">Referencia (opcional)</span>
+                <input value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Ex.: em frente ao mercado" className="w-full rounded-[14px] border border-white/12 bg-black/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/34" />
+              </label>
+
+              <Button type="button" variant="secondary" className="w-full" disabled={isGeocoding || !street.trim() || !(city.trim() || homeContextCity || lastStationCity)} onClick={handleGeocodeAddress}>
+                {isGeocoding ? "Buscando endereco..." : "Geocodificar endereco"}
+              </Button>
+              {geocodeMessage ? <p className="text-xs text-white/72">{geocodeMessage}</p> : null}
+              {geocodeDisplayName ? <p className="text-[11px] text-white/52">Resultado: {geocodeDisplayName}</p> : null}
+            </div>
+          ) : null}
           <div className="flex flex-wrap gap-2 text-[11px] text-white/54">
             <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">{currentCoords ? "Com coordenada" : "Sem coordenada"}</span>
             <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">{currentCoords ? `${currentCoords.lat.toFixed(5)}, ${currentCoords.lng.toFixed(5)}` : "Sem ponto"}</span>
@@ -551,12 +583,6 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
             <span className="text-[10px] uppercase tracking-[0.18em] text-white/42">Rua / trecho</span>
             <input value={street} onChange={(event) => { setStreet(event.target.value); setConfirmCreate(false); }} placeholder="Opcional" className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/30" />
           </label>
-          {locationMode === "address" ? (
-            <label className="space-y-1">
-              <span className="text-[10px] uppercase tracking-[0.18em] text-white/42">Numero</span>
-              <input value={streetNumber} onChange={(event) => { setStreetNumber(event.target.value); setConfirmCreate(false); }} placeholder="Ex.: 245" className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/30" />
-            </label>
-          ) : null}
           <label className="space-y-1">
             <span className="text-[10px] uppercase tracking-[0.18em] text-white/42">Bairro</span>
             <input value={neighborhood} onChange={(event) => { setNeighborhood(event.target.value); setConfirmCreate(false); }} placeholder="Opcional" className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/30" />
@@ -569,26 +595,10 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
             <span className="text-[10px] uppercase tracking-[0.18em] text-white/42">Cidade</span>
             <input ref={cityInputRef} value={city} onChange={(event) => { setCity(event.target.value); setConfirmCreate(false); }} placeholder={homeContextCity || lastStationCity || "Derivada do contexto"} className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/30" required />
           </label>
-          {locationMode === "address" ? (
-            <label className="space-y-1 sm:col-span-2">
-              <span className="text-[10px] uppercase tracking-[0.18em] text-white/42">Referencia (opcional)</span>
-              <input value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Ex.: em frente ao mercado" className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/30" />
-            </label>
-          ) : null}
         </div>
 
         <input type="hidden" name="streetNumber" value={streetNumber} />
         <input type="hidden" name="reference" value={reference} />
-
-        {locationMode === "address" ? (
-          <div className="space-y-2 rounded-[16px] border border-white/10 bg-black/20 p-3">
-            <Button type="button" variant="secondary" className="w-full" disabled={isGeocoding || !street.trim() || !(city.trim() || homeContextCity || lastStationCity)} onClick={handleGeocodeAddress}>
-              {isGeocoding ? "Buscando endereco..." : "Geocodificar endereco"}
-            </Button>
-            {geocodeMessage ? <p className="text-xs text-white/72">{geocodeMessage}</p> : null}
-            {geocodeDisplayName ? <p className="text-[11px] text-white/52">Resultado: {geocodeDisplayName}</p> : null}
-          </div>
-        ) : null}
       </section>
 
       <section className="space-y-3 rounded-[24px] border border-white/8 bg-black/25 p-4">
