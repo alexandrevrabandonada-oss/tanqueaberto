@@ -12,6 +12,8 @@ interface StationLightEditFormProps {
   notice?: string;
   error?: string;
   returnToHref?: string;
+  duplicateMode?: boolean;
+  initialDuplicateOfStationId?: string | null;
 }
 
 function getBanner(notice?: string, error?: string) {
@@ -26,9 +28,10 @@ function getBanner(notice?: string, error?: string) {
   return null;
 }
 
-export function StationLightEditForm({ station, duplicateCandidates, notice, error, returnToHref }: StationLightEditFormProps) {
+export function StationLightEditForm({ station, duplicateCandidates, notice, error, returnToHref, duplicateMode = false, initialDuplicateOfStationId }: StationLightEditFormProps) {
   const banner = getBanner(notice, error);
   const publicName = getStationPublicName(station);
+  const preferredDuplicateOfStationId = initialDuplicateOfStationId ?? station.duplicateOfStationId ?? duplicateCandidates[0]?.stationId ?? "";
 
   return (
     <SectionCard className="space-y-4 border-white/8 bg-black/25">
@@ -40,6 +43,12 @@ export function StationLightEditForm({ station, duplicateCandidates, notice, err
         </div>
         <Badge variant="outline">station_editor</Badge>
       </div>
+
+      {duplicateMode ? (
+        <div className="rounded-[18px] border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-50">
+          Modo duplicidade ativo. Revise os parecidos, escolha o vinculo correto e salve com criterio.
+        </div>
+      ) : null}
 
       {banner ? <div className="rounded-[18px] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/74">{banner}</div> : null}
 
@@ -123,7 +132,7 @@ export function StationLightEditForm({ station, duplicateCandidates, notice, err
                 <span className="text-[10px] uppercase tracking-[0.18em] text-white/42">Vincular duplicado</span>
                 <select
                   name="duplicateOfStationId"
-                  defaultValue={station.duplicateOfStationId ?? duplicateCandidates[0]?.stationId ?? ""}
+                  defaultValue={preferredDuplicateOfStationId}
                   className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none"
                 >
                   <option value="">Não vincular</option>

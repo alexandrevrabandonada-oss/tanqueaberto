@@ -112,6 +112,9 @@ export default async function StationSeedPage({ searchParams }: StationSeedPageP
               <Link href={continueHref} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/80 hover:bg-white/10">
                 Cadastrar próximo
               </Link>
+              <Link href="/postos" className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/80 hover:bg-white/10">
+                Ver base existente
+              </Link>
               <Link href={backToCoverageHref} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/80 hover:bg-white/10">
                 Voltar para cobertura
               </Link>
@@ -124,7 +127,12 @@ export default async function StationSeedPage({ searchParams }: StationSeedPageP
 
         {notice === "invite_accepted" ? (
           <div className="rounded-[18px] border border-[color:var(--color-accent)]/22 bg-[color:var(--color-accent)]/10 px-4 py-3 text-sm text-white/78">
-            Convite confirmado. Sessao leve ativa neste aparelho para semeadura e edicao de postos.
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span>Convite confirmado. Sessao leve ativa neste aparelho para semeadura e edicao de postos.</span>
+              <Link href="/postos" className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white hover:bg-white/15">
+                Abrir base existente
+              </Link>
+            </div>
           </div>
         ) : null}
       </SectionCard>
@@ -151,6 +159,11 @@ export default async function StationSeedPage({ searchParams }: StationSeedPageP
       </SectionCard>
 
       <SectionCard className="space-y-3">
+        <div className="flex flex-wrap gap-2">
+          <Link href="/postos" className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/74 hover:bg-white/10">
+            Navegar na base existente
+          </Link>
+        </div>
         <div className="flex items-center gap-2">
           <TriangleAlert className="h-4 w-4 text-yellow-300" />
           <h2 className="text-base font-semibold text-white">Dica rápida</h2>

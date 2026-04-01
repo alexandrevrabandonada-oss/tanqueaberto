@@ -22,7 +22,7 @@ export function StationEditorInviteAcceptForm({ inviteToken = "", inviteCode = "
       return;
     }
 
-    router.replace("/postos/cadastrar?notice=invite_accepted");
+    router.replace("/postos?notice=invite_accepted");
     router.refresh();
   }, [router, state.success]);
 

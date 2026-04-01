@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 
 const initialState: AdminLoginState = { error: null, success: false, role: null };
 const ADMIN_ROUTE = "/admin" as Route;
-const STATION_EDITOR_ROUTE = "/postos/cadastrar" as Route;
+const STATION_EDITOR_ROUTE = "/postos" as Route;
 
 interface AdminLoginFormProps {
   notice?: string;

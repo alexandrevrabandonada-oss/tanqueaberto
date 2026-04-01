@@ -11,7 +11,7 @@ import { brand } from "@/styles/design-tokens";
 export const dynamic = "force-dynamic";
 
 const ADMIN_ROUTE = "/admin" as Route;
-const STATION_EDITOR_ROUTE = "/postos/cadastrar" as Route;
+const STATION_EDITOR_ROUTE = "/postos" as Route;
 
 interface AdminLoginPageProps {
   searchParams?: Promise<{

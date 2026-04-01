@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { Metadata } from "next";
+import type { Metadata, Route } from "next";
 import { notFound } from "next/navigation";
 import { ArrowLeft, PencilLine, ShieldCheck } from "lucide-react";
 
@@ -52,6 +52,10 @@ export default async function StationEditPage({ params, searchParams }: StationE
   }
 
   const banner = readBanner(resolvedSearchParams);
+  const rawReturnTo = typeof resolvedSearchParams.returnTo === "string" ? resolvedSearchParams.returnTo : "/postos";
+  const returnTo = rawReturnTo.startsWith("/postos") ? (rawReturnTo as Route) : ("/postos" as Route);
+  const duplicateMode = typeof resolvedSearchParams.mode === "string" && resolvedSearchParams.mode === "duplicate";
+  const initialDuplicateOfStationId = typeof resolvedSearchParams.duplicateOfStationId === "string" ? resolvedSearchParams.duplicateOfStationId : undefined;
   const publicName = getStationPublicName(station);
   const duplicateCandidates = getTerritorialDuplicateCandidates(station, catalog, 3);
   const stationAudit = audit.recent.filter((item) => item.stationId === station.id).slice(0, 3);
@@ -70,6 +74,12 @@ export default async function StationEditPage({ params, searchParams }: StationE
             {editor.role === "station_editor" ? "station_editor" : "admin"}
           </div>
         </div>
+
+        {duplicateMode ? (
+          <div className="rounded-[18px] border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-50">
+            Abrindo em modo duplicidade. A selecao de parecidos ja vem priorizada.
+          </div>
+        ) : null}
 
         {banner ? <div className="rounded-[18px] border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/74">{banner}</div> : null}
 
@@ -103,15 +113,15 @@ export default async function StationEditPage({ params, searchParams }: StationE
               <ArrowLeft className="h-4 w-4" />
               Abrir posto
             </Link>
-            <Link href="/admin/ops/station-editors" className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/74 hover:border-white/20 hover:bg-white/10">
+            <Link href={returnTo} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/74 hover:border-white/20 hover:bg-white/10">
               <PencilLine className="h-4 w-4" />
-              Painel station_editor
+              Voltar para lista
             </Link>
           </div>
         </div>
       </SectionCard>
 
-      <StationLightEditForm station={station} duplicateCandidates={duplicateCandidates} notice={typeof resolvedSearchParams.notice === "string" ? resolvedSearchParams.notice : undefined} error={typeof resolvedSearchParams.error === "string" ? resolvedSearchParams.error : undefined} />
+      <StationLightEditForm station={station} duplicateCandidates={duplicateCandidates} notice={typeof resolvedSearchParams.notice === "string" ? resolvedSearchParams.notice : undefined} error={typeof resolvedSearchParams.error === "string" ? resolvedSearchParams.error : undefined} returnToHref={returnTo} duplicateMode={duplicateMode} initialDuplicateOfStationId={initialDuplicateOfStationId} />
 
       <SectionCard className="space-y-3 border-white/8 bg-black/25">
         <div className="flex items-center gap-2">

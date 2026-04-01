@@ -42,9 +42,24 @@ function makeDiff(before: Record<string, unknown>, after: Record<string, unknown
   return diff;
 }
 
+
+function buildStationEditRedirect(stationId: string, params: Record<string, string | null | undefined>) {
+  const query = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(params)) {
+    if (value && value.trim()) {
+      query.set(key, value);
+    }
+  }
+
+  const suffix = query.toString();
+  return suffix ? (`/postos/${stationId}/editar?${suffix}` as Route) : (`/postos/${stationId}/editar` as Route);
+}
+
 export async function updateStationLightEditAction(formData: FormData) {
   const editor = await requireStationEditorUser();
   const stationId = String(formData.get("stationId") ?? "").trim();
+  const returnTo = getOptionalText(formData, "returnTo");
 
   if (!stationId) {
     redirect(`/admin/ops/station-editors?error=invalid_request` as Route);
@@ -52,7 +67,7 @@ export async function updateStationLightEditAction(formData: FormData) {
 
   const currentStation = await getStationById(stationId);
   if (!currentStation) {
-    redirect(`/postos/${stationId}/editar?error=station_not_found` as Route);
+    redirect(buildStationEditRedirect(stationId, { error: "station_not_found", returnTo }));
   }
 
   const nickname = getOptionalText(formData, "nickname");
@@ -64,11 +79,11 @@ export async function updateStationLightEditAction(formData: FormData) {
   const duplicateOfStationId = getOptionalText(formData, "duplicateOfStationId");
 
   if (!nickname) {
-    redirect(`/postos/${stationId}/editar?error=missing_nickname` as Route);
+    redirect(buildStationEditRedirect(stationId, { error: "missing_nickname", returnTo }));
   }
 
   if (duplicateOfStationId && duplicateOfStationId === stationId) {
-    redirect(`/postos/${stationId}/editar?error=invalid_duplicate` as Route);
+    redirect(buildStationEditRedirect(stationId, { error: "invalid_duplicate", returnTo }));
   }
 
   const nextLat = lat ?? currentStation.lat;
@@ -112,6 +127,10 @@ export async function updateStationLightEditAction(formData: FormData) {
   );
 
   const duplicateMatch = nextDuplicate ? duplicateCandidates.find((candidate) => candidate.stationId === nextDuplicate) ?? null : null;
+  if (nextDuplicate && !duplicateMatch) {
+    redirect(buildStationEditRedirect(stationId, { error: "invalid_duplicate", returnTo }));
+  }
+
   const proposalSignal = getStationProposalReviewSignal(
     {
       name: nextName,
@@ -197,7 +216,7 @@ export async function updateStationLightEditAction(formData: FormData) {
       reason: error.message,
       payload: { diff, duplicateOfStationId: nextDuplicate }
     });
-    redirect(`/postos/${stationId}/editar?error=save_failed` as Route);
+    redirect(buildStationEditRedirect(stationId, { error: "save_failed", returnTo }));
   }
 
   await recordStationLightEdit({
@@ -250,7 +269,7 @@ export async function updateStationLightEditAction(formData: FormData) {
   revalidatePath("/admin/ops/qualidade");
   revalidatePath("/admin");
 
-  redirect(`/postos/${stationId}/editar?notice=${status === "duplicate_linked" ? "duplicate_linked" : hasSensitiveChange ? "saved_review" : "saved"}` as Route);
+  redirect(buildStationEditRedirect(stationId, { notice: status === "duplicate_linked" ? "duplicate_linked" : hasSensitiveChange ? "saved_review" : "saved", returnTo }));
 }
 
 
