@@ -698,6 +698,8 @@ export async function grantStationEditorRoleAction(formData: FormData) {
     redirect(`${STATION_EDITOR_MANAGEMENT_ROUTE}?error=invalid_request` as Route);
   }
 
+  let nextRoute = `${STATION_EDITOR_MANAGEMENT_ROUTE}?notice=role_granted` as Route;
+
   try {
     const granted = await grantStationEditorRole(email);
 
@@ -725,7 +727,6 @@ export async function grantStationEditorRoleAction(formData: FormData) {
     revalidatePath("/admin");
     revalidatePath("/admin/ops");
     revalidatePath(STATION_EDITOR_MANAGEMENT_ROUTE);
-    redirect(`${STATION_EDITOR_MANAGEMENT_ROUTE}?notice=role_granted` as Route);
   } catch (error) {
     await recordOperationalEvent({
       eventType: "operational_action_executed",
@@ -736,8 +737,10 @@ export async function grantStationEditorRoleAction(formData: FormData) {
       reason: error instanceof Error ? error.message : "station_editor_grant_failed",
       payload: { email }
     });
-    redirect(`${STATION_EDITOR_MANAGEMENT_ROUTE}?error=grant_failed` as Route);
+    nextRoute = `${STATION_EDITOR_MANAGEMENT_ROUTE}?error=grant_failed` as Route;
   }
+
+  redirect(nextRoute);
 }
 
 export async function revokeStationEditorRoleAction(formData: FormData) {
@@ -747,6 +750,8 @@ export async function revokeStationEditorRoleAction(formData: FormData) {
   if (!email) {
     redirect(`${STATION_EDITOR_MANAGEMENT_ROUTE}?error=invalid_request` as Route);
   }
+
+  let nextRoute = `${STATION_EDITOR_MANAGEMENT_ROUTE}?notice=role_revoked` as Route;
 
   try {
     const revoked = await revokeStationEditorRole(email);
@@ -775,7 +780,6 @@ export async function revokeStationEditorRoleAction(formData: FormData) {
     revalidatePath("/admin");
     revalidatePath("/admin/ops");
     revalidatePath(STATION_EDITOR_MANAGEMENT_ROUTE);
-    redirect(`${STATION_EDITOR_MANAGEMENT_ROUTE}?notice=role_revoked` as Route);
   } catch (error) {
     await recordOperationalEvent({
       eventType: "operational_action_executed",
@@ -786,8 +790,10 @@ export async function revokeStationEditorRoleAction(formData: FormData) {
       reason: error instanceof Error ? error.message : "station_editor_revoke_failed",
       payload: { email }
     });
-    redirect(`${STATION_EDITOR_MANAGEMENT_ROUTE}?error=revoke_failed` as Route);
+    nextRoute = `${STATION_EDITOR_MANAGEMENT_ROUTE}?error=revoke_failed` as Route;
   }
+
+  redirect(nextRoute);
 }
 
 export async function createStationEditorInviteAction(formData: FormData) {
@@ -796,6 +802,8 @@ export async function createStationEditorInviteAction(formData: FormData) {
   const maxUsesRaw = String(formData.get("maxUses") ?? "").trim();
   const ttlHours = Number(ttlHoursRaw || "72");
   const maxUses = Number(maxUsesRaw || "1");
+
+  let nextRoute = `${STATION_EDITOR_MANAGEMENT_ROUTE}?notice=invite_created` as Route;
 
   try {
     const invite = await createStationEditorInvite({
@@ -837,7 +845,6 @@ export async function createStationEditorInviteAction(formData: FormData) {
     });
 
     revalidatePath(STATION_EDITOR_MANAGEMENT_ROUTE);
-    redirect(`${STATION_EDITOR_MANAGEMENT_ROUTE}?notice=invite_created` as Route);
   } catch (error) {
     const failure = resolveStationEditorInviteCreateFailure(error);
 
@@ -859,8 +866,10 @@ export async function createStationEditorInviteAction(formData: FormData) {
       }
     });
 
-    redirect(`${STATION_EDITOR_MANAGEMENT_ROUTE}?error=${failure.reason}` as Route);
+    nextRoute = `${STATION_EDITOR_MANAGEMENT_ROUTE}?error=${failure.reason}` as Route;
   }
+
+  redirect(nextRoute);
 }
 
 export async function revokeStationEditorInviteAction(formData: FormData) {
@@ -870,6 +879,8 @@ export async function revokeStationEditorInviteAction(formData: FormData) {
   if (!inviteId) {
     redirect(`${STATION_EDITOR_MANAGEMENT_ROUTE}?error=invalid_request` as Route);
   }
+
+  let nextRoute = `${STATION_EDITOR_MANAGEMENT_ROUTE}?notice=invite_revoked` as Route;
 
   try {
     const invite = await revokeStationEditorInvite({
@@ -906,7 +917,6 @@ export async function revokeStationEditorInviteAction(formData: FormData) {
     });
 
     revalidatePath(STATION_EDITOR_MANAGEMENT_ROUTE);
-    redirect(`${STATION_EDITOR_MANAGEMENT_ROUTE}?notice=invite_revoked` as Route);
   } catch (error) {
     await recordOperationalEvent({
       eventType: "station_editor_invite_revoke_failed",
@@ -917,8 +927,10 @@ export async function revokeStationEditorInviteAction(formData: FormData) {
       actorEmail: admin.email,
       reason: error instanceof Error ? error.message : "invite_revoke_failed"
     });
-    redirect(`${STATION_EDITOR_MANAGEMENT_ROUTE}?error=invite_revoke_failed` as Route);
+    nextRoute = `${STATION_EDITOR_MANAGEMENT_ROUTE}?error=invite_revoke_failed` as Route;
   }
+
+  redirect(nextRoute);
 }
 
 
