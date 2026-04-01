@@ -13,12 +13,19 @@ export interface StationEditorInviteAcceptState {
 
 const INITIAL_ERROR = "Nao foi possivel aceitar este convite agora.";
 
+function readBoolean(value: FormDataEntryValue | null) {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  return normalized === "1" || normalized === "true" || normalized === "on" || normalized === "yes";
+}
+
 function mapAcceptReason(reason: string | null) {
   if (reason === "missing_display_name") return "Informe um nome operacional curto.";
-  if (reason === "invite_not_found") return "Convite nao encontrado. Confira o link ou codigo.";
+  if (reason === "invite_not_found") return "Codigo ou link nao encontrado. Confira e tente novamente.";
   if (reason === "invite_revoked") return "Esse convite foi revogado pelo admin.";
   if (reason === "invite_expired") return "Esse convite expirou. Peça um novo convite.";
   if (reason === "invite_exhausted") return "Esse convite ja foi usado no limite.";
+  if (reason === "session_create_failed") return "Nao foi possivel criar sua sessao neste aparelho agora. Tente novamente em instantes.";
+  if (reason === "invite_claim_failed") return "Seu codigo foi reconhecido, mas a ativacao nao concluiu. Tente de novo para finalizar a sessao.";
   return INITIAL_ERROR;
 }
 
@@ -26,6 +33,7 @@ export async function acceptStationEditorInviteAction(_prevState: StationEditorI
   const displayName = String(formData.get("displayName") ?? "").trim();
   const inviteToken = String(formData.get("inviteToken") ?? "").trim();
   const inviteCode = String(formData.get("inviteCode") ?? "").trim();
+  const keepOnDevice = readBoolean(formData.get("keepOnDevice"));
   const headerStore = await headers();
   const userAgent = headerStore.get("user-agent") ?? null;
 
@@ -37,7 +45,8 @@ export async function acceptStationEditorInviteAction(_prevState: StationEditorI
     inviteToken: inviteToken || null,
     inviteCode: inviteCode || null,
     displayName,
-    userAgent
+    userAgent,
+    keepOnDevice
   });
 
   if (!accepted.ok || !accepted.session || !accepted.sessionToken) {

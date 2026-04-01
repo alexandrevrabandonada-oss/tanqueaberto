@@ -132,6 +132,9 @@ export interface StationEditorSession {
   inviteCode: string | null;
 }
 
+const DEFAULT_SESSION_TTL_DAYS = 30;
+const TRUSTED_DEVICE_SESSION_TTL_DAYS = 120;
+
 const FALLBACK_EVENT_TYPE = "station_editor_invite_state";
 const FALLBACK_SCOPE_TYPE = "station_editor_invite";
 
@@ -173,7 +176,7 @@ export function buildStationEditorInviteLink(inviteToken: string) {
 }
 
 function buildStationEditorInviteLinkFromCode(inviteCode: string) {
-  return `${resolveBaseUrl()}/convite/station-editor?code=${encodeURIComponent(inviteCode)}`;
+  return `${resolveBaseUrl()}/editor?code=${encodeURIComponent(inviteCode)}`;
 }
 
 function toEffectiveStatus(row: Pick<StationEditorInviteRow, "status" | "expires_at" | "revoked_at" | "use_count" | "max_uses" | "accepted_at">, now = Date.now()): StationEditorInviteStatus {
@@ -626,10 +629,12 @@ async function acceptStationEditorInviteFallback(input: {
   invite: OperationalEventInviteState;
   displayName: string;
   userAgent?: string | null;
+  keepOnDevice?: boolean;
 }) {
   const now = new Date().toISOString();
   const sessionId = randomUUID();
-  const sessionExpiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString();
+  const ttlDays = input.keepOnDevice ? TRUSTED_DEVICE_SESSION_TTL_DAYS : DEFAULT_SESSION_TTL_DAYS;
+  const sessionExpiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * ttlDays).toISOString();
   const nextUseCount = input.invite.useCount + 1;
   const nextStatus: StationEditorInviteStatus = nextUseCount >= input.invite.maxUses ? "aceito" : "pendente";
   const nextState: OperationalEventInviteState = {
@@ -692,11 +697,14 @@ export async function acceptStationEditorInvite(input: {
   inviteCode?: string | null;
   displayName: string;
   userAgent?: string | null;
+  keepOnDevice?: boolean;
 }) {
   const displayName = String(input.displayName ?? "").trim();
   if (displayName.length < 2) {
     return { ok: false as const, reason: "missing_display_name" as const, invite: null, sessionToken: null, session: null };
   }
+
+  const keepOnDevice = Boolean(input.keepOnDevice);
 
   const directInvite = await findInviteByTokenOrCode({ inviteToken: input.inviteToken, inviteCode: input.inviteCode });
   const fallbackInvite = directInvite ? null : await findFallbackInviteByTokenOrCode({ inviteToken: input.inviteToken, inviteCode: input.inviteCode });
@@ -730,7 +738,8 @@ export async function acceptStationEditorInvite(input: {
     const now = new Date().toISOString();
     const sessionToken = randomBytes(24).toString("base64url");
     const sessionTokenHash = hashSessionToken(sessionToken);
-    const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString();
+    const ttlDays = keepOnDevice ? TRUSTED_DEVICE_SESSION_TTL_DAYS : DEFAULT_SESSION_TTL_DAYS;
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * ttlDays).toISOString();
 
     const { data: sessionInsert, error: sessionError } = await supabase
       .from("station_editor_sessions")
@@ -752,7 +761,7 @@ export async function acceptStationEditorInvite(input: {
       if (sessionError && !isSchemaMissingOrPartialError(sessionError)) {
         return { ok: false as const, reason: "session_create_failed" as const, invite: mapInvite(directInvite), sessionToken: null, session: null };
       }
-      return acceptStationEditorInviteFallback({ invite, displayName, userAgent: input.userAgent });
+      return acceptStationEditorInviteFallback({ invite, displayName, userAgent: input.userAgent, keepOnDevice });
     }
 
     const nextUseCount = directInvite.use_count + 1;
@@ -777,7 +786,7 @@ export async function acceptStationEditorInvite(input: {
     if (inviteError || !inviteUpdate) {
       await supabase.from("station_editor_sessions").delete().eq("id", sessionInsert.id);
       if (inviteError && isSchemaMissingOrPartialError(inviteError)) {
-        return acceptStationEditorInviteFallback({ invite, displayName, userAgent: input.userAgent });
+        return acceptStationEditorInviteFallback({ invite, displayName, userAgent: input.userAgent, keepOnDevice });
       }
       return { ok: false as const, reason: "invite_claim_failed" as const, invite: mapInvite(directInvite), sessionToken: null, session: null };
     }
@@ -798,7 +807,7 @@ export async function acceptStationEditorInvite(input: {
     };
   }
 
-  return acceptStationEditorInviteFallback({ invite, displayName, userAgent: input.userAgent });
+  return acceptStationEditorInviteFallback({ invite, displayName, userAgent: input.userAgent, keepOnDevice });
 }
 
 export async function getStationEditorSessionByToken(token: string | null | undefined): Promise<StationEditorSession | null> {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect } from "react";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -11,9 +12,14 @@ const initialState: StationEditorInviteAcceptState = { success: false, error: nu
 interface StationEditorInviteAcceptFormProps {
   inviteToken?: string;
   inviteCode?: string;
+  successRedirectTo?: string;
 }
 
-export function StationEditorInviteAcceptForm({ inviteToken = "", inviteCode = "" }: StationEditorInviteAcceptFormProps) {
+export function StationEditorInviteAcceptForm({
+  inviteToken = "",
+  inviteCode = "",
+  successRedirectTo = "/editor?notice=invite_accepted"
+}: StationEditorInviteAcceptFormProps) {
   const [state, formAction, pending] = useActionState(acceptStationEditorInviteAction, initialState);
   const router = useRouter();
 
@@ -22,9 +28,9 @@ export function StationEditorInviteAcceptForm({ inviteToken = "", inviteCode = "
       return;
     }
 
-    router.replace("/postos?notice=invite_accepted");
+    router.replace(successRedirectTo as Route);
     router.refresh();
-  }, [router, state.success]);
+  }, [router, state.success, successRedirectTo]);
 
   return (
     <form action={formAction} className="space-y-4">
@@ -57,11 +63,26 @@ export function StationEditorInviteAcceptForm({ inviteToken = "", inviteCode = "
         />
       </label>
 
+      <label className="flex items-start gap-2 rounded-[16px] border border-white/10 bg-black/25 px-3 py-3">
+        <input
+          name="keepOnDevice"
+          type="checkbox"
+          value="1"
+          defaultChecked
+          className="mt-0.5 h-4 w-4 rounded border-white/20 bg-black/40 text-[color:var(--color-accent)]"
+        />
+        <span className="text-xs text-white/72">
+          Manter neste aparelho confiavel para entrar sem codigo por mais tempo.
+        </span>
+      </label>
+
       {state.error ? <div className="rounded-[16px] border border-white/12 bg-white/5 px-3 py-2 text-sm text-white/76">{state.error}</div> : null}
 
       <Button type="submit" className="w-full" disabled={pending}>
         {pending ? "Entrando..." : "Entrar como station_editor"}
       </Button>
+
+      <p className="text-[11px] text-white/44">Se o admin revogar o convite ou encerrar seu acesso, esta sessao deixa de funcionar neste aparelho.</p>
     </form>
   );
 }

@@ -10,8 +10,8 @@ export default async function ShortInvitePage({ params }: ShortInvitePageProps) 
   const safeToken = token.trim();
 
   if (!safeToken) {
-    redirect("/convite/station-editor" as Route);
+    redirect("/editor" as Route);
   }
 
-  redirect(`/convite/station-editor?token=${encodeURIComponent(safeToken)}` as Route);
+  redirect(`/editor?token=${encodeURIComponent(safeToken)}` as Route);
 }

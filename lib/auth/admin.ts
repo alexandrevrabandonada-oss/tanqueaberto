@@ -13,7 +13,7 @@ export interface AdminUser {
 }
 
 const ADMIN_LOGIN_ROUTE = "/admin/login" as Route;
-const STATION_EDITOR_LOGIN_ROUTE = "/admin/login?target=postos" as Route;
+const STATION_EDITOR_LOGIN_ROUTE = "/editor" as Route;
 
 async function lookupAdminUser(email: string) {
   const supabase = await createSupabaseServerClient();
@@ -115,5 +115,5 @@ export async function requireStationEditorUser() {
   }
 
   await clearStationEditorSessionCookie();
-  redirect(`${STATION_EDITOR_LOGIN_ROUTE}&error=session_expired` as Route);
+  redirect(`${STATION_EDITOR_LOGIN_ROUTE}?error=session_expired` as Route);
 }

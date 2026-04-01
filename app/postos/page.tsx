@@ -1,11 +1,11 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import type { Route } from "next";
+import { redirect } from "next/navigation";
 import { MapPinPlus, PencilLine, Search, ShieldCheck, TriangleAlert } from "lucide-react";
 
 import { getCurrentAdminUser } from "@/lib/auth/admin";
 import { getStationEditorSessionFromCookie } from "@/lib/auth/station-editor-session";
-import { StationEditorInviteAcceptForm } from "@/components/station/station-editor-invite-accept-form";
 import { getStationEditorStationList } from "@/lib/ops/station-editor-station-list";
 import { SectionCard } from "@/components/ui/section-card";
 import { Badge } from "@/components/ui/badge";
@@ -75,34 +75,11 @@ export default async function StationManagerPage({ searchParams }: StationManage
   const inviteCode = readString(resolvedSearchParams, "code");
 
   if (!hasEditorAccess(currentAdmin, lightSession)) {
-    return (
-      <div className="mx-auto flex min-h-screen w-full max-w-md items-center px-4 py-6">
-        <div className="w-full space-y-4">
-          <SectionCard className="space-y-4">
-            <div className="flex items-center gap-3">
-              <ShieldCheck className="h-10 w-10 text-[color:var(--color-accent)]" />
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-white/42">Acesso de campo</p>
-                <h1 className="text-2xl font-semibold text-white">Station editor</h1>
-              </div>
-            </div>
-            <p className="text-sm text-white/64">Recebeu convite leve? Confirme o codigo e o nome operacional para entrar direto na lista e na edicao leve. Nao precisa login do admin.</p>
-            {inviteToken || inviteCode ? <div className="rounded-[16px] border border-[color:var(--color-accent)]/25 bg-[color:var(--color-accent)]/12 px-3 py-2 text-xs text-white/80">Convite detectado. Preencha os dados abaixo para ativar a sessao leve neste aparelho.</div> : null}
-          </SectionCard>
-
-          <SectionCard className="space-y-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Entrar sem login</p>
-              <h2 className="mt-1 text-xl font-semibold text-white">Ativar acesso leve</h2>
-            </div>
-
-            <StationEditorInviteAcceptForm inviteToken={inviteToken} inviteCode={inviteCode} />
-
-            <p className="text-xs text-white/48">Se voce recebeu o link por WhatsApp, ele deve abrir esta tela com token e codigo preenchidos. Depois de aceitar, a lista operacional aparece automaticamente em /postos.</p>
-          </SectionCard>
-        </div>
-      </div>
-    );
+    const next = new URLSearchParams();
+    if (inviteToken) next.set("token", inviteToken);
+    if (inviteCode) next.set("code", inviteCode);
+    const suffix = next.toString();
+    redirect((suffix ? `/editor?${suffix}` : "/editor") as Route);
   }
 
   const q = readString(resolvedSearchParams, "q");
