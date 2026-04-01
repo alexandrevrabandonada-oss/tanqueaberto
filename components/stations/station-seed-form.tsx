@@ -1,9 +1,11 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Route } from "next";
-import { LocateFixed, MapPin, Search, ShieldCheck } from "lucide-react";
+import { LocateFixed, MapPin, MapPinned, Navigation, Search, ShieldCheck } from "lucide-react";
+import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import L from "leaflet";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +17,7 @@ import { useGeolocation } from "@/hooks/use-geolocation";
 import { getStationPublicName } from "@/lib/quality/stations";
 import { trackProductEvent } from "@/lib/telemetry/client";
 
-import { createStationSeedAction, type StationSeedState } from "@/app/postos/cadastrar/actions";
+import { createStationSeedAction, geocodeStationSeedAddressAction, type StationSeedState } from "@/app/postos/cadastrar/actions";
 
 const initialState: StationSeedState = { error: null, success: false, createdStationId: null };
 
@@ -33,6 +35,58 @@ interface CandidateStation {
   score: number;
   reason: string;
   distance: number | null;
+}
+
+type LocationMode = "gps" | "address";
+
+const seedPinIcon = new L.DivIcon({
+  className: "custom-map-pin",
+  html: '<div class="map-pin-dot map-pin-dot--recent"></div>',
+  iconSize: [18, 18],
+  iconAnchor: [9, 9]
+});
+
+function MapCenter({ center }: { center: { lat: number; lng: number } }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView([center.lat, center.lng], 16);
+  }, [center.lat, center.lng, map]);
+  return null;
+}
+
+function DraggableSeedMarker({
+  position,
+  onChange
+}: {
+  position: { lat: number; lng: number };
+  onChange: (next: { lat: number; lng: number }) => void;
+}) {
+  const [draggable, setDraggable] = useState(true);
+  const markerRef = useRef<L.Marker | null>(null);
+
+  useMapEvents({
+    click(event) {
+      onChange({ lat: event.latlng.lat, lng: event.latlng.lng });
+    }
+  });
+
+  return (
+    <Marker
+      draggable={draggable}
+      icon={seedPinIcon}
+      position={[position.lat, position.lng]}
+      ref={markerRef}
+      eventHandlers={{
+        dragend: () => {
+          const marker = markerRef.current;
+          if (!marker) return;
+          const point = marker.getLatLng();
+          onChange({ lat: point.lat, lng: point.lng });
+        },
+        dblclick: () => setDraggable((value) => !value)
+      }}
+    />
+  );
 }
 
 function normalize(value: string) {
@@ -133,17 +187,25 @@ function SeedDuplicateCard({ candidate, onUseExisting }: { candidate: CandidateS
 export function StationSeedForm({ stations, notice, initialCity, initialNeighborhood, seedOrigin }: StationSeedFormProps) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(createStationSeedAction, initialState);
+  const [isGeocoding, startGeocoding] = useTransition();
   const { coords, accuracy, loading, error, errorCode, getLocation } = useGeolocation();
+  const [locationMode, setLocationMode] = useState<LocationMode>("gps");
   const [homeContextCity, setHomeContextCity] = useState("");
   const [lastStationCity, setLastStationCity] = useState("");
   const [nickname, setNickname] = useState("");
   const [brand, setBrand] = useState("");
   const [street, setStreet] = useState("");
+  const [streetNumber, setStreetNumber] = useState("");
+  const [reference, setReference] = useState("");
   const [neighborhood, setNeighborhood] = useState(initialNeighborhood?.trim() ?? "");
   const [officialName, setOfficialName] = useState("");
   const [city, setCity] = useState(initialCity?.trim() ?? "");
   const [lat, setLat] = useState("");
   const [lng, setLng] = useState("");
+  const [locationConfirmed, setLocationConfirmed] = useState(false);
+  const [geocodeConfidence, setGeocodeConfidence] = useState<"high" | "medium" | "low" | "">("");
+  const [geocodeDisplayName, setGeocodeDisplayName] = useState("");
+  const [geocodeMessage, setGeocodeMessage] = useState<string | null>(null);
   const [confirmCreate, setConfirmCreate] = useState(false);
   const nicknameInputRef = useRef<HTMLInputElement | null>(null);
   const cityInputRef = useRef<HTMLInputElement | null>(null);
@@ -167,9 +229,13 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
       return;
     }
 
+    if (locationMode !== "gps") {
+      return;
+    }
+
     setLat((value) => value || coords.lat.toFixed(6));
     setLng((value) => value || coords.lng.toFixed(6));
-  }, [coords]);
+  }, [coords, locationMode]);
 
 
   useEffect(() => {
@@ -260,27 +326,84 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
     return "Sem GPS";
   }, [accuracy, coords, error, errorCode, loading]);
 
+  const currentCoords = useMemo(() => {
+    const parsedLat = Number(lat.replace(",", "."));
+    const parsedLng = Number(lng.replace(",", "."));
+    return Number.isFinite(parsedLat) && Number.isFinite(parsedLng)
+      ? { lat: parsedLat, lng: parsedLng }
+      : coords;
+  }, [coords, lat, lng]);
+
   const duplicateCandidates = useMemo(() => {
     const input = { nickname, brand, street, neighborhood, officialName, city };
-    const currentCoords = coords;
 
     return stations
       .map((station) => scoreCandidate(station, input, currentCoords))
       .filter((candidate): candidate is CandidateStation => candidate !== null)
       .sort((left, right) => right.score - left.score)
       .slice(0, 3);
-  }, [brand, city, coords, neighborhood, nickname, officialName, stations, street]);
+  }, [brand, city, currentCoords, neighborhood, nickname, officialName, stations, street]);
 
   useEffect(() => {
     latestSnapshotRef.current = {
       nickname: nickname.trim(),
       city: (city || homeContextCity || lastStationCity).trim(),
       duplicateCount: duplicateCandidates.length,
-      hasCoords: Boolean(coords)
+      hasCoords: Boolean(currentCoords)
     };
-  }, [city, coords, duplicateCandidates.length, homeContextCity, lastStationCity, nickname]);
+  }, [city, currentCoords, duplicateCandidates.length, homeContextCity, lastStationCity, nickname]);
 
-  const canCreateNew = Boolean(nickname.trim() && (city.trim() || homeContextCity || lastStationCity));
+  const hasRequiredAddress = Boolean(street.trim() && (city.trim() || homeContextCity || lastStationCity));
+  const canCreateNew = Boolean(
+    nickname.trim()
+      && (city.trim() || homeContextCity || lastStationCity)
+      && (locationMode === "gps" || (hasRequiredAddress && currentCoords && locationConfirmed))
+  );
+
+  const hasLowGeocodeConfidence = geocodeConfidence === "low";
+
+  function handleLocationModeChange(nextMode: LocationMode) {
+    setLocationMode(nextMode);
+    setLocationConfirmed(false);
+    setConfirmCreate(false);
+    if (nextMode === "gps") {
+      setGeocodeMessage(null);
+    }
+  }
+
+  function handleMapPointChange(next: { lat: number; lng: number }) {
+    setLat(next.lat.toFixed(6));
+    setLng(next.lng.toFixed(6));
+    setLocationConfirmed(false);
+  }
+
+  function handleGeocodeAddress() {
+    startGeocoding(async () => {
+      const payload = new FormData();
+      payload.set("nickname", nickname);
+      payload.set("street", street);
+      payload.set("streetNumber", streetNumber);
+      payload.set("neighborhood", neighborhood);
+      payload.set("city", city || homeContextCity || lastStationCity);
+
+      const result = await geocodeStationSeedAddressAction(payload);
+      if (!result.ok || result.lat === null || result.lng === null) {
+        setGeocodeMessage(result.error ?? "Nao foi possivel localizar esse endereco.");
+        setLocationConfirmed(false);
+        return;
+      }
+
+      setLat(result.lat.toFixed(6));
+      setLng(result.lng.toFixed(6));
+      setGeocodeConfidence(result.confidence ?? "");
+      setGeocodeDisplayName(result.displayName ?? "");
+      setGeocodeMessage(result.confidence === "low"
+        ? "Endereco encontrado com confianca baixa. Ajuste o pin e siga para revisao."
+        : "Endereco localizado. Ajuste o pin se necessario e confirme o ponto.");
+      setLocationConfirmed(false);
+      setConfirmCreate(false);
+    });
+  }
 
   function handleUseExisting(station: Station) {
     void trackProductEvent({
@@ -300,6 +423,10 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
   return (
     <form action={formAction} onSubmit={() => { hasSubmittedRef.current = true; }} className="space-y-4">
       <input type="hidden" name="source" value="station_editor" />
+      <input type="hidden" name="locationMode" value={locationMode} />
+      <input type="hidden" name="locationConfirmed" value={locationConfirmed ? "1" : "0"} />
+      <input type="hidden" name="geocodeConfidence" value={geocodeConfidence} />
+      <input type="hidden" name="geocodeDisplayName" value={geocodeDisplayName} />
       <input type="hidden" name="accuracy" value={accuracy ?? ""} />
       <input type="hidden" name="lat" value={lat} />
       <input type="hidden" name="lng" value={lng} />
@@ -331,24 +458,30 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
         <section className="space-y-3 rounded-[24px] border border-white/8 bg-black/25 p-4">
           <div className="flex items-center gap-2">
             <LocateFixed className="h-4 w-4 text-[color:var(--color-accent)]" />
-            <h2 className="text-base font-semibold text-white">Local atual</h2>
+            <h2 className="text-base font-semibold text-white">Como localizar o posto</h2>
           </div>
-          <p className="text-sm text-white/58">{locationStatus}</p>
+          <div className="grid gap-2">
+            <button type="button" onClick={() => handleLocationModeChange("gps")} className={cn("rounded-[16px] border px-3 py-2 text-left text-sm", locationMode === "gps" ? "border-[color:var(--color-accent)]/45 bg-[color:var(--color-accent)]/12 text-white" : "border-white/10 bg-black/20 text-white/74")}>Usar GPS atual</button>
+            <button type="button" onClick={() => handleLocationModeChange("address")} className={cn("rounded-[16px] border px-3 py-2 text-left text-sm", locationMode === "address" ? "border-[color:var(--color-accent)]/45 bg-[color:var(--color-accent)]/12 text-white" : "border-white/10 bg-black/20 text-white/74")}>Informar endereco</button>
+          </div>
+          <p className="text-sm text-white/58">{locationMode === "gps" ? locationStatus : "Digite endereco curto, geocodifique e confirme o pin no mapa."}</p>
           <div className="flex flex-wrap gap-2 text-[11px] text-white/54">
-            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">{coords ? "GPS ligado" : "GPS desligado"}</span>
-            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">{coords ? `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}` : "Sem coordenada"}</span>
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">{currentCoords ? "Com coordenada" : "Sem coordenada"}</span>
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">{currentCoords ? `${currentCoords.lat.toFixed(5)}, ${currentCoords.lng.toFixed(5)}` : "Sem ponto"}</span>
           </div>
-          <Button type="button" variant="secondary" className="w-full" onClick={getLocation}>
-            {loading ? "Buscando..." : coords ? "Atualizar GPS" : "Usar GPS agora"}
-          </Button>
+          {locationMode === "gps" ? (
+            <Button type="button" variant="secondary" className="w-full" onClick={getLocation}>
+              {loading ? "Buscando..." : coords ? "Atualizar GPS" : "Usar GPS agora"}
+            </Button>
+          ) : null}
         </section>
 
         <section className="space-y-3 rounded-[24px] border border-white/8 bg-black/25 p-4">
           <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-[color:var(--color-accent)]" />
-            <h2 className="text-base font-semibold text-white">Ajuste do local</h2>
+            <MapPinned className="h-4 w-4 text-[color:var(--color-accent)]" />
+            <h2 className="text-base font-semibold text-white">Ajuste do ponto</h2>
           </div>
-          <p className="text-sm text-white/58">Se precisar, mova o ponto com coordenadas simples. Se nao, siga com o GPS.</p>
+          <p className="text-sm text-white/58">Coordenadas finais usadas no cadastro. No modo endereco, confirme o pin antes de salvar.</p>
           <div className="grid gap-2 sm:grid-cols-2">
             <label className="space-y-1">
               <span className="text-[10px] uppercase tracking-[0.18em] text-white/42">Latitude</span>
@@ -359,7 +492,27 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
               <input value={lng} onChange={(event) => setLng(event.target.value)} inputMode="decimal" placeholder="-44.1" className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/30" />
             </label>
           </div>
-          <div className="rounded-[18px] border border-white/8 bg-black/20 px-3 py-2 text-xs text-white/54">Ajuste simples. Depois, a fila de curadoria decide se entra ativo ou em revisao.</div>
+          <div className="rounded-[18px] border border-white/8 bg-black/20 px-3 py-2 text-xs text-white/54">Toque no mapa para reposicionar rapidamente, ou arraste o pin.</div>
+
+          {locationMode === "address" && currentCoords ? (
+            <div className="space-y-2">
+              <div className="h-52 overflow-hidden rounded-[18px] border border-white/10">
+                <MapContainer center={[currentCoords.lat, currentCoords.lng]} zoom={16} scrollWheelZoom={false} className="h-full w-full">
+                  <TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                  <MapCenter center={currentCoords} />
+                  <DraggableSeedMarker position={currentCoords} onChange={handleMapPointChange} />
+                </MapContainer>
+              </div>
+              <Button type="button" variant={locationConfirmed ? "primary" : "secondary"} className="w-full" onClick={() => setLocationConfirmed((value) => !value)}>
+                <Navigation className="h-4 w-4" />
+                {locationConfirmed ? "Ponto confirmado" : "Confirmar este ponto no mapa"}
+              </Button>
+            </div>
+          ) : null}
+
+          {locationMode === "address" && !currentCoords ? (
+            <div className="rounded-[18px] border border-yellow-400/20 bg-yellow-400/10 px-3 py-2 text-xs text-yellow-50">Busque um endereco para visualizar e confirmar o pin.</div>
+          ) : null}
         </section>
       </div>
 
@@ -398,6 +551,12 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
             <span className="text-[10px] uppercase tracking-[0.18em] text-white/42">Rua / trecho</span>
             <input value={street} onChange={(event) => { setStreet(event.target.value); setConfirmCreate(false); }} placeholder="Opcional" className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/30" />
           </label>
+          {locationMode === "address" ? (
+            <label className="space-y-1">
+              <span className="text-[10px] uppercase tracking-[0.18em] text-white/42">Numero</span>
+              <input value={streetNumber} onChange={(event) => { setStreetNumber(event.target.value); setConfirmCreate(false); }} placeholder="Ex.: 245" className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/30" />
+            </label>
+          ) : null}
           <label className="space-y-1">
             <span className="text-[10px] uppercase tracking-[0.18em] text-white/42">Bairro</span>
             <input value={neighborhood} onChange={(event) => { setNeighborhood(event.target.value); setConfirmCreate(false); }} placeholder="Opcional" className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/30" />
@@ -410,7 +569,26 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
             <span className="text-[10px] uppercase tracking-[0.18em] text-white/42">Cidade</span>
             <input ref={cityInputRef} value={city} onChange={(event) => { setCity(event.target.value); setConfirmCreate(false); }} placeholder={homeContextCity || lastStationCity || "Derivada do contexto"} className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/30" required />
           </label>
+          {locationMode === "address" ? (
+            <label className="space-y-1 sm:col-span-2">
+              <span className="text-[10px] uppercase tracking-[0.18em] text-white/42">Referencia (opcional)</span>
+              <input value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Ex.: em frente ao mercado" className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/30" />
+            </label>
+          ) : null}
         </div>
+
+        <input type="hidden" name="streetNumber" value={streetNumber} />
+        <input type="hidden" name="reference" value={reference} />
+
+        {locationMode === "address" ? (
+          <div className="space-y-2 rounded-[16px] border border-white/10 bg-black/20 p-3">
+            <Button type="button" variant="secondary" className="w-full" disabled={isGeocoding || !street.trim() || !(city.trim() || homeContextCity || lastStationCity)} onClick={handleGeocodeAddress}>
+              {isGeocoding ? "Buscando endereco..." : "Geocodificar endereco"}
+            </Button>
+            {geocodeMessage ? <p className="text-xs text-white/72">{geocodeMessage}</p> : null}
+            {geocodeDisplayName ? <p className="text-[11px] text-white/52">Resultado: {geocodeDisplayName}</p> : null}
+          </div>
+        ) : null}
       </section>
 
       <section className="space-y-3 rounded-[24px] border border-white/8 bg-black/25 p-4">
@@ -439,12 +617,18 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
             <p className="text-xs uppercase tracking-[0.2em] text-white/42">Saida</p>
             <h2 className="mt-1 text-base font-semibold text-white">Salvar agora ou revisar</h2>
           </div>
-          <Badge variant={coords ? "accent" : "warning"}>{coords ? "Com geo" : "Sem geo"}</Badge>
+          <Badge variant={currentCoords ? "accent" : "warning"}>{currentCoords ? "Com geo" : "Sem geo"}</Badge>
         </div>
 
-        <div className={cn("rounded-[18px] border px-4 py-3 text-sm", coords ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-50" : "border-yellow-400/20 bg-yellow-400/10 text-yellow-50")}>
-          {coords ? "Com sinal bom, o posto pode entrar ativo. Se faltar sinal, ele fica para revisao." : "Sem geo forte, o posto vai para revisao antes de aparecer para todo mundo."}
+        <div className={cn("rounded-[18px] border px-4 py-3 text-sm", currentCoords && !hasLowGeocodeConfidence ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-50" : "border-yellow-400/20 bg-yellow-400/10 text-yellow-50")}>
+          {currentCoords && !hasLowGeocodeConfidence
+            ? "Com sinal bom, o posto pode entrar ativo."
+            : hasLowGeocodeConfidence
+              ? "Geocoding com confianca baixa: o posto vai para revisao manual."
+              : "Sem geo forte, o posto vai para revisao antes de aparecer para todo mundo."}
         </div>
+
+        {locationMode === "address" && !locationConfirmed ? <p className="text-[11px] text-white/46">Confirme o local no mapa para concluir o cadastro por endereco.</p> : null}
 
         <input type="hidden" name="confirmCreate" value={confirmCreate ? "1" : "0"} />
         <div className="flex flex-col gap-2 sm:flex-row">

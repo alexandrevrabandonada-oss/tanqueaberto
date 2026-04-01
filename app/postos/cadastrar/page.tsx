@@ -154,7 +154,7 @@ export default async function StationSeedPage({ searchParams }: StationSeedPageP
           <MapPinPlus className="h-5 w-5 text-[color:var(--color-accent)]" />
           <h2 className="text-xl font-semibold text-white">Novo posto</h2>
         </div>
-        <p className="text-sm text-white/56">Use o GPS quando houver. Se não houver, siga com o mínimo e deixe a curadoria fechar o resto.</p>
+        <p className="text-sm text-white/56">Use GPS atual ou informe endereco curto para geocodificar, ajustar o pin e confirmar o local antes de salvar.</p>
         <StationSeedForm stations={stations} notice={notice} initialCity={city} initialNeighborhood={neighborhood} seedOrigin={seedOrigin} />
       </SectionCard>
 
