@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { assembleStationWithReports, groupReportsByStation, mapReportRow, mapReportsWithStations, mapStationRow } from "@/lib/data/mappers";
 import { getReportPriorityScore } from "@/lib/ops/moderation-priority";
 import { isPreviewFixturesEnabled, getPreviewApprovedReportsSince, getPreviewRecentCount, getPreviewRecentFeed, getPreviewStations, getPreviewStationById } from "@/lib/dev/preview-data";
@@ -266,7 +267,7 @@ async function getAdminStations() {
 }
 
 export async function getModerationReports(status: ReportStatus | "all" = "pending", limit = 24): Promise<ReportWithStation[]> {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient();
   let query = supabase
     .from("price_reports")
     .select("id,station_id,fuel_type,price,photo_url,photo_taken_at,reported_at,created_at,reporter_nickname,status,moderation_note")
@@ -297,15 +298,19 @@ export async function getModerationReports(status: ReportStatus | "all" = "pendi
     const nicknames = Array.from(new Set(collectorKeys.map(k => k.nickname)));
     const ipHashes = Array.from(new Set(collectorKeys.map(k => k.ip_hash)));
 
-    const { data: trustData } = await supabase
-      .from("collector_trust")
-      .select("nickname,ip_hash,score,trust_stage")
-      .or(`nickname.in.(${nicknames.map(n => `"${n}"`).join(",")}),ip_hash.in.(${ipHashes.map(h => `"${h}"`).join(",")})`);
+    try {
+      const { data: trustData } = await supabase
+        .from("collector_trust")
+        .select("nickname,ip_hash,score,trust_stage")
+        .or(`nickname.in.(${nicknames.map(n => `"${n}"`).join(",")}),ip_hash.in.(${ipHashes.map(h => `"${h}"`).join(",")})`);
 
-    if (trustData) {
-      for (const t of trustData) {
-        trustMap.set(`${t.nickname}:${t.ip_hash}`, { score: t.score, stage: t.trust_stage });
+      if (trustData) {
+        for (const t of trustData) {
+          trustMap.set(`${t.nickname}:${t.ip_hash}`, { score: t.score, stage: t.trust_stage });
+        }
       }
+    } catch {
+      // collector_trust table may not exist in production yet
     }
   }
 
@@ -346,7 +351,7 @@ export async function getPendingReports(): Promise<ReportWithStation[]> {
 export async function getReportsByIds(ids: string[]): Promise<PriceReport[]> {
   if (ids.length === 0) return [];
 
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient();
   const { data, error } = await supabase
     .from("price_reports")
     .select("id,station_id,fuel_type,price,photo_url,photo_taken_at,reported_at,created_at,reporter_nickname,status,moderation_note")
@@ -361,7 +366,7 @@ export async function getReportsByIds(ids: string[]): Promise<PriceReport[]> {
 }
 
 export async function getModerationCounts() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient();
   const { data, error } = await supabase.from("price_reports").select("status").order("created_at", { ascending: false });
 
   if (error || !data) {
@@ -374,9 +379,10 @@ export async function getModerationCounts() {
     };
   }
 
-  return data.reduce(
-    (acc, item) => {
-      acc[item.status as keyof typeof acc] += 1;
+  type StatusCounts = { pending: number; approved: number; rejected: number; flagged: number };
+  return (data as { status: string }[]).reduce(
+    (acc: StatusCounts, item) => {
+      acc[item.status as keyof StatusCounts] += 1;
       return acc;
     },
     {

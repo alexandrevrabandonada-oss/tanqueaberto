@@ -8,6 +8,7 @@ import { recordAdminActionLog, recordOperationalEvent } from "@/lib/ops/logs";
 import { recordPriceReportAuditEvent } from "@/lib/audit/events";
 import { requireAdminUser } from "@/lib/auth/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { updateCollectorScore } from "@/lib/ops/collector-trust";
 import { mapStationRow } from "@/lib/data/mappers";
 import { canPromoteStationToMap } from "@/lib/ops/territorial-curation";
@@ -196,12 +197,12 @@ export async function signOutAdminAction() {
 
 async function moderateReports(reportIds: string[], decision: "approved" | "rejected", moderationNote?: string) {
   const admin = await requireAdminUser();
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient();
 
   const { data: reports, error: reportError } = await supabase
     .from("price_reports")
-    .select("id,station_id,version,fuel_type,price,reported_at,reporter_nickname,ip_hash,metadata,location_confidence")
-    .in("id", reportIds);
+    .select("id,station_id,fuel_type,price,reported_at,reporter_nickname,status,moderation_note")
+    .in("id", reportIds) as { data: { id: string; station_id: string; fuel_type: string; price: number; reported_at: string; reporter_nickname: string | null; status: string; moderation_note: string | null }[] | null; error: any };
 
   if (reportError || !reports || reports.length === 0) {
     redirect(ADMIN_ROUTE);
@@ -211,7 +212,6 @@ async function moderateReports(reportIds: string[], decision: "approved" | "reje
 
   const now = new Date().toISOString();
   const note = moderationNote?.trim() || normalizeNotice(decision);
-  const nextVersion = (report.version ?? 1) + 1;
 
   const { error } = await supabase
     .from("price_reports")
@@ -251,13 +251,12 @@ async function moderateReports(reportIds: string[], decision: "approved" | "reje
   // Update collector trust score for each report moderated
   try {
     const trustUpdates = reports.map((r) => {
-      const metadata = (r.metadata as any) || {};
-      return updateCollectorScore(r.reporter_nickname, r.ip_hash, {
+      return updateCollectorScore(r.reporter_nickname, null, {
         action: decision === "approved" ? "approve" : "reject",
         reason: note,
-        photoQuality: metadata.quality_score,
-        locationConfidence: r.location_confidence as any,
-        isConsistencyBonus: false // Could be calculated comparing with history
+        photoQuality: undefined,
+        locationConfidence: undefined,
+        isConsistencyBonus: false
       });
     });
     await Promise.all(trustUpdates);
@@ -277,7 +276,6 @@ async function moderateReports(reportIds: string[], decision: "approved" | "reje
       fuelType: report.fuel_type,
       price: report.price,
       reportedAt: report.reported_at,
-      version: nextVersion,
       groupedCount: reportIds.length
     }
   });
@@ -293,7 +291,6 @@ async function moderateReports(reportIds: string[], decision: "approved" | "reje
     fuelType: report.fuel_type,
     reason: note,
     payload: {
-      version: nextVersion,
       decision,
       moderationNote: note,
       groupedCount: reportIds.length
@@ -311,7 +308,6 @@ async function moderateReports(reportIds: string[], decision: "approved" | "reje
       fuelType: report.fuel_type,
       price: report.price,
       reportedAt: report.reported_at,
-      version: nextVersion,
       groupedCount: reportIds.length,
       additionalReportIds: reportIds.slice(1)
     }

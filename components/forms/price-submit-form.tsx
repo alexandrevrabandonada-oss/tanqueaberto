@@ -312,7 +312,7 @@ function PriceSubmitFormBody({
           stationId: station.id,
           stationName: getStationPublicName(station),
           fuelType,
-          price,
+          price: String(Number(price.replace(",", ".")) || 0),
           status: "pending",
           submittedAt: new Date().toISOString(),
           reporterNickname: nickname || null
