@@ -31,6 +31,11 @@ export interface SubmitState {
 
 const fuelTypes: FuelType[] = ["gasolina_comum", "gasolina_aditivada", "etanol", "diesel_s10", "diesel_comum", "gnv"];
 
+function isColumnError(message: string | undefined) {
+  const m = (message ?? "").toLowerCase();
+  return m.includes("does not exist") || m.includes("could not find") || m.includes("schema cache");
+}
+
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -639,7 +644,7 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
       .select("id")
       .single();
 
-    if (!full.error || !full.error.message?.includes("does not exist")) {
+    if (!full.error || !isColumnError(full.error.message)) {
       return full;
     }
 

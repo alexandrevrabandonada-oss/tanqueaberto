@@ -19,8 +19,9 @@ function isPreviewFixturesMode() {
 
 function isLegacyStationColumnError(message: string | undefined) {
   const normalized = (message ?? "").toLowerCase();
-  return normalized.includes("column stations.duplicate_of_station_id does not exist")
-    || normalized.includes("column stations.coordinate_reviewed_at does not exist");
+  return normalized.includes("does not exist")
+    || normalized.includes("could not find")
+    || normalized.includes("schema cache");
 }
 
 async function runStationSelect<T>(buildQuery: (select: string) => unknown): Promise<{ data: T | null; error: { message: string } | null }> {

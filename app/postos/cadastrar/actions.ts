@@ -65,16 +65,9 @@ function resolveGeoConfidence(hasCoords: boolean, accuracy: number | null) {
 
 function isLegacyStationsColumnError(message: string | undefined) {
   const normalized = (message ?? "").toLowerCase();
-  return normalized.includes("column") && (
-    normalized.includes("name_public")
-    || normalized.includes("name_official")
-    || normalized.includes("source")
-    || normalized.includes("geo_source")
-    || normalized.includes("geo_confidence")
-    || normalized.includes("geo_review_status")
-    || normalized.includes("visibility_status")
-    || normalized.includes("curation_note")
-  );
+  return normalized.includes("does not exist")
+    || normalized.includes("could not find")
+    || normalized.includes("schema cache");
 }
 
 export async function geocodeStationSeedAddressAction(formData: FormData): Promise<StationSeedGeocodeState> {
