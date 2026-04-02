@@ -1,15 +1,11 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import type { Route } from "next";
+import { useActionState } from "react";
 
 import { AdminLoginState, signInAdminAction } from "@/app/admin/actions";
 import { Button } from "@/components/ui/button";
 
 const initialState: AdminLoginState = { error: null, success: false, role: null };
-const ADMIN_ROUTE = "/admin" as Route;
-const STATION_EDITOR_ROUTE = "/postos" as Route;
 
 interface AdminLoginFormProps {
   notice?: string;
@@ -33,18 +29,8 @@ function resolveMessage(notice?: string, error?: string) {
 }
 
 export function AdminLoginForm({ notice, error }: AdminLoginFormProps) {
-  const router = useRouter();
   const [state, formAction, pending] = useActionState(signInAdminAction, initialState);
   const banner = state.error ?? resolveMessage(notice, error);
-
-  useEffect(() => {
-    if (!state.success) {
-      return;
-    }
-
-    router.replace(state.role === "station_editor" ? STATION_EDITOR_ROUTE : ADMIN_ROUTE);
-    router.refresh();
-  }, [router, state.role, state.success]);
 
   return (
     <form action={formAction} className="space-y-4">

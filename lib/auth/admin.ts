@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import type { Route } from "next";
 
 import { getStationEditorSessionFromCookie } from "@/lib/auth/station-editor-session";
+import { logRuntimeIssue } from "@/lib/observability/runtime-issues";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type AdminRole = "admin" | "station_editor";
@@ -110,7 +111,15 @@ export async function getCurrentAdminUser(): Promise<AdminUser | null> {
   const { data, error } = await lookupAdminUser({ id: userResult.user.id, email: userResult.user.email });
 
   if (error) {
-    throw new Error(`Failed to verify admin access: ${error.message}`);
+    logRuntimeIssue("Failed to verify current admin user", error, {
+      scope: "admin",
+      surface: "auth.getCurrentAdminUser",
+      fallback: "treat-as-logged-out",
+      optional: true,
+      schemaSensitive: true
+    });
+    await supabase.auth.signOut();
+    return null;
   }
 
   if (!data?.email || !data?.user_id) {
@@ -131,7 +140,15 @@ async function requireUserForRoute(allowedRoles: AdminRole[], loginRoute: Route)
   const { data, error } = await lookupAdminUser({ id: userResult.user.id, email: userResult.user.email });
 
   if (error) {
-    throw new Error(`Failed to verify admin access: ${error.message}`);
+    logRuntimeIssue("Failed to verify admin access for protected route", error, {
+      scope: "admin",
+      surface: "auth.requireUserForRoute",
+      fallback: "redirect-login",
+      optional: true,
+      schemaSensitive: true
+    });
+    await supabase.auth.signOut();
+    redirect(`${loginRoute}?error=session_expired` as Route);
   }
 
   if (!data?.email || !data?.user_id) {
@@ -157,7 +174,15 @@ async function resolveAuthAdminUser(): Promise<AdminUser | null> {
 
   const { data, error } = await lookupAdminUser({ id: userResult.user.id, email: userResult.user.email });
   if (error) {
-    throw new Error(`Failed to verify admin access: ${error.message}`);
+    logRuntimeIssue("Failed to resolve auth admin user", error, {
+      scope: "admin",
+      surface: "auth.resolveAuthAdminUser",
+      fallback: "treat-as-logged-out",
+      optional: true,
+      schemaSensitive: true
+    });
+    await supabase.auth.signOut();
+    return null;
   }
 
   if (!data?.email || !data?.user_id) {

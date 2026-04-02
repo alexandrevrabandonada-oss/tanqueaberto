@@ -167,7 +167,7 @@ export async function signInAdminAction(_prevState: AdminLoginState, formData: F
     reason: "admin_login"
   });
 
-  return { error: null, success: true, role: adminRow.role === "station_editor" ? "station_editor" : "admin" };
+  redirect(adminRow.role === "station_editor" ? STATION_EDITOR_ROUTE : ADMIN_ROUTE);
 }
 
 export async function signOutAdminAction() {
