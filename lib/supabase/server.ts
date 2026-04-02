@@ -17,7 +17,14 @@ export async function createSupabaseServerClient() {
       },
       setAll(items: { name: string; value: string; options: CookieOptions }[]) {
         items.forEach(({ name, value, options }) => {
-          cookieStore.set(name, value, options);
+          try {
+            cookieStore.set(name, value, options);
+          } catch {
+            // Server components can read cookies but not always mutate them.
+            // When Supabase tries to refresh an expired session during render,
+            // fall back to the current request cookies and let the caller
+            // redirect to login instead of crashing the route.
+          }
         });
       }
     }
