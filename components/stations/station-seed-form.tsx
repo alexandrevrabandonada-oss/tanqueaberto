@@ -209,6 +209,7 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
   const [confirmCreate, setConfirmCreate] = useState(false);
   const nicknameInputRef = useRef<HTMLInputElement | null>(null);
   const cityInputRef = useRef<HTMLInputElement | null>(null);
+  const stateMessageRef = useRef<HTMLDivElement | null>(null);
   const flowOpenedTrackedRef = useRef(false);
   const gpsStateTrackedRef = useRef<string | null>(null);
   const flowAbandonedTrackedRef = useRef(false);
@@ -301,6 +302,14 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
       });
     };
   }, []);
+
+  useEffect(() => {
+    if (!state.error || !stateMessageRef.current) {
+      return;
+    }
+
+    stateMessageRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [state.error]);
 
   const locationStatus = useMemo(() => {
     if (loading) {
@@ -446,6 +455,11 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
         </div>
       )}
     <form action={formAction} onSubmit={() => { hasSubmittedRef.current = true; }} className="space-y-4">
+      <input type="hidden" name="nickname" value={nickname} />
+      <input type="hidden" name="brand" value={brand} />
+      <input type="hidden" name="street" value={street} />
+      <input type="hidden" name="neighborhood" value={neighborhood} />
+      <input type="hidden" name="officialName" value={officialName} />
       <input type="hidden" name="source" value="station_editor" />
       <input type="hidden" name="locationMode" value={locationMode} />
       <input type="hidden" name="locationConfirmed" value={locationConfirmed ? "1" : "0"} />
@@ -475,7 +489,7 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
           </div>
         ) : null}
         {notice === "station_saved" ? <div className="mt-3 rounded-[18px] border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-50">Posto salvo. Ele entra na fila de curadoria.</div> : null}
-        {state.error ? <div className="mt-3 rounded-[18px] border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-50">{state.error}</div> : null}
+        {state.error ? <div ref={stateMessageRef} className="mt-3 rounded-[18px] border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-50">{state.error}</div> : null}
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
