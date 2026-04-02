@@ -16,6 +16,11 @@ interface FastApprovalQueueProps {
   reports: ReportWithStation[];
 }
 
+function hasUsableImageSrc(src: string | null | undefined) {
+  const value = String(src ?? "").trim();
+  return value.startsWith("https://") || value.startsWith("http://") || value.startsWith("/");
+}
+
 export function FastApprovalQueue({ reports }: FastApprovalQueueProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPending, startTransition] = useTransition();
@@ -141,13 +146,19 @@ export function FastApprovalQueue({ reports }: FastApprovalQueueProps) {
 
       <SectionCard className="overflow-hidden p-0">
         <div className="relative aspect-[4/3] w-full bg-black/40 md:aspect-video">
-          <Image 
-            src={currentReport.photoUrl} 
-            alt="Foto do posto" 
-            fill 
-            className="object-contain"
-            priority
-          />
+          {hasUsableImageSrc(currentReport.photoUrl) ? (
+            <Image 
+              src={currentReport.photoUrl} 
+              alt="Foto do posto" 
+              fill 
+              className="object-contain"
+              priority
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-black/30 text-xs uppercase tracking-[0.18em] text-white/34">
+              Sem foto válida
+            </div>
+          )}
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-6 pt-12">
             <h3 className="text-2xl font-bold text-white">{currentReport.station.name}</h3>
             <p className="text-sm text-white/60">{currentReport.station.neighborhood}, {currentReport.station.city}</p>

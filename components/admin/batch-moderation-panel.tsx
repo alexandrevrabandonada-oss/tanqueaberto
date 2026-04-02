@@ -16,6 +16,11 @@ interface BatchModerationPanelProps {
   batches: ModerationBatch[];
 }
 
+function hasUsableImageSrc(src: string | null | undefined) {
+  const value = String(src ?? "").trim();
+  return value.startsWith("https://") || value.startsWith("http://") || value.startsWith("/");
+}
+
 export function BatchModerationPanel({ batches }: BatchModerationPanelProps) {
   if (batches.length === 0) return null;
 
@@ -49,12 +54,18 @@ export function BatchModerationPanel({ batches }: BatchModerationPanelProps) {
               <div className="flex gap-1.5 overflow-x-auto pb-2 no-scrollbar">
                 {batch.reports.map((report) => (
                   <div key={report.id} className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-white/10">
-                    <Image 
-                      src={report.photoUrl} 
-                      alt="Miniatura" 
-                      fill 
-                      className="object-cover opacity-80"
-                    />
+                    {hasUsableImageSrc(report.photoUrl) ? (
+                      <Image 
+                        src={report.photoUrl} 
+                        alt="Miniatura" 
+                        fill 
+                        className="object-cover opacity-80"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-black/40 text-[8px] font-bold uppercase tracking-[0.14em] text-white/34">
+                        Sem foto
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

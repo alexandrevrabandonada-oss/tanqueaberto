@@ -48,6 +48,60 @@ interface AdminPageProps {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
+function hasUsableImageSrc(src: string | null | undefined) {
+  const value = String(src ?? "").trim();
+  return value.startsWith("https://") || value.startsWith("http://") || value.startsWith("/");
+}
+
+async function loadAdminDashboardData(selectedStatus: "all" | "pending" | "approved" | "rejected" | "flagged") {
+  const empty = {
+    counts: {
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+      flagged: 0
+    },
+    reports: [] as Awaited<ReturnType<typeof getModerationReports>>,
+    recentModerated: [] as Awaited<ReturnType<typeof getRecentModeratedReports>>,
+    reviewQueue: [] as Awaited<ReturnType<typeof getStationReviewQueue>>,
+    slaStats: {
+      avgTimeTotalMs: 0,
+      avgTimePriorityMs: 0,
+      pendingCount: 0,
+      oldestPendingAgeMs: 0
+    },
+    stations: [] as Awaited<ReturnType<typeof getActiveStations>>,
+    loadErrorNotice: null as string | null
+  };
+
+  try {
+    const [counts, reports, recentModerated, reviewQueue, slaStats, stations] = await Promise.all([
+      getModerationCounts(),
+      getModerationReports(selectedStatus),
+      getRecentModeratedReports(),
+      getStationReviewQueue(),
+      getModerationSLAStats(),
+      getActiveStations()
+    ]);
+
+    return {
+      counts,
+      reports,
+      recentModerated,
+      reviewQueue,
+      slaStats,
+      stations,
+      loadErrorNotice: null
+    };
+  } catch (error) {
+    console.error("Failed to load /admin dashboard", error);
+    return {
+      ...empty,
+      loadErrorNotice: "O painel carregou sem alguns dados agora. Tente novamente em instantes."
+    };
+  }
+}
+
 export default async function AdminPage({ searchParams }: AdminPageProps) {
   await requireAdminUser();
   const resolvedSearchParams = (await searchParams) ?? {};
@@ -57,18 +111,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       ? resolvedSearchParams.status
       : "pending";
 
-  const [counts, reports, recentModerated, reviewQueue, slaStats, stations] = await Promise.all([
-    getModerationCounts(),
-    getModerationReports(selectedStatus as "all" | "pending" | "approved" | "rejected" | "flagged"),
-    getRecentModeratedReports(),
-    getStationReviewQueue(),
-    getModerationSLAStats(),
-    getActiveStations()
-  ]);
+  const { counts, reports, recentModerated, reviewQueue, slaStats, stations, loadErrorNotice } = await loadAdminDashboardData(
+    selectedStatus as "all" | "pending" | "approved" | "rejected" | "flagged"
+  );
 
   const batches = selectedStatus === "pending" ? groupReportsForModeration(reports, stations) : [];
 
-  const banner = resolveNotice(resolvedSearchParams);
+  const banner = loadErrorNotice ?? resolveNotice(resolvedSearchParams);
 
   return (
     <div className="space-y-4 pb-10 pt-1">
@@ -352,7 +401,13 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
                 <div className="grid gap-4 md:grid-cols-[160px_1fr]">
                   <div className="overflow-hidden rounded-[20px] border border-white/8 bg-black/20">
-                    <Image src={report.photoUrl} alt={`Foto enviada de ${report.station.name}`} width={640} height={480} className="h-40 w-full object-cover" />
+                    {hasUsableImageSrc(report.photoUrl) ? (
+                      <Image src={report.photoUrl} alt={`Foto enviada de ${report.station.name}`} width={640} height={480} className="h-40 w-full object-cover" />
+                    ) : (
+                      <div className="flex h-40 w-full items-center justify-center bg-black/30 text-xs uppercase tracking-[0.18em] text-white/34">
+                        Sem foto válida
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-3">
