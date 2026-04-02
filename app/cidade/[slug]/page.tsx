@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 import { ArrowRight, MapPin, Zap, Info, Share2, ShieldCheck, Camera } from "lucide-react";
 
 import { resolveCityFromSlug, slugifyCity } from "@/lib/geo/city-slugs";
-import { getActiveStations } from "@/lib/data/queries";
+import { getPublicStations } from "@/lib/data/queries";
 import { getTerritorialReleaseSummary } from "@/lib/ops/release-control";
 import { getCityReadinessRows } from "@/lib/ops/readiness";
 import { SectionCard } from "@/components/ui/section-card";
@@ -31,7 +31,7 @@ export async function generateMetadata(
   if (!cityName) return { title: "Cidade não encontrada" };
 
   const [stations, releaseSummary] = await Promise.all([
-    getActiveStations(),
+    getPublicStations(),
     getTerritorialReleaseSummary()
   ]);
 
@@ -77,7 +77,7 @@ export default async function CityPage({ params }: CityPageProps) {
   }
 
   const [stations, releaseSummary] = await Promise.all([
-    getActiveStations(),
+    getPublicStations(),
     getTerritorialReleaseSummary()
   ]);
 

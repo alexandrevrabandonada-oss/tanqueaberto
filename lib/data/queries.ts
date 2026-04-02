@@ -56,6 +56,30 @@ export async function getActiveStations(): Promise<Station[]> {
   return (data as StationRow[]).map(mapStationRow);
 }
 
+/** Only stations with visibility_status = 'public' — for public-facing pages */
+export async function getPublicStations(): Promise<Station[]> {
+  if (isPreviewFixturesMode()) {
+    return getPreviewStations().map((station) => station as unknown as Station);
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await runStationSelect<StationRow[]>((select) =>
+    supabase
+      .from("stations")
+      .select(select)
+      .eq("is_active", true)
+      .eq("visibility_status", "public")
+      .order("name", { ascending: true })
+  );
+
+  if (error || !data) {
+    console.error("Failed to load public stations", error);
+    return [];
+  }
+
+  return (data as StationRow[]).map(mapStationRow);
+}
+
 export async function getStationById(id: string): Promise<Station | null> {
   if (isPreviewFixturesMode()) {
     const station = getPreviewStationById(id);
@@ -176,7 +200,7 @@ export async function getHomeStations(): Promise<StationWithReports[]> {
     }));
   }
 
-  const [stations, reports] = await Promise.all([getActiveStations(), getApprovedReports()]);
+  const [stations, reports] = await Promise.all([getPublicStations(), getApprovedReports()]);
   let stationsWithStatus = stations;
 
   try {
@@ -275,12 +299,12 @@ export async function getRecentFeed(): Promise<ReportWithStation[]> {
     return getPreviewRecentFeed();
   }
 
-  const [stations, reports] = await Promise.all([getActiveStations(), getApprovedReports(50)]);
+  const [stations, reports] = await Promise.all([getPublicStations(), getApprovedReports(50)]);
   return mapReportsWithStations(reports.sort(sortDesc), stations);
 }
 
 export async function getStationOptions(): Promise<Station[]> {
-  return getActiveStations();
+  return getPublicStations();
 }
 
 async function getAdminStations() {
