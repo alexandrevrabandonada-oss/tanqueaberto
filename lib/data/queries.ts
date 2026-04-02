@@ -6,7 +6,7 @@ import { getAuditGroups, getAuditGroupMembers } from "@/lib/audit/groups";
 import type { Station, StationWithReports, ReportWithStation, PriceReport, ReportStatus } from "@/lib/types";
 import type { PriceReportRow, StationRow } from "@/types/supabase";
 
-const STATION_SELECT_FULL = "id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,duplicate_of_station_id,coordinate_reviewed_at,updated_at";
+const STATION_SELECT_FULL = "id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,coordinate_reviewed_at,updated_at";
 const STATION_SELECT_LEGACY = "id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,updated_at";
 
 function sortDesc(left: { reportedAt: string }, right: { reportedAt: string }) {
@@ -157,28 +157,29 @@ export async function getHomeStations(): Promise<StationWithReports[]> {
   let stationsWithStatus = stations;
 
   try {
-    const { getTerritorialReleaseSummary } = await import("@/lib/ops/release-control");
-    const releaseSummary = await getTerritorialReleaseSummary();
     const groups = await getAuditGroups();
 
     if (groups && groups.length > 0) {
-      // Map station to its status via group membership
       const stationStatusMap = new Map<string, string>();
-      
-      // Fetch all members in parallel
+
       const allMembersResults = await Promise.all(
         groups.map(group => getAuditGroupMembers(group.id).catch(() => []).then(members => ({ group, members })))
       );
 
       for (const { group, members } of allMembersResults) {
         if (!group) continue;
-        const summary = releaseSummary.find((s) => s.slug === group.slug);
-        const status = summary?.status ?? "limited";
-        
+        const opsState = (group as any).operationalState;
+        const status: string =
+          opsState === "beta_open" ? "ready" :
+          opsState === "monitoring" ? "validating" :
+          opsState === "limited_test" ? "limited" :
+          opsState === "rollback" ? "limited" :
+          opsState === "closed" ? "hidden" :
+          (group.releaseStatus as string) || "limited";
+
         for (const m of members) {
           if (!m.stationId) continue;
           const current = stationStatusMap.get(m.stationId);
-          // Prioritize higher status (ready is highest, hidden is lowest)
           const statusOrder: Record<string, number> = { ready: 0, validating: 1, limited: 2, hidden: 3 };
           if (!current || statusOrder[status] < (statusOrder[current] ?? 99)) {
             stationStatusMap.set(m.stationId, status);
