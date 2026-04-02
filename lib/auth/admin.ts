@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import type { Route } from "next";
 
-import { clearStationEditorSessionCookie, getStationEditorSessionFromCookie } from "@/lib/auth/station-editor-session";
+import { getStationEditorSessionFromCookie } from "@/lib/auth/station-editor-session";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type AdminRole = "admin" | "station_editor";
@@ -187,6 +187,5 @@ export async function requireStationEditorUser() {
     };
   }
 
-  await clearStationEditorSessionCookie();
   redirect(`${STATION_EDITOR_LOGIN_ROUTE}?error=session_expired` as Route);
 }
