@@ -1,4 +1,4 @@
-const CACHE_NAME = "bomba-aberta-v8";
+const CACHE_NAME = "bomba-aberta-v9";
 const APP_SHELL = [
   "/",
   "/atualizacoes",
@@ -90,6 +90,12 @@ self.addEventListener("fetch", (event) => {
   }
 
   const url = new URL(event.request.url);
+
+  // Next.js RSC client-side navigation: network-first to avoid stale payloads
+  if (event.request.headers.get("RSC") === "1") {
+    event.respondWith(cacheNavigationRequest(event.request));
+    return;
+  }
 
   // _next/ bundles: network-first to avoid stale JS/CSS after deploy
   if (url.origin === self.location.origin && url.pathname.startsWith("/_next/")) {
