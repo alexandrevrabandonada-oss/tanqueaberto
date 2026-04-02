@@ -1,5 +1,4 @@
 import type { Route } from "next";
-import Link from "next/link";
 
 import { cn } from "@/lib/utils";
 
@@ -31,9 +30,9 @@ export function Button({ className, variant = "primary", ...props }: ButtonProps
 
 export function ButtonLink({ href, children, variant = "primary", className, ...props }: ButtonLinkProps) {
   return (
-    <Link href={href} className={cn(base, variants[variant], className)} {...props}>
+    <a href={href} className={cn(base, variants[variant], className)} {...props}>
       {children}
-    </Link>
+    </a>
   );
 }
 

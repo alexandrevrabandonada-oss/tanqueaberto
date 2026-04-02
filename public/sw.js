@@ -1,4 +1,4 @@
-const CACHE_NAME = "bomba-aberta-v10";
+const CACHE_NAME = "bomba-aberta-v11";
 const APP_SHELL = [
   "/offline",
   "/manifest.webmanifest",

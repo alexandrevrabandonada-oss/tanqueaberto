@@ -1,5 +1,4 @@
 import type { Route } from "next";
-import Link from "next/link";
 import { Clock3, Map, Send, UserCircle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -26,7 +25,7 @@ export function BottomNav({ activePath = "" }: { activePath?: string }) {
 
             return (
               <li key={href} className="min-w-0">
-                <Link
+                <a
                   href={href}
                   aria-current={active ? "page" : undefined}
                   draggable={false}
@@ -39,7 +38,7 @@ export function BottomNav({ activePath = "" }: { activePath?: string }) {
                 >
                   <Icon className={cn("h-4 w-4 shrink-0 xl:h-[15px] xl:w-[15px]", isPrimary && !active && "text-[color:var(--color-accent)]", active && "text-black")} />
                   <span className={cn("truncate xl:uppercase xl:tracking-widest", isPrimary && !active && "font-semibold")}>{label}</span>
-                </Link>
+                </a>
               </li>
             );
           })}

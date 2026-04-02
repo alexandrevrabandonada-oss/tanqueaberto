@@ -11,9 +11,18 @@ export function PwaRegister() {
     let mounted = true;
     let updateInterval = 0;
 
+    const activateWaitingWorker = async (registration?: ServiceWorkerRegistration | null) => {
+      if (!registration?.waiting) {
+        return false;
+      }
+
+      registration.waiting.postMessage({ type: "SKIP_WAITING" });
+      return true;
+    };
+
     navigator.serviceWorker
       .register("/sw.js")
-      .then((registration) => {
+      .then(async (registration) => {
         if (!mounted) {
           return;
         }
@@ -27,7 +36,7 @@ export function PwaRegister() {
           void registration.update();
         }, 60_000);
 
-        if (registration.waiting) {
+        if (await activateWaitingWorker(registration)) {
           emitUpdateReady();
         }
 
@@ -39,6 +48,7 @@ export function PwaRegister() {
 
           worker.addEventListener("statechange", () => {
             if (worker.state === "installed" && navigator.serviceWorker.controller) {
+              void activateWaitingWorker(registration);
               emitUpdateReady();
             }
           });
@@ -54,7 +64,10 @@ export function PwaRegister() {
 
     const onVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        void navigator.serviceWorker.getRegistration().then((registration) => registration?.update());
+        void navigator.serviceWorker.getRegistration().then(async (registration) => {
+          await registration?.update();
+          await activateWaitingWorker(registration);
+        });
       }
     };
 

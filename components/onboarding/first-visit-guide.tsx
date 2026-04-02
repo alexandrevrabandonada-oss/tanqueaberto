@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { Camera, MapPinned, ShieldCheck, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -96,12 +95,13 @@ export function FirstVisitGuide({ isCondensed = false }: FirstVisitGuideProps) {
         <ButtonLink href="/auditoria/metodologia" variant="secondary">
           Como funciona
         </ButtonLink>
-        <Link
+        <ButtonLink
           href="/postos/sem-atualizacao"
-          className="inline-flex items-center justify-center rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-white transition hover:border-[color:var(--color-accent)] hover:text-[color:var(--color-accent)]"
+          variant="secondary"
+          className="bg-transparent px-4 py-2 font-medium hover:text-[color:var(--color-accent)]"
         >
           Ver postos sem preço
-        </Link>
+        </ButtonLink>
       </div>
     </SectionCard>
   );
