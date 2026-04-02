@@ -1,11 +1,10 @@
 "use client";
 
 import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import type { Route } from "next";
-import { LocateFixed, Loader2, MapPin, MapPinned, Navigation, Search, ShieldCheck } from "lucide-react";
-import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
-import L from "leaflet";
+import { LocateFixed, Loader2, MapPin, MapPinned, Search, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +19,10 @@ import { trackProductEvent } from "@/lib/telemetry/client";
 import { createStationSeedAction, geocodeStationSeedAddressAction, type StationSeedState } from "@/app/postos/cadastrar/actions";
 
 const initialState: StationSeedState = { error: null, success: false, createdStationId: null };
+const StationSeedMap = dynamic(() => import("@/components/stations/station-seed-map").then((mod) => mod.StationSeedMap), {
+  ssr: false,
+  loading: () => <div className="h-52 overflow-hidden rounded-[18px] border border-white/10 bg-black/20" />
+});
 
 interface StationSeedFormProps {
   stations: Station[];
@@ -38,56 +41,6 @@ interface CandidateStation {
 }
 
 type LocationMode = "gps" | "address";
-
-const seedPinIcon = new L.DivIcon({
-  className: "custom-map-pin",
-  html: '<div class="map-pin-dot map-pin-dot--recent"></div>',
-  iconSize: [18, 18],
-  iconAnchor: [9, 9]
-});
-
-function MapCenter({ center }: { center: { lat: number; lng: number } }) {
-  const map = useMap();
-  useEffect(() => {
-    map.setView([center.lat, center.lng], 16);
-  }, [center.lat, center.lng, map]);
-  return null;
-}
-
-function DraggableSeedMarker({
-  position,
-  onChange
-}: {
-  position: { lat: number; lng: number };
-  onChange: (next: { lat: number; lng: number }) => void;
-}) {
-  const [draggable, setDraggable] = useState(true);
-  const markerRef = useRef<L.Marker | null>(null);
-
-  useMapEvents({
-    click(event) {
-      onChange({ lat: event.latlng.lat, lng: event.latlng.lng });
-    }
-  });
-
-  return (
-    <Marker
-      draggable={draggable}
-      icon={seedPinIcon}
-      position={[position.lat, position.lng]}
-      ref={markerRef}
-      eventHandlers={{
-        dragend: () => {
-          const marker = markerRef.current;
-          if (!marker) return;
-          const point = marker.getLatLng();
-          onChange({ lat: point.lat, lng: point.lng });
-        },
-        dblclick: () => setDraggable((value) => !value)
-      }}
-    />
-  );
-}
 
 function normalize(value: string) {
   return normalizeContextValue(value);
@@ -565,19 +518,12 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
           <div className="rounded-[18px] border border-white/8 bg-black/20 px-3 py-2 text-xs text-white/54">Toque no mapa para reposicionar rapidamente, ou arraste o pin.</div>
 
           {locationMode === "address" && currentCoords ? (
-            <div className="space-y-2">
-              <div className="h-52 overflow-hidden rounded-[18px] border border-white/10">
-                <MapContainer center={[currentCoords.lat, currentCoords.lng]} zoom={16} scrollWheelZoom={false} className="h-full w-full">
-                  <TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                  <MapCenter center={currentCoords} />
-                  <DraggableSeedMarker position={currentCoords} onChange={handleMapPointChange} />
-                </MapContainer>
-              </div>
-              <Button type="button" variant={locationConfirmed ? "primary" : "secondary"} className="w-full" onClick={() => setLocationConfirmed((value) => !value)}>
-                <Navigation className="h-4 w-4" />
-                {locationConfirmed ? "Ponto confirmado" : "Confirmar este ponto no mapa"}
-              </Button>
-            </div>
+            <StationSeedMap
+              currentCoords={currentCoords}
+              locationConfirmed={locationConfirmed}
+              onChange={handleMapPointChange}
+              onToggleConfirm={() => setLocationConfirmed((value) => !value)}
+            />
           ) : null}
 
           {locationMode === "address" && !currentCoords ? (

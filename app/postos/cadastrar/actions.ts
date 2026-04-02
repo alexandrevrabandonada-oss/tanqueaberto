@@ -63,6 +63,20 @@ function resolveGeoConfidence(hasCoords: boolean, accuracy: number | null) {
   return accuracy <= 100 ? "high" : "medium";
 }
 
+function isLegacyStationsColumnError(message: string | undefined) {
+  const normalized = (message ?? "").toLowerCase();
+  return normalized.includes("column") && (
+    normalized.includes("name_public")
+    || normalized.includes("name_official")
+    || normalized.includes("source")
+    || normalized.includes("geo_source")
+    || normalized.includes("geo_confidence")
+    || normalized.includes("geo_review_status")
+    || normalized.includes("visibility_status")
+    || normalized.includes("curation_note")
+  );
+}
+
 export async function geocodeStationSeedAddressAction(formData: FormData): Promise<StationSeedGeocodeState> {
   await requireStationEditorUser();
 
@@ -204,11 +218,33 @@ export async function createStationSeedAction(_prevState: StationSeedState, form
     ].filter(Boolean).join(" · ")
   };
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("stations")
     .insert(payload)
     .select("id")
     .single();
+
+  if ((error || !data?.id) && isLegacyStationsColumnError(error?.message)) {
+    const legacyPayload = {
+      name: nickname,
+      brand,
+      address,
+      city,
+      neighborhood: neighborhood || city,
+      lat: lat ?? 0,
+      lng: lng ?? 0,
+      is_active: isActive
+    };
+
+    const legacyInsert = await supabase
+      .from("stations")
+      .insert(legacyPayload)
+      .select("id")
+      .single();
+
+    data = legacyInsert.data;
+    error = legacyInsert.error;
+  }
 
   if (error || !data?.id) {
     await recordOperationalEvent({
