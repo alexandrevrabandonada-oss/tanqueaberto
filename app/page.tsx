@@ -5,7 +5,7 @@ import { HomeServerLead } from "@/components/home/home-server-lead";
 import { SubmissionHistoryProvider } from "@/components/history/submission-history-context";
 import { MissionProvider } from "@/components/mission/mission-context";
 import { RouteRuntimeSignals } from "@/components/layout/route-runtime-signals";
-import { getHomeStations, getRecentApprovedCount, getRecentFeed } from "@/lib/data";
+import { getHomePageData } from "@/lib/data/queries";
 import { getTerritorialReleaseSummary } from "@/lib/ops/release-control";
 import { isBetaClosed } from "@/lib/beta/gate";
 import type { FuelFilter, RecencyFilter, StationPresenceFilter } from "@/lib/filters/public";
@@ -69,10 +69,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       groupId
   );
 
-  const [stations, feed, recentCount, territorialSummary] = await Promise.all([
-    getHomeStations(),
-    getRecentFeed(),
-    getRecentApprovedCount(),
+  const [{ stations, feed, recentCount }, territorialSummary] = await Promise.all([
+    getHomePageData(),
     getTerritorialReleaseSummary()
   ]);
 

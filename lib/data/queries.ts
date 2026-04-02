@@ -14,6 +14,13 @@ function sortDesc(left: { reportedAt: string }, right: { reportedAt: string }) {
   return new Date(right.reportedAt).getTime() - new Date(left.reportedAt).getTime();
 }
 
+function countReportsWithinHours(reports: PriceReport[], hours: number) {
+  const cutoff = Date.now() - hours * 60 * 60 * 1000;
+  return reports.reduce((count, report) => {
+    return new Date(report.reportedAt).getTime() >= cutoff ? count + 1 : count;
+  }, 0);
+}
+
 function isPreviewFixturesMode() {
   return isPreviewFixturesEnabled();
 }
@@ -191,16 +198,7 @@ export async function getRecentApprovedCount(): Promise<number> {
   return count ?? 0;
 }
 
-export async function getHomeStations(): Promise<StationWithReports[]> {
-  if (isPreviewFixturesMode()) {
-    return getPreviewStations().map((station) => ({
-      ...station,
-      recentReports: station.latestReports,
-      photoGallery: station.latestReports.map((report) => report.photoUrl)
-    }));
-  }
-
-  const [stations, reports] = await Promise.all([getPublicStations(), getApprovedReports()]);
+async function buildHomeStations(stations: Station[], reports: PriceReport[]): Promise<StationWithReports[]> {
   let stationsWithStatus = stations;
 
   try {
@@ -223,30 +221,29 @@ export async function getHomeStations(): Promise<StationWithReports[]> {
           opsState === "closed" ? "hidden" :
           (group.releaseStatus as string) || "limited";
 
-        for (const m of members) {
-          if (!m.stationId) continue;
-          const current = stationStatusMap.get(m.stationId);
+        for (const member of members) {
+          if (!member.stationId) continue;
+          const current = stationStatusMap.get(member.stationId);
           const statusOrder: Record<string, number> = { ready: 0, validating: 1, limited: 2, hidden: 3 };
           if (!current || statusOrder[status] < (statusOrder[current] ?? 99)) {
-            stationStatusMap.set(m.stationId, status);
+            stationStatusMap.set(member.stationId, status);
           }
         }
       }
 
       stationsWithStatus = stations
-        .map((s) => ({
-          ...s,
-          releaseStatus: (stationStatusMap.get(s.id) as any) ?? "limited"
+        .map((station) => ({
+          ...station,
+          releaseStatus: (stationStatusMap.get(station.id) as any) ?? "limited"
         }))
-        .filter((s) => s.releaseStatus !== "hidden");
+        .filter((station) => station.releaseStatus !== "hidden");
     }
-  } catch (err) {
+  } catch {
     console.error("Failed to apply territorial release control, falling back to all stations");
   }
 
   const grouped = groupReportsByStation(stationsWithStatus, reports);
 
-  // Final sort: Ready > Validating > Limited
   return grouped.sort((a, b) => {
     const statusOrder: Record<string, number> = { ready: 0, validating: 1, limited: 2, hidden: 3 };
     const orderA = statusOrder[a.releaseStatus ?? "limited"] ?? 99;
@@ -256,6 +253,45 @@ export async function getHomeStations(): Promise<StationWithReports[]> {
 
     return (b.priorityScore ?? 0) - (a.priorityScore ?? 0);
   });
+}
+
+export async function getHomePageData(): Promise<{
+  stations: StationWithReports[];
+  feed: ReportWithStation[];
+  recentCount: number;
+}> {
+  if (isPreviewFixturesMode()) {
+    return {
+      stations: getPreviewStations().map((station) => ({
+        ...station,
+        recentReports: station.latestReports,
+        photoGallery: station.latestReports.map((report) => report.photoUrl)
+      })),
+      feed: getPreviewRecentFeed(),
+      recentCount: getPreviewRecentCount()
+    };
+  }
+
+  const [stations, reports] = await Promise.all([getPublicStations(), getApprovedReports(200)]);
+
+  return {
+    stations: await buildHomeStations(stations, reports),
+    feed: mapReportsWithStations([...reports].sort(sortDesc).slice(0, 50), stations),
+    recentCount: countReportsWithinHours(reports, 24)
+  };
+}
+
+export async function getHomeStations(): Promise<StationWithReports[]> {
+  if (isPreviewFixturesMode()) {
+    return getPreviewStations().map((station) => ({
+      ...station,
+      recentReports: station.latestReports,
+      photoGallery: station.latestReports.map((report) => report.photoUrl)
+    }));
+  }
+
+  const [stations, reports] = await Promise.all([getPublicStations(), getApprovedReports()]);
+  return buildHomeStations(stations, reports);
 }
 
 export async function getStationDetail(id: string): Promise<StationWithReports | null> {

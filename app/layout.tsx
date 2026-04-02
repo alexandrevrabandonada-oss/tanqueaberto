@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { getBuildInfo } from "@/lib/runtime/build-info";
 import { brand } from "@/styles/design-tokens";
 import { RootErrorBoundary } from "@/components/ui/root-error-boundary";
+import { PwaRegister } from "@/components/pwa-register";
 
 import "./globals.css";
 
@@ -73,6 +74,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body className="bg-[color:var(--color-bg)] font-body text-[color:var(--color-text)]">
+        <PwaRegister />
         <div
           data-app-shell="root"
           data-build-env={buildInfo.env}

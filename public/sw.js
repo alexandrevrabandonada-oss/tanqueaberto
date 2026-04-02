@@ -1,11 +1,5 @@
-const CACHE_NAME = "bomba-aberta-v9";
+const CACHE_NAME = "bomba-aberta-v10";
 const APP_SHELL = [
-  "/",
-  "/atualizacoes",
-  "/enviar",
-  "/feedback",
-  "/auditoria",
-  "/sobre",
   "/offline",
   "/manifest.webmanifest",
   "/favicon.ico",
@@ -31,6 +25,14 @@ const APP_SHELL = [
   "/brand/bomba-aberta/emblem/bomba-aberta-emblem-transparent.png"
 ];
 
+const STATIC_PATH_PREFIXES = ["/_next/static/", "/icons/", "/brand/"];
+const STATIC_FILE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif", ".ico", ".css", ".js", ".woff", ".woff2", ".ttf", ".otf", ".webmanifest"];
+
+function isStaticAssetRequest(url) {
+  return STATIC_PATH_PREFIXES.some((prefix) => url.pathname.startsWith(prefix))
+    || STATIC_FILE_EXTENSIONS.some((extension) => url.pathname.endsWith(extension));
+}
+
 async function cacheStaticResponse(request) {
   const cached = await caches.match(request);
   if (cached) {
@@ -48,16 +50,9 @@ async function cacheStaticResponse(request) {
 
 async function cacheNavigationRequest(request) {
   try {
-    const response = await fetch(request);
-    if (response.ok) {
-      const cache = await caches.open(CACHE_NAME);
-      cache.put(request, response.clone());
-    }
-
-    return response;
+    return await fetch(request);
   } catch {
-    const cached = await caches.match(request);
-    return cached ?? (await caches.match("/offline"));
+    return (await caches.match("/offline")) ?? Response.error();
   }
 }
 
@@ -91,19 +86,22 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(event.request.url);
 
-  // Next.js RSC client-side navigation: network-first to avoid stale payloads
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+
+  // Next.js RSC client-side navigation: never cache dynamic payloads
   if (event.request.headers.get("RSC") === "1") {
-    event.respondWith(cacheNavigationRequest(event.request));
+    event.respondWith(fetch(event.request));
     return;
   }
 
-  // _next/ bundles: network-first to avoid stale JS/CSS after deploy
-  if (url.origin === self.location.origin && url.pathname.startsWith("/_next/")) {
-    event.respondWith(cacheNavigationRequest(event.request));
+  if (url.pathname.startsWith("/api/")) {
+    event.respondWith(fetch(event.request));
     return;
   }
 
-  if (url.origin === self.location.origin) {
+  if (isStaticAssetRequest(url)) {
     event.respondWith(cacheStaticResponse(event.request));
   }
 });
