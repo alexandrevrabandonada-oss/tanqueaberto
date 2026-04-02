@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import type { Route } from "next";
 
 import { requireStationEditorUser } from "@/lib/auth/admin";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServiceClient } from "@/lib/supabase/admin";
 import { recordAdminActionLog, recordOperationalEvent } from "@/lib/ops/logs";
 import { getStationProposalReviewSignal } from "@/lib/quality/stations";
 import { geocodeWithNominatim } from "@/lib/geo/osm";
@@ -192,7 +192,7 @@ export async function createStationSeedAction(_prevState: StationSeedState, form
     duplicateHint ? 2 : 1
   );
 
-  const supabase = await createSupabaseServerClient();
+  const supabase = createSupabaseServiceClient();
   const payload = {
     name: nickname,
     name_public: publicName,
