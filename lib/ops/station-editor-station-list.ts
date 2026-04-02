@@ -123,7 +123,7 @@ async function getLatestApprovedReports(stationIds: string[]) {
   const supabase = createSupabaseServiceClient();
   const { data, error } = await supabase
     .from("price_reports")
-    .select("id,station_id,fuel_type,price,photo_url,photo_taken_at,reported_at,approved_at,rejected_at,created_at,reporter_nickname,ip_hash,status,moderation_note,moderation_reason,moderated_by,source_kind,photo_hash,location_distance,location_confidence,reconciliation_id,is_confirmation,metadata,version")
+    .select("id,station_id,fuel_type,price,photo_url,photo_taken_at,reported_at,created_at,reporter_nickname,status,moderation_note")
     .eq("status", "approved")
     .in("station_id", stationIds)
     .order("reported_at", { ascending: false })

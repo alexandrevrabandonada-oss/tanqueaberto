@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { createSupabaseServiceClient } from "@/lib/supabase/admin";
+import { isMissingSchemaError } from "@/lib/supabase/schema-cache";
 import type { FuelType } from "@/lib/types";
 
 export interface SubmissionRateLimitResult {
@@ -71,6 +72,17 @@ async function checkSubmissionRateLimitBucket(input: {
     .maybeSingle();
 
   if (lookupError) {
+    if (isMissingSchemaError(lookupError)) {
+      return {
+        allowed: true,
+        attemptCount: 0,
+        blockedUntil: null,
+        windowStart,
+        bucketKey,
+        scopeKind: input.scopeKind,
+        reason: null
+      } as const;
+    }
     return {
       allowed: false,
       attemptCount: 0,
@@ -114,6 +126,17 @@ async function checkSubmissionRateLimitBucket(input: {
   const { error: saveError } = await supabase.from("report_submission_rate_limits").upsert(payload, { onConflict: "bucket_key" });
 
   if (saveError) {
+    if (isMissingSchemaError(saveError)) {
+      return {
+        allowed: true,
+        attemptCount: nextAttemptCount,
+        blockedUntil: null,
+        windowStart,
+        bucketKey,
+        scopeKind: input.scopeKind,
+        reason: null
+      } as const;
+    }
     return {
       allowed: false,
       attemptCount: 0,

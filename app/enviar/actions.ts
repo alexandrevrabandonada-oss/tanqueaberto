@@ -581,7 +581,7 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
   const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const { data: recentReports } = await supabase
     .from("price_reports")
-    .select("id,price,status,reported_at,photo_hash")
+    .select("id,price,status,reported_at")
     .eq("station_id", stationId)
     .eq("fuel_type", fuelType)
     .neq("status", "rejected")
@@ -601,9 +601,8 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
     priceDiscrepancy
   });
 
-  const { data: report, error: insertError } = await supabase
-    .from("price_reports")
-    .insert({
+  const { data: report, error: insertError } = await (async () => {
+    const fullPayload = {
       station_id: stationId,
       fuel_type: fuelType,
       price,
@@ -631,9 +630,35 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
         review_reason: submissionNotice?.code ?? null
       },
       version: 1
-    })
-    .select("id")
-    .single();
+    };
+
+    const full = await supabase
+      .from("price_reports")
+      .insert(fullPayload)
+      .select("id")
+      .single();
+
+    if (!full.error || !full.error.message?.includes("does not exist")) {
+      return full;
+    }
+
+    // Legacy fallback — only core columns
+    return supabase
+      .from("price_reports")
+      .insert({
+        station_id: stationId,
+        fuel_type: fuelType,
+        price,
+        photo_url: publicUrl.publicUrl,
+        photo_taken_at: timestamp,
+        reported_at: timestamp,
+        reporter_nickname: nickname || null,
+        status: needsReview ? "flagged" : "pending",
+        moderation_note: submissionNotice?.body ?? null
+      })
+      .select("id")
+      .single();
+  })();
 
   if (insertError || !report) {
     await recordOperationalEvent({

@@ -10,7 +10,7 @@ import { buildSeriesFromDailyRows, summarizeAuditSeries, type AuditDailyAggregat
 import { logRuntimeIssue } from "@/lib/observability/runtime-issues";
 
 const reportSelect =
-  "id,station_id,fuel_type,price,photo_url,photo_taken_at,reported_at,approved_at,rejected_at,created_at,reporter_nickname,status,moderation_note,moderation_reason,moderated_by,source_kind,photo_hash,version";
+  "id,station_id,fuel_type,price,photo_url,photo_taken_at,reported_at,created_at,reporter_nickname,status,moderation_note";
 
 function getWindowStart(days: AuditWindowDays) {
   const start = new Date();

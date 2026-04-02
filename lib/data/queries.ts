@@ -348,7 +348,7 @@ export async function getReportsByIds(ids: string[]): Promise<PriceReport[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from("price_reports")
-    .select("id,station_id,fuel_type,price,photo_url,photo_taken_at,reported_at,created_at,reporter_nickname,status,moderation_note,approved_at,rejected_at")
+    .select("id,station_id,fuel_type,price,photo_url,photo_taken_at,reported_at,created_at,reporter_nickname,status,moderation_note")
     .in("id", ids);
 
   if (error || !data) {

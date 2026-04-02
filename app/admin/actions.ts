@@ -219,21 +219,11 @@ async function moderateReports(reportIds: string[], decision: "approved" | "reje
       decision === "approved"
         ? {
             status: decision,
-            approved_at: now,
-            rejected_at: null,
-            moderated_by: admin.id,
-            moderation_reason: note,
-            moderation_note: note,
-            version: nextVersion
+            moderation_note: note
           }
         : {
             status: decision,
-            approved_at: null,
-            rejected_at: now,
-            moderated_by: admin.id,
-            moderation_reason: note,
-            moderation_note: note,
-            version: nextVersion
+            moderation_note: note
           }
     )
     .in("id", reportIds);
