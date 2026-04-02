@@ -1,5 +1,5 @@
 import { getAuditGroups } from "@/lib/audit/groups";
-import { getEditorialGapDashboard, type EditorialGapRecommendation } from "./editorial-gaps";
+import type { EditorialGapRecommendation } from "./editorial-gaps";
 import type { AuditStationGroup } from "@/lib/audit/types";
 import { type GroupReleaseStatus, type PublicOpeningStage } from "./release-types";
 
@@ -17,27 +17,13 @@ export interface EffectiveGroupStatus {
   recommendation: EditorialGapRecommendation;
 }
 
+/** Lightweight version — resolves group status from DB fields only, no editorial gap queries */
 export async function getTerritorialReleaseSummary(): Promise<EffectiveGroupStatus[]> {
   try {
-    const dashboard = await getEditorialGapDashboard(14).catch(err => {
-      console.error("Failed to fetch editorial gap dashboard");
-      return { groupRows: [] };
-    });
-    const groups = await getAuditGroups().catch(err => {
-      console.error("Failed to fetch audit groups");
-      return [];
-    });
-    
-    if (!groups) return [];
+    const groups = await getAuditGroups().catch(() => []);
+    if (!groups || groups.length === 0) return [];
 
     return groups.map(group => {
-      const gapItem = dashboard.groupRows?.find((row: any) => row.id === `group:${group.slug}`);
-      
-      const suggestedStatus: GroupReleaseStatus = 
-        gapItem?.recommendation === "vale pedir coleta já" ? "ready" :
-        gapItem?.recommendation === "pode esperar" ? "validating" : "limited";
-
-      // Mapeamento do novo estado operacional para o status clássico
       const opsState = (group as any).operationalState;
       const statusFromOps: GroupReleaseStatus | null = 
         opsState === 'beta_open' ? 'ready' :
@@ -46,10 +32,9 @@ export async function getTerritorialReleaseSummary(): Promise<EffectiveGroupStat
         opsState === 'rollback' ? 'limited' :
         opsState === 'closed' ? 'hidden' : null;
 
-      const status = statusFromOps || (group.releaseStatus as GroupReleaseStatus) || suggestedStatus;
+      const status = statusFromOps || (group.releaseStatus as GroupReleaseStatus) || "limited";
       const isPublished = typeof group.isPublished === "boolean" ? group.isPublished : (status !== "limited" && status !== "hidden");
 
-      // Mapping rules for public transparency
       const publicStage: PublicOpeningStage = 
         status === "ready" ? "consolidated" :
         status === "validating" ? "public_beta" :
@@ -63,8 +48,8 @@ export async function getTerritorialReleaseSummary(): Promise<EffectiveGroupStat
         publicStage,
         isPublished,
         isOverride: Boolean(group.releaseStatus || opsState),
-        score: gapItem?.score ?? 0,
-        recommendation: gapItem?.recommendation ?? "precisa revisar base primeiro",
+        score: 0,
+        recommendation: "precisa revisar base primeiro" as EditorialGapRecommendation,
         operationalState: opsState
       };
     });
@@ -73,6 +58,3 @@ export async function getTerritorialReleaseSummary(): Promise<EffectiveGroupStat
     return [];
   }
 }
-
-// Helpers moved to release-types.ts
-

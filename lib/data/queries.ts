@@ -3,7 +3,7 @@ import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { assembleStationWithReports, groupReportsByStation, mapReportRow, mapReportsWithStations, mapStationRow } from "@/lib/data/mappers";
 import { getReportPriorityScore } from "@/lib/ops/moderation-priority";
 import { isPreviewFixturesEnabled, getPreviewApprovedReportsSince, getPreviewRecentCount, getPreviewRecentFeed, getPreviewStations, getPreviewStationById } from "@/lib/dev/preview-data";
-import { getAuditGroups, getAuditGroupMembers } from "@/lib/audit/groups";
+import { getAuditGroups, getAllGroupMembersForGroups } from "@/lib/audit/groups";
 import type { Station, StationWithReports, ReportWithStation, PriceReport, ReportStatus } from "@/lib/types";
 import type { PriceReportRow, StationRow } from "@/types/supabase";
 
@@ -185,11 +185,10 @@ export async function getHomeStations(): Promise<StationWithReports[]> {
     if (groups && groups.length > 0) {
       const stationStatusMap = new Map<string, string>();
 
-      const allMembersResults = await Promise.all(
-        groups.map(group => getAuditGroupMembers(group.id).catch(() => []).then(members => ({ group, members })))
-      );
+      const membersByGroupId = await getAllGroupMembersForGroups(groups.map(g => g.id));
 
-      for (const { group, members } of allMembersResults) {
+      for (const group of groups) {
+        const members = membersByGroupId.get(group.id) ?? [];
         if (!group) continue;
         const opsState = (group as any).operationalState;
         const status: string =

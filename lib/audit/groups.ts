@@ -96,3 +96,38 @@ export async function getAuditGroupMembers(groupId: string): Promise<AuditStatio
   }));
 }
 
+/** Fetch all members for multiple groups in a single query */
+export async function getAllGroupMembersForGroups(groupIds: string[]): Promise<Map<string, AuditStationGroupMember[]>> {
+  const result = new Map<string, AuditStationGroupMember[]>();
+  if (groupIds.length === 0) return result;
+
+  const supabase = createSupabaseServiceClient();
+  const { data, error } = await supabase
+    .from("audit_station_group_members")
+    .select("id,group_id,station_id,notes,created_at")
+    .in("group_id", groupIds)
+    .order("created_at", { ascending: true });
+
+  if (error || !data) {
+    if (error && !isMissingSchemaError(error)) {
+      console.error("Failed to load all group members", error);
+    }
+    return result;
+  }
+
+  for (const row of data) {
+    const member: AuditStationGroupMember = {
+      id: row.id,
+      groupId: row.group_id,
+      stationId: row.station_id,
+      notes: row.notes,
+      createdAt: row.created_at
+    };
+    const existing = result.get(member.groupId) ?? [];
+    existing.push(member);
+    result.set(member.groupId, existing);
+  }
+
+  return result;
+}
+
