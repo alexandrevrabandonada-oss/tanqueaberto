@@ -147,7 +147,7 @@ async function getCatalogForDuplicates() {
   const supabase = createSupabaseServiceClient();
   const { data, error } = await supabase
     .from("stations")
-    .select("id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,duplicate_of_station_id,coordinate_reviewed_at,updated_at,last_reported_at")
+    .select("id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,coordinate_reviewed_at,updated_at")
     .eq("is_active", true)
     .order("name_public", { ascending: true, nullsFirst: false })
     .order("name", { ascending: true });
@@ -174,7 +174,7 @@ export async function getStationEditorStationList(input: StationEditorStationLis
   const supabase = createSupabaseServiceClient();
   let query = supabase
     .from("stations")
-    .select("id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,duplicate_of_station_id,coordinate_reviewed_at,updated_at,last_reported_at")
+    .select("id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,coordinate_reviewed_at,updated_at")
     .order("city", { ascending: true })
     .order("neighborhood", { ascending: true })
     .order("name_public", { ascending: true, nullsFirst: false })
