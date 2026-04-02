@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, PencilLine, ShieldCheck } from "lucide-react";
 
 import { requireStationEditorUser } from "@/lib/auth/admin";
-import { getActiveStations, getStationDetail } from "@/lib/data/queries";
+import { getActiveStations, getStationDetailAdmin } from "@/lib/data/queries";
 import { getTerritorialDuplicateCandidates } from "@/lib/ops/territorial-curation";
 import { getStationLightEditAudit } from "@/lib/ops/station-light-edits";
 import { StationLightEditForm } from "@/components/stations/station-light-edit-form";
@@ -45,7 +45,7 @@ export default async function StationEditPage({ params, searchParams }: StationE
   const editor = await requireStationEditorUser();
   const { id } = await params;
   const resolvedSearchParams = (await searchParams) ?? {};
-  const [station, catalog, audit] = await Promise.all([getStationDetail(id), getActiveStations(), getStationLightEditAudit(20)]);
+  const [station, catalog, audit] = await Promise.all([getStationDetailAdmin(id), getActiveStations(), getStationLightEditAudit(20)]);
 
   if (!station) {
     notFound();

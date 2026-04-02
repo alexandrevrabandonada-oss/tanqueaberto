@@ -7,7 +7,7 @@ import type { Route } from "next";
 import { requireStationEditorUser } from "@/lib/auth/admin";
 import { createSupabaseServiceClient } from "@/lib/supabase/admin";
 import { recordAdminActionLog, recordOperationalEvent } from "@/lib/ops/logs";
-import { getActiveStations, getStationById } from "@/lib/data/queries";
+import { getActiveStations, getStationByIdAdmin } from "@/lib/data/queries";
 import { getStationProposalReviewSignal } from "@/lib/quality/stations";
 import { getTerritorialDuplicateCandidates } from "@/lib/ops/territorial-curation";
 import { recordStationLightEdit } from "@/lib/ops/station-light-edits";
@@ -65,7 +65,7 @@ export async function updateStationLightEditAction(formData: FormData) {
     redirect(`/admin/ops/station-editors?error=invalid_request` as Route);
   }
 
-  const currentStation = await getStationById(stationId);
+  const currentStation = await getStationByIdAdmin(stationId);
   if (!currentStation) {
     redirect(buildStationEditRedirect(stationId, { error: "station_not_found", returnTo }));
   }

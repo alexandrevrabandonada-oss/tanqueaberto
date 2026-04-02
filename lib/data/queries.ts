@@ -81,6 +81,27 @@ export async function getStationById(id: string): Promise<Station | null> {
   return mapStationRow(data as StationRow);
 }
 
+/** Bypass RLS — use only from authenticated admin/editor pages */
+export async function getStationByIdAdmin(id: string): Promise<Station | null> {
+  const supabase = createSupabaseServiceClient();
+  const { data, error } = await runStationSelect<StationRow>((select) =>
+    supabase
+      .from("stations")
+      .select(select)
+      .eq("id", id)
+      .maybeSingle()
+  );
+
+  if (error || !data) {
+    if (error) {
+      console.error(`Failed to load station ${id} (admin)`, error);
+    }
+    return null;
+  }
+
+  return mapStationRow(data as StationRow);
+}
+
 export async function getApprovedReports(limit = 200): Promise<PriceReport[]> {
   if (isPreviewFixturesMode()) {
     return getPreviewRecentFeed().slice(0, limit);
@@ -225,6 +246,20 @@ export async function getStationDetail(id: string): Promise<StationWithReports |
   }
 
   const [station, reports] = await Promise.all([getStationById(id), getApprovedReports(200)]);
+
+  if (!station) {
+    return null;
+  }
+
+  return assembleStationWithReports(
+    station,
+    reports.filter((report) => report.stationId === station.id)
+  );
+}
+
+/** Bypass RLS version — use only from authenticated admin/editor pages */
+export async function getStationDetailAdmin(id: string): Promise<StationWithReports | null> {
+  const [station, reports] = await Promise.all([getStationByIdAdmin(id), getApprovedReports(200)]);
 
   if (!station) {
     return null;
