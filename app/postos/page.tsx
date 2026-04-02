@@ -7,6 +7,7 @@ import { MapPinPlus, PencilLine, Search, ShieldCheck, TriangleAlert } from "luci
 import { getCurrentAdminUser } from "@/lib/auth/admin";
 import { getStationEditorSessionFromCookie } from "@/lib/auth/station-editor-session";
 import { getStationEditorStationList } from "@/lib/ops/station-editor-station-list";
+import type { StationEditorStationListReadout } from "@/lib/ops/station-editor-station-list";
 import { SectionCard } from "@/components/ui/section-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,35 @@ export const metadata: Metadata = {
 
 interface StationManagerPageProps {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}
+
+function createEmptyReadout(pageSize = 24): StationEditorStationListReadout {
+  return {
+    filters: {
+      q: "",
+      city: "",
+      neighborhood: "",
+      brand: "",
+      price: "all" as const,
+      review: "all" as const,
+      page: 1,
+      pageSize
+    },
+    summary: {
+      total: 0,
+      recent: 0,
+      withoutRecent: 0,
+      review: 0
+    },
+    pagination: {
+      page: 1,
+      pageSize,
+      totalPages: 1,
+      hasPreviousPage: false,
+      hasNextPage: false
+    },
+    items: []
+  };
 }
 
 function hasEditorAccess(currentAdmin: Awaited<ReturnType<typeof getCurrentAdminUser>>, lightSession: Awaited<ReturnType<typeof getStationEditorSessionFromCookie>>) {
@@ -69,10 +99,20 @@ function resolveBanner(searchParams: Record<string, string | string[] | undefine
 
 export default async function StationManagerPage({ searchParams }: StationManagerPageProps) {
   const resolvedSearchParams = (await searchParams) ?? {};
-  const currentAdmin = await getCurrentAdminUser();
-  const lightSession = await getStationEditorSessionFromCookie();
   const inviteToken = readString(resolvedSearchParams, "token");
   const inviteCode = readString(resolvedSearchParams, "code");
+
+  let currentAdmin: Awaited<ReturnType<typeof getCurrentAdminUser>> = null;
+  let lightSession: Awaited<ReturnType<typeof getStationEditorSessionFromCookie>> = null;
+
+  try {
+    [currentAdmin, lightSession] = await Promise.all([
+      getCurrentAdminUser(),
+      getStationEditorSessionFromCookie()
+    ]);
+  } catch (error) {
+    console.error("Failed to resolve /postos access", error);
+  }
 
   if (!hasEditorAccess(currentAdmin, lightSession)) {
     const next = new URLSearchParams();
@@ -90,8 +130,17 @@ export default async function StationManagerPage({ searchParams }: StationManage
   const review = readString(resolvedSearchParams, "review") === "review" ? "review" : "all";
   const page = readPage(resolvedSearchParams);
 
-  const readout = await getStationEditorStationList({ q, city, neighborhood, brand, price, review, page, pageSize: 24 });
-  const banner = resolveBanner(resolvedSearchParams);
+  let readout = createEmptyReadout(24);
+  let loadErrorNotice: string | null = null;
+
+  try {
+    readout = await getStationEditorStationList({ q, city, neighborhood, brand, price, review, page, pageSize: 24 });
+  } catch (error) {
+    console.error("Failed to load /postos station editor list", error);
+    loadErrorNotice = "A lista operacional nao carregou agora. Tente novamente em instantes.";
+  }
+
+  const banner = loadErrorNotice ?? resolveBanner(resolvedSearchParams);
   const noticeType = readString(resolvedSearchParams, "notice");
   const noticeSeedStationId = readString(resolvedSearchParams, "stationId");
   const baseParams = new URLSearchParams();
