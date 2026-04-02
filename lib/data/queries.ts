@@ -6,6 +6,9 @@ import { getAuditGroups, getAuditGroupMembers } from "@/lib/audit/groups";
 import type { Station, StationWithReports, ReportWithStation, PriceReport, ReportStatus } from "@/lib/types";
 import type { PriceReportRow, StationRow } from "@/types/supabase";
 
+const STATION_SELECT_FULL = "id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,duplicate_of_station_id,coordinate_reviewed_at,updated_at";
+const STATION_SELECT_LEGACY = "id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,updated_at";
+
 function sortDesc(left: { reportedAt: string }, right: { reportedAt: string }) {
   return new Date(right.reportedAt).getTime() - new Date(left.reportedAt).getTime();
 }
@@ -14,17 +17,34 @@ function isPreviewFixturesMode() {
   return isPreviewFixturesEnabled();
 }
 
+function isLegacyStationColumnError(message: string | undefined) {
+  const normalized = (message ?? "").toLowerCase();
+  return normalized.includes("column stations.duplicate_of_station_id does not exist")
+    || normalized.includes("column stations.coordinate_reviewed_at does not exist");
+}
+
+async function runStationSelect<T>(buildQuery: (select: string) => Promise<{ data: T | null; error: { message: string } | null }>) {
+  const fullResult = await buildQuery(STATION_SELECT_FULL);
+  if (!fullResult.error || !isLegacyStationColumnError(fullResult.error.message)) {
+    return fullResult;
+  }
+
+  return buildQuery(STATION_SELECT_LEGACY);
+}
+
 export async function getActiveStations(): Promise<Station[]> {
   if (isPreviewFixturesMode()) {
     return getPreviewStations().map((station) => station as unknown as Station);
   }
 
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("stations")
-    .select("id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,duplicate_of_station_id,coordinate_reviewed_at,updated_at")
-    .eq("is_active", true)
-    .order("name", { ascending: true });
+  const { data, error } = await runStationSelect<StationRow[]>((select) =>
+    supabase
+      .from("stations")
+      .select(select)
+      .eq("is_active", true)
+      .order("name", { ascending: true })
+  );
 
   if (error || !data) {
     console.error("Failed to load stations", error);
@@ -41,11 +61,13 @@ export async function getStationById(id: string): Promise<Station | null> {
   }
 
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("stations")
-    .select("id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,duplicate_of_station_id,coordinate_reviewed_at,updated_at")
-    .eq("id", id)
-    .maybeSingle();
+  const { data, error } = await runStationSelect<StationRow>((select) =>
+    supabase
+      .from("stations")
+      .select(select)
+      .eq("id", id)
+      .maybeSingle()
+  );
 
   if (error || !data) {
     if (error) {
@@ -226,7 +248,12 @@ export async function getStationOptions(): Promise<Station[]> {
 
 async function getAdminStations() {
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.from("stations").select("id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,duplicate_of_station_id,coordinate_reviewed_at,updated_at").order("created_at", { ascending: false });
+  const { data, error } = await runStationSelect<StationRow[]>((select) =>
+    supabase
+      .from("stations")
+      .select(select)
+      .order("created_at", { ascending: false })
+  );
 
   if (error || !data) {
     console.error("Failed to load admin stations", error);
@@ -361,12 +388,14 @@ export async function getModerationCounts() {
 
 export async function getStationReviewQueue(limit = 12): Promise<Station[]> {
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("stations")
-    .select("id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,duplicate_of_station_id,coordinate_reviewed_at,updated_at")
-    .in("geo_review_status", ["pending", "manual_review"])
-    .order("priority_score", { ascending: false })
-    .limit(limit);
+  const { data, error } = await runStationSelect<StationRow[]>((select) =>
+    supabase
+      .from("stations")
+      .select(select)
+      .in("geo_review_status", ["pending", "manual_review"])
+      .order("priority_score", { ascending: false })
+      .limit(limit)
+  );
 
   if (error || !data) {
     console.error("Failed to load station review queue", error);
@@ -401,11 +430,13 @@ export async function getStationsByIds(ids: string[]): Promise<Station[]> {
   }
 
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("stations")
-    .select("id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,duplicate_of_station_id,coordinate_reviewed_at,updated_at")
-    .in("id", ids)
-    .eq("is_active", true);
+  const { data, error } = await runStationSelect<StationRow[]>((select) =>
+    supabase
+      .from("stations")
+      .select(select)
+      .in("id", ids)
+      .eq("is_active", true)
+  );
 
   if (error || !data) {
     if (error) console.error("Failed to load stations by ids", error);
