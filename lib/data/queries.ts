@@ -23,13 +23,13 @@ function isLegacyStationColumnError(message: string | undefined) {
     || normalized.includes("column stations.coordinate_reviewed_at does not exist");
 }
 
-async function runStationSelect<T>(buildQuery: (select: string) => Promise<{ data: T | null; error: { message: string } | null }>) {
-  const fullResult = await buildQuery(STATION_SELECT_FULL);
+async function runStationSelect<T>(buildQuery: (select: string) => unknown): Promise<{ data: T | null; error: { message: string } | null }> {
+  const fullResult = await buildQuery(STATION_SELECT_FULL) as { data: T | null; error: { message: string } | null };
   if (!fullResult.error || !isLegacyStationColumnError(fullResult.error.message)) {
     return fullResult;
   }
 
-  return buildQuery(STATION_SELECT_LEGACY);
+  return await buildQuery(STATION_SELECT_LEGACY) as { data: T | null; error: { message: string } | null };
 }
 
 export async function getActiveStations(): Promise<Station[]> {
