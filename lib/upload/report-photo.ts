@@ -11,7 +11,12 @@ export function buildReportPhotoPath(stationId: string, suffix: string) {
 }
 
 export function validateReportPhoto(file: File) {
-  if (!ALLOWED_REPORT_PHOTO_TYPES.includes(file.type as (typeof ALLOWED_REPORT_PHOTO_TYPES)[number])) {
+  const mime = file.type?.toLowerCase() ?? "";
+  const ext = file.name?.split(".").pop()?.toLowerCase() ?? "";
+  const validMime = ALLOWED_REPORT_PHOTO_TYPES.includes(mime as (typeof ALLOWED_REPORT_PHOTO_TYPES)[number]);
+  const validExt = ["jpg", "jpeg", "png", "webp"].includes(ext);
+
+  if (!validMime && !validExt) {
     return "Envie uma foto em JPG, PNG ou WEBP.";
   }
 

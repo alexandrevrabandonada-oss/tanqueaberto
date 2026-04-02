@@ -454,6 +454,7 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
   }
 
   const extension = photo.name.split(".").pop()?.toLowerCase() || "jpg";
+  const contentType = photo.type || (extension === "png" ? "image/png" : extension === "webp" ? "image/webp" : "image/jpeg");
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${extension}`;
   const filePath = buildReportPhotoPath(stationId, suffix);
   const fileBuffer = Buffer.from(await photo.arrayBuffer());
@@ -476,7 +477,7 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
   }
 
   const { error: uploadError } = await supabase.storage.from(REPORT_PHOTO_BUCKET).upload(filePath, fileBuffer, {
-    contentType: photo.type,
+    contentType,
     upsert: false
   });
 
