@@ -1,18 +1,19 @@
 "use client";
 
-import Link from "next/link";
 import type { Route } from "next";
-import { useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { startTransition, useMemo } from "react";
 import { MapPinned, Search, Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
 import { useLocationHardening } from "@/hooks/use-location-hardening";
-import { calculateDistance, formatDistance } from "@/lib/geo/distance";
+import { filterStations, getSelectedStationReport } from "@/lib/filters/public";
 import { formatCurrencyBRL } from "@/lib/format/currency";
 import { formatRecencyLabel } from "@/lib/format/time";
-import { getSelectedStationReport } from "@/lib/filters/public";
+import { calculateDistance, formatDistance } from "@/lib/geo/distance";
+import { rememberStationVisit } from "@/lib/navigation/home-context";
 import { getStationPublicName } from "@/lib/quality/stations";
 import { cn } from "@/lib/utils";
 import type { FuelFilter, RecencyFilter, StationPresenceFilter } from "@/lib/filters/public";
@@ -28,6 +29,27 @@ interface HomeServerLeadProps {
   initialPresenceFilter: StationPresenceFilter;
 }
 
+function buildContextHref(
+  query: string,
+  city: string,
+  fuelFilter: FuelFilter,
+  recencyFilter: RecencyFilter,
+  presenceFilter: StationPresenceFilter
+) {
+  const params = new URLSearchParams();
+  if (query) params.set("q", query);
+  if (city) params.set("city", city);
+  if (fuelFilter !== "all") params.set("fuel", fuelFilter);
+  if (recencyFilter !== "all") params.set("recency", recencyFilter);
+  if (presenceFilter !== "all") params.set("presence", presenceFilter);
+  const suffix = params.toString();
+  return suffix ? `/?${suffix}` : "/";
+}
+
+function getStationHref(stationId: string, returnToHref?: string) {
+  return returnToHref ? (`/postos/${stationId}?returnTo=${encodeURIComponent(returnToHref)}` as Route) : (`/postos/${stationId}` as Route);
+}
+
 export function HomeServerLead({
   stations,
   recentCount,
@@ -37,19 +59,29 @@ export function HomeServerLead({
   initialRecencyFilter,
   initialPresenceFilter
 }: HomeServerLeadProps) {
+  const router = useRouter();
   const { location } = useLocationHardening();
   const coords = useMemo(
     () => (location ? { lat: location.lat, lng: location.lng } : null),
     [location]
   );
+  const contextHref = useMemo(
+    () => buildContextHref(initialQuery, initialCity, initialFuelFilter, initialRecencyFilter, initialPresenceFilter),
+    [initialCity, initialFuelFilter, initialPresenceFilter, initialQuery, initialRecencyFilter]
+  );
 
   const nearbyStations = useMemo(() => {
-    const baseStations = initialCity
-      ? stations.filter((station) => station.city?.trim().toUpperCase() === initialCity.trim().toUpperCase())
-      : stations;
+    const baseStations = filterStations(
+      stations,
+      initialQuery,
+      initialCity,
+      initialFuelFilter,
+      initialRecencyFilter,
+      initialPresenceFilter
+    );
 
     if (!coords) {
-      return baseStations.slice(0, 3);
+      return baseStations.slice(0, 6);
     }
 
     return [...baseStations]
@@ -61,9 +93,9 @@ export function HomeServerLead({
             : Number.POSITIVE_INFINITY
       }))
       .sort((left, right) => left.distance - right.distance)
-      .slice(0, 3)
+      .slice(0, 6)
       .map(({ station }) => station);
-  }, [coords, initialCity, stations]);
+  }, [coords, initialCity, initialFuelFilter, initialPresenceFilter, initialQuery, initialRecencyFilter, stations]);
 
   const selectedModeLabel =
     initialFuelFilter !== "all"
@@ -143,10 +175,16 @@ export function HomeServerLead({
               : null;
 
             return (
-              <Link
+              <button
                 key={station.id}
-                href={`/postos/${station.id}` as Route}
-                className={cn("block rounded-[18px] border border-white/8 bg-white/[0.04] px-3 py-2.5 transition hover:border-white/12 hover:bg-white/8")}
+                type="button"
+                onClick={() => {
+                  rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
+                  startTransition(() => {
+                    router.push(getStationHref(station.id, contextHref));
+                  });
+                }}
+                className={cn("block w-full rounded-[18px] border border-white/8 bg-white/[0.04] px-3 py-2.5 text-left transition hover:border-white/12 hover:bg-white/8")}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -167,7 +205,7 @@ export function HomeServerLead({
                     ) : null}
                   </div>
                 </div>
-              </Link>
+              </button>
             );
           })}
           {nearbyStations.length === 0 ? (

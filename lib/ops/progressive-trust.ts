@@ -393,7 +393,11 @@ export function evaluateSubmissionRisk(input: SubmissionRiskInput): SubmissionRi
   }
 
   if (!input.locationConfidence || input.locationConfidence === "none" || input.locationConfidence === "low") {
-    highReasons.push("geolocalização ruim ou ausente");
+    if (hasSensitiveConflict || input.stationProposalMode) {
+      highReasons.push("geolocalização ruim ou ausente");
+    } else {
+      mediumReasons.push("geolocalização ruim ou ausente");
+    }
     flags.push("weak_geo");
   }
 
@@ -505,4 +509,5 @@ export function decideSubmissionRouting(input: {
     autoApproved: false
   };
 }
+
 

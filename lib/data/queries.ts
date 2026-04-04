@@ -541,7 +541,7 @@ export async function getModerationReports(status: ReportStatus | "all" = "pendi
   return reports;
 }
 export async function getRecentModeratedReports(limit = 6): Promise<ReportWithStation[]> {
-  return getModerationReports("all", limit).then((reports) => reports.filter((report) => report.status !== "pending"));
+  return getModerationReports("all", limit).then((reports) => reports.filter((report) => report.status === "approved" || report.status === "rejected"));
 }
 
 export async function getPendingReports(): Promise<ReportWithStation[]> {
@@ -742,6 +742,7 @@ export async function getRecentReportsForStations(stationIds: string[], limit = 
 
   return (data as PriceReportRow[]).map(mapReportRow);
 }
+
 
 
 

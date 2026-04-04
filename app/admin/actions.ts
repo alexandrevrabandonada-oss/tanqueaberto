@@ -84,6 +84,15 @@ function normalizeNotice(action: "approved" | "rejected") {
   return action === "approved" ? "Aprovado no painel." : "Rejeitado no painel.";
 }
 
+function buildModerationRedirect(decision: "approved" | "rejected") {
+  const query = new URLSearchParams({
+    notice: decision,
+    status: decision
+  });
+
+  return `${ADMIN_ROUTE}?${query.toString()}` as Route;
+}
+
 function isLegacyPriceReportWriteError(message: string | undefined) {
   const normalized = (message ?? "").toLowerCase();
   return (
@@ -380,7 +389,7 @@ export async function moderateReportAction(formData: FormData) {
 
   await moderateReports(allIds, decision, moderationNote);
 
-  redirect(`${ADMIN_ROUTE}?notice=${decision}` as Route);
+  redirect(buildModerationRedirect(decision));
 }
 
 export async function moderateReportQueueAction(formData: FormData) {
@@ -411,7 +420,7 @@ export async function moderateReportsBatchAction(formData: FormData) {
 
   await moderateReports(reportIds, decision, moderationNote);
 
-  redirect(`${ADMIN_ROUTE}?notice=${decision}` as Route);
+  redirect(buildModerationRedirect(decision));
 }
 
 const reportFuelTypes: FuelType[] = ["gasolina_comum", "gasolina_aditivada", "etanol", "diesel_s10", "diesel_comum", "gnv"];
@@ -1396,6 +1405,7 @@ export async function setTerritoryWorkflowStateAction(formData: FormData) {
 
   redirect(withNotice(targetReturnTo, TERRITORY_WORKFLOW_NOTICE) as Route);
 }
+
 
 
 
