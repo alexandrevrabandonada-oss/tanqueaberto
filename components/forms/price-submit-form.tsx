@@ -32,7 +32,7 @@ import { processImageForUpload } from "@/lib/camera/image-processor";
 import { AlertTriangle, CheckCircle2, Loader2, Sparkles, MessageCircleQuestion } from "lucide-react";
 import { consumeHubAttribution } from "@/lib/telemetry/attribution";
 import { useMySubmissions } from "@/hooks/use-my-submissions";
-import { persistProgressiveIdentityNickname } from "@/lib/identity/progressive";
+import { persistProgressiveIdentityNickname, readProgressiveIdentityProfile } from "@/lib/identity/progressive";
 import { useStreetSession } from "@/hooks/use-street-session";
 import { useTestMode } from "@/hooks/use-test-mode";
 import { submitContextualFeedbackAction } from "@/app/hub/feedback-actions";
@@ -391,6 +391,7 @@ function PriceSubmitFormBody({
   const fuelSelectRef = useRef<HTMLSelectElement | null>(null);
   const restoredDraftTrackedRef = useRef(false);
   const lastFailureKeyRef = useRef<string | null>(null);
+  const submitFeedbackRef = useRef<HTMLDivElement | null>(null);
   const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
   const [qualityResult, setQualityResult] = useState<PhotoQualityResult | null>(null);
   const [validationErrors, setValidationErrors] = useState<{
@@ -445,6 +446,15 @@ function PriceSubmitFormBody({
   useEffect(() => {
     setHomeContextSnapshot(readHomeContext());
     setLastStationSnapshot(readLastStationContext());
+  }, []);
+
+  useEffect(() => {
+    const savedProfile = readProgressiveIdentityProfile();
+    if (!savedProfile?.nickname) {
+      return;
+    }
+
+    setNickname((current) => current || savedProfile.nickname || "");
   }, []);
 
   useEffect(() => {
@@ -964,6 +974,9 @@ function PriceSubmitFormBody({
     }
 
     completedRef.current = true;
+    if (nickname.trim()) {
+      persistProgressiveIdentityNickname(nickname, "submission");
+    }
     setSubmittedStationId(stationId);
     setPrice("");
     setNickname("");
@@ -1146,6 +1159,14 @@ function PriceSubmitFormBody({
       }
     });
   }, [draftPhotoMissing, state.error, state.errorCode, state.retryable]);
+
+  useEffect(() => {
+    if (!state.error) {
+      return;
+    }
+
+    submitFeedbackRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [state.error]);
 
   useEffect(() => {
     if (!state.error || !draftLoaded) {
@@ -1957,7 +1978,7 @@ function PriceSubmitFormBody({
       ) : null}
 
       {state.error ? (
-        <div className={`rounded-[18px] border px-4 py-3 text-sm ${retryableError ? "border-[color:var(--color-accent)]/24 bg-[color:var(--color-accent)]/10 text-white" : "border-[color:var(--color-danger)]/30 bg-[color:var(--color-danger)]/10 text-[color:var(--color-danger)]"}`}>
+        <div ref={submitFeedbackRef} className={`rounded-[18px] border px-4 py-3 text-sm ${retryableError ? "border-[color:var(--color-accent)]/24 bg-[color:var(--color-accent)]/10 text-white" : "border-[color:var(--color-danger)]/30 bg-[color:var(--color-danger)]/10 text-[color:var(--color-danger)]"}`}>
           <p className="font-medium text-white">
             {state.errorCode === "network_offline"
               ? "Sem conexão agora."
@@ -2402,6 +2423,9 @@ function PriceSubmitFormBody({
                 setNickname(event.target.value);
                 markStarted("nickname", { hasValue: event.target.value.trim().length > 0 });
               }}
+              onBlur={(event) => {
+                persistProgressiveIdentityNickname(event.target.value, "manual");
+              }}
               placeholder="Ex.: Morador VR"
               className="w-full rounded-[18px] border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none ring-0"
             />
@@ -2434,7 +2458,7 @@ function PriceSubmitFormBody({
         <div className="mx-auto flex w-full max-w-3xl items-center gap-3 rounded-[24px] border border-white/10 bg-black/92 px-4 py-3 backdrop-blur-md md:backdrop-blur-xl">
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/36">Etapa {stageLabel}</p>
-            <p className="truncate text-sm text-white/66">{guidedStage === "submit" ? "Confira e envie." : "Uma ação por vez."}</p>
+            <p className="truncate text-sm text-white/66">{state.error ? state.error : guidedStage === "submit" ? "Confira e envie." : "Uma ação por vez."}</p>
           </div>
           <Button type={guidedStage === "submit" ? "submit" : "button"} className="h-14 min-w-[11rem] rounded-full text-sm font-bold" disabled={pending || (guidedStage === "submit" && !canSubmit)} onClick={guidedStage === "submit" ? undefined : handlePrimaryAction}>
             {pending ? "Enviando..." : submitButtonLabel}
