@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { Route } from "next";
 import { Camera, Clock3, Navigation, Sparkles, Star } from "lucide-react";
@@ -19,12 +20,16 @@ import { cn } from "@/lib/utils";
 import { formatDistance } from "@/lib/geo/distance";
 import { formatCurrencyBRL } from "@/lib/format/currency";
 import { formatRecencyLabel, getRecencyTone } from "@/lib/format/time";
-import { fuelLabels } from "@/lib/format/labels";
+import { fuelLabels, publicFuelFilters } from "@/lib/format/labels";
 import { canShowStationOnMap, getStationPublicName, hasPendingStationLocationReview } from "@/lib/quality/stations";
 import { getSelectedStationReport, hasRecentStationPriceForFilter } from "@/lib/filters/public";
 import { rememberStationVisit } from "@/lib/navigation/home-context";
 import { openExternalNavigation } from "@/lib/navigation/external-maps";
 import { trackProductEvent } from "@/lib/telemetry/client";
+import type { FuelType } from "@/lib/types";
+
+const ECONOMY_FUEL_STORAGE_KEY = "bomba-aberta:economy-fuel-filter";
+const ECONOMY_FUEL_OPTIONS = publicFuelFilters.filter((item) => item.value !== "all") as Array<{ value: FuelType; label: string }>;
 
 function getStationHref(stationId: string, returnToHref?: string) {
   return returnToHref ? `/postos/${stationId}?returnTo=${encodeURIComponent(returnToHref)}` : `/postos/${stationId}`;
@@ -67,6 +72,27 @@ function dedupeStationItems(items: Array<{ station: any; report: any; key?: stri
 function getEconomyLocalityLabel(station: any) {
   return [station?.neighborhood, station?.city].filter(Boolean).join(" · ") || "Regiao sem bairro";
 }
+
+function isFuelType(value: string): value is FuelType {
+  return ECONOMY_FUEL_OPTIONS.some((item) => item.value === value);
+}
+
+function readEconomyFuelPreference() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const saved = window.localStorage.getItem(ECONOMY_FUEL_STORAGE_KEY);
+  return saved && isFuelType(saved) ? saved : null;
+}
+
+function pickBetterEconomyCandidate(current: any, next: any) {
+  if (!current) return next;
+  if (next.report.price !== current.report.price) {
+    return next.report.price < current.report.price ? next : current;
+  }
+  return new Date(next.report.reportedAt).getTime() > new Date(current.report.reportedAt).getTime() ? next : current;
+}
 export function HomeDeferredSections(props: Record<string, any>) {
   const {
     homeState,
@@ -108,9 +134,54 @@ export function HomeDeferredSections(props: Record<string, any>) {
     onStationTrack
   } = props;
 
+  const [economyFuelFilter, setEconomyFuelFilter] = useState<FuelType>("gasolina_comum");
+  const availableEconomyFuels = useMemo(() => {
+    const seen = new Set<FuelType>();
+
+    for (const station of orderedStations as any[]) {
+      for (const report of [...(station?.recentReports ?? []), ...(station?.latestReports ?? [])]) {
+        if (isFuelType(String(report?.fuelType ?? ""))) {
+          seen.add(report.fuelType as FuelType);
+        }
+      }
+    }
+
+    return ECONOMY_FUEL_OPTIONS.filter((item) => seen.has(item.value)).map((item) => item.value);
+  }, [orderedStations]);
+
+  useEffect(() => {
+    const available = availableEconomyFuels.length > 0 ? availableEconomyFuels : ECONOMY_FUEL_OPTIONS.map((item) => item.value);
+    const saved = readEconomyFuelPreference();
+    const routeFuel = fuelFilter !== "all" && isFuelType(fuelFilter) ? fuelFilter : null;
+
+    setEconomyFuelFilter((current) => {
+      if (available.includes(current)) {
+        return current;
+      }
+      if (routeFuel && available.includes(routeFuel)) {
+        return routeFuel;
+      }
+      if (saved && available.includes(saved)) {
+        return saved;
+      }
+      if (available.includes("gasolina_comum")) {
+        return "gasolina_comum";
+      }
+      return available[0] ?? "gasolina_comum";
+    });
+  }, [availableEconomyFuels, fuelFilter]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.localStorage.setItem(ECONOMY_FUEL_STORAGE_KEY, economyFuelFilter);
+  }, [economyFuelFilter]);
+
   const showQuickAccess = homeState?.showQuickAccess && !missionActive && (recentIds.length > 0 || favoriteIds.length > 0);
   const priceCandidates = orderedStations
-    .map((station: any) => ({ station, report: getSelectedStationReport(station, fuelFilter) }))
+    .map((station: any) => ({ station, report: getSelectedStationReport(station, economyFuelFilter) }))
     .filter((item: any) => item.report);
   const cheapestRecent = dedupeStationItems(
     priceCandidates
@@ -123,7 +194,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
   ).slice(0, 3);
   const cheapestNearYou = dedupeStationItems(
     cheapestNow
-      .map((entry: any) => entry?.station && entry?.report ? entry : { station: entry, report: getSelectedStationReport(entry, fuelFilter) })
+      .map((entry: any) => entry?.station && entry?.report ? entry : { station: entry, report: getSelectedStationReport(entry, economyFuelFilter) })
       .filter((item: any) => item.station && item.report)
       .sort((left: any, right: any) => {
         const leftDistance = Number.isFinite(left.station?.distance) ? left.station.distance : Number.MAX_SAFE_INTEGER;
@@ -132,6 +203,52 @@ export function HomeDeferredSections(props: Record<string, any>) {
         return left.report.price - right.report.price;
       })
   ).slice(0, 3);
+  const cheapestByNeighborhood = useMemo(() => {
+    const groups = new Map<string, { key: string; label: string; item: any; count: number }>();
+
+    for (const item of priceCandidates) {
+      const key = String(item.station?.neighborhood ?? "").trim() || String(item.station?.city ?? "").trim() || "sem-bairro";
+      const label = String(item.station?.neighborhood ?? "").trim() || String(item.station?.city ?? "").trim() || "Regiao sem bairro";
+      const current = groups.get(key);
+
+      groups.set(key, {
+        key,
+        label,
+        item: pickBetterEconomyCandidate(current?.item ?? null, item),
+        count: (current?.count ?? 0) + 1
+      });
+    }
+
+    return Array.from(groups.values())
+      .sort((left, right) => {
+        const priceDiff = left.item.report.price - right.item.report.price;
+        if (priceDiff !== 0) return priceDiff;
+        return right.count - left.count;
+      })[0] ?? null;
+  }, [priceCandidates]);
+  const cheapestByCity = useMemo(() => {
+    const groups = new Map<string, { key: string; label: string; item: any; count: number }>();
+
+    for (const item of priceCandidates) {
+      const key = String(item.station?.city ?? "").trim() || "sem-cidade";
+      const label = String(item.station?.city ?? "").trim() || "Cidade sem nome";
+      const current = groups.get(key);
+
+      groups.set(key, {
+        key,
+        label,
+        item: pickBetterEconomyCandidate(current?.item ?? null, item),
+        count: (current?.count ?? 0) + 1
+      });
+    }
+
+    return Array.from(groups.values())
+      .sort((left, right) => {
+        const priceDiff = left.item.report.price - right.item.report.price;
+        if (priceDiff !== 0) return priceDiff;
+        return right.count - left.count;
+      })[0] ?? null;
+  }, [priceCandidates]);
   const cheapestStale = dedupeStationItems(
     priceCandidates
       .filter(({ report }: any) => getRecencyTone(report.reportedAt) === "stale")
@@ -167,6 +284,29 @@ export function HomeDeferredSections(props: Record<string, any>) {
       empty: "Nao ha preço barato envelhecido chamando atenção agora."
     }
   ];
+  const economyReadouts = [
+    {
+      id: "nearby",
+      title: "Perto de voce",
+      hint: "Melhor preço no caminho agora",
+      entry: cheapestNearYou[0] ?? null,
+      context: cheapestNearYou[0]?.station?.distance ? formatDistance(cheapestNearYou[0].station.distance) : "Sem GPS forte"
+    },
+    {
+      id: "neighborhood",
+      title: "Por bairro",
+      hint: "Melhor leitura no bairro do recorte",
+      entry: cheapestByNeighborhood?.item ?? null,
+      context: cheapestByNeighborhood?.label ?? "Sem bairro forte"
+    },
+    {
+      id: "city",
+      title: "Por cidade",
+      hint: "Melhor leitura no recorte da cidade",
+      entry: cheapestByCity?.item ?? null,
+      context: cheapestByCity?.label ?? (selectedCityLabel || "Sem cidade definida")
+    }
+  ];
   const hasEconomyItems = economyGroups.some((group) => group.items.length > 0);
 
   function handleEconomyRoute(station: any, groupId: string) {
@@ -189,7 +329,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
         action: "route",
         groupId,
         stationName,
-        fuelFilter
+        fuelFilter: economyFuelFilter
       }
     });
 
@@ -385,7 +525,94 @@ export function HomeDeferredSections(props: Record<string, any>) {
             <h2 className="mt-1 text-xl font-semibold text-white">Veja o que ainda compensa de verdade</h2>
             <p className="mt-2 text-sm leading-relaxed text-white/50">Preço bom sozinho engana. Aqui o app separa o que está barato e recente, o que cabe no caminho e o que está barato, mas já pode ter mudado.</p>
           </div>
-          <Badge variant="warning">{fuelFilter === "all" ? "Todos os combustíveis" : fuelLabels[fuelFilter as keyof typeof fuelLabels]}</Badge>
+          <Badge variant="warning">{fuelLabels[economyFuelFilter]}</Badge>
+        </div>
+
+        <div className="space-y-3 rounded-[22px] border border-white/8 bg-black/20 p-4">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-white/38">Filtro principal</p>
+              <p className="mt-1 text-sm text-white/58">Compare so o combustivel que voce realmente quer abastecer.</p>
+            </div>
+            <Badge variant="secondary">Lembra neste aparelho</Badge>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {ECONOMY_FUEL_OPTIONS.map((option) => {
+              const isActive = option.value === economyFuelFilter;
+              const hasData = availableEconomyFuels.length === 0 || availableEconomyFuels.includes(option.value);
+
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => {
+                    setEconomyFuelFilter(option.value);
+                    void trackProductEvent({
+                      eventType: "quick_action_clicked",
+                      pagePath: "/",
+                      pageTitle: "Home",
+                      scopeType: "block",
+                      scopeId: "economy-fuel-filter",
+                      payload: {
+                        source: "economy_surface",
+                        action: "filter_fuel",
+                        fuelFilter: option.value,
+                        hasData
+                      }
+                    });
+                  }}
+                  className={cn(
+                    "rounded-full border px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] transition",
+                    isActive
+                      ? "border-[color:var(--color-accent)] bg-[color:var(--color-accent)] text-black"
+                      : "border-white/10 bg-white/[0.04] text-white/62 hover:border-white/20 hover:bg-white/[0.08]",
+                    !hasData && !isActive && "opacity-60"
+                  )}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-xs leading-relaxed text-white/42">
+            Cards e comparacoes abaixo agora mostram apenas <span className="font-semibold text-white/72">{fuelLabels[economyFuelFilter]}</span>.
+          </p>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-3">
+          {economyReadouts.map((readout) => {
+            const report = readout.entry?.report ?? null;
+            const station = readout.entry?.station ?? null;
+            const confidence = report ? getReportConfidenceMeta(report) : null;
+            const recencyTone = report ? getRecencyTone(report.reportedAt) : "stale";
+
+            return (
+              <div key={readout.id} className="rounded-[20px] border border-white/8 bg-white/[0.04] p-4">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">{readout.title}</p>
+                <p className="mt-1 text-sm text-white/58">{readout.hint}</p>
+                {report && station ? (
+                  <>
+                    <div className="mt-4 flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-white">{getStationPublicName(station)}</p>
+                        <p className="mt-1 text-[11px] text-white/42">{readout.context}</p>
+                      </div>
+                      <p className="text-xl font-black tracking-tight text-white">{formatCurrencyBRL(report.price)}</p>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Badge variant={recencyTone === "fresh" ? "default" : recencyTone === "warning" ? "warning" : "danger"}>
+                        {formatRecencyLabel(report.reportedAt)}
+                      </Badge>
+                      <Badge variant={confidence?.variant ?? "secondary"}>{confidence?.label ?? "Confianca basica"}</Badge>
+                      {station.distance ? <Badge variant="secondary">{formatDistance(station.distance)}</Badge> : null}
+                    </div>
+                  </>
+                ) : (
+                  <p className="mt-4 text-sm leading-relaxed text-white/42">Ainda nao apareceu leitura util de {fuelLabels[economyFuelFilter].toLowerCase()} neste recorte.</p>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         <div className="grid gap-2 sm:grid-cols-3">
@@ -403,8 +630,8 @@ export function HomeDeferredSections(props: Record<string, any>) {
 
         {!hasEconomyItems ? (
           <EmptyStateCard
-            title={mapStations.length > 0 ? "Há postos cadastrados, mas ainda sem preço recente neste recorte." : "Nenhum preço disponível para este recorte."}
-            description={mapStations.length > 0 ? "Abra a lista dos postos sem atualização e envie a primeira foto onde puder." : "Tente outro bairro, cidade, combustível ou remova os filtros para voltar ao mapa completo."}
+            title={mapStations.length > 0 ? `Há postos cadastrados, mas ainda sem ${fuelLabels[economyFuelFilter].toLowerCase()} recente neste recorte.` : `Nenhum preço de ${fuelLabels[economyFuelFilter].toLowerCase()} disponível neste recorte.`}
+            description={mapStations.length > 0 ? "Abra a lista dos postos sem atualização e envie a primeira foto desse combustível onde puder." : "Tente outro bairro, cidade ou mude o combustível da comparação para voltar a um recorte útil."}
             actionHref="/postos/sem-atualizacao"
             actionLabel="Ver postos sem atualização"
             className="text-left"
@@ -431,7 +658,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
                       const confidence = getReportConfidenceMeta(report);
                       const canRoute = hasRouteCoordinates(station);
                       const stationHref = getStationHref(station.id, contextHref) as Route;
-                      const sendHref = getSendHref(station.id, contextHref, fuelFilter) as Route;
+                      const sendHref = getSendHref(station.id, contextHref, economyFuelFilter) as Route;
 
                       return (
                         <div key={report.id || `${group.id}-${station.id}`} className="rounded-[18px] border border-white/8 bg-black/20 p-4">
@@ -451,6 +678,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
                             </div>
                             <div className="shrink-0 text-right">
                               <p className="text-2xl font-black tracking-tight text-white">{formatCurrencyBRL(report.price)}</p>
+                              <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-white/34">{fuelLabels[economyFuelFilter]}</p>
                               <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-accent)]/78">{group.id === "stale" ? "Pode ter mudado" : group.id === "near" ? "Bom no caminho" : "Bom agora"}</p>
                             </div>
                           </div>
@@ -492,12 +720,12 @@ export function HomeDeferredSections(props: Record<string, any>) {
                                     source: "economy_surface",
                                     action: "photo",
                                     groupId: group.id,
-                                    fuelFilter
+                                    fuelFilter: economyFuelFilter
                                   }
                                 });
                               }}
                             >
-                              Atualizar preço
+                              Atualizar preço desse combustível
                             </ButtonLink>
                             {canRoute ? (
                               <Button
@@ -632,4 +860,12 @@ export function HomeDeferredSections(props: Record<string, any>) {
     </>
   );
 }
+
+
+
+
+
+
+
+
 

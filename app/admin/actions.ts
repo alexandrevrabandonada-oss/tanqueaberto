@@ -126,6 +126,89 @@ function parseStationIdList(formData: FormData, key = "stationIds") {
     .filter(Boolean);
 }
 
+async function expandModerationTargetIds(supabase: ReturnType<typeof createSupabaseServiceClient>, reportIds: string[]) {
+  const uniqueIds = Array.from(new Set(reportIds.filter(Boolean)));
+  if (uniqueIds.length === 0) {
+    return uniqueIds;
+  }
+
+  try {
+    const { data: seedRows, error: seedError } = await supabase
+      .from("price_reports")
+      .select("id,reconciliation_id,photo_hash,station_id,fuel_type,price,reported_at,reporter_nickname,ip_hash")
+      .in("id", uniqueIds);
+
+    if (seedError || !seedRows || seedRows.length === 0) {
+      return uniqueIds;
+    }
+
+    const expandedIds = new Set(uniqueIds);
+    const reconciliationIds = Array.from(new Set(seedRows.map((row: { reconciliation_id?: string | null }) => String(row.reconciliation_id ?? "").trim()).filter(Boolean)));
+    const photoHashes = Array.from(new Set(seedRows.map((row: { photo_hash?: string | null }) => String(row.photo_hash ?? "").trim()).filter(Boolean)));
+
+    if (reconciliationIds.length > 0) {
+      const { data: groupedRows } = await supabase
+        .from("price_reports")
+        .select("id")
+        .in("reconciliation_id", reconciliationIds)
+        .in("status", ["pending", "flagged"]);
+
+      for (const row of groupedRows ?? []) {
+        expandedIds.add(String(row.id));
+      }
+    }
+
+    if (photoHashes.length > 0) {
+      const { data: duplicateRows } = await supabase
+        .from("price_reports")
+        .select("id")
+        .in("photo_hash", photoHashes)
+        .in("status", ["pending", "flagged"]);
+
+      for (const row of duplicateRows ?? []) {
+        expandedIds.add(String(row.id));
+      }
+    }
+
+    const contextualSeeds = seedRows
+      .map((row: { station_id?: string | null; fuel_type?: string | null; price?: number | null; reported_at?: string | null }) => ({
+        stationId: String(row.station_id ?? "").trim(),
+        fuelType: String(row.fuel_type ?? "").trim(),
+        price: Number(row.price ?? Number.NaN),
+        reportedAt: String(row.reported_at ?? "").trim()
+      }))
+      .filter((row: { stationId: string; fuelType: string; price: number; reportedAt: string }) => row.stationId && row.fuelType && Number.isFinite(row.price) && row.reportedAt);
+
+    for (const seed of contextualSeeds) {
+      const reportedAtMs = new Date(seed.reportedAt).getTime();
+      if (!Number.isFinite(reportedAtMs)) {
+        continue;
+      }
+
+      const windowStart = new Date(reportedAtMs - 12 * 60 * 60 * 1000).toISOString();
+      const windowEnd = new Date(reportedAtMs + 12 * 60 * 60 * 1000).toISOString();
+      const { data: contextualRows } = await supabase
+        .from("price_reports")
+        .select("id")
+        .eq("station_id", seed.stationId)
+        .eq("fuel_type", seed.fuelType)
+        .eq("price", seed.price)
+        .in("status", ["pending", "flagged"])
+        .gte("reported_at", windowStart)
+        .lte("reported_at", windowEnd);
+
+      for (const row of contextualRows ?? []) {
+        expandedIds.add(String(row.id));
+      }
+    }
+
+    return Array.from(expandedIds);
+  } catch (error) {
+    console.error("Failed to expand moderation target ids", error);
+    return uniqueIds;
+  }
+}
+
 export async function signInAdminAction(_prevState: AdminLoginState, formData: FormData): Promise<AdminLoginState> {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
@@ -222,11 +305,12 @@ export async function signOutAdminAction() {
 async function moderateReports(reportIds: string[], decision: "approved" | "rejected", moderationNote?: string) {
   const admin = await requireAdminUser();
   const supabase = createSupabaseServiceClient();
+  const targetReportIds = await expandModerationTargetIds(supabase, reportIds);
 
   const { data: reports, error: reportError } = await supabase
     .from("price_reports")
     .select("id,station_id,fuel_type,price,reported_at,reporter_nickname,ip_hash,status,moderation_note,location_confidence,metadata")
-    .in("id", reportIds) as {
+    .in("id", targetReportIds) as {
       data: {
         id: string;
         station_id: string;
@@ -269,7 +353,7 @@ async function moderateReports(reportIds: string[], decision: "approved" | "reje
   let { error } = await supabase
     .from("price_reports")
     .update(updatePayload)
-    .in("id", reportIds);
+    .in("id", targetReportIds);
 
   if (error && isLegacyPriceReportWriteError(error.message)) {
     const fallbackPayload = {
@@ -280,7 +364,7 @@ async function moderateReports(reportIds: string[], decision: "approved" | "reje
     const retryResult = await supabase
       .from("price_reports")
       .update(fallbackPayload)
-      .in("id", reportIds);
+      .in("id", targetReportIds);
 
     error = retryResult.error;
   }
@@ -299,7 +383,7 @@ async function moderateReports(reportIds: string[], decision: "approved" | "reje
       payload: {
         decision,
         moderationNote: note,
-        additionalReportIds: reportIds.slice(1)
+        additionalReportIds: targetReportIds.slice(1)
       }
     });
     redirect(`${ADMIN_ROUTE}?error=moderation_failed` as Route);
@@ -332,7 +416,7 @@ async function moderateReports(reportIds: string[], decision: "approved" | "reje
       fuelType: report.fuel_type,
       price: report.price,
       reportedAt: report.reported_at,
-      groupedCount: reportIds.length
+      groupedCount: targetReportIds.length
     }
   });
 
@@ -349,7 +433,7 @@ async function moderateReports(reportIds: string[], decision: "approved" | "reje
     payload: {
       decision,
       moderationNote: note,
-      groupedCount: reportIds.length
+      groupedCount: targetReportIds.length
     }
   });
 
@@ -364,8 +448,8 @@ async function moderateReports(reportIds: string[], decision: "approved" | "reje
       fuelType: report.fuel_type,
       price: report.price,
       reportedAt: report.reported_at,
-      groupedCount: reportIds.length,
-      additionalReportIds: reportIds.slice(1)
+      groupedCount: targetReportIds.length,
+      additionalReportIds: targetReportIds.slice(1)
     }
   });
 
@@ -1405,6 +1489,11 @@ export async function setTerritoryWorkflowStateAction(formData: FormData) {
 
   redirect(withNotice(targetReturnTo, TERRITORY_WORKFLOW_NOTICE) as Route);
 }
+
+
+
+
+
 
 
 
