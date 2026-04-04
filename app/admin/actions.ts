@@ -84,6 +84,19 @@ function normalizeNotice(action: "approved" | "rejected") {
   return action === "approved" ? "Aprovado no painel." : "Rejeitado no painel.";
 }
 
+function isLegacyPriceReportWriteError(message: string | undefined) {
+  const normalized = (message ?? "").toLowerCase();
+  return (
+    normalized.includes("approved_at")
+    || normalized.includes("rejected_at")
+    || normalized.includes("moderated_by")
+    || normalized.includes("version")
+    || normalized.includes("does not exist")
+    || normalized.includes("could not find")
+    || normalized.includes("schema cache")
+  );
+}
+
 function getOptionalText(formData: FormData, key: string) {
   const value = String(formData.get(key) ?? "").trim();
   return value.length > 0 ? value : null;
@@ -222,7 +235,7 @@ async function moderateReports(reportIds: string[], decision: "approved" | "reje
     };
 
   if (reportError || !reports || reports.length === 0) {
-    redirect(ADMIN_ROUTE);
+    redirect(`${ADMIN_ROUTE}?error=report_not_found` as Route);
   }
 
   const report = reports[0];
@@ -244,10 +257,24 @@ async function moderateReports(reportIds: string[], decision: "approved" | "reje
         approved_at: null
       };
 
-  const { error } = await supabase
+  let { error } = await supabase
     .from("price_reports")
     .update(updatePayload)
     .in("id", reportIds);
+
+  if (error && isLegacyPriceReportWriteError(error.message)) {
+    const fallbackPayload = {
+      status: decision,
+      moderation_note: note
+    };
+
+    const retryResult = await supabase
+      .from("price_reports")
+      .update(fallbackPayload)
+      .in("id", reportIds);
+
+    error = retryResult.error;
+  }
 
   if (error) {
     await recordOperationalEvent({
@@ -266,7 +293,7 @@ async function moderateReports(reportIds: string[], decision: "approved" | "reje
         additionalReportIds: reportIds.slice(1)
       }
     });
-    redirect(ADMIN_ROUTE);
+    redirect(`${ADMIN_ROUTE}?error=moderation_failed` as Route);
   }
 
   try {
@@ -348,12 +375,12 @@ export async function moderateReportAction(formData: FormData) {
   const allIds = [reportId, ...confirmationIds].filter(Boolean);
 
   if (allIds.length === 0 || (decision !== "approved" && decision !== "rejected")) {
-    redirect(ADMIN_ROUTE);
+    redirect(`${ADMIN_ROUTE}?error=invalid_request` as Route);
   }
 
   await moderateReports(allIds, decision, moderationNote);
 
-  redirect(ADMIN_ROUTE);
+  redirect(`${ADMIN_ROUTE}?notice=${decision}` as Route);
 }
 
 export async function moderateReportQueueAction(formData: FormData) {
@@ -379,10 +406,12 @@ export async function moderateReportsBatchAction(formData: FormData) {
   const moderationNote = String(formData.get("moderationNote") ?? "");
 
   if (reportIds.length === 0 || (decision !== "approved" && decision !== "rejected")) {
-    redirect(ADMIN_ROUTE);
+    redirect(`${ADMIN_ROUTE}?error=invalid_request` as Route);
   }
 
   await moderateReports(reportIds, decision, moderationNote);
+
+  redirect(`${ADMIN_ROUTE}?notice=${decision}` as Route);
 }
 
 const reportFuelTypes: FuelType[] = ["gasolina_comum", "gasolina_aditivada", "etanol", "diesel_s10", "diesel_comum", "gnv"];
@@ -484,7 +513,23 @@ export async function updatePriceReportAction(formData: FormData) {
   }
 
   const supabase = createSupabaseServiceClient();
-  const { error } = await supabase.from("price_reports").update(updatePayload).eq("id", reportId);
+  let { error } = await supabase.from("price_reports").update(updatePayload).eq("id", reportId);
+
+  if (error && isLegacyPriceReportWriteError(error.message)) {
+    const fallbackPayload: Record<string, unknown> = {
+      price,
+      fuel_type: fuelType,
+      reporter_nickname: reporterNickname,
+      moderation_note: moderationNote
+    };
+
+    if (shouldTouchModeration) {
+      fallbackPayload.status = nextStatus;
+    }
+
+    const retryResult = await supabase.from("price_reports").update(fallbackPayload).eq("id", reportId);
+    error = retryResult.error;
+  }
 
   if (error) {
     await recordOperationalEvent({
