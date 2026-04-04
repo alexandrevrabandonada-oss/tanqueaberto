@@ -404,7 +404,6 @@ function PriceSubmitFormBody({
   const completedRef = useRef(false);
   const stationProposalNameInputRef = useRef<HTMLInputElement | null>(null);
   const stationProposalStreetInputRef = useRef<HTMLInputElement | null>(null);
-  const abandonmentSentRef = useRef(false);
   const currentStepRef = useRef<SubmissionDraftStep | null>(null);
   const telemetryContextRef = useRef({ stationId: stationId || null, fuelType, compactMode, lockedStation });
   const formRef = useRef<HTMLFormElement | null>(null);
@@ -420,11 +419,13 @@ function PriceSubmitFormBody({
     fuelType?: string;
     price?: string;
     photo?: string;
+    priceSource?: string;
   }>({});
   const lastFieldRef = useRef<string | null>(null);
   const retryAttemptRef = useRef(0);
   const lastQueuedFailureSignatureRef = useRef<string | null>(null);
   const lastQueuedAbandonmentSignatureRef = useRef<string | null>(null);
+  const abandonmentSentRef = useRef(false);
 
   function openCameraPicker() {
     cameraInputRef.current?.click();
@@ -1395,7 +1396,7 @@ function PriceSubmitFormBody({
 
     setIsProcessingPhoto(true);
     setQualityResult(null);
-    setValidationErrors((prev) => ({ ...prev, photo: undefined }));
+    setValidationErrors((prev) => ({ ...prev, photo: undefined, priceSource: undefined }));
 
     try {
       // 1. Processar/Comprimir
@@ -1508,23 +1509,25 @@ function PriceSubmitFormBody({
     lastFieldRef.current = fieldName;
   }
 
-  function validateForm() {
+    function validateForm() {
     const errors: typeof validationErrors = {};
     if (!stationId) errors.stationId = "Selecione um posto.";
     if (!fuelType) errors.fuelType = "Selecione o combustível.";
-    
-    // Validação de preço: deve ter pelo menos 5 chars (ex: 5,699)
+
     if (!price || price.length < 5) {
       errors.price = "Informe um preço válido (ex: 5,699).";
     }
-    
-    if (!selectedFileRef.current) {
-      errors.photo = "A foto é obrigatória para o envio de rua.";
+
+    if (evidenceMode === "placa_faixa") {
+      if (!selectedFileRef.current) {
+        errors.photo = "A foto é obrigatória para o envio de rua.";
+      }
+    } else if (!priceSource) {
+      errors.priceSource = "Escolha a origem do preço.";
     }
-    
+
     setValidationErrors(errors);
-    
-    // Telemetry for validation errors
+
     Object.entries(errors).forEach(([field, message]) => {
       void trackProductEvent({
         eventType: "submission_validation_error" as any,
@@ -1532,16 +1535,19 @@ function PriceSubmitFormBody({
         payload: { field, message, price, fuelType }
       });
     });
-    
+
     return Object.keys(errors).length === 0;
   }
 
-  const canSubmit = Boolean(selectedStation && selectedFileRef.current && price.trim() && fuelType);
+  const requiresDocumentPhoto = evidenceMode === "placa_faixa";
   const hasPhoto = Boolean(previewUrl);
+  const manualSourceReady = evidenceMode === "sem_placa_faixa" ? Boolean(priceSource) : true;
+  const evidenceReady = requiresDocumentPhoto ? hasPhoto : manualSourceReady;
+  const canSubmit = Boolean(selectedStation && price.trim() && fuelType && evidenceReady);
   const retryableError = state.error && state.retryable;
-  const guidedStage: SubmissionDraftStep = !hasPhoto ? "photo" : !stationConfirmed ? "station" : !fuelConfirmed ? "fuel" : !price.trim() ? "price" : !priceReviewed ? "price" : "submit";
+  const guidedStage: SubmissionDraftStep = !evidenceReady ? "photo" : !stationConfirmed ? "station" : !fuelConfirmed ? "fuel" : !price.trim() ? "price" : !priceReviewed ? "price" : "submit";
   const stageLabel = {
-    photo: "Foto",
+    photo: evidenceMode === "sem_placa_faixa" ? "Origem" : "Foto",
     station: "Posto",
     fuel: "Combustível",
     price: "Preço",
@@ -1549,7 +1555,9 @@ function PriceSubmitFormBody({
   }[guidedStage];
   const submitButtonLabel =
     guidedStage === "photo"
-      ? "Abrir câmera"
+      ? evidenceMode === "sem_placa_faixa"
+        ? (priceSource ? "Continuar" : "Escolher origem")
+        : "Abrir câmera"
       : guidedStage === "station"
         ? "Confirmar posto"
         : guidedStage === "fuel"
@@ -1827,6 +1835,11 @@ function PriceSubmitFormBody({
   }
   function handlePrimaryAction() {
     if (guidedStage === "photo") {
+      if (evidenceMode === "sem_placa_faixa") {
+        setValidationErrors((prev) => ({ ...prev, priceSource: priceSource ? undefined : "Escolha a origem do preço." }));
+        return;
+      }
+
       openCameraPicker();
       recordActivity("start", stationId);
       return;
@@ -1871,6 +1884,7 @@ function PriceSubmitFormBody({
 
     formRef.current?.requestSubmit();
   }
+
   return (
     <>
       {state.noticeTitle && state.noticeBody ? (
@@ -2142,7 +2156,7 @@ function PriceSubmitFormBody({
             type="button"
             onClick={() => {
               setEvidenceMode("placa_faixa");
-              setValidationErrors((prev) => ({ ...prev, photo: undefined }));
+              setValidationErrors((prev) => ({ ...prev, photo: undefined, priceSource: undefined }));
             }}
             className={cn(
               "rounded-[18px] border px-4 py-3 text-left transition",
@@ -2157,7 +2171,7 @@ function PriceSubmitFormBody({
             type="button"
             onClick={() => {
               setEvidenceMode("sem_placa_faixa");
-              setValidationErrors((prev) => ({ ...prev, photo: undefined }));
+              setValidationErrors((prev) => ({ ...prev, photo: undefined, priceSource: undefined }));
             }}
             className={cn(
               "rounded-[18px] border px-4 py-3 text-left transition",
@@ -2215,7 +2229,7 @@ function PriceSubmitFormBody({
                   type="button"
                   onClick={() => {
                     setPriceSource(option);
-                    setValidationErrors((prev) => ({ ...prev, photo: undefined }));
+                    setValidationErrors((prev) => ({ ...prev, photo: undefined, priceSource: undefined }));
                     markStarted("photo", { evidenceMode: "sem_placa_faixa", priceSource: option });
                   }}
                   className={cn(
@@ -2227,6 +2241,7 @@ function PriceSubmitFormBody({
                 </button>
               ))}
             </div>
+            {validationErrors.priceSource ? <p className="px-1 text-[10px] font-bold uppercase text-red-400 tracking-wider animate-in fade-in slide-in-from-top-1">{validationErrors.priceSource}</p> : null}
             <div className="space-y-2">
               <label className="text-sm font-medium text-white" htmlFor="photo-input">Foto opcional de contexto</label>
               <input
@@ -2358,7 +2373,7 @@ function PriceSubmitFormBody({
               <p className="truncate text-sm font-semibold text-white">{getStationPublicName(selectedStation)}</p>
               <p className="mt-1 text-xs text-white/62">{selectedStation.neighborhood} · {shortAddress(selectedStation.address) || selectedStation.city}</p>
             </div>
-            <Button type="button" variant="secondary" className="shrink-0" onClick={() => { setStationConfirmed(false); setShowStationPicker(true); }}>
+            <Button type="button" variant="secondary" className="shrink-0" onClick={() => { setStationConfirmed(false); setShowStationPicker(true); stationSearchInputRef.current?.focus(); }}>
 
               Trocar
 
@@ -2494,7 +2509,7 @@ function PriceSubmitFormBody({
               </div>
             ) : null}
 
-            {selectedStation ? (
+            {selectedStation && (!showStationPicker || lockedStation) ? (
               <div className="rounded-[18px] border border-[color:var(--color-accent)]/22 bg-[color:var(--color-accent)]/8 px-4 py-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 space-y-2">
@@ -2525,7 +2540,7 @@ function PriceSubmitFormBody({
                   <button type="button" className="inline-flex h-10 flex-1 items-center justify-center rounded-full bg-white px-4 text-[11px] font-black uppercase tracking-[0.18em] text-black" onClick={() => setShowStationPicker(false)}>
                     Seguir com este
                   </button>
-                  <button type="button" className="inline-flex h-10 flex-1 items-center justify-center rounded-full border border-white/10 bg-white/5 px-4 text-[11px] font-black uppercase tracking-[0.18em] text-white/82" onClick={() => { setStationConfirmed(false); setShowStationPicker(true); }}>
+                  <button type="button" className="inline-flex h-10 flex-1 items-center justify-center rounded-full border border-white/10 bg-white/5 px-4 text-[11px] font-black uppercase tracking-[0.18em] text-white/82" onClick={() => { setStationConfirmed(false); setShowStationPicker(true); stationSearchInputRef.current?.focus(); }}>
                     Trocar por parecido
                   </button>
                 </div>
@@ -2781,6 +2796,8 @@ export function PriceSubmitForm(props: PriceSubmitFormProps) {
 
   return <PriceSubmitFormBody key={`${props.initialStationId ?? "default"}-${formVersion}`} {...props} onResetRequest={() => setFormVersion((value) => value + 1)} />;
 }
+
+
 
 
 

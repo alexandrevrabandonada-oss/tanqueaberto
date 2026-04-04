@@ -1,11 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { cn } from "@/lib/utils";
-import { LucideIcon } from "lucide-react";
-import { Button } from "./button";
 import { type Route } from "next";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { LucideIcon } from "lucide-react";
+
+import { cn } from "@/lib/utils";
 
 interface QuickActionButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   icon: LucideIcon;
@@ -24,25 +24,26 @@ interface QuickActionButtonProps extends React.ButtonHTMLAttributes<HTMLButtonEl
 
 export const QuickActionButton = React.forwardRef<HTMLButtonElement, QuickActionButtonProps>(
   ({ icon: Icon, label, secondaryLabel, desktopLabel, variant = 'secondary', isStreetMode, isAssisted, isUltraClaro, isAdvanced, href, showLabel = true, layout = 'vertical', className, onClick, ...props }, ref) => {
+    const router = useRouter();
     const isHorizontal = layout === 'horizontal';
     const effectiveShowLabel = showLabel && !isAdvanced;
-    
+
     const content = (
       <>
         <Icon className={cn(
-          "shrink-0 transition-all group-active:scale-125 duration-75", 
+          "shrink-0 transition-all group-active:scale-125 duration-75",
           isUltraClaro ? "h-7 w-7" : isStreetMode || isAssisted ? "h-6 w-6" : isAdvanced ? "h-5 w-5" : "h-4 w-4",
           isUltraClaro && variant === 'primary' && "drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]"
         )} />
         <span className="flex min-w-0 flex-col items-center gap-0.5 text-center">
-          {effectiveShowLabel && (
+          {effectiveShowLabel ? (
             <span className={cn(
               "font-black tracking-widest uppercase italic leading-none transition-all",
               isUltraClaro ? "text-[12px] text-white brightness-125" : isAssisted ? "text-[11px] text-white" : isStreetMode ? "text-[10px]" : "text-[9px]"
             )}>
               {label}
             </span>
-          )}
+          ) : null}
           {desktopLabel ? (
             <span
               className={cn(
@@ -72,9 +73,9 @@ export const QuickActionButton = React.forwardRef<HTMLButtonElement, QuickAction
       "active:scale-95 active:brightness-150 active:shadow-[0_0_20px_rgba(255,255,255,0.1)]",
       isHorizontal ? "flex-row px-4 h-11 min-w-[90px] gap-2.5" : "flex-col gap-2",
       !isHorizontal && (
-        isUltraClaro ? "h-24 w-full" : 
-        isAssisted ? "h-20 w-full" : 
-        isStreetMode ? "h-16 w-full" : 
+        isUltraClaro ? "h-24 w-full" :
+        isAssisted ? "h-20 w-full" :
+        isStreetMode ? "h-16 w-full" :
         isAdvanced ? "h-12 w-full rounded-xl" :
         "h-14 px-4 min-w-[70px]"
       ),
@@ -87,23 +88,17 @@ export const QuickActionButton = React.forwardRef<HTMLButtonElement, QuickAction
       className
     );
 
-    if (href) {
-      return (
-        <Link 
-          href={href as Route} 
-          className={baseStyles}
-          onClick={onClick as any}
-        >
-          {content}
-        </Link>
-      );
-    }
-
     return (
       <button
         ref={ref}
+        type={props.type ?? "button"}
         className={baseStyles}
-        onClick={onClick}
+        onClick={(event) => {
+          event.stopPropagation();
+          onClick?.(event);
+          if (event.defaultPrevented || !href) return;
+          router.push(href as Route);
+        }}
         {...props}
       >
         {content}
@@ -122,7 +117,7 @@ interface QuickActionGroupProps {
 
 export function QuickActionGroup({ children, className, onMisclick }: QuickActionGroupProps) {
   return (
-    <div 
+    <div
       className={cn("grid grid-cols-2 gap-2 rounded-[22px] border border-white/6 bg-black/20 p-1.5", className)}
       onClick={(e) => {
         if (e.target === e.currentTarget && onMisclick) {
@@ -134,7 +129,3 @@ export function QuickActionGroup({ children, className, onMisclick }: QuickActio
     </div>
   );
 }
-
-
-
-

@@ -13,7 +13,7 @@ export interface ExternalNavigationOptions {
 export function getNavigationUrl(app: MapApp, lat: number, lng: number): string {
   switch (app) {
     case "waze":
-      return `waze://?ll=${lat},${lng}&navigate=yes`;
+      return `https://www.waze.com/ul?ll=${lat},${lng}&navigate=yes`;
     case "google":
       return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
     case "apple":
@@ -25,8 +25,7 @@ export function getNavigationUrl(app: MapApp, lat: number, lng: number): string 
 
 export function openExternalNavigation(app: MapApp, options: ExternalNavigationOptions) {
   const url = getNavigationUrl(app, options.lat, options.lng);
-  
-  // Track handoff
+
   void trackProductEvent({
     eventType: "external_navigation_opened",
     pagePath: window.location.pathname,
@@ -43,7 +42,6 @@ export function openExternalNavigation(app: MapApp, options: ExternalNavigationO
     }
   });
 
-  // Guardar contexto para o retorno
   const handoffData = {
     stationId: options.stationId,
     stationName: options.stationName,
@@ -52,17 +50,21 @@ export function openExternalNavigation(app: MapApp, options: ExternalNavigationO
   };
   localStorage.setItem("bomba-aberta:navigation-handoff", JSON.stringify(handoffData));
 
-  // Abrir link
-  window.open(url, "_blank");
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if (isMobile) {
+    window.location.href = url;
+    return;
+  }
+
+  window.open(url, "_blank", "noopener,noreferrer");
 }
 
 export function getNavigationHandoff() {
   const raw = localStorage.getItem("bomba-aberta:navigation-handoff");
   if (!raw) return null;
-  
+
   try {
     const data = JSON.parse(raw);
-    // Expirar após 2 horas
     if (Date.now() - data.timestamp > 2 * 60 * 60 * 1000) {
       localStorage.removeItem("bomba-aberta:navigation-handoff");
       return null;
@@ -76,4 +78,3 @@ export function getNavigationHandoff() {
 export function clearNavigationHandoff() {
   localStorage.removeItem("bomba-aberta:navigation-handoff");
 }
-
