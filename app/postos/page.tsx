@@ -12,6 +12,7 @@ import { SectionCard } from "@/components/ui/section-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDateTimeBR, formatRecencyLabel } from "@/lib/format/time";
+import { publishStationToSystemAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -93,7 +94,11 @@ function resolveBanner(searchParams: Record<string, string | string[] | undefine
   const error = readString(searchParams, "error");
 
   if (notice === "invite_accepted") return "Sessao leve ativa neste aparelho. Agora voce pode navegar na base existente, corrigir e semear novos postos.";
+  if (notice === "station_promoted") return "Posto promovido para publico. Ele ja pode entrar no sistema com visibilidade operacional.";
   if (error === "session_expired") return "Sua sessao expirou. Entre novamente para continuar.";
+  if (error === "requires_location_review") return "Esse posto ainda precisa de coordenada valida antes de entrar no sistema. Ajuste o local na edicao leve.";
+  if (error === "duplicate_linked") return "Esse posto ja foi marcado como duplicado e nao pode entrar no sistema como item proprio.";
+  if (error === "publish_failed") return "Nao foi possivel colocar o posto no sistema agora.";
   return null;
 }
 
@@ -284,6 +289,7 @@ export default async function StationManagerPage({ searchParams }: StationManage
               const editHref = `/postos/${item.station.id}/editar?returnTo=${encodeURIComponent(returnTo)}` as Route;
               const duplicateHref = duplicateRisk && duplicateTarget ? `/postos/${item.station.id}/editar?${new URLSearchParams({ returnTo, mode: "duplicate", duplicateOfStationId: duplicateTarget }).toString()}` as Route : editHref;
               const viewHref = `/postos/${item.station.id}` as Route;
+              const canAdminPromote = Boolean(currentAdmin?.role === "admin" && (item.station.visibilityStatus !== "public" || item.station.isActive === false) && !item.station.duplicateOfStationId);
 
               return (
                 <div key={item.station.id} className="space-y-3 rounded-[18px] border border-white/8 bg-black/20 p-4">
@@ -328,6 +334,15 @@ export default async function StationManagerPage({ searchParams }: StationManage
                       <Link href={duplicateHref} className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-amber-400/20 bg-amber-400/10 px-4 py-2.5 text-sm font-semibold text-amber-50 transition hover:bg-amber-400/15 sm:w-auto">
                         Marcar duplicidade
                       </Link>
+                    ) : null}
+                    {canAdminPromote ? (
+                      <form action={publishStationToSystemAction}>
+                        <input type="hidden" name="stationId" value={item.station.id} />
+                        <input type="hidden" name="returnTo" value={returnTo} />
+                        <Button type="submit" variant="accent" className="w-full sm:w-auto">
+                          Colocar no sistema
+                        </Button>
+                      </form>
                     ) : null}
                   </div>
                 </div>

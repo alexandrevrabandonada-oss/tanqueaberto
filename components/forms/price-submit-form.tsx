@@ -3,7 +3,7 @@
 
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import type { ChangeEvent } from "react";
+import type { ChangeEvent, ReactNode } from "react";
 import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { Camera, ShieldCheck, ArrowRight, Clock3, Trophy, Target, Zap, Search, MapPin } from "lucide-react";
@@ -145,6 +145,7 @@ export interface StationPickerCandidate {
   publicName: string;
   neighborhoodLabel: string;
   addressShort: string;
+  fullAddress: string;
   brandLabel: string | null;
   searchText: string;
   distance: number | null;
@@ -164,6 +165,120 @@ function shortAddress(address?: string | null) {
     .map((segment) => segment.trim())
     .filter(Boolean)
     .join(", ");
+}
+
+function normalizeStationSearchValue(value: string) {
+  return normalizeContextValue(value)
+    .replace(/[.,/\-]+/g, " ")
+    .replace(/\bav(?:enida)?\b/g, "avenida")
+    .replace(/\br(?:ua)?\b/g, "rua")
+    .replace(/\brod(?:ovia)?\b/g, "rodovia")
+    .replace(/\best(?:rada)?\b/g, "estrada")
+    .replace(/\bpres(?:idente)?\b/g, "presidente")
+    .replace(/\bgov(?:ernador)?\b/g, "governador")
+    .replace(/\bquilometros?\b/g, "km")
+    .replace(/\bpetrobras\b/g, "br")
+    .replace(/\bvibra\b/g, "br")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function expandStationHighlightTokens(query: string) {
+  const rawTokens = normalizeContextValue(query).split(/\s+/g).filter(Boolean);
+  const canonicalTokens = normalizeStationSearchValue(query).split(/\s+/g).filter(Boolean);
+  const tokens = new Set<string>([...rawTokens, ...canonicalTokens]);
+
+  canonicalTokens.forEach((token) => {
+    if (token === "avenida") tokens.add("av");
+    if (token === "rua") tokens.add("r");
+    if (token === "rodovia") tokens.add("rod");
+    if (token === "estrada") tokens.add("est");
+    if (token === "presidente") tokens.add("pres");
+    if (token === "governador") tokens.add("gov");
+  });
+
+  return Array.from(tokens).filter((token) => token.length >= 2);
+}
+
+function buildSearchableCharacterIndex(value: string) {
+  let normalized = "";
+  const map: number[] = [];
+
+  for (let index = 0; index < value.length; index += 1) {
+    const normalizedChunk = value[index]
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .toLowerCase();
+
+    for (const character of normalizedChunk) {
+      normalized += character;
+      map.push(index);
+    }
+  }
+
+  return { normalized, map };
+}
+
+function renderHighlightedStationText(value: string, query: string): ReactNode {
+  const text = String(value ?? "");
+  if (!text.trim() || !query.trim()) {
+    return text;
+  }
+
+  const tokens = expandStationHighlightTokens(query);
+  if (tokens.length === 0) {
+    return text;
+  }
+
+  const { normalized, map } = buildSearchableCharacterIndex(text);
+  const ranges: Array<{ start: number; end: number }> = [];
+
+  tokens.forEach((token) => {
+    let cursor = normalized.indexOf(token);
+    while (cursor >= 0) {
+      const start = map[cursor];
+      const end = map[cursor + token.length - 1] + 1;
+      ranges.push({ start, end });
+      cursor = normalized.indexOf(token, cursor + token.length);
+    }
+  });
+
+  if (ranges.length === 0) {
+    return text;
+  }
+
+  ranges.sort((left, right) => left.start - right.start);
+  const merged: Array<{ start: number; end: number }> = [];
+  for (const range of ranges) {
+    const current = merged[merged.length - 1];
+    if (!current || range.start > current.end) {
+      merged.push({ ...range });
+      continue;
+    }
+
+    current.end = Math.max(current.end, range.end);
+  }
+
+  const nodes: ReactNode[] = [];
+  let lastIndex = 0;
+  merged.forEach((range, index) => {
+    if (range.start > lastIndex) {
+      nodes.push(text.slice(lastIndex, range.start));
+    }
+
+    nodes.push(
+      <span key={`${text}-${range.start}-${range.end}-${index}`} className="rounded bg-[color:var(--color-accent)]/18 px-0.5 text-white">
+        {text.slice(range.start, range.end)}
+      </span>
+    );
+    lastIndex = range.end;
+  });
+
+  if (lastIndex < text.length) {
+    nodes.push(text.slice(lastIndex));
+  }
+
+  return nodes;
 }
 
 function getStationVisibilityRank(station: StationWithReports) {
@@ -187,7 +302,7 @@ function getStationAmbiguityKey(station: StationWithReports, publicName: string)
 }
 
 function getStationSearchScore(candidate: StationPickerCandidate, query: string) {
-  const normalized = normalizeContextValue(query);
+  const normalized = normalizeStationSearchValue(query);
   if (!normalized) return 0;
 
   const tokens = normalized.split(/\s+/g).filter(Boolean);
@@ -199,11 +314,12 @@ function getStationSearchScore(candidate: StationPickerCandidate, query: string)
   }
 
   let score = 0;
-  if (normalizeContextValue(candidate.publicName).startsWith(normalized)) score += 120;
+  if (normalizeStationSearchValue(candidate.publicName).startsWith(normalized)) score += 120;
   if (searchable.includes(normalized)) score += 60;
-  if (normalizeContextValue(candidate.neighborhoodLabel).includes(normalized)) score += 24;
-  if (normalizeContextValue(candidate.addressShort).includes(normalized)) score += 18;
-  if (candidate.brandLabel && normalizeContextValue(candidate.brandLabel).includes(normalized)) score += 16;
+  if (normalizeStationSearchValue(candidate.neighborhoodLabel).includes(normalized)) score += 24;
+  if (normalizeStationSearchValue(candidate.fullAddress).includes(normalized)) score += 28;
+  if (normalizeStationSearchValue(candidate.addressShort).includes(normalized)) score += 18;
+  if (candidate.brandLabel && normalizeStationSearchValue(candidate.brandLabel).includes(normalized)) score += 16;
   score += Math.max(0, 24 - candidate.recentIndex * 3);
   score += candidate.visibilityRank * 8;
   score += candidate.geoRank * 6;
@@ -212,6 +328,62 @@ function getStationSearchScore(candidate: StationPickerCandidate, query: string)
   }
 
   return score;
+}
+
+function getStationSearchMatchContext(candidate: StationPickerCandidate, query: string) {
+  const normalized = normalizeStationSearchValue(query);
+  if (!normalized) return null;
+
+  const publicName = normalizeStationSearchValue(candidate.publicName);
+  const neighborhood = normalizeStationSearchValue(candidate.neighborhoodLabel);
+  const addressShort = normalizeStationSearchValue(candidate.addressShort);
+  const fullAddress = normalizeStationSearchValue(candidate.fullAddress);
+  const city = normalizeStationSearchValue(candidate.station.city);
+  const brand = normalizeStationSearchValue(candidate.brandLabel ?? "");
+
+  if (fullAddress.includes(normalized)) {
+    return {
+      label: "Endereco",
+      value: candidate.fullAddress || candidate.addressShort || candidate.neighborhoodLabel
+    };
+  }
+
+  if (addressShort.includes(normalized)) {
+    return {
+      label: "Endereco",
+      value: candidate.addressShort
+    };
+  }
+
+  if (neighborhood.includes(normalized)) {
+    return {
+      label: "Bairro",
+      value: candidate.neighborhoodLabel
+    };
+  }
+
+  if (city.includes(normalized)) {
+    return {
+      label: "Cidade",
+      value: candidate.station.city
+    };
+  }
+
+  if (brand.includes(normalized) && candidate.brandLabel) {
+    return {
+      label: "Bandeira",
+      value: candidate.brandLabel
+    };
+  }
+
+  if (publicName.includes(normalized)) {
+    return {
+      label: "Nome",
+      value: candidate.publicName
+    };
+  }
+
+  return null;
 }
 
 function compareStationCandidates(left: StationPickerCandidate, right: StationPickerCandidate) {
@@ -283,11 +455,11 @@ function PriceSubmitFormBody({
   const draftKey = useMemo(() => createDraftKey(initialStationId), [initialStationId]);
 
   const initialStation = useMemo(() => stations.find((station) => station.id === initialStationId) ?? null, [initialStationId, stations]);
-  const lockedStation = Boolean(initialStation);
-  const compactMode = lockedStation;
+  const hasInitialStation = Boolean(initialStation);
+  const lockedStation = false;
+  const compactMode = hasInitialStation;
   const defaultStationId = useMemo(() => initialStation?.id ?? stations[0]?.id ?? "", [initialStation, stations]);
   const defaultFuelType: FuelType = initialFuelType && allowedFuelSet.has(initialFuelType) ? initialFuelType : "gasolina_comum";
-
   const [stationId, setStationId] = useState(defaultStationId);
   const [fuelType, setFuelType] = useState<FuelType>(defaultFuelType);
   const [price, setPrice] = useState("");
@@ -302,7 +474,7 @@ function PriceSubmitFormBody({
   const [draftRestored, setDraftRestored] = useState(false);
   const [draftPhotoMissing, setDraftPhotoMissing] = useState(false);
   const [isSuggested, setIsSuggested] = useState(false);
-  const [stationConfirmed, setStationConfirmed] = useState(Boolean(lockedStation));
+  const [stationConfirmed, setStationConfirmed] = useState(Boolean(hasInitialStation));
   const [fuelConfirmed, setFuelConfirmed] = useState(false);
   const [priceReviewed, setPriceReviewed] = useState(false);
   const [submittedStationId, setSubmittedStationId] = useState<string | null>(null);
@@ -794,6 +966,7 @@ function PriceSubmitFormBody({
     return stations.map((station) => {
       const publicName = getStationPublicName(station);
       const addressShort = shortAddress(station.address);
+      const fullAddress = station.address?.trim() || "";
       const neighborhoodLabel = station.neighborhood?.trim() || "Bairro nao informado";
       const brandLabel = station.distributorName?.trim() || station.brand?.trim() || null;
       const hasReliableCoordinate = isValidStationCoordinate(station.lat, station.lng);
@@ -806,8 +979,9 @@ function PriceSubmitFormBody({
         publicName,
         neighborhoodLabel,
         addressShort,
+        fullAddress,
         brandLabel,
-        searchText: normalizeContextValue([publicName, neighborhoodLabel, addressShort, station.city, station.brand, station.distributorName].filter(Boolean).join(" ")),
+        searchText: normalizeStationSearchValue([publicName, neighborhoodLabel, addressShort, fullAddress, station.city, station.brand, station.distributorName].filter(Boolean).join(" ")),
         distance,
         recentIndex: recentIndex >= 0 ? recentIndex : 999,
         visibilityRank: getStationVisibilityRank(station),
@@ -927,7 +1101,7 @@ function PriceSubmitFormBody({
     });
   }, [coords, draftKey, draftRestored, fuelType, lockedStation, stationCandidates, stationId]);
 
-  const normalizedStationSearch = useMemo(() => normalizeContextValue(stationSearch), [stationSearch]);
+  const normalizedStationSearch = useMemo(() => normalizeStationSearchValue(stationSearch), [stationSearch]);
 
   const nearbyRadiusMeters = useMemo(() => {
     const distances = stationCandidates
@@ -974,7 +1148,7 @@ function PriceSubmitFormBody({
       .slice(0, 14);
   }, [normalizedStationSearch, stationCandidates]);
 
-  const normalizedProposalSearch = useMemo(() => normalizeContextValue([stationProposalName, stationProposalStreet, stationProposalNeighborhood, proposalCity].filter(Boolean).join(" ")), [proposalCity, stationProposalName, stationProposalNeighborhood, stationProposalStreet]);
+  const normalizedProposalSearch = useMemo(() => normalizeStationSearchValue([stationProposalName, stationProposalStreet, stationProposalNeighborhood, proposalCity].filter(Boolean).join(" ")), [proposalCity, stationProposalName, stationProposalNeighborhood, stationProposalStreet]);
   const proposalDuplicateCandidates = useMemo(() => {
     if (!normalizedProposalSearch) return [] as StationPickerCandidate[];
     return stationCandidates
@@ -1794,6 +1968,8 @@ function PriceSubmitFormBody({
     const recentTimeLabel = selectedReport ? formatRecencyLabel(selectedReport.reportedAt) : null;
     const streetLabel = candidate.addressShort || candidate.neighborhoodLabel || "Endereco curto indisponivel";
     const brandLabel = candidate.brandLabel ?? "Sem bandeira";
+    const searchMatch = source === "search" ? getStationSearchMatchContext(candidate, normalizedStationSearch) : null;
+    const highlightQuery = source === "search" ? stationSearch : "";
 
     return (
       <button
@@ -1810,13 +1986,19 @@ function PriceSubmitFormBody({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1 space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="truncate text-sm font-semibold text-white">{candidate.publicName}</p>
+              <p className="truncate text-sm font-semibold text-white">{renderHighlightedStationText(candidate.publicName, highlightQuery)}</p>
               {isSelected ? <Badge variant="default">Escolhido</Badge> : null}
             </div>
             <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/66">
               <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-white/78">{brandLabel}</span>
-              <span className="truncate">{streetLabel}</span>
+              <span className="truncate">{renderHighlightedStationText(streetLabel, highlightQuery)}</span>
             </div>
+            {searchMatch ? (
+              <div className="flex flex-wrap items-center gap-2 text-[11px] text-[color:var(--color-accent)]">
+                <Badge variant="accent" className="px-2 py-0.5 text-[9px]">{searchMatch.label}</Badge>
+                <span className="truncate text-white/84">{renderHighlightedStationText(searchMatch.value, highlightQuery)}</span>
+              </div>
+            ) : null}
             <div className="flex flex-wrap items-center gap-2 text-[10px] text-white/54">
               <Badge variant={sourceBadge.variant}>{sourceBadge.label}</Badge>
               {candidate.distance !== null ? <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1 font-semibold text-white/72">{formatDistance(candidate.distance)}</span> : null}
@@ -2387,7 +2569,7 @@ function PriceSubmitFormBody({
           <label className="text-sm font-medium text-white" htmlFor="station-search">
             Posto
           </label>
-          {compactMode ? <Badge variant="outline">Travado pelo contexto</Badge> : <Badge variant="outline">Proximidade e contexto</Badge>}
+          {compactMode ? <Badge variant="outline">Preenchido pelo contexto</Badge> : <Badge variant="outline">Proximidade e contexto</Badge>}
         </div>
         {lockedStation ? (
           <div className={cn(
@@ -2796,6 +2978,8 @@ export function PriceSubmitForm(props: PriceSubmitFormProps) {
 
   return <PriceSubmitFormBody key={`${props.initialStationId ?? "default"}-${formVersion}`} {...props} onResetRequest={() => setFormVersion((value) => value + 1)} />;
 }
+
+
 
 
 

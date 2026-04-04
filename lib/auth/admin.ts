@@ -41,6 +41,50 @@ async function lookupAdminUser(authUser: { id: string; email: string }) {
     .maybeSingle();
 
   if (!fullLookup.error) {
+    if (!fullLookup.data?.user_id) {
+      const byEmailLookup = await supabase
+        .from("admin_users")
+        .select("user_id,email,role")
+        .eq("email", normalizedEmail)
+        .maybeSingle();
+
+      if (!byEmailLookup.error) {
+        return {
+          data: byEmailLookup.data ? ({
+            user_id: byEmailLookup.data.user_id ?? authUser.id,
+            email: byEmailLookup.data.email ?? normalizedEmail,
+            role: byEmailLookup.data.role ?? "admin"
+          } satisfies AdminLookupRow) : null,
+          error: null
+        };
+      }
+
+      if (!isLegacyAdminUsersColumnError(byEmailLookup.error.message)) {
+        return byEmailLookup;
+      }
+
+      const byEmailLegacyLookup = await supabase
+        .from("admin_users")
+        .select("email")
+        .eq("email", normalizedEmail)
+        .maybeSingle();
+
+      if (!byEmailLegacyLookup.error) {
+        return {
+          data: byEmailLegacyLookup.data ? ({
+            user_id: authUser.id,
+            email: normalizedEmail,
+            role: "admin"
+          } satisfies AdminLookupRow) : null,
+          error: null
+        };
+      }
+
+      if (!isLegacyAdminUsersColumnError(byEmailLegacyLookup.error.message)) {
+        return byEmailLegacyLookup;
+      }
+    }
+
     return {
       data: fullLookup.data ? ({
         user_id: fullLookup.data.user_id,

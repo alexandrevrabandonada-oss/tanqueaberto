@@ -371,6 +371,11 @@ export function evaluateSubmissionRisk(input: SubmissionRiskInput): SubmissionRi
   const highReasons: string[] = [];
   const mediumReasons: string[] = [];
   const flags: string[] = [];
+  const hasKnownStationContext = input.contributorProfile.stats.sameStationCount > 0;
+  const hasStrongIdentityContext = Boolean(input.deviceId || input.sessionId || input.nickname);
+  const hasHighConfidenceLocation = input.locationConfidence === "high";
+  const hasSensitiveConflict = input.duplicateLikely || input.potentialPhotoReuse || input.isDuplicate || input.priceConflict || input.priceDiscrepancy;
+  const canDowngradeStationReviewRisk = hasKnownStationContext && hasStrongIdentityContext && hasHighConfidenceLocation && !hasSensitiveConflict;
 
   if (input.stationProposalMode) {
     highReasons.push("posto novo");
@@ -378,7 +383,12 @@ export function evaluateSubmissionRisk(input: SubmissionRiskInput): SubmissionRi
   }
 
   if ((input.stationVisibilityStatus && input.stationVisibilityStatus !== "public") || (input.stationGeoReviewStatus && input.stationGeoReviewStatus !== "ok")) {
-    highReasons.push("posto em revisão");
+    if (canDowngradeStationReviewRisk) {
+      mediumReasons.push("posto em revisão, mas com recorrência confiável neste local");
+      flags.push("station_under_review_known_context");
+    } else {
+      highReasons.push("posto em revisão");
+    }
     flags.push("station_under_review");
   }
 

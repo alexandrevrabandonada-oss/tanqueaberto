@@ -32,9 +32,14 @@ function readBanner(searchParams: Record<string, string | string[] | undefined>)
   if (notice === "saved") return "Edição leve salva.";
   if (notice === "saved_review") return "Edição salva e marcada para revisão.";
   if (notice === "duplicate_linked") return "Vínculo de duplicado salvo.";
+  if (notice === "stations_merged") return "Postos unificados. O posto canônico recebeu o nome final e o duplicado saiu de circulação.";
   if (error === "station_not_found") return "Posto não encontrado.";
   if (error === "missing_nickname") return "Informe o apelido do posto.";
   if (error === "invalid_duplicate") return "Escolha um duplicado diferente deste posto.";
+  if (error === "merge_requires_duplicate") return "Escolha o posto que deve sobreviver para unificar.";
+  if (error === "missing_canonical_name") return "Informe o nome final do posto canônico.";
+  if (error === "merge_target_not_found") return "O posto canônico escolhido não foi encontrado.";
+  if (error === "merge_failed") return "Não foi possível unificar estes postos agora.";
   if (error === "save_failed") return "Não foi possível salvar agora.";
   if (error === "invalid_request") return "Pedido inválido.";
 
@@ -58,6 +63,27 @@ export default async function StationEditPage({ params, searchParams }: StationE
   const initialDuplicateOfStationId = typeof resolvedSearchParams.duplicateOfStationId === "string" ? resolvedSearchParams.duplicateOfStationId : undefined;
   const publicName = getStationPublicName(station);
   const duplicateCandidates = getTerritorialDuplicateCandidates(station, catalog, 3);
+  const canonicalMergeOptions = catalog
+    .filter((candidate) => candidate.id !== station.id)
+    .map((candidate) => ({
+      stationId: candidate.id,
+      publicName: getStationPublicName(candidate),
+      city: candidate.city,
+      neighborhood: candidate.neighborhood,
+      address: candidate.address,
+      brand: candidate.brand
+    }))
+    .sort((left, right) => {
+      const leftSameCity = left.city === station.city ? 1 : 0;
+      const rightSameCity = right.city === station.city ? 1 : 0;
+      if (leftSameCity !== rightSameCity) return rightSameCity - leftSameCity;
+
+      const leftSameNeighborhood = left.neighborhood === station.neighborhood ? 1 : 0;
+      const rightSameNeighborhood = right.neighborhood === station.neighborhood ? 1 : 0;
+      if (leftSameNeighborhood !== rightSameNeighborhood) return rightSameNeighborhood - leftSameNeighborhood;
+
+      return left.publicName.localeCompare(right.publicName, "pt-BR");
+    });
   const stationAudit = audit.recent.filter((item) => item.stationId === station.id).slice(0, 3);
 
   return (
@@ -121,7 +147,7 @@ export default async function StationEditPage({ params, searchParams }: StationE
         </div>
       </SectionCard>
 
-      <StationLightEditForm station={station} duplicateCandidates={duplicateCandidates} notice={typeof resolvedSearchParams.notice === "string" ? resolvedSearchParams.notice : undefined} error={typeof resolvedSearchParams.error === "string" ? resolvedSearchParams.error : undefined} returnToHref={returnTo} duplicateMode={duplicateMode} initialDuplicateOfStationId={initialDuplicateOfStationId} />
+      <StationLightEditForm station={station} duplicateCandidates={duplicateCandidates} canonicalMergeOptions={canonicalMergeOptions} notice={typeof resolvedSearchParams.notice === "string" ? resolvedSearchParams.notice : undefined} error={typeof resolvedSearchParams.error === "string" ? resolvedSearchParams.error : undefined} returnToHref={returnTo} duplicateMode={duplicateMode} initialDuplicateOfStationId={initialDuplicateOfStationId} canAdminMerge={editor.role === "admin"} />
 
       <SectionCard className="space-y-3 border-white/8 bg-black/25">
         <div className="flex items-center gap-2">

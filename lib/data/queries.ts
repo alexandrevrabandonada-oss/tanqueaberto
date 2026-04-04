@@ -8,8 +8,10 @@ import { getAuditGroups, getAllGroupMembersForGroups } from "@/lib/audit/groups"
 import type { Station, StationWithReports, ReportWithStation, PriceReport, ReportStatus } from "@/lib/types";
 import type { PriceReportRow, StationRow } from "@/types/supabase";
 
-const STATION_SELECT_FULL = "id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,coordinate_reviewed_at,updated_at";
+const STATION_SELECT_FULL = "id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,duplicate_of_station_id,coordinate_reviewed_at,updated_at";
 const STATION_SELECT_LEGACY = "id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,updated_at";
+const PRICE_REPORT_SELECT_FULL = "id,station_id,fuel_type,price,photo_url,photo_taken_at,reported_at,created_at,approved_at,rejected_at,reporter_nickname,ip_hash,status,moderation_note,moderation_reason,moderated_by,source_kind,photo_hash,location_distance,location_confidence,reconciliation_id,is_confirmation,metadata,version";
+const PRICE_REPORT_SELECT_LEGACY = "id,station_id,fuel_type,price,photo_url,photo_taken_at,reported_at,created_at,reporter_nickname,status,moderation_note";
 
 function sortDesc(left: { reportedAt: string }, right: { reportedAt: string }) {
   return new Date(right.reportedAt).getTime() - new Date(left.reportedAt).getTime();
@@ -33,6 +35,25 @@ function isLegacyStationColumnError(message: string | undefined) {
     || normalized.includes("schema cache");
 }
 
+function isLegacyPriceReportColumnError(message: string | undefined) {
+  const normalized = (message ?? "").toLowerCase();
+  return normalized.includes("approved_at")
+    || normalized.includes("rejected_at")
+    || normalized.includes("moderated_by")
+    || normalized.includes("moderation_reason")
+    || normalized.includes("source_kind")
+    || normalized.includes("photo_hash")
+    || normalized.includes("location_distance")
+    || normalized.includes("location_confidence")
+    || normalized.includes("reconciliation_id")
+    || normalized.includes("is_confirmation")
+    || normalized.includes("metadata")
+    || normalized.includes("version")
+    || normalized.includes("does not exist")
+    || normalized.includes("could not find")
+    || normalized.includes("schema cache");
+}
+
 async function runStationSelect<T>(buildQuery: (select: string) => unknown): Promise<{ data: T | null; error: { message: string } | null }> {
   const fullResult = await buildQuery(STATION_SELECT_FULL) as { data: T | null; error: { message: string } | null };
   if (!fullResult.error || !isLegacyStationColumnError(fullResult.error.message)) {
@@ -40,6 +61,15 @@ async function runStationSelect<T>(buildQuery: (select: string) => unknown): Pro
   }
 
   return await buildQuery(STATION_SELECT_LEGACY) as { data: T | null; error: { message: string } | null };
+}
+
+async function runPriceReportSelect<T>(buildQuery: (select: string) => unknown): Promise<{ data: T | null; error: { message: string } | null }> {
+  const fullResult = await buildQuery(PRICE_REPORT_SELECT_FULL) as { data: T | null; error: { message: string } | null };
+  if (!fullResult.error || !isLegacyPriceReportColumnError(fullResult.error.message)) {
+    return fullResult;
+  }
+
+  return await buildQuery(PRICE_REPORT_SELECT_LEGACY) as { data: T | null; error: { message: string } | null };
 }
 
 export async function getActiveStations(): Promise<Station[]> {
@@ -431,17 +461,22 @@ function applyProgressiveTrustMetadata(
 
 export async function getModerationReports(status: ReportStatus | "all" = "pending", limit = 24): Promise<ReportWithStation[]> {
   const supabase = createSupabaseServiceClient();
-  let query = supabase
-    .from("price_reports")
-    .select("id,station_id,fuel_type,price,photo_url,photo_taken_at,reported_at,created_at,approved_at,rejected_at,reporter_nickname,ip_hash,status,moderation_note,moderation_reason,moderated_by,source_kind,photo_hash,location_distance,location_confidence,reconciliation_id,is_confirmation,metadata,version")
-    .order("reported_at", { ascending: false })
-    .limit(limit);
+  const [{ data: reportsData, error: reportsError }, stations] = await Promise.all([
+    runPriceReportSelect<PriceReportRow[]>((select) => {
+      let query = supabase
+        .from("price_reports")
+        .select(select)
+        .order("reported_at", { ascending: false })
+        .limit(limit);
 
-  if (status !== "all") {
-    query = query.eq("status", status);
-  }
+      if (status !== "all") {
+        query = query.eq("status", status);
+      }
 
-  const [{ data: reportsData, error: reportsError }, stations] = await Promise.all([query, getAdminStations()]);
+      return query;
+    }),
+    getAdminStations()
+  ]);
 
   if (reportsError || !reportsData) {
     console.error("Failed to load moderation reports", reportsError);
@@ -517,10 +552,12 @@ export async function getReportsByIds(ids: string[]): Promise<PriceReport[]> {
   if (ids.length === 0) return [];
 
   const supabase = createSupabaseServiceClient();
-  const { data, error } = await supabase
-    .from("price_reports")
-    .select("id,station_id,fuel_type,price,photo_url,photo_taken_at,reported_at,created_at,reporter_nickname,status,moderation_note")
-    .in("id", ids);
+  const { data, error } = await runPriceReportSelect<PriceReportRow[]>((select) =>
+    supabase
+      .from("price_reports")
+      .select(select)
+      .in("id", ids)
+  );
 
   if (error || !data) {
     if (error) console.error("Failed to load reports by ids", error);
@@ -538,11 +575,13 @@ export async function getReportByIdAdmin(id: string): Promise<ReportWithStation 
 
   const supabase = createSupabaseServiceClient();
   const [{ data, error }, stations] = await Promise.all([
-    supabase
-      .from("price_reports")
-      .select("id,station_id,fuel_type,price,photo_url,photo_taken_at,reported_at,created_at,approved_at,rejected_at,reporter_nickname,ip_hash,status,moderation_note,moderation_reason,moderated_by,source_kind,photo_hash,location_distance,location_confidence,reconciliation_id,is_confirmation,metadata,version")
-      .eq("id", id)
-      .maybeSingle(),
+    runPriceReportSelect<PriceReportRow>((select) =>
+      supabase
+        .from("price_reports")
+        .select(select)
+        .eq("id", id)
+        .maybeSingle()
+    ),
     getAdminStations()
   ]);
 
