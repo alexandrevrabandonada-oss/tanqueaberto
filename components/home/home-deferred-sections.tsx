@@ -19,7 +19,7 @@ import { MySubmissionsList } from "@/components/history/my-submissions-list";
 import { cn } from "@/lib/utils";
 import { formatDistance } from "@/lib/geo/distance";
 import { formatCurrencyBRL } from "@/lib/format/currency";
-import { formatRecencyLabel, getRecencyTone } from "@/lib/format/time";
+import { formatRecencyLabel, getRecencyTone, recencyToneToBadgeVariant } from "@/lib/format/time";
 import { fuelLabels, publicFuelFilters } from "@/lib/format/labels";
 import { canShowStationOnMap, getStationPublicName, hasPendingStationLocationReview } from "@/lib/quality/stations";
 import { getSelectedStationReport, hasRecentStationPriceForFilter } from "@/lib/filters/public";
@@ -30,6 +30,11 @@ import type { FuelType } from "@/lib/types";
 
 const ECONOMY_FUEL_STORAGE_KEY = "bomba-aberta:economy-fuel-filter";
 const ECONOMY_FUEL_OPTIONS = publicFuelFilters.filter((item) => item.value !== "all") as Array<{ value: FuelType; label: string }>;
+const FLEX_FUEL_RATIO_THRESHOLD = 0.7;
+const ECONOMY_REFERENCE_MIN_ITEMS = 3;
+const ECONOMY_SAVINGS_LITERS = [40, 50] as const;
+const OPPORTUNITY_MIN_DELTA = 0.05;
+const FOLLOWED_DROP_MIN_DELTA = 0.03;
 
 function getStationHref(stationId: string, returnToHref?: string) {
   return returnToHref ? `/postos/${stationId}?returnTo=${encodeURIComponent(returnToHref)}` : `/postos/${stationId}`;
@@ -44,15 +49,15 @@ function getSendHref(stationId: string, returnToHref?: string, fuelFilter?: stri
 function getReportConfidenceMeta(report: any) {
   const evidenceMode = String(report?.metadata?.evidence_mode ?? "");
   if (evidenceMode === "sem_placa_faixa") {
-    return { label: "Confianca moderada", detail: "Sem placa", variant: "warning" as const };
+    return { label: "Confianca moderada", detail: "Sem placa", variant: "warning" as const, score: 0.42, strong: false };
   }
   if (report?.locationConfidence === "high") {
-    return { label: "Confianca alta", detail: "GPS forte", variant: "default" as const };
+    return { label: "Confianca alta", detail: "GPS forte", variant: "default" as const, score: 1, strong: true };
   }
   if (report?.locationConfidence === "low") {
-    return { label: "Confianca media", detail: "GPS razoavel", variant: "warning" as const };
+    return { label: "Confianca media", detail: "GPS razoavel", variant: "warning" as const, score: 0.74, strong: true };
   }
-  return { label: "Confianca basica", detail: "Vale checar", variant: "secondary" as const };
+  return { label: "Confianca basica", detail: "Vale checar", variant: "secondary" as const, score: 0.58, strong: false };
 }
 
 function hasRouteCoordinates(station: any) {
@@ -86,12 +91,103 @@ function readEconomyFuelPreference() {
   return saved && isFuelType(saved) ? saved : null;
 }
 
-function pickBetterEconomyCandidate(current: any, next: any) {
-  if (!current) return next;
-  if (next.report.price !== current.report.price) {
-    return next.report.price < current.report.price ? next : current;
+function getStationDistanceValue(station: any) {
+  const distance = Number(station?.distance);
+  return Number.isFinite(distance) && distance >= 0 ? distance : null;
+}
+
+function sortEconomyCandidatesByPrice(items: Array<{ station: any; report: any }>) {
+  return [...items].sort((left, right) => {
+    const priceDiff = left.report.price - right.report.price;
+    if (priceDiff !== 0) return priceDiff;
+    return new Date(right.report.reportedAt).getTime() - new Date(left.report.reportedAt).getTime();
+  });
+}
+
+function getEconomyRecencyScore(reportedAt: string) {
+  const tone = getRecencyTone(reportedAt);
+  if (tone === "fresh") return 1;
+  if (tone === "warning") return 0.68;
+  return 0.24;
+}
+
+function buildPracticalReason(
+  priceGap: number,
+  recencyTone: ReturnType<typeof getRecencyTone>,
+  confidenceScore: number,
+  distanceValue: number | null,
+  preferDistance = false
+) {
+  if (recencyTone === "stale" || confidenceScore < 0.58) {
+    return "Preco bom, mas a leitura ja pede confirmacao.";
   }
-  return new Date(next.report.reportedAt).getTime() > new Date(current.report.reportedAt).getTime() ? next : current;
+
+  if (preferDistance && distanceValue !== null && distanceValue <= 1500 && priceGap <= 0.12) {
+    return "Nao e so barato: esta perto e atualizado.";
+  }
+
+  if (priceGap <= 0.03 && recencyTone === "fresh" && confidenceScore >= 0.7) {
+    return "Menor preco com dado ainda quente.";
+  }
+
+  if (priceGap <= 0.12) {
+    return "Equilibra preco, recencia e contexto melhor que o resto.";
+  }
+
+  return "Preco baixo, mas ainda vale comparar com calma.";
+}
+
+function buildPracticalCandidate(item: any, scopeMinPrice: number, options?: { preferDistance?: boolean }) {
+  const preferDistance = Boolean(options?.preferDistance);
+  const recencyTone = getRecencyTone(item.report.reportedAt);
+  const confidence = getReportConfidenceMeta(item.report);
+  const distanceValue = getStationDistanceValue(item.station);
+  const priceGap = Math.max(0, Number(item.report.price) - scopeMinPrice);
+  const priceScore = Math.max(0, 1 - priceGap / 0.75);
+  const distanceScore = distanceValue === null ? 0.45 : Math.max(0, 1 - distanceValue / (preferDistance ? 6000 : 14000));
+  const score = priceScore * 0.48 + getEconomyRecencyScore(item.report.reportedAt) * 0.24 + confidence.score * 0.18 + distanceScore * (preferDistance ? 0.1 : 0.06);
+
+  return {
+    ...item,
+    score,
+    recencyTone,
+    confidence,
+    distanceValue,
+    reliable: recencyTone !== "stale" && confidence.score >= 0.7,
+    reason: buildPracticalReason(priceGap, recencyTone, confidence.score, distanceValue, preferDistance)
+  };
+}
+
+function pickBestPracticalCandidate(items: Array<{ station: any; report: any }>, options?: { preferDistance?: boolean }) {
+  if (items.length === 0) return null;
+
+  const scopeMinPrice = Math.min(...items.map((item) => Number(item.report.price)));
+
+  return items
+    .map((item) => buildPracticalCandidate(item, scopeMinPrice, options))
+    .sort((left, right) => {
+      const scoreDiff = right.score - left.score;
+      if (scoreDiff !== 0) return scoreDiff;
+      const priceDiff = left.report.price - right.report.price;
+      if (priceDiff !== 0) return priceDiff;
+      return new Date(right.report.reportedAt).getTime() - new Date(left.report.reportedAt).getTime();
+    })[0] ?? null;
+}
+
+function getEconomyRecommendationMeta(candidate: any) {
+  if (!candidate) {
+    return { label: "Sem leitura", variant: "secondary" as const };
+  }
+
+  if (candidate.reliable) {
+    return { label: "Vale agora", variant: "default" as const };
+  }
+
+  if (candidate.recencyTone === "stale" || candidate.confidence.score < 0.58) {
+    return { label: "Leitura fraca", variant: "danger" as const };
+  }
+
+  return { label: "Vale com cautela", variant: "warning" as const };
 }
 export function HomeDeferredSections(props: Record<string, any>) {
   const {
@@ -180,133 +276,384 @@ export function HomeDeferredSections(props: Record<string, any>) {
   }, [economyFuelFilter]);
 
   const showQuickAccess = homeState?.showQuickAccess && !missionActive && (recentIds.length > 0 || favoriteIds.length > 0);
-  const priceCandidates = orderedStations
-    .map((station: any) => ({ station, report: getSelectedStationReport(station, economyFuelFilter) }))
-    .filter((item: any) => item.report);
-  const cheapestRecent = dedupeStationItems(
-    priceCandidates
-      .filter(({ report }: any) => getRecencyTone(report.reportedAt) !== "stale")
-      .sort((left: any, right: any) => {
-        const priceDiff = left.report.price - right.report.price;
-        if (priceDiff !== 0) return priceDiff;
-        return new Date(right.report.reportedAt).getTime() - new Date(left.report.reportedAt).getTime();
-      })
-  ).slice(0, 3);
-  const cheapestNearYou = dedupeStationItems(
-    cheapestNow
-      .map((entry: any) => entry?.station && entry?.report ? entry : { station: entry, report: getSelectedStationReport(entry, economyFuelFilter) })
-      .filter((item: any) => item.station && item.report)
-      .sort((left: any, right: any) => {
-        const leftDistance = Number.isFinite(left.station?.distance) ? left.station.distance : Number.MAX_SAFE_INTEGER;
-        const rightDistance = Number.isFinite(right.station?.distance) ? right.station.distance : Number.MAX_SAFE_INTEGER;
-        if (leftDistance !== rightDistance) return leftDistance - rightDistance;
-        return left.report.price - right.report.price;
-      })
-  ).slice(0, 3);
-  const cheapestByNeighborhood = useMemo(() => {
-    const groups = new Map<string, { key: string; label: string; item: any; count: number }>();
+  const priceCandidates = useMemo(() => {
+    return (orderedStations as any[])
+      .map((station: any) => ({ station, report: getSelectedStationReport(station, economyFuelFilter) }))
+      .filter((item: any) => item.report);
+  }, [orderedStations, economyFuelFilter]);
+  const cheapestRecent = useMemo(() => {
+    return dedupeStationItems(
+      sortEconomyCandidatesByPrice(
+        priceCandidates.filter(({ report }: any) => getRecencyTone(report.reportedAt) !== "stale")
+      )
+    ).slice(0, 3);
+  }, [priceCandidates]);
+  const cheapestNearYou = useMemo(() => {
+    return dedupeStationItems(
+      [...(cheapestNow as any[])]
+        .map((entry: any) => entry?.station && entry?.report ? entry : { station: entry, report: getSelectedStationReport(entry, economyFuelFilter) })
+        .filter((item: any) => item.station && item.report)
+        .sort((left: any, right: any) => {
+          const leftDistance = getStationDistanceValue(left.station) ?? Number.MAX_SAFE_INTEGER;
+          const rightDistance = getStationDistanceValue(right.station) ?? Number.MAX_SAFE_INTEGER;
+          if (leftDistance !== rightDistance) return leftDistance - rightDistance;
+          return left.report.price - right.report.price;
+        })
+    ).slice(0, 3);
+  }, [cheapestNow, economyFuelFilter]);
+  const cheapestStale = useMemo(() => {
+    return dedupeStationItems(
+      sortEconomyCandidatesByPrice(
+        priceCandidates.filter(({ report }: any) => getRecencyTone(report.reportedAt) === "stale")
+      )
+    ).slice(0, 3);
+  }, [priceCandidates]);
+  const nearbyBestOption = useMemo(() => {
+    return pickBestPracticalCandidate(
+      priceCandidates.filter((item: any) => getStationDistanceValue(item.station) !== null),
+      { preferDistance: true }
+    );
+  }, [priceCandidates]);
+  const neighborhoodBestOption = useMemo(() => {
+    const groups = new Map<string, { label: string; items: Array<{ station: any; report: any }> }>();
 
-    for (const item of priceCandidates) {
+    for (const item of priceCandidates as Array<{ station: any; report: any }>) {
       const key = String(item.station?.neighborhood ?? "").trim() || String(item.station?.city ?? "").trim() || "sem-bairro";
       const label = String(item.station?.neighborhood ?? "").trim() || String(item.station?.city ?? "").trim() || "Regiao sem bairro";
       const current = groups.get(key);
-
       groups.set(key, {
-        key,
         label,
-        item: pickBetterEconomyCandidate(current?.item ?? null, item),
-        count: (current?.count ?? 0) + 1
+        items: [...(current?.items ?? []), item]
       });
     }
 
-    return Array.from(groups.values())
-      .sort((left, right) => {
-        const priceDiff = left.item.report.price - right.item.report.price;
-        if (priceDiff !== 0) return priceDiff;
-        return right.count - left.count;
-      })[0] ?? null;
-  }, [priceCandidates]);
-  const cheapestByCity = useMemo(() => {
-    const groups = new Map<string, { key: string; label: string; item: any; count: number }>();
+    let best: any = null;
+    for (const group of groups.values()) {
+      const candidate = pickBestPracticalCandidate(group.items);
+      if (!candidate) continue;
+      const candidateWithLabel = { ...candidate, localityLabel: group.label };
+      if (!best || candidateWithLabel.score > best.score) {
+        best = candidateWithLabel;
+      }
+    }
 
-    for (const item of priceCandidates) {
+    return best;
+  }, [priceCandidates]);
+  const cityBestOption = useMemo(() => {
+    const groups = new Map<string, { label: string; items: Array<{ station: any; report: any }> }>();
+
+    for (const item of priceCandidates as Array<{ station: any; report: any }>) {
       const key = String(item.station?.city ?? "").trim() || "sem-cidade";
       const label = String(item.station?.city ?? "").trim() || "Cidade sem nome";
       const current = groups.get(key);
-
       groups.set(key, {
-        key,
         label,
-        item: pickBetterEconomyCandidate(current?.item ?? null, item),
-        count: (current?.count ?? 0) + 1
+        items: [...(current?.items ?? []), item]
       });
     }
 
-    return Array.from(groups.values())
-      .sort((left, right) => {
-        const priceDiff = left.item.report.price - right.item.report.price;
-        if (priceDiff !== 0) return priceDiff;
-        return right.count - left.count;
-      })[0] ?? null;
+    let best: any = null;
+    for (const group of groups.values()) {
+      const candidate = pickBestPracticalCandidate(group.items);
+      if (!candidate) continue;
+      const candidateWithLabel = { ...candidate, localityLabel: group.label };
+      if (!best || candidateWithLabel.score > best.score) {
+        best = candidateWithLabel;
+      }
+    }
+
+    return best;
   }, [priceCandidates]);
-  const cheapestStale = dedupeStationItems(
-    priceCandidates
-      .filter(({ report }: any) => getRecencyTone(report.reportedAt) === "stale")
-      .sort((left: any, right: any) => {
-        const priceDiff = left.report.price - right.report.price;
-        if (priceDiff !== 0) return priceDiff;
-        return new Date(right.report.reportedAt).getTime() - new Date(left.report.reportedAt).getTime();
+  const economyReadouts = useMemo(() => {
+    return [
+      {
+        id: "nearby",
+        title: "Melhor opcao perto de voce",
+        hint: "Preco que ainda fecha melhor no caminho.",
+        entry: nearbyBestOption,
+        context: nearbyBestOption?.distanceValue !== null && nearbyBestOption?.distanceValue !== undefined ? formatDistance(nearbyBestOption.distanceValue) : "Sem GPS forte"
+      },
+      {
+        id: "neighborhood",
+        title: "Melhor opcao no bairro",
+        hint: "Boa leitura para resolver sem rodar muito.",
+        entry: neighborhoodBestOption,
+        context: neighborhoodBestOption?.localityLabel ?? "Sem bairro forte"
+      },
+      {
+        id: "city",
+        title: "Melhor opcao na cidade",
+        hint: "Resumo mais amplo quando o recorte abre comparação.",
+        entry: cityBestOption,
+        context: cityBestOption?.localityLabel ?? (selectedCityLabel || "Sem cidade definida")
+      }
+    ];
+  }, [cityBestOption, neighborhoodBestOption, nearbyBestOption, selectedCityLabel]);
+  const flexComparator = useMemo(() => {
+    const pairCandidates = (orderedStations as any[])
+      .map((station: any) => {
+        const gasolineReport = getSelectedStationReport(station, "gasolina_comum");
+        const ethanolReport = getSelectedStationReport(station, "etanol");
+
+        if (!gasolineReport || !ethanolReport) {
+          return null;
+        }
+
+        const gasolineConfidence = getReportConfidenceMeta(gasolineReport);
+        const ethanolConfidence = getReportConfidenceMeta(ethanolReport);
+        const gasolineTone = getRecencyTone(gasolineReport.reportedAt);
+        const ethanolTone = getRecencyTone(ethanolReport.reportedAt);
+        const distanceValue = getStationDistanceValue(station);
+        const distanceScore = distanceValue === null ? 0.35 : Math.max(0, 1 - distanceValue / 8000);
+        const score = getEconomyRecencyScore(gasolineReport.reportedAt) * 0.28
+          + getEconomyRecencyScore(ethanolReport.reportedAt) * 0.28
+          + Math.min(gasolineConfidence.score, ethanolConfidence.score) * 0.24
+          + distanceScore * 0.2;
+        const ratio = Number(ethanolReport.price) / Number(gasolineReport.price);
+        const reliable = gasolineTone !== "stale" && ethanolTone !== "stale" && gasolineConfidence.score >= 0.58 && ethanolConfidence.score >= 0.58;
+        const strong = gasolineTone !== "stale" && ethanolTone !== "stale" && gasolineConfidence.score >= 0.7 && ethanolConfidence.score >= 0.7;
+
+        return {
+          station,
+          gasolineReport,
+          ethanolReport,
+          gasolineConfidence,
+          ethanolConfidence,
+          gasolineTone,
+          ethanolTone,
+          distanceValue,
+          score,
+          ratio,
+          reliable,
+          strong
+        };
       })
-  ).slice(0, 3);
-  const economyGroups = [
-    {
-      id: "recent",
-      eyebrow: "Decida agora",
-      title: "Mais barato recente",
-      hint: "Bom preço com atualização fresca para decidir sem rodeio.",
-      items: cheapestRecent,
-      empty: "Ainda nao apareceu um preço bom e recente neste recorte."
-    },
-    {
-      id: "near",
-      eyebrow: "No seu caminho",
-      title: "Mais barato perto",
-      hint: "Aqui o preço baixo ja vem junto com a distância.",
-      items: cheapestNearYou,
-      empty: "Ative o GPS ou refine o recorte para comparar o que compensa perto de voce."
-    },
-    {
-      id: "stale",
-      eyebrow: "Vale conferir",
-      title: "Barato, mas desatualizado",
-      hint: "Pode compensar, mas ja pede uma checagem antes de sair.",
-      items: cheapestStale,
-      empty: "Nao ha preço barato envelhecido chamando atenção agora."
+      .filter(Boolean)
+      .sort((left: any, right: any) => {
+        const scoreDiff = right.score - left.score;
+        if (scoreDiff !== 0) return scoreDiff;
+        return left.ratio - right.ratio;
+      });
+
+    const bestPair = pairCandidates[0] ?? null;
+    if (!bestPair) {
+      return null;
     }
-  ];
-  const economyReadouts = [
-    {
-      id: "nearby",
-      title: "Perto de voce",
-      hint: "Melhor preço no caminho agora",
-      entry: cheapestNearYou[0] ?? null,
-      context: cheapestNearYou[0]?.station?.distance ? formatDistance(cheapestNearYou[0].station.distance) : "Sem GPS forte"
-    },
-    {
-      id: "neighborhood",
-      title: "Por bairro",
-      hint: "Melhor leitura no bairro do recorte",
-      entry: cheapestByNeighborhood?.item ?? null,
-      context: cheapestByNeighborhood?.label ?? "Sem bairro forte"
-    },
-    {
-      id: "city",
-      title: "Por cidade",
-      hint: "Melhor leitura no recorte da cidade",
-      entry: cheapestByCity?.item ?? null,
-      context: cheapestByCity?.label ?? (selectedCityLabel || "Sem cidade definida")
+
+    const winner = bestPair.ratio <= FLEX_FUEL_RATIO_THRESHOLD ? "etanol" : "gasolina";
+    const ratioLabel = `${Math.round(bestPair.ratio * 100)}%`;
+
+    return {
+      ...bestPair,
+      winner,
+      ratioLabel,
+      contextLabel: getEconomyLocalityLabel(bestPair.station),
+      headline: bestPair.strong ? `${winner === "etanol" ? "Etanol" : "Gasolina"} compensa` : "Comparacao ainda pede cautela",
+      description: bestPair.strong
+        ? `Neste posto, o etanol ficou em ${ratioLabel} do preco da gasolina. Pela regra simples dos 70%, ${winner === "etanol" ? "etanol" : "gasolina"} fecha melhor hoje.`
+        : `Os dois combustiveis aparecem, mas a comparacao ainda esta velha ou fraca demais para uma recomendacao forte.`
+    };
+  }, [orderedStations]);
+  const leadEconomyOption = useMemo(() => {
+    return nearbyBestOption ?? neighborhoodBestOption ?? cityBestOption ?? cheapestRecent[0] ?? null;
+  }, [cheapestRecent, cityBestOption, neighborhoodBestOption, nearbyBestOption]);
+  const economyReference = useMemo(() => {
+    const items = priceCandidates.filter((item: any) => {
+      const recencyTone = getRecencyTone(item.report.reportedAt);
+      const confidence = getReportConfidenceMeta(item.report);
+      return recencyTone !== "stale" && confidence.score >= 0.58;
+    });
+
+    if (items.length < ECONOMY_REFERENCE_MIN_ITEMS) {
+      return {
+        items,
+        count: items.length,
+        price: null
+      };
     }
-  ];
+
+    return {
+      items,
+      count: items.length,
+      price: items.reduce((sum: number, item: any) => sum + Number(item.report.price), 0) / items.length
+    };
+  }, [priceCandidates]);
+  const economySavings = useMemo(() => {
+    if (!leadEconomyOption) {
+      return null;
+    }
+
+    if (economyReference.price === null) {
+      return {
+        kind: "insufficient" as const,
+        candidate: leadEconomyOption,
+        referenceCount: economyReference.count
+      };
+    }
+
+    const candidatePrice = Number(leadEconomyOption.report.price);
+    const deltaPerLiter = economyReference.price - candidatePrice;
+
+    return {
+      kind: deltaPerLiter > 0.02 ? "positive" as const : Math.abs(deltaPerLiter) <= 0.02 ? "flat" as const : "negative" as const,
+      candidate: leadEconomyOption,
+      referenceCount: economyReference.count,
+      referencePrice: economyReference.price,
+      deltaPerLiter,
+      reliable: leadEconomyOption.reliable,
+      liters: ECONOMY_SAVINGS_LITERS.map((volume) => ({
+        volume,
+        savings: deltaPerLiter * volume
+      }))
+    };
+  }, [economyReference, leadEconomyOption]);
+  const economyOpportunities = useMemo(() => {
+    const cards: any[] = [];
+
+    if (nearbyBestOption && economyReference.price !== null) {
+      const deltaPerLiter = economyReference.price - Number(nearbyBestOption.report.price);
+      if (deltaPerLiter >= OPPORTUNITY_MIN_DELTA) {
+        cards.push({
+          id: "nearby-price-window",
+          eyebrow: "Perto de voce",
+          title: `${fuelLabels[economyFuelFilter]} chamando atencao perto de voce`,
+          station: nearbyBestOption.station,
+          report: nearbyBestOption.report,
+          fuelType: economyFuelFilter,
+          contextLabel: nearbyBestOption.distanceValue !== null ? `${formatDistance(nearbyBestOption.distanceValue)} · ${getEconomyLocalityLabel(nearbyBestOption.station)}` : getEconomyLocalityLabel(nearbyBestOption.station),
+          summary: `${formatCurrencyBRL(deltaPerLiter)} abaixo da media recente do recorte.`,
+          detail: nearbyBestOption.reliable
+            ? `Sai a ${formatCurrencyBRL(nearbyBestOption.report.price)} e ainda encaixa bem no caminho.`
+            : `O preco abriu vantagem, mas a leitura ainda pede confirmacao rapida antes de sair.`,
+          badgeLabel: nearbyBestOption.reliable ? "Oportunidade real" : "Vale conferir",
+          badgeVariant: nearbyBestOption.reliable ? "default" as const : "warning" as const,
+          recencyTone: nearbyBestOption.recencyTone,
+          confidence: nearbyBestOption.confidence,
+          distanceValue: nearbyBestOption.distanceValue,
+          referenceDelta: deltaPerLiter,
+          ratioLabel: null,
+          dropAmount: null
+        });
+      }
+    }
+
+    if ((economyFuelFilter === "gasolina_comum" || economyFuelFilter === "etanol") && flexComparator && flexComparator.reliable) {
+      const winningFuel = flexComparator.winner === "etanol" ? "etanol" : "gasolina_comum";
+      const winningReport = winningFuel === "etanol" ? flexComparator.ethanolReport : flexComparator.gasolineReport;
+      const winningConfidence = winningFuel === "etanol" ? flexComparator.ethanolConfidence : flexComparator.gasolineConfidence;
+      const winningTone = winningFuel === "etanol" ? flexComparator.ethanolTone : flexComparator.gasolineTone;
+
+      cards.push({
+        id: "flex-neighborhood-window",
+        eyebrow: "Comparacao popular",
+        title: `${winningFuel === "etanol" ? "Etanol compensa" : "Gasolina compensa"} no seu bairro`,
+        station: flexComparator.station,
+        report: winningReport,
+        fuelType: winningFuel,
+        contextLabel: flexComparator.contextLabel,
+        summary: flexComparator.description,
+        detail: `${fuelLabels.gasolina_comum}: ${formatCurrencyBRL(flexComparator.gasolineReport.price)} · ${fuelLabels.etanol}: ${formatCurrencyBRL(flexComparator.ethanolReport.price)}`,
+        badgeLabel: flexComparator.strong ? "Base boa" : "Base util",
+        badgeVariant: flexComparator.strong ? "default" as const : "warning" as const,
+        recencyTone: winningTone,
+        confidence: winningConfidence,
+        distanceValue: flexComparator.distanceValue,
+        referenceDelta: null,
+        ratioLabel: flexComparator.ratioLabel,
+        dropAmount: null
+      });
+    }
+
+    if (favoriteIds.length > 0) {
+      const favoriteSet = new Set(favoriteIds.map((id: string) => String(id)));
+      const followedCandidates = (orderedStations as any[])
+        .filter((station: any) => favoriteSet.has(String(station?.id ?? "")))
+        .map((station: any) => {
+          const currentReport = getSelectedStationReport(station, economyFuelFilter);
+          if (!currentReport) {
+            return null;
+          }
+
+          const history = [...(station?.recentReports ?? [])]
+            .filter((report: any) => report?.fuelType === economyFuelFilter)
+            .sort((left: any, right: any) => new Date(right.reportedAt).getTime() - new Date(left.reportedAt).getTime());
+          const previousReport = history.find((report: any) => String(report?.id ?? "") !== String(currentReport.id));
+          if (!previousReport) {
+            return null;
+          }
+
+          const dropAmount = Number(previousReport.price) - Number(currentReport.price);
+          if (dropAmount < FOLLOWED_DROP_MIN_DELTA) {
+            return null;
+          }
+
+          const confidence = getReportConfidenceMeta(currentReport);
+          const recencyTone = getRecencyTone(currentReport.reportedAt);
+          const distanceValue = getStationDistanceValue(station);
+          const reliable = recencyTone !== "stale" && confidence.score >= 0.58;
+          const referenceDelta = economyReference.price === null ? null : economyReference.price - Number(currentReport.price);
+
+          return {
+            id: "followed-price-drop",
+            eyebrow: "Posto acompanhado",
+            title: "Preco caiu no posto que voce acompanha",
+            station,
+            report: currentReport,
+            fuelType: economyFuelFilter,
+            contextLabel: getEconomyLocalityLabel(station),
+            summary: `Caiu ${formatCurrencyBRL(dropAmount)} desde a leitura anterior deste combustivel.`,
+            detail: referenceDelta !== null && referenceDelta >= 0.02
+              ? `Agora ele tambem aparece ${formatCurrencyBRL(referenceDelta)} abaixo da media recente do recorte.`
+              : `A queda apareceu no proprio posto. Vale ver se ainda esta valendo agora.`,
+            badgeLabel: reliable ? "Mudanca util" : "Mudanca com cautela",
+            badgeVariant: reliable ? "default" as const : "warning" as const,
+            recencyTone,
+            confidence,
+            distanceValue,
+            referenceDelta,
+            ratioLabel: null,
+            dropAmount,
+            sortScore: dropAmount + (reliable ? 0.25 : 0)
+          };
+        })
+        .filter(Boolean)
+        .sort((left: any, right: any) => right.sortScore - left.sortScore);
+
+      if (followedCandidates[0]) {
+        cards.push(followedCandidates[0]);
+      }
+    }
+
+    return cards.slice(0, 3);
+  }, [economyFuelFilter, economyReference, favoriteIds, flexComparator, nearbyBestOption, orderedStations]);
+  const economyGroups = useMemo(() => {
+    return [
+      {
+        id: "recent",
+        eyebrow: "Decida agora",
+        title: "Mais barato recente",
+        hint: "Bom preco com atualização fresca para decidir sem rodeio.",
+        items: cheapestRecent,
+        empty: "Ainda nao apareceu um preco bom e recente neste recorte."
+      },
+      {
+        id: "near",
+        eyebrow: "No seu caminho",
+        title: "Mais barato perto",
+        hint: "Aqui o preco baixo ja vem junto com a distancia.",
+        items: cheapestNearYou,
+        empty: "Ative o GPS ou refine o recorte para comparar o que compensa perto de voce."
+      },
+      {
+        id: "stale",
+        eyebrow: "Vale conferir",
+        title: "Barato, mas desatualizado",
+        hint: "Pode compensar, mas ja pede uma checagem antes de sair.",
+        items: cheapestStale,
+        empty: "Nao ha preco barato envelhecido chamando atencao agora."
+      }
+    ];
+  }, [cheapestNearYou, cheapestRecent, cheapestStale]);
   const hasEconomyItems = economyGroups.some((group) => group.items.length > 0);
 
   function handleEconomyRoute(station: any, groupId: string) {
@@ -521,9 +868,9 @@ export function HomeDeferredSections(props: Record<string, any>) {
       <SectionCard className="space-y-5">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div className="max-w-2xl">
-            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Mais barato para abastecer</p>
-            <h2 className="mt-1 text-xl font-semibold text-white">Veja o que ainda compensa de verdade</h2>
-            <p className="mt-2 text-sm leading-relaxed text-white/50">Preço bom sozinho engana. Aqui o app separa o que está barato e recente, o que cabe no caminho e o que está barato, mas já pode ter mudado.</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Vale a pena para mim</p>
+            <h2 className="mt-1 text-xl font-semibold text-white">Decida melhor antes de abastecer</h2>
+            <p className="mt-2 text-sm leading-relaxed text-white/50">O menor preco bruto continua aqui, mas agora junto com distancia, recencia, confianca e uma leitura simples de gasolina x etanol quando o recorte ajudar.</p>
           </div>
           <Badge variant="warning">{fuelLabels[economyFuelFilter]}</Badge>
         </div>
@@ -575,51 +922,283 @@ export function HomeDeferredSections(props: Record<string, any>) {
             })}
           </div>
           <p className="text-xs leading-relaxed text-white/42">
-            Cards e comparacoes abaixo agora mostram apenas <span className="font-semibold text-white/72">{fuelLabels[economyFuelFilter]}</span>.
+            Os cards abaixo seguem <span className="font-semibold text-white/72">{fuelLabels[economyFuelFilter]}</span>. Quando existir base suficiente, o comparador flex aparece a parte para gasolina comum x etanol.
           </p>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-3">
-          {economyReadouts.map((readout) => {
-            const report = readout.entry?.report ?? null;
-            const station = readout.entry?.station ?? null;
-            const confidence = report ? getReportConfidenceMeta(report) : null;
-            const recencyTone = report ? getRecencyTone(report.reportedAt) : "stale";
+        <div className="space-y-4 rounded-[22px] border border-white/8 bg-black/20 p-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Leitura de oportunidade</p>
+              <h3 className="mt-1 text-lg font-semibold text-white">Quando vale acelerar a decisao</h3>
+              <p className="mt-1 text-sm leading-relaxed text-white/52">A superficie so chama atencao quando aparece vantagem real contra a media recente, no bairro ou em posto que voce ja acompanha.</p>
+            </div>
+            <Badge variant={economyOpportunities.length > 0 ? "default" : "secondary"}>{economyOpportunities.length > 0 ? `${economyOpportunities.length} sinais agora` : "Sem barulho"}</Badge>
+          </div>
 
-            return (
-              <div key={readout.id} className="rounded-[20px] border border-white/8 bg-white/[0.04] p-4">
-                <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">{readout.title}</p>
-                <p className="mt-1 text-sm text-white/58">{readout.hint}</p>
-                {report && station ? (
-                  <>
+          {economyOpportunities.length === 0 ? (
+            <p className="text-sm leading-relaxed text-white/42">Sem oportunidade clara de {fuelLabels[economyFuelFilter].toLowerCase()} neste momento. O app continua mostrando comparacao e preco bruto, mas sem forcar alerta fraco.</p>
+          ) : (
+            <div className="grid gap-3 xl:grid-cols-3">
+              {economyOpportunities.map((opportunity: any) => {
+                const stationHref = getStationHref(opportunity.station.id, contextHref) as Route;
+                const sendHref = getSendHref(opportunity.station.id, contextHref, opportunity.fuelType) as Route;
+                const canRoute = hasRouteCoordinates(opportunity.station);
+
+                return (
+                  <div key={opportunity.id} className="rounded-[20px] border border-white/8 bg-white/[0.04] p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">{opportunity.eyebrow}</p>
+                        <h3 className="mt-1 text-base font-semibold text-white">{opportunity.title}</h3>
+                      </div>
+                      <Badge variant={opportunity.badgeVariant}>{opportunity.badgeLabel}</Badge>
+                    </div>
+
                     <div className="mt-4 flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-white">{getStationPublicName(station)}</p>
-                        <p className="mt-1 text-[11px] text-white/42">{readout.context}</p>
+                        <p className="truncate text-sm font-semibold text-white">{getStationPublicName(opportunity.station)}</p>
+                        <p className="mt-1 text-[11px] text-white/46">{opportunity.contextLabel}</p>
                       </div>
-                      <p className="text-xl font-black tracking-tight text-white">{formatCurrencyBRL(report.price)}</p>
+                      <div className="shrink-0 text-right">
+                        <p className="text-2xl font-black tracking-tight text-white">{formatCurrencyBRL(opportunity.report.price)}</p>
+                        <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-white/34">{fuelLabels[opportunity.fuelType as FuelType]}</p>
+                      </div>
                     </div>
+
+                    <p className="mt-3 text-sm leading-relaxed text-white/58">{opportunity.summary}</p>
+                    <p className="mt-2 text-sm leading-relaxed text-white/46">{opportunity.detail}</p>
+
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <Badge variant={recencyTone === "fresh" ? "default" : recencyTone === "warning" ? "warning" : "danger"}>
-                        {formatRecencyLabel(report.reportedAt)}
-                      </Badge>
-                      <Badge variant={confidence?.variant ?? "secondary"}>{confidence?.label ?? "Confianca basica"}</Badge>
-                      {station.distance ? <Badge variant="secondary">{formatDistance(station.distance)}</Badge> : null}
+                      <Badge variant={recencyToneToBadgeVariant(opportunity.recencyTone)}>{formatRecencyLabel(opportunity.report.reportedAt)}</Badge>
+                      <Badge variant={opportunity.confidence.variant}>{opportunity.confidence.label}</Badge>
+                      {opportunity.distanceValue !== null ? <Badge variant="secondary">{formatDistance(opportunity.distanceValue)}</Badge> : null}
+                      {opportunity.referenceDelta !== null && opportunity.referenceDelta >= 0.02 ? <Badge variant="secondary">{formatCurrencyBRL(opportunity.referenceDelta)} abaixo da media</Badge> : null}
+                      {opportunity.dropAmount !== null ? <Badge variant="secondary">Caiu {formatCurrencyBRL(opportunity.dropAmount)}</Badge> : null}
+                      {opportunity.ratioLabel ? <Badge variant="secondary">{opportunity.ratioLabel}</Badge> : null}
                     </div>
-                  </>
-                ) : (
-                  <p className="mt-4 text-sm leading-relaxed text-white/42">Ainda nao apareceu leitura util de {fuelLabels[economyFuelFilter].toLowerCase()} neste recorte.</p>
-                )}
-              </div>
-            );
-          })}
+
+                    <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                      <ButtonLink
+                        href={stationHref}
+                        variant="secondary"
+                        className="h-9 px-3 text-[10px] font-black uppercase tracking-[0.16em]"
+                        onClick={() => {
+                          rememberStationVisit({ id: opportunity.station.id, name: getStationPublicName(opportunity.station), city: opportunity.station.city });
+                          void onStationTrack?.(`economy-opportunity-${opportunity.id}`);
+                        }}
+                      >
+                        Ver posto
+                      </ButtonLink>
+                      <ButtonLink
+                        href={sendHref}
+                        className="h-9 px-3 text-[10px] font-black uppercase tracking-[0.16em]"
+                        onClick={() => {
+                          rememberStationVisit({ id: opportunity.station.id, name: getStationPublicName(opportunity.station), city: opportunity.station.city });
+                          void trackProductEvent({
+                            eventType: "quick_action_clicked",
+                            pagePath: sendHref,
+                            pageTitle: "Home",
+                            stationId: opportunity.station.id,
+                            scopeType: "block",
+                            scopeId: `economy-opportunity-${opportunity.id}`,
+                            payload: {
+                              source: "economy_surface",
+                              action: "photo",
+                              groupId: opportunity.id,
+                              fuelFilter: opportunity.fuelType
+                            }
+                          });
+                        }}
+                      >
+                        Atualizar preco
+                      </ButtonLink>
+                      {canRoute ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="h-9 px-3 text-[10px] font-black uppercase tracking-[0.16em] text-white/72 sm:col-span-2"
+                          onClick={() => handleEconomyRoute(opportunity.station, opportunity.id)}
+                        >
+                          <Navigation className="h-3.5 w-3.5" />
+                          Tracar rota
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,1fr)]">
+          <div className="space-y-4">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Melhor opcao agora</p>
+              <h3 className="mt-1 text-lg font-semibold text-white">O app resume o que fecha melhor no momento</h3>
+              <p className="mt-1 text-sm leading-relaxed text-white/52">O preco continua visivel. A diferenca e que agora entra junto o peso de distancia, recencia e confianca.</p>
+            </div>
+            <div className="grid gap-3 md:grid-cols-3">
+              {economyReadouts.map((readout) => {
+                const entry = readout.entry;
+                const report = entry?.report ?? null;
+                const station = entry?.station ?? null;
+                const recommendation = getEconomyRecommendationMeta(entry);
+
+                return (
+                  <div key={readout.id} className="rounded-[20px] border border-white/8 bg-white/[0.04] p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">{readout.title}</p>
+                        <p className="mt-1 text-sm text-white/58">{readout.hint}</p>
+                      </div>
+                      {entry ? <Badge variant={recommendation.variant}>{recommendation.label}</Badge> : null}
+                    </div>
+                    {report && station ? (
+                      <>
+                        <div className="mt-4 flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-white">{getStationPublicName(station)}</p>
+                            <p className="mt-1 text-[11px] text-white/42">{readout.context}</p>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <p className="text-xl font-black tracking-tight text-white">{formatCurrencyBRL(report.price)}</p>
+                            <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-white/34">{fuelLabels[economyFuelFilter]}</p>
+                          </div>
+                        </div>
+                        <p className="mt-3 text-sm leading-relaxed text-white/58">{entry.reason}</p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <Badge variant={recencyToneToBadgeVariant(entry.recencyTone)}>{formatRecencyLabel(report.reportedAt)}</Badge>
+                          <Badge variant={entry.confidence.variant}>{entry.confidence.label}</Badge>
+                          <Badge variant="secondary">{entry.confidence.detail}</Badge>
+                          {entry.distanceValue !== null ? <Badge variant="secondary">{formatDistance(entry.distanceValue)}</Badge> : null}
+                        </div>
+                      </>
+                    ) : (
+                      <p className="mt-4 text-sm leading-relaxed text-white/42">Ainda nao apareceu leitura util de {fuelLabels[economyFuelFilter].toLowerCase()} para esta lente do recorte.</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="rounded-[22px] border border-white/8 bg-black/20 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Gasolina x etanol</p>
+                  <h3 className="mt-1 text-base font-semibold text-white">Comparador flex</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-white/52">Regra popular dos 70% sem virar calculadora complicada.</p>
+                </div>
+                <Badge variant={flexComparator ? flexComparator.strong ? "default" : flexComparator.reliable ? "warning" : "danger" : "secondary"}>
+                  {flexComparator ? flexComparator.strong ? "Base boa" : flexComparator.reliable ? "Base util" : "Base fraca" : "Sem base"}
+                </Badge>
+              </div>
+
+              {flexComparator ? (
+                <>
+                  <div className="mt-4 rounded-[18px] border border-white/8 bg-white/[0.04] p-4">
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Posto usado na comparacao</p>
+                    <p className="mt-1 text-sm font-semibold text-white">{getStationPublicName(flexComparator.station)}</p>
+                    <p className="mt-1 text-[11px] text-white/46">{flexComparator.contextLabel}</p>
+                  </div>
+
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {[
+                      {
+                        id: "gasolina",
+                        label: fuelLabels.gasolina_comum,
+                        report: flexComparator.gasolineReport,
+                        tone: flexComparator.gasolineTone,
+                        confidence: flexComparator.gasolineConfidence
+                      },
+                      {
+                        id: "etanol",
+                        label: fuelLabels.etanol,
+                        report: flexComparator.ethanolReport,
+                        tone: flexComparator.ethanolTone,
+                        confidence: flexComparator.ethanolConfidence
+                      }
+                    ].map((item) => (
+                      <div key={item.id} className="rounded-[18px] border border-white/8 bg-white/[0.04] p-4">
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">{item.label}</p>
+                        <p className="mt-2 text-xl font-black tracking-tight text-white">{formatCurrencyBRL(item.report.price)}</p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <Badge variant={recencyToneToBadgeVariant(item.tone)}>{formatRecencyLabel(item.report.reportedAt)}</Badge>
+                          <Badge variant={item.confidence.variant}>{item.confidence.label}</Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-3 rounded-[18px] border border-white/8 bg-black/20 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-base font-semibold text-white">{flexComparator.headline}</p>
+                      <Badge variant="secondary">{flexComparator.ratioLabel}</Badge>
+                    </div>
+                    <p className="mt-2 text-sm leading-relaxed text-white/58">{flexComparator.description}</p>
+                    {!flexComparator.strong ? (
+                      <p className="mt-2 text-xs leading-relaxed text-white/42">Quando um dos dois precos envelhece ou chega fraco, a recomendacao continua visivel, mas perde peso.</p>
+                    ) : null}
+                  </div>
+                </>
+              ) : (
+                <p className="mt-4 text-sm leading-relaxed text-white/42">Ainda faltam gasolina comum e etanol recentes no mesmo posto para comparar flex com seguranca neste recorte.</p>
+              )}
+            </div>
+
+            <div className="rounded-[22px] border border-white/8 bg-black/20 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Economia estimada</p>
+                  <h3 className="mt-1 text-base font-semibold text-white">Quanto isso pode representar no tanque</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-white/52">Leitura curta contra a referencia recente do proprio recorte.</p>
+                </div>
+                <Badge variant={economySavings ? economySavings.kind === "positive" ? "default" : economySavings.kind === "insufficient" ? "secondary" : "warning" : "secondary"}>
+                  {economySavings ? economySavings.kind === "positive" ? "Abrindo economia" : economySavings.kind === "insufficient" ? "Base curta" : "Sem folga clara" : "Sem base"}
+                </Badge>
+              </div>
+
+              {!economySavings ? (
+                <p className="mt-4 text-sm leading-relaxed text-white/42">Ainda nao apareceu base suficiente de {fuelLabels[economyFuelFilter].toLowerCase()} para estimar economia com honestidade.</p>
+              ) : economySavings.kind === "insufficient" ? (
+                <p className="mt-4 text-sm leading-relaxed text-white/42">Ainda faltam pelo menos {ECONOMY_REFERENCE_MIN_ITEMS} leituras recentes de {fuelLabels[economyFuelFilter].toLowerCase()} para prometer economia estimada sem forcar a barra.</p>
+              ) : economySavings.kind === "positive" ? (
+                <>
+                  <p className="mt-4 text-sm leading-relaxed text-white/58">
+                    Se voce escolher <span className="font-semibold text-white">{getStationPublicName(economySavings.candidate.station)}</span> agora, o litro sai a <span className="font-semibold text-white">{formatCurrencyBRL(economySavings.candidate.report.price)}</span>. Contra a media recente do recorte ({economySavings.referenceCount} leituras), isso abre economia real.
+                  </p>
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                    {economySavings.liters.map((entry) => (
+                      <div key={entry.volume} className="rounded-[18px] border border-white/8 bg-white/[0.04] p-4">
+                        <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">{entry.volume}L</p>
+                        <p className="mt-2 text-xl font-black tracking-tight text-white">{formatCurrencyBRL(entry.savings)}</p>
+                        <p className="mt-1 text-[11px] text-white/46">contra a media recente</p>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-3 text-xs leading-relaxed text-white/42">
+                    Referencia recente: {formatCurrencyBRL(economySavings.referencePrice)} por litro.
+                    {!economySavings.reliable ? " A economia aparece, mas a leitura do posto ainda pede cautela." : ""}
+                  </p>
+                </>
+              ) : economySavings.kind === "flat" ? (
+                <p className="mt-4 text-sm leading-relaxed text-white/42">O melhor preco ficou praticamente colado a media recente do recorte. Hoje a diferenca esta pequena demais para prometer economia real no tanque.</p>
+              ) : (
+                <p className="mt-4 text-sm leading-relaxed text-white/42">O recorte nao abriu uma economia clara contra a referencia recente. Vale olhar rota, recencia e confianca, mas sem promessa forte de poupanca agora.</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
           {[
-            { label: "Recência", note: "Quanto mais novo, melhor para decidir agora." },
-            { label: "Confiança", note: "Mostra se o dado chegou com contexto forte ou básico." },
-            { label: "Distância", note: "Ajuda a ver quando o barato continua valendo no caminho." }
+            { label: "Preco bruto", note: "Nao some da tela. Continua na frente para a conta fechar rapido." },
+            { label: "Recencia", note: "Preco velho perde peso, mesmo quando parece o melhor da lista." },
+            { label: "Confianca", note: "Recomendacao forte so aparece quando o dado ainda se sustenta." },
+            { label: "Distancia", note: "Ajuda a separar o barato distante do que vale no caminho." }
           ].map((signal) => (
             <div key={signal.label} className="rounded-[18px] border border-white/8 bg-white/[0.04] px-4 py-3">
               <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">{signal.label}</p>
@@ -630,10 +1209,10 @@ export function HomeDeferredSections(props: Record<string, any>) {
 
         {!hasEconomyItems ? (
           <EmptyStateCard
-            title={mapStations.length > 0 ? `Há postos cadastrados, mas ainda sem ${fuelLabels[economyFuelFilter].toLowerCase()} recente neste recorte.` : `Nenhum preço de ${fuelLabels[economyFuelFilter].toLowerCase()} disponível neste recorte.`}
-            description={mapStations.length > 0 ? "Abra a lista dos postos sem atualização e envie a primeira foto desse combustível onde puder." : "Tente outro bairro, cidade ou mude o combustível da comparação para voltar a um recorte útil."}
+            title={mapStations.length > 0 ? `Ha postos cadastrados, mas ainda sem ${fuelLabels[economyFuelFilter].toLowerCase()} recente neste recorte.` : `Nenhum preco de ${fuelLabels[economyFuelFilter].toLowerCase()} disponivel neste recorte.`}
+            description={mapStations.length > 0 ? "Abra a lista dos postos sem atualizacao e envie a primeira foto desse combustivel onde puder." : "Tente outro bairro, cidade ou mude o combustivel da comparacao para voltar a um recorte util."}
             actionHref="/postos/sem-atualizacao"
-            actionLabel="Ver postos sem atualização"
+            actionLabel="Ver postos sem atualizacao"
             className="text-left"
           />
         ) : (
@@ -657,6 +1236,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
                       const recencyTone = getRecencyTone(report.reportedAt);
                       const confidence = getReportConfidenceMeta(report);
                       const canRoute = hasRouteCoordinates(station);
+                      const distanceValue = getStationDistanceValue(station);
                       const stationHref = getStationHref(station.id, contextHref) as Route;
                       const sendHref = getSendHref(station.id, contextHref, economyFuelFilter) as Route;
 
@@ -684,12 +1264,12 @@ export function HomeDeferredSections(props: Record<string, any>) {
                           </div>
 
                           <div className="mt-3 flex flex-wrap gap-2">
-                            <Badge variant={recencyTone === "fresh" ? "default" : recencyTone === "warning" ? "warning" : "danger"}>
-                              {recencyTone === "stale" ? `Preço de ${formatRecencyLabel(report.reportedAt)}` : `Atualizado ${formatRecencyLabel(report.reportedAt)}`}
+                            <Badge variant={recencyToneToBadgeVariant(recencyTone)}>
+                              {recencyTone === "stale" ? `Preco de ${formatRecencyLabel(report.reportedAt)}` : `Atualizado ${formatRecencyLabel(report.reportedAt)}`}
                             </Badge>
                             <Badge variant={confidence.variant}>{confidence.label}</Badge>
                             <Badge variant="secondary">{confidence.detail}</Badge>
-                            {station.distance ? <Badge variant="secondary">{formatDistance(station.distance)}</Badge> : null}
+                            {distanceValue !== null ? <Badge variant="secondary">{formatDistance(distanceValue)}</Badge> : null}
                           </div>
 
                           <div className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -725,7 +1305,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
                                 });
                               }}
                             >
-                              Atualizar preço desse combustível
+                              Atualizar preco desse combustivel
                             </ButtonLink>
                             {canRoute ? (
                               <Button
@@ -735,7 +1315,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
                                 onClick={() => handleEconomyRoute(station, group.id)}
                               >
                                 <Navigation className="h-3.5 w-3.5" />
-                                Traçar rota
+                                Tracar rota
                               </Button>
                             ) : null}
                           </div>
