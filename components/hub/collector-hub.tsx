@@ -417,6 +417,20 @@ export function CollectorHub({ stations }: CollectorHubProps) {
               </div>
             </SectionCard>
           )}
+
+          {/* Discrete support banner — always at bottom, never blocks primary actions */}
+          <div className="flex items-center justify-between gap-4 rounded-[22px] border border-white/8 bg-black/22 px-4 py-3.5">
+            <div className="min-w-0 space-y-0.5">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Apoio</p>
+              <p className="text-sm text-white/52">Mantenha o mapa de pé.</p>
+            </div>
+            <a
+              href="/apoie"
+              className="shrink-0 text-xs font-semibold text-[color:var(--color-accent)] hover:underline"
+            >
+              Apoiar
+            </a>
+          </div>
         </div>
 
         <aside data-layout-role="rail" data-rail-useful="hub" className="hidden space-y-4 xl:block xl:sticky xl:top-28">

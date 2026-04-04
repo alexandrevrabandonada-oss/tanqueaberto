@@ -12,7 +12,11 @@ export interface StationEditorSessionCookiePayload {
 const COOKIE_PREFIX = "se1";
 
 function getSessionSigningSecret() {
-  const secret = String(process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "").trim();
+  const secret = String(
+    process.env.STATION_EDITOR_SESSION_SECRET
+    ?? process.env.SUPABASE_SERVICE_ROLE_KEY
+    ?? ""
+  ).trim();
   if (!secret) {
     throw new Error("Missing session signing secret.");
   }
@@ -60,3 +64,4 @@ export function readStationEditorSessionCookieValue(value: string) {
     return null;
   }
 }
+

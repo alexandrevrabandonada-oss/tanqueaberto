@@ -76,6 +76,17 @@ export default function SobrePage() {
           schema pronto e integração inicial com Supabase.
         </p>
       </SectionCard>
+
+      <SectionCard className="space-y-3">
+        <p className="text-xs uppercase tracking-[0.2em] text-white/42">Sustentabilidade</p>
+        <p className="text-sm text-white/62">
+          O projeto é independente e não tem publicidade. Apoio da comunidade ajuda a manter a infraestrutura
+          no ar e ampliar a cobertura de postos.
+        </p>
+        <ButtonLink href={"/apoie" as Route} variant="secondary">
+          Apoiar o projeto
+        </ButtonLink>
+      </SectionCard>
     </AppShell>
   );
 }

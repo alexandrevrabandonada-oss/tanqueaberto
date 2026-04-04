@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Check, X, Zap, ChevronRight, ChevronLeft, ShieldCheck, ShieldAlert, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import { SectionCard } from "@/components/ui/section-card";
 import { fuelLabels } from "@/lib/format/labels";
 import { formatCurrencyBRL } from "@/lib/format/currency";
 import { formatRecencyLabel } from "@/lib/format/time";
-import { moderateReportAction } from "@/app/admin/actions";
+import { moderateReportQueueAction } from "@/app/admin/actions";
 import type { ReportWithStation } from "@/lib/types";
 
 interface FastApprovalQueueProps {
@@ -22,6 +23,7 @@ function hasUsableImageSrc(src: string | null | undefined) {
 }
 
 export function FastApprovalQueue({ reports }: FastApprovalQueueProps) {
+  const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPending, startTransition] = useTransition();
 
@@ -71,17 +73,19 @@ export function FastApprovalQueue({ reports }: FastApprovalQueueProps) {
     formData.append("reportId", currentReport.id);
     formData.append("decision", "approved");
     formData.append("moderationNote", `Aprovação rápida (${currentGroup.confirmations.length + 1} reports agrupados)`);
-    
     // Add confirmation IDs if any
     currentGroup.confirmations.forEach(c => formData.append("confirmationIds", c.id));
     
     startTransition(async () => {
-      await moderateReportAction(formData);
-      if (currentIndex < groupedReports.length - 1) {
-        setCurrentIndex(currentIndex + 1);
+      const result = await moderateReportQueueAction(formData);
+      if (result?.ok) {
+        if (currentIndex < groupedReports.length - 1) {
+          setCurrentIndex(currentIndex + 1);
+        }
+        router.refresh();
       }
     });
-  }, [currentIndex, currentGroup, currentReport, isPending, groupedReports.length]);
+  }, [currentIndex, currentGroup, currentReport, isPending, groupedReports.length, router]);
 
   const rejectCurrent = useCallback(() => {
     if (!currentReport || !currentGroup || isPending) return;
@@ -89,17 +93,19 @@ export function FastApprovalQueue({ reports }: FastApprovalQueueProps) {
     formData.append("reportId", currentReport.id);
     formData.append("decision", "rejected");
     formData.append("moderationNote", `Rejeição rápida (${currentGroup.confirmations.length + 1} reports agrupados)`);
-    
     // Add confirmation IDs if any
     currentGroup.confirmations.forEach(c => formData.append("confirmationIds", c.id));
     
     startTransition(async () => {
-      await moderateReportAction(formData);
-      if (currentIndex < groupedReports.length - 1) {
-        setCurrentIndex(currentIndex + 1);
+      const result = await moderateReportQueueAction(formData);
+      if (result?.ok) {
+        if (currentIndex < groupedReports.length - 1) {
+          setCurrentIndex(currentIndex + 1);
+        }
+        router.refresh();
       }
     });
-  }, [currentIndex, currentGroup, currentReport, isPending, groupedReports.length]);
+  }, [currentIndex, currentGroup, currentReport, isPending, groupedReports.length, router]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

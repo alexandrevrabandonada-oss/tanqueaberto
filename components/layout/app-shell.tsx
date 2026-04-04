@@ -105,6 +105,15 @@ export function AppShell({ children, killSwitches, hideShellSubmitCta = false, a
         ) : null}
 
         <main className="relative z-10 flex-1 space-y-3 md:space-y-4 xl:space-y-5">{children}</main>
+
+        <footer className="relative z-10 mt-6 flex justify-center pb-2">
+          <a
+            href="/apoie"
+            className="text-[11px] text-white/24 transition-colors hover:text-white/46"
+          >
+            Apoie o projeto
+          </a>
+        </footer>
       </div>
     </div>
   );

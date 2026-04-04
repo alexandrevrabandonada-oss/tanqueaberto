@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useMySubmissions, type MySubmission } from "@/hooks/use-my-submissions";
+import { useMySubmissions } from "@/hooks/use-my-submissions";
 import type { ReportStatus } from "@/lib/types";
 
 export type InboxEventType = 'queued' | 'audited' | 'approved' | 'rejected' | 'needs_adjustment' | 'visible';
@@ -45,13 +45,18 @@ export function useInbox() {
     }
   }, [items, isLoaded]);
 
+  const existingEventKeys = useMemo(
+    () => new Set(items.map((item) => `${item.reportId}:${item.type}`)),
+    [items]
+  );
+
   // Status Change Detection
   useEffect(() => {
     if (!submissionsLoaded || !isLoaded) return;
 
     const lastStatusesRaw = localStorage.getItem(STATUS_MAP_KEY);
     const lastStatuses: Record<string, ReportStatus | "stored"> = lastStatusesRaw ? JSON.parse(lastStatusesRaw) : {};
-    
+
     const newItems: InboxItem[] = [];
     const currentStatuses: Record<string, ReportStatus | "stored"> = {};
 
@@ -60,7 +65,6 @@ export function useInbox() {
       const lastStatus = lastStatuses[sub.reportId];
 
       if (lastStatus && lastStatus !== sub.status) {
-        // Status changed!
         let type: InboxEventType = 'audited';
         let message = `O status do envio para ${sub.stationName} mudou para ${sub.status}.`;
 
@@ -72,30 +76,28 @@ export function useInbox() {
           message = `O envio para ${sub.stationName} não foi aprovado. Confira o motivo no histórico.`;
         }
 
-        const id = `${sub.reportId}-${sub.status}-${Date.now()}`;
-        
-        // Evitar duplicatas de evento idêntico na mesma sessão
-        if (!items.find(item => item.reportId === sub.reportId && item.type === type)) {
-            newItems.push({
-                id,
-                reportId: sub.reportId,
-                stationId: sub.stationId,
-                stationName: sub.stationName,
-                type,
-                message,
-                timestamp: new Date().toISOString(),
-                read: false
-            });
+        const eventKey = `${sub.reportId}:${type}`;
+        if (!existingEventKeys.has(eventKey)) {
+          newItems.push({
+            id: `${sub.reportId}-${sub.status}-${Date.now()}`,
+            reportId: sub.reportId,
+            stationId: sub.stationId,
+            stationName: sub.stationName,
+            type,
+            message,
+            timestamp: new Date().toISOString(),
+            read: false
+          });
         }
       }
     });
 
     if (newItems.length > 0) {
-      setItems(prev => [...newItems, ...prev].slice(0, 30));
+      setItems((prev) => [...newItems, ...prev].slice(0, 30));
     }
 
     localStorage.setItem(STATUS_MAP_KEY, JSON.stringify(currentStatuses));
-  }, [submissions, submissionsLoaded, isLoaded]);
+  }, [existingEventKeys, isLoaded, submissions, submissionsLoaded]);
 
   const markAsRead = useCallback((id: string) => {
     setItems(prev => prev.map(item => item.id === id ? { ...item, read: true } : item));
@@ -115,3 +117,4 @@ export function useInbox() {
     isLoaded
   };
 }
+

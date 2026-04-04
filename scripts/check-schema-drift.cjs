@@ -26,6 +26,40 @@ const forbiddenSourcePatterns = [
   { label: "legacy price_report_submitted", pattern: /\bprice_report_submitted\b/i }
 ];
 
+const migrationEntityPatterns = [
+  /create\s+table\s+if\s+not\s+exists\s+public\.([a-zA-Z0-9_]+)/gi,
+  /create\s+materialized\s+view\s+if\s+not\s+exists\s+public\.([a-zA-Z0-9_]+)/gi,
+  /create\s+(?:or\s+replace\s+)?view\s+public\.([a-zA-Z0-9_]+)/gi,
+  /alter\s+table\s+public\.([a-zA-Z0-9_]+)/gi
+];
+
+const migrationFunctionPatterns = [
+  /create\s+(?:or\s+replace\s+)?function\s+public\.([a-zA-Z0-9_]+)/gi
+];
+
+const sourceEntityRefPatterns = [
+  /\.from\(\s*["'`]([a-zA-Z0-9_]+)["'`]\s*\)/g
+];
+
+const sourceFunctionRefPatterns = [
+  /\.rpc\(\s*["'`]([a-zA-Z0-9_]+)["'`]\s*[,)\]]/g
+];
+
+function collectMatches(text, patterns) {
+  const matches = new Set();
+
+  for (const pattern of patterns) {
+    const regex = new RegExp(pattern.source, pattern.flags);
+    for (const match of text.matchAll(regex)) {
+      if (match[1]) {
+        matches.add(match[1]);
+      }
+    }
+  }
+
+  return matches;
+}
+
 async function walk(dir) {
   const entries = await fs.readdir(dir, { withFileTypes: true });
   const files = [];
@@ -70,6 +104,36 @@ async function main() {
   const sourceText = await Promise.all(sourceFiles.map((file) => fs.readFile(file, "utf8")));
 
   const issues = [];
+  const migrationEntities = new Set();
+  const migrationFunctions = new Set();
+  const referencedEntities = new Map();
+  const referencedFunctions = new Map();
+
+  for (const text of migrationText) {
+    for (const entity of collectMatches(text, migrationEntityPatterns)) {
+      migrationEntities.add(entity);
+    }
+    for (const fnName of collectMatches(text, migrationFunctionPatterns)) {
+      migrationFunctions.add(fnName);
+    }
+  }
+
+  sourceFiles.forEach((file, index) => {
+    const relative = path.relative(ROOT, file);
+    const text = sourceText[index] ?? "";
+
+    for (const entity of collectMatches(text, sourceEntityRefPatterns)) {
+      const files = referencedEntities.get(entity) ?? [];
+      files.push(relative);
+      referencedEntities.set(entity, files);
+    }
+
+    for (const fnName of collectMatches(text, sourceFunctionRefPatterns)) {
+      const files = referencedFunctions.get(fnName) ?? [];
+      files.push(relative);
+      referencedFunctions.set(fnName, files);
+    }
+  });
 
   for (const requirement of requiredMigrationPatterns) {
     const found = migrationText.some((text) => requirement.pattern.test(text));
@@ -85,6 +149,18 @@ async function main() {
     }
   }
 
+  for (const [entity, files] of referencedEntities.entries()) {
+    if (!migrationEntities.has(entity)) {
+      issues.push(`missing migration entity for source reference (${entity}): ${files.join(", ")}`);
+    }
+  }
+
+  for (const [fnName, files] of referencedFunctions.entries()) {
+    if (!migrationFunctions.has(fnName)) {
+      issues.push(`missing migration function for source reference (${fnName}): ${files.join(", ")}`);
+    }
+  }
+
   if (issues.length > 0) {
     console.error("Schema drift check failed:");
     for (const issue of issues) {
@@ -93,7 +169,9 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`Schema drift check passed across ${sourceFiles.length} source files and ${migrationFiles.length} migrations.`);
+  console.log(
+    `Schema drift check passed across ${sourceFiles.length} source files, ${migrationFiles.length} migrations, ${migrationEntities.size} schema entities and ${migrationFunctions.size} SQL functions.`
+  );
 }
 
 main().catch((error) => {

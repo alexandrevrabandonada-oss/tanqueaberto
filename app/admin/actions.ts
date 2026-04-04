@@ -318,7 +318,6 @@ async function moderateReports(reportIds: string[], decision: "approved" | "reje
   revalidatePath("/admin");
   revalidatePath(`/postos/${report.station_id}`);
   revalidatePath("/auditoria");
-  redirect(ADMIN_ROUTE);
 }
 
 export async function moderateReportAction(formData: FormData) {
@@ -334,6 +333,25 @@ export async function moderateReportAction(formData: FormData) {
   }
 
   await moderateReports(allIds, decision, moderationNote);
+
+  redirect(ADMIN_ROUTE);
+}
+
+export async function moderateReportQueueAction(formData: FormData) {
+  const reportId = String(formData.get("reportId") ?? "");
+  const confirmationIds = formData.getAll("confirmationIds").map(id => String(id));
+  const decision = String(formData.get("decision") ?? "") as "approved" | "rejected";
+  const moderationNote = String(formData.get("moderationNote") ?? "");
+
+  const allIds = [reportId, ...confirmationIds].filter(Boolean);
+
+  if (allIds.length === 0 || (decision !== "approved" && decision !== "rejected")) {
+    return { ok: false as const, error: "invalid_request" };
+  }
+
+  await moderateReports(allIds, decision, moderationNote);
+
+  return { ok: true as const };
 }
 
 export async function moderateReportsBatchAction(formData: FormData) {
