@@ -1,4 +1,4 @@
-const CACHE_NAME = "bomba-aberta-v11";
+const CACHE_NAME = "bomba-aberta-v12";
 const APP_SHELL = [
   "/offline",
   "/manifest.webmanifest",
@@ -105,3 +105,4 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(cacheStaticResponse(event.request));
   }
 });
+

@@ -6,10 +6,13 @@ import { SubmissionHistoryProvider } from "@/components/history/submission-histo
 import { MissionProvider } from "@/components/mission/mission-context";
 import { RouteRuntimeSignals } from "@/components/layout/route-runtime-signals";
 import { getHomePageData } from "@/lib/data/queries";
+import { logRuntimeIssue } from "@/lib/observability/runtime-issues";
 import { getTerritorialReleaseSummary } from "@/lib/ops/release-control";
 import { isBetaClosed } from "@/lib/beta/gate";
 import type { FuelFilter, RecencyFilter, StationPresenceFilter } from "@/lib/filters/public";
 import type { HomeDensityMode } from "@/lib/navigation/home-context";
+import type { EffectiveGroupStatus } from "@/lib/ops/release-control";
+import type { ReportWithStation, StationWithReports } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -69,16 +72,42 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       groupId
   );
 
-  const [{ stations, feed, recentCount }, territorialSummary] = await Promise.all([
-    getHomePageData(),
-    getTerritorialReleaseSummary()
-  ]);
+  let stations: StationWithReports[] = [];
+  let feed: ReportWithStation[] = [];
+  let recentCount = 0;
+  let territorialSummary: EffectiveGroupStatus[] = [];
+
+  try {
+    const [homeData, releaseSummary] = await Promise.all([
+      getHomePageData(),
+      getTerritorialReleaseSummary()
+    ]);
+
+    stations = homeData.stations;
+    feed = homeData.feed;
+    recentCount = homeData.recentCount;
+    territorialSummary = releaseSummary;
+  } catch (error) {
+    logRuntimeIssue("Failed to render home page data", error, {
+      scope: "public",
+      surface: "pages/home",
+      fallback: "empty-home-state"
+    });
+  }
 
   let initialGroupStationIds: string[] = [];
   if (groupId) {
-    const { getAuditGroupMembers } = await import("@/lib/audit/groups");
-    const members = await getAuditGroupMembers(groupId);
-    initialGroupStationIds = members.map((m) => m.stationId);
+    try {
+      const { getAuditGroupMembers } = await import("@/lib/audit/groups");
+      const members = await getAuditGroupMembers(groupId);
+      initialGroupStationIds = members.map((member) => member.stationId);
+    } catch (error) {
+      logRuntimeIssue("Failed to load initial group members for home page", error, {
+        scope: "public",
+        surface: "pages/home.group-members",
+        fallback: "ignore-group-prefilter"
+      });
+    }
   }
 
   return (
@@ -126,3 +155,4 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     </SubmissionHistoryProvider>
   );
 }
+
