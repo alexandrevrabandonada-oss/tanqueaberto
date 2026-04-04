@@ -2430,8 +2430,8 @@ function PriceSubmitFormBody({
           <p className="mt-3 text-xs text-white/58">Quando você tocar em enviar, o preço entra em revisão.</p>
         </div>
       ) : null}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-black/92 px-4 py-3 backdrop-blur-md md:backdrop-blur-xl">
-        <div className="mx-auto flex w-full max-w-3xl items-center gap-3">
+      <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] z-[1090] px-4 py-3 lg:bottom-4 xl:left-1/2 xl:right-auto xl:w-[min(1120px,calc(100vw-2rem))] xl:-translate-x-1/2 xl:px-0">
+        <div className="mx-auto flex w-full max-w-3xl items-center gap-3 rounded-[24px] border border-white/10 bg-black/92 px-4 py-3 backdrop-blur-md md:backdrop-blur-xl">
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/36">Etapa {stageLabel}</p>
             <p className="truncate text-sm text-white/66">{guidedStage === "submit" ? "Confira e envie." : "Uma ação por vez."}</p>
@@ -2480,6 +2480,8 @@ export function PriceSubmitForm(props: PriceSubmitFormProps) {
 
   return <PriceSubmitFormBody key={`${props.initialStationId ?? "default"}-${formVersion}`} {...props} onResetRequest={() => setFormVersion((value) => value + 1)} />;
 }
+
+
 
 
 
