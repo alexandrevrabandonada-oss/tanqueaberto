@@ -21,6 +21,7 @@ import { formatRecencyLabel } from "@/lib/format/time";
 import { trackProductEvent } from "@/lib/telemetry/client";
 import { clearSubmissionDraft, loadSubmissionDraft, saveSubmissionDraft, type SubmissionDraftSnapshot, type SubmissionDraftStep, type SubmissionDraftStatus } from "@/lib/drafts/submission-draft";
 import { buildSubmissionQueueHref, clearSubmissionQueueForDraftKey, loadSubmissionQueue, removeSubmissionQueueEntry, upsertSubmissionQueueEntry, type SubmissionQueueEntry } from "@/lib/queue/submission-queue";
+import { getQueuePhoto } from "@/lib/queue/photo-storage";
 import { useStreetMode } from "@/hooks/use-street-mode";
 import { useSubmissionHistory } from "@/components/history/submission-history-context";
 import { useMissionContext } from "@/components/mission/mission-context";
@@ -492,11 +493,21 @@ function PriceSubmitFormBody({
           lastModified: new Date(draft.updatedAt).getTime()
         });
         selectedFileRef.current = restoredFile;
+        syncProcessedFileToInput(fileInputRef.current, restoredFile);
         const objectUrl = URL.createObjectURL(restoredFile);
         setPreviewUrl(objectUrl);
         setDraftPhotoMissing(false);
-      } else if (isPhotoMetadataPresent(draft)) {
-        setDraftPhotoMissing(true);
+      } else {
+        const queuedPhoto = await getQueuePhoto(draftKey).catch(() => null);
+        if (queuedPhoto) {
+          selectedFileRef.current = queuedPhoto;
+          syncProcessedFileToInput(fileInputRef.current, queuedPhoto);
+          const objectUrl = URL.createObjectURL(queuedPhoto);
+          setPreviewUrl(objectUrl);
+          setDraftPhotoMissing(false);
+        } else if (isPhotoMetadataPresent(draft)) {
+          setDraftPhotoMissing(true);
+        }
       }
 
       setDraftRestored(true);
@@ -2504,6 +2515,8 @@ export function PriceSubmitForm(props: PriceSubmitFormProps) {
 
   return <PriceSubmitFormBody key={`${props.initialStationId ?? "default"}-${formVersion}`} {...props} onResetRequest={() => setFormVersion((value) => value + 1)} />;
 }
+
+
 
 
 
