@@ -268,17 +268,90 @@ function summarize(records: TerritoryWorkflowRecord[]): TerritoryWorkflowSummary
 }
 
 export async function getTerritoryWorkflowReadout(limit = 200): Promise<TerritoryWorkflowReadout> {
-  const supabase = createSupabaseServiceClient();
-  const { data, error } = await supabase
-    .from("territory_workflow_states")
-    .select("territory_key,city,city_slug,neighborhood,workflow_state,responsible_role,responsible_name,due_kind,due_at,block_kind,note,follow_up_at,actor_id,actor_email,payload,created_at,updated_at")
-    .order("updated_at", { ascending: false })
-    .limit(limit);
+  try {
+    const supabase = createSupabaseServiceClient();
+    const { data, error } = await supabase
+      .from("territory_workflow_states")
+      .select("territory_key,city,city_slug,neighborhood,workflow_state,responsible_role,responsible_name,due_kind,due_at,block_kind,note,follow_up_at,actor_id,actor_email,payload,created_at,updated_at")
+      .order("updated_at", { ascending: false })
+      .limit(limit);
 
-  if (error || !data) {
-    if (error) {
-      console.error("Failed to load territory workflow states", error);
+    if (error || !data) {
+      if (error) {
+        console.error("Failed to load territory workflow states", error);
+      }
+      return {
+        summary: {
+          total: 0,
+          emMutirao: 0,
+          emAcompanhamento: 0,
+          concluidoPorEnquanto: 0,
+          prioritiesToday: 0,
+          acompanhamentoAtrasado: 0,
+          concluidoRecentemente: 0,
+          stationEditorResponsible: 0,
+          curadoriaResponsible: 0,
+          operacaoAdminResponsible: 0,
+          semResponsavel: 0,
+          dueToday: 0,
+          dueThisWeek: 0,
+          semPrazo: 0,
+          bloqueado: 0,
+          aguardandoSemeadura: 0,
+          aguardandoCuradoria: 0,
+          aguardandoEditor: 0,
+          semPrioridadeAgora: 0,
+          latestFollowUpAt: null,
+          latestUpdatedAt: null
+        },
+        records: []
+      };
     }
+
+    const records = dedupeLatest((data as Array<{
+      territory_key: string;
+      city: string;
+      city_slug: string;
+      neighborhood: string;
+      workflow_state: TerritoryWorkflowState;
+      responsible_role: string | null;
+      responsible_name: string | null;
+      due_kind: string | null;
+      due_at: string | null;
+      block_kind: string | null;
+      note: string | null;
+      follow_up_at: string | null;
+      actor_id: string | null;
+      actor_email: string | null;
+      payload: Record<string, unknown> | null;
+      created_at: string;
+      updated_at: string;
+    }>).map((row) => ({
+      territoryKey: row.territory_key,
+      city: row.city,
+      citySlug: row.city_slug || getAuditCitySlug(row.city),
+      neighborhood: row.neighborhood,
+      workflowState: row.workflow_state,
+      responsibleRole: normalizeRole(row.responsible_role),
+      responsibleName: row.responsible_name?.trim() || null,
+      dueKind: normalizeDueKind(row.due_kind),
+      dueAt: row.due_at,
+      blockKind: normalizeBlockKind(row.block_kind),
+      note: row.note,
+      followUpAt: row.follow_up_at,
+      actorId: row.actor_id,
+      actorEmail: row.actor_email,
+      payload: row.payload ?? {},
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    })));
+
+    return {
+      summary: summarize(records),
+      records
+    };
+  } catch (error) {
+    console.error("Failed to initialize territory workflow readout", error);
     return {
       summary: {
         total: 0,
@@ -306,49 +379,6 @@ export async function getTerritoryWorkflowReadout(limit = 200): Promise<Territor
       records: []
     };
   }
-
-  const records = dedupeLatest((data as Array<{
-    territory_key: string;
-    city: string;
-    city_slug: string;
-    neighborhood: string;
-    workflow_state: TerritoryWorkflowState;
-    responsible_role: string | null;
-    responsible_name: string | null;
-    due_kind: string | null;
-    due_at: string | null;
-    block_kind: string | null;
-    note: string | null;
-    follow_up_at: string | null;
-    actor_id: string | null;
-    actor_email: string | null;
-    payload: Record<string, unknown> | null;
-    created_at: string;
-    updated_at: string;
-  }>).map((row) => ({
-    territoryKey: row.territory_key,
-    city: row.city,
-    citySlug: row.city_slug || getAuditCitySlug(row.city),
-    neighborhood: row.neighborhood,
-    workflowState: row.workflow_state,
-    responsibleRole: normalizeRole(row.responsible_role),
-    responsibleName: row.responsible_name?.trim() || null,
-    dueKind: normalizeDueKind(row.due_kind),
-    dueAt: row.due_at,
-    blockKind: normalizeBlockKind(row.block_kind),
-    note: row.note,
-    followUpAt: row.follow_up_at,
-    actorId: row.actor_id,
-    actorEmail: row.actor_email,
-    payload: row.payload ?? {},
-    createdAt: row.created_at,
-    updatedAt: row.updated_at
-  })));
-
-  return {
-    summary: summarize(records),
-    records
-  };
 }
 
 export async function getTerritoryWorkflowQueueReadout(limit = 200): Promise<TerritoryWorkflowQueueReadout> {
