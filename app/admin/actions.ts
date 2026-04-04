@@ -151,7 +151,7 @@ async function expandModerationTargetIds(supabase: ReturnType<typeof createSupab
   try {
     const { data: seedRows, error: seedError } = await supabase
       .from("price_reports")
-      .select("id,reconciliation_id,photo_hash,station_id,fuel_type,price,reported_at,reporter_nickname,ip_hash")
+      .select("id,reconciliation_id,photo_hash,station_id,fuel_type,price,reported_at,reporter_nickname")
       .in("id", uniqueIds);
 
     if (seedError || !seedRows || seedRows.length === 0) {
@@ -319,7 +319,7 @@ export async function signOutAdminAction() {
 }
 
 const MODERATION_REPORT_SELECT_FULL = "id,station_id,fuel_type,price,reported_at,reporter_nickname,ip_hash,status,moderation_note,location_confidence,metadata";
-const MODERATION_REPORT_SELECT_LEGACY = "id,station_id,fuel_type,price,reported_at,reporter_nickname,ip_hash,status,moderation_note";
+const MODERATION_REPORT_SELECT_LEGACY = "id,station_id,fuel_type,price,reported_at,reporter_nickname,status,moderation_note";
 
 type ModerationReportRow = {
   id: string;
@@ -328,7 +328,7 @@ type ModerationReportRow = {
   price: number;
   reported_at: string;
   reporter_nickname: string | null;
-  ip_hash: string | null;
+  ip_hash?: string | null;
   status: string;
   moderation_note: string | null;
   location_confidence?: "high" | "low" | "none" | null;
