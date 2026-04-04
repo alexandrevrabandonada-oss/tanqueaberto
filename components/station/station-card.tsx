@@ -3,6 +3,7 @@
 import * as React from "react";
 import type { Route } from "next";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Camera, Clock3, MapPin, Navigation, Star } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +18,7 @@ import { rememberStationVisit } from "@/lib/navigation/home-context";
 import { GroupStatusBadge } from "@/components/ui/group-status-badge";
 import { formatDistance } from "@/lib/geo/distance";
 import { openExternalNavigation } from "@/lib/navigation/external-maps";
+import { saveSubmissionDraft } from "@/lib/drafts/submission-draft";
 import type { FuelType, PriceReport, StationWithReports } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { QuickActionGroup, QuickActionButton } from "@/components/ui/quick-action";
@@ -32,7 +34,7 @@ interface StationCardProps {
   isAdvanced?: boolean;
   isFavorite?: boolean;
   onFavoriteToggle?: () => void;
-  recordActivity?: (type: 'view' | 'touch' | 'start' | 'complete', stationId?: string) => void;
+  recordActivity?: (type: "view" | "touch" | "start" | "complete", stationId?: string) => void;
   isHeaderSticky?: boolean;
   isHeaderMicro?: boolean;
 }
@@ -43,7 +45,30 @@ function getStationHref(stationId: string, returnToHref?: string) {
 
 function getSendHref(stationId: string, returnToHref?: string, fuelFilter?: "all" | FuelType) {
   const fuelParam = fuelFilter && fuelFilter !== "all" ? `&fuel=${fuelFilter}` : "";
-  return returnToHref ? (`/enviar?stationId=${stationId}${fuelParam}&returnTo=${encodeURIComponent(returnToHref)}#photo` as Route) : ((`/enviar?stationId=${stationId}${fuelParam}#photo`) as Route);
+  return returnToHref ? (`/enviar?stationId=${stationId}${fuelParam}&returnTo=${encodeURIComponent(returnToHref)}#photo` as Route) : (`/enviar?stationId=${stationId}${fuelParam}#photo` as Route);
+}
+
+function buildQuickCaptureDraft(stationId: string, fuelFilter: "all" | FuelType, file: File) {
+  const fuelType: FuelType = fuelFilter !== "all" ? fuelFilter : "gasolina_comum";
+
+  return {
+    key: `bomba-aberta:price-draft:${stationId}`,
+    stationId,
+    fuelType,
+    price: "",
+    nickname: "",
+    status: "in_progress" as const,
+    lastStep: "photo" as const,
+    updatedAt: new Date().toISOString(),
+    photoName: file.name,
+    photoType: file.type || null,
+    photoSize: file.size,
+    photo: file
+  };
+}
+
+function isMobileBrowser() {
+  return typeof navigator !== "undefined" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 }
 
 export function StationCard({
@@ -60,6 +85,7 @@ export function StationCard({
   isHeaderSticky = false,
   isHeaderMicro = false
 }: StationCardProps) {
+  const router = useRouter();
   const latest: PriceReport | null = getSelectedStationReport(station, fuelFilter);
   const stationHref = getStationHref(station.id, returnToHref);
   const sendHref = getSendHref(station.id, returnToHref, fuelFilter);
@@ -74,6 +100,34 @@ export function StationCard({
   const { isActive: isTestMode } = useTestMode();
 
   const viewStartTime = React.useRef<number>(Date.now());
+  const quickCaptureInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  async function handleQuickCaptureChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const nextFile = event.target.files?.[0] ?? null;
+    event.target.value = "";
+
+    if (!nextFile || !nextFile.type.startsWith("image/")) {
+      return;
+    }
+
+    try {
+      await saveSubmissionDraft(buildQuickCaptureDraft(station.id, fuelFilter, nextFile));
+    } catch {
+      void trackProductEvent({
+        eventType: "submission_validation_error" as any,
+        pagePath: "/",
+        pageTitle: getStationPublicName(station),
+        stationId: station.id,
+        payload: {
+          field: "photo",
+          reason: "quick_capture_draft_save_failed",
+          source: "station_card"
+        }
+      });
+    }
+
+    router.push(sendHref);
+  }
 
   const statusBadge = station.releaseStatus && station.releaseStatus !== "ready" ? (
     <GroupStatusBadge status={station.releaseStatus} />
@@ -86,11 +140,13 @@ export function StationCard({
   );
 
   return (
-    <SectionCard className={cn(
-      "group relative overflow-hidden space-y-3 sm:space-y-4 py-3 sm:py-4 transition-all duration-200 hover:border-white/14 hover:bg-white/[0.07] focus-within:border-[color:var(--color-accent)]/30 focus-within:bg-white/[0.07]",
-      isStreetMode && "space-y-2 py-3",
-      isAdvanced && "py-2 space-y-1.5"
-    )}>
+    <SectionCard
+      className={cn(
+        "group relative overflow-hidden space-y-3 sm:space-y-4 py-3 sm:py-4 transition-all duration-200 hover:border-white/14 hover:bg-white/[0.07] focus-within:border-[color:var(--color-accent)]/30 focus-within:bg-white/[0.07]",
+        isStreetMode && "space-y-2 py-3",
+        isAdvanced && "py-2 space-y-1.5"
+      )}
+    >
       <Link
         href={stationHref}
         aria-label={`Abrir posto ${getStationPublicName(station)}`}
@@ -132,14 +188,13 @@ export function StationCard({
               <h3 className={cn("truncate font-semibold text-white", (isStreetMode || isAdvanced) ? "text-base" : "text-base sm:text-lg")}>{getStationPublicName(station)}</h3>
               <div className="flex items-center gap-2">
                 <p className="truncate text-[11px] sm:text-sm text-white/42">
-                  {station.neighborhood}{!isStreetMode && !isAdvanced && `, ${station.city}`}
+                  {station.neighborhood}
+                  {!isStreetMode && !isAdvanced && `, ${station.city}`}
                 </p>
                 {station.distance !== undefined && (
                   <>
                     <span className="h-1 w-1 rounded-full bg-white/20" />
-                    <span className="shrink-0 text-[11px] font-semibold text-white/34">
-                      {formatDistance(station.distance)}
-                    </span>
+                    <span className="shrink-0 text-[11px] font-semibold text-white/34">{formatDistance(station.distance)}</span>
                   </>
                 )}
               </div>
@@ -166,12 +221,14 @@ export function StationCard({
         )}
 
         {latest ? (
-          <div className={cn(
-            "rounded-[20px] border border-white/8 bg-black/30 p-3 sm:p-4 transition-all",
-            (isStreetMode || isAdvanced) && "p-2 px-3"
-          )}>
+          <div
+            className={cn(
+              "rounded-[20px] border border-white/8 bg-black/30 p-3 sm:p-4 transition-all",
+              (isStreetMode || isAdvanced) && "p-2 px-3"
+            )}
+          >
             <div className="flex items-center justify-between">
-              <span className={cn("font-medium text-white/56", (isStreetMode || isAdvanced) ? "text-xs" : "text-[11px] sm:text-xs") }>{fuelLabels[latest.fuelType]}</span>
+              <span className={cn("font-medium text-white/56", (isStreetMode || isAdvanced) ? "text-xs" : "text-[11px] sm:text-xs")}>{fuelLabels[latest.fuelType]}</span>
               <span className={cn("font-bold tracking-tight text-white", (isStreetMode || isAdvanced) ? "text-lg" : "text-xl sm:text-2xl")}>{formatCurrencyBRL(latest.price)}</span>
             </div>
             {!isStreetMode && !isAdvanced && (
@@ -187,7 +244,18 @@ export function StationCard({
           </div>
         ) : null}
 
-                <QuickActionGroup
+        <input
+          ref={quickCaptureInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          tabIndex={-1}
+          aria-hidden="true"
+          onChange={handleQuickCaptureChange}
+          className="hidden"
+        />
+
+        <QuickActionGroup
           className={cn("relative z-10 grid grid-cols-2 gap-2 rounded-[22px] border border-[color:var(--color-accent)]/14 bg-[linear-gradient(180deg,rgba(255,204,0,0.08),rgba(255,255,255,0.03))] p-1.5 shadow-[0_10px_24px_rgba(0,0,0,0.18)]", isAdvanced && "gap-1.5 p-0.5")}
           onMisclick={() => {
             void trackProductEvent({
@@ -210,7 +278,7 @@ export function StationCard({
                 isAssisted={isAssisted}
                 isUltraClaro={isUltraClaro}
                 href={sendHref}
-                onClick={() => {
+                onClick={(event) => {
                   recordActivity?.("touch", station.id);
                   rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
                   void trackProductEvent({
@@ -228,6 +296,16 @@ export function StationCard({
                       isHeaderMicro
                     }
                   });
+
+                  if (!isMobileBrowser()) {
+                    return;
+                  }
+
+                  event.preventDefault();
+                  if (quickCaptureInputRef.current) {
+                    quickCaptureInputRef.current.value = "";
+                    quickCaptureInputRef.current.click();
+                  }
                 }}
               />
 
@@ -241,7 +319,7 @@ export function StationCard({
                 isUltraClaro={isUltraClaro}
                 onClick={() => {
                   recordActivity?.("touch", station.id);
-                  const isMobile = typeof navigator !== "undefined" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                  const mobile = isMobileBrowser();
                   void trackProductEvent({
                     eventType: "quick_action_clicked",
                     pagePath: "/",
@@ -256,7 +334,7 @@ export function StationCard({
                       isHeaderMicro
                     }
                   });
-                  openExternalNavigation(isMobile ? "waze" : "google", {
+                  openExternalNavigation(mobile ? "waze" : "google", {
                     lat: station.lat,
                     lng: station.lng,
                     stationId: station.id,
@@ -308,7 +386,7 @@ export function StationCard({
                 isUltraClaro={isUltraClaro}
                 onClick={() => {
                   recordActivity?.("touch", station.id);
-                  const isMobile = typeof navigator !== "undefined" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                  const mobile = isMobileBrowser();
                   void trackProductEvent({
                     eventType: "quick_action_clicked",
                     pagePath: "/",
@@ -323,7 +401,7 @@ export function StationCard({
                       isHeaderMicro
                     }
                   });
-                  openExternalNavigation(isMobile ? "waze" : "google", {
+                  openExternalNavigation(mobile ? "waze" : "google", {
                     lat: station.lat,
                     lng: station.lng,
                     stationId: station.id,
@@ -339,6 +417,3 @@ export function StationCard({
     </SectionCard>
   );
 }
-
-
-

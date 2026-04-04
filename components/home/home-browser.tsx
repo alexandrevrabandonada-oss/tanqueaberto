@@ -661,10 +661,19 @@ export function HomeBrowser({
   );
   const stationsWithoutRecentPrice = visibleStations.length - stationsWithRecentPrice.length;
   const reviewStations = useMemo(() => orderedStations.filter((station) => hasPendingStationLocationReview(station)), [orderedStations]);
-  const noRecentStations = useMemo(
-    () => orderedStations.filter((station) => !hasRecentStationPriceForFilter(station, fuelFilter)).slice(0, 4),
-    [fuelFilter, orderedStations]
-  );
+  const noRecentStations = useMemo(() => {
+    const candidates = orderedStations.filter((station) => !hasRecentStationPriceForFilter(station, fuelFilter));
+
+    return [...candidates]
+      .sort((left, right) => {
+        if (coords && left.distance !== undefined && right.distance !== undefined) {
+          return left.distance - right.distance;
+        }
+
+        return 0;
+      })
+      .slice(0, 4);
+  }, [coords, fuelFilter, orderedStations]);
 
   // Sessão de Rua: Registrar views automáticas
   useEffect(() => {
@@ -1161,5 +1170,6 @@ export function HomeBrowser({
     </>
   );
 }
+
 
 
