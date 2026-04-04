@@ -128,6 +128,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   );
 
   const batches = selectedStatus === "pending" ? groupReportsForModeration(reports, stations) : [];
+  const fastLaneReports = selectedStatus === "pending" ? reports.filter((report) => report.submissionRouting === "fast_lane") : [];
 
   const banner = loadErrorNotice ?? resolveNotice(resolvedSearchParams);
 
@@ -211,9 +212,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         </SectionCard>
       )}
 
-      {selectedStatus === "pending" && reports.length > 0 && (
+      {selectedStatus === "pending" && fastLaneReports.length > 0 && (
         <SectionCard className="border-[color:var(--color-accent)]/20 bg-[color:var(--color-accent)]/5">
-          <FastApprovalQueue reports={reports.slice(0, 10)} />
+          <FastApprovalQueue reports={fastLaneReports.slice(0, 10)} />
         </SectionCard>
       )}
 

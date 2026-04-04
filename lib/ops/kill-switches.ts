@@ -8,6 +8,7 @@ export interface OperationalKillSwitches {
   disable_heavy_territorial_widgets: boolean;
   disable_auto_suggestions: boolean;
   disable_fast_lane: boolean;
+  disable_progressive_trust: boolean;
 }
 
 const DEFAULT_SWITCHES: OperationalKillSwitches = {
@@ -16,6 +17,7 @@ const DEFAULT_SWITCHES: OperationalKillSwitches = {
   disable_heavy_territorial_widgets: false,
   disable_auto_suggestions: false,
   disable_fast_lane: false,
+  disable_progressive_trust: false,
 };
 
 /**

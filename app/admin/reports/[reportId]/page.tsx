@@ -143,6 +143,8 @@ export default async function AdminReportEditPage({ params, searchParams }: Admi
               <p className="text-sm text-white/52">Apelido: {report.reporterNickname ?? "anônimo"}</p>
               <p className="text-sm text-white/52">ID do report: {report.id}</p>
               <p className="text-sm text-white/52">Histórico curto: {report.contributorHistorySummary?.join(" · ") ?? "Sem histórico curto agregado."}</p>
+              <p className="text-sm text-white/52">Fase do rollout: {String(report.metadata?.progressive_trust_rollout_phase ?? "2")} · {String(report.metadata?.progressive_trust_rollout_label ?? "fase_2_fast_lane")}</p>
+              <p className="text-sm text-white/52">Motivo principal da rota: {report.submissionRoutingReasons?.[0] ?? "Fluxo padrão de revisão."}</p>
             </div>
 
             <form action={updatePriceReportAction} className="space-y-4 rounded-[22px] border border-white/8 bg-black/20 p-4">

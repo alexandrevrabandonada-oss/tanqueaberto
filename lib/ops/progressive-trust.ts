@@ -12,6 +12,9 @@ export interface ProgressiveTrustRollout {
   autoApprovalEnabled: boolean;
   shadowMode: boolean;
   label: string;
+  configuredFastLaneEnabled: boolean;
+  configuredAutoApprovalEnabled: boolean;
+  killSwitchActive: boolean;
 }
 
 export interface ContributorHistorySnapshot {
@@ -222,27 +225,40 @@ async function loadContributorRecentRows(nickname: string | null, ipHash: string
 export async function getProgressiveTrustRollout(): Promise<ProgressiveTrustRollout> {
   const supabase = createSupabaseServiceClient();
   const killSwitches = await getKillSwitches();
-  let phase: ProgressiveTrustPhase = 1;
+  let phase: ProgressiveTrustPhase = 2;
+  let configuredFastLaneEnabled: boolean | null = null;
+  let configuredAutoApprovalEnabled: boolean | null = null;
 
   try {
     const { data } = await supabase.from("sys_config").select("value").eq("key", "progressive_trust_rollout").maybeSingle();
-    const configured = Number((data?.value as { phase?: number } | null)?.phase ?? 1);
+    const rawValue = data?.value as { phase?: number; fastLaneEnabled?: boolean; autoApprovalEnabled?: boolean } | null;
+    const configured = Number(rawValue?.phase ?? 2);
     if (configured === 2 || configured === 3) {
       phase = configured;
+    } else if (configured === 1) {
+      phase = 1;
     }
+    configuredFastLaneEnabled = typeof rawValue?.fastLaneEnabled === "boolean" ? rawValue.fastLaneEnabled : null;
+    configuredAutoApprovalEnabled = typeof rawValue?.autoApprovalEnabled === "boolean" ? rawValue.autoApprovalEnabled : null;
   } catch (error) {
-    logRuntimeIssue("Failed to read progressive trust rollout, using phase 1", error, { scope: "ops", surface: "progressive-trust.getProgressiveTrustRollout", fallback: "phase-1", optional: true, schemaSensitive: true });
+    logRuntimeIssue("Failed to read progressive trust rollout, using phase 2", error, { scope: "ops", surface: "progressive-trust.getProgressiveTrustRollout", fallback: "phase-2", optional: true, schemaSensitive: true });
   }
 
-  const fastLaneEnabled = phase >= 2 && !killSwitches.disable_fast_lane;
-  const autoApprovalEnabled = phase >= 3 && fastLaneEnabled;
+  const killSwitchActive = killSwitches.disable_progressive_trust;
+  const requestedFastLaneEnabled = configuredFastLaneEnabled ?? phase >= 2;
+  const requestedAutoApprovalEnabled = configuredAutoApprovalEnabled ?? phase >= 3;
+  const fastLaneEnabled = !killSwitchActive && phase >= 2 && requestedFastLaneEnabled && !killSwitches.disable_fast_lane;
+  const autoApprovalEnabled = !killSwitchActive && phase >= 3 && fastLaneEnabled && requestedAutoApprovalEnabled;
 
   return {
     phase,
     fastLaneEnabled,
     autoApprovalEnabled,
-    shadowMode: phase === 1,
-    label: phase === 1 ? "fase_1_shadow" : phase === 2 ? "fase_2_fast_lane" : "fase_3_autoaprovacao_limitada"
+    shadowMode: phase === 1 || killSwitchActive,
+    label: phase === 1 ? "fase_1_shadow" : phase === 2 ? "fase_2_fast_lane" : "fase_3_autoaprovacao_limitada",
+    configuredFastLaneEnabled: requestedFastLaneEnabled,
+    configuredAutoApprovalEnabled: requestedAutoApprovalEnabled,
+    killSwitchActive,
   };
 }
 

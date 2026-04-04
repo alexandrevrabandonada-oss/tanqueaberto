@@ -47,6 +47,10 @@ import { Copy, FlaskConical } from "lucide-react";
 import { TesterMonitorPanel } from "./components/tester-monitor-panel";
 import { BetaReadinessPanel } from "./components/beta-readiness-panel";
 import { getTerritoryWorkflowReadout } from "@/lib/ops/territory-workflow";
+import { getProgressiveTrustOperationalReadout } from "@/lib/ops/progressive-trust-operations";
+import { ProgressiveTrustRolloutPanel } from "./components/progressive-trust-rollout-panel";
+import { ProgressiveTrustOperationsPanel } from "./components/progressive-trust-operations-panel";
+import { getProgressiveTrustRollout } from "@/lib/ops/progressive-trust";
 
 export default async function OpsDashboardPage() {
   const supabase = await createSupabaseServerClient();
@@ -55,7 +59,7 @@ export default async function OpsDashboardPage() {
     .select('*')
     .order('created_at', { ascending: false })
     .limit(10);
-  const [killSwitches, groups, alerts, history, collectors, territorialHistory, synthesis, territoryWorkflow] = await Promise.all([
+  const [killSwitches, groups, alerts, history, collectors, territorialHistory, synthesis, territoryWorkflow, progressiveTrustReadout, progressiveTrustRollout] = await Promise.all([
     getKillSwitches(),
     getAuditGroups(),
     detectActiveAlerts(),
@@ -63,7 +67,9 @@ export default async function OpsDashboardPage() {
     getCollectorTrustList(10),
     getTerritorialRolloutHistory(15),
     getOperationalSynthesisAction(),
-    getTerritoryWorkflowReadout(120)
+    getTerritoryWorkflowReadout(120),
+    getProgressiveTrustOperationalReadout(14),
+    getProgressiveTrustRollout()
   ]);
 
   return (
@@ -88,6 +94,14 @@ export default async function OpsDashboardPage() {
 
       <div className="mb-8">
         <BetaReadinessPanel />
+      </div>
+
+      <div className="mb-8">
+        <ProgressiveTrustRolloutPanel rollout={progressiveTrustRollout} killSwitches={killSwitches} />
+      </div>
+
+      <div className="mb-8">
+        <ProgressiveTrustOperationsPanel readout={progressiveTrustReadout} />
       </div>
 
       <div className="mb-8 rounded-2xl border border-white/5 bg-[#111] p-4">
@@ -339,6 +353,12 @@ export default async function OpsDashboardPage() {
                   description="Trava priorização automática de moderação."
                   switchKey="disable_fast_lane"
                   active={killSwitches.disable_fast_lane}
+                />
+                <KillSwitchToggle 
+                  label="Progressive Trust" 
+                  description="Derruba fast-lane e autoaprovação para revisão humana total."
+                  switchKey="disable_progressive_trust"
+                  active={killSwitches.disable_progressive_trust}
                 />
               </div>
            </div>

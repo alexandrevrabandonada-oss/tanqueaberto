@@ -142,8 +142,8 @@ export function FastApprovalQueue({ reports }: FastApprovalQueueProps) {
     return (
       <SectionCard className="flex flex-col items-center justify-center py-12 text-center text-white/40">
         <Zap className="mb-3 h-12 w-12 opacity-20" />
-        <p>A fila prioritária está vazia.</p>
-        <p className="text-sm">Bom trabalho!</p>
+        <p>A fast-lane pendente está vazia.</p>
+        <p className="text-sm">Sem revisão curta aguardando agora.</p>
       </SectionCard>
     );
   }
@@ -155,7 +155,7 @@ export function FastApprovalQueue({ reports }: FastApprovalQueueProps) {
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-2">
           <Zap className="h-4 w-4 text-[color:var(--color-accent)]" />
-          <span className="text-xs font-bold uppercase tracking-widest text-[color:var(--color-accent)]">Fila Prioritária</span>
+          <span className="text-xs font-bold uppercase tracking-widest text-[color:var(--color-accent)]">Fast-lane pendente</span>
         </div>
         <div className="text-xs text-white/40">
           {currentIndex + 1} de {groupedReports.length} grupos
@@ -229,6 +229,12 @@ export function FastApprovalQueue({ reports }: FastApprovalQueueProps) {
             </div>
             {currentReport.contributorHistorySummary?.[0] ? (
               <div className="text-[10px] text-white/40">{currentReport.contributorHistorySummary[0]}</div>
+            ) : null}
+            {currentReport.submissionRoutingReasons?.[0] ? (
+              <div className="text-[10px] text-white/44">Rota: {currentReport.submissionRoutingReasons[0]}</div>
+            ) : null}
+            {currentReport.submissionRiskReasons?.[0] ? (
+              <div className="text-[10px] text-white/44">Risco: {currentReport.submissionRiskReasons[0]}</div>
             ) : null}
             {currentGroup.confirmations.length > 0 && (
               <div className="flex items-center gap-1.5 text-[10px] text-[color:var(--color-accent)] font-medium">

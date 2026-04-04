@@ -14,13 +14,18 @@ import { getRecorteActivity } from "@/lib/ops/recorte-activity";
 import { generateOperationalSynthesis, type OperationalSynthesis } from "@/lib/ops/feedback-analyzer";
 import { type OperationalActionType } from "@/lib/ops/feedback-clustering";
 import { calculateCycleLatencyMetrics, type CycleLatencyMetrics } from "@/lib/ops/cycle-latency";
+import { getProgressiveTrustRollout, type ProgressiveTrustPhase } from "@/lib/ops/progressive-trust";
+import { requireAdminUser } from "@/lib/auth/admin";
 
 export async function toggleKillSwitchAction(key: keyof OperationalKillSwitches, value: boolean) {
-  const result = await updateKillSwitch(key, value, "admin_dashboard");
+  const admin = await requireAdminUser();
+  const result = await updateKillSwitch(key, value, admin.id);
   if (result) {
     await recordOperationalEvent({
       eventType: "kill_switch_change",
       scopeType: "system",
+      actorId: admin.id,
+      actorEmail: admin.email,
       reason: `Kill Switch ${key} ${value ? 'ativado' : 'desativado'} via Command Center`,
       payload: { key, value }
     });
@@ -29,6 +34,93 @@ export async function toggleKillSwitchAction(key: keyof OperationalKillSwitches,
     revalidatePath("/");
   }
   return result;
+}
+
+async function readProgressiveTrustConfig() {
+  const supabase = createSupabaseServiceClient();
+  const { data } = await supabase.from("sys_config").select("value").eq("key", "progressive_trust_rollout").maybeSingle();
+  const value = data?.value as { phase?: number; fastLaneEnabled?: boolean; autoApprovalEnabled?: boolean; updatedBy?: string } | null;
+  const rollout = await getProgressiveTrustRollout();
+
+  return {
+    phase: value?.phase === 1 || value?.phase === 3 ? value.phase : rollout.phase,
+    fastLaneEnabled: typeof value?.fastLaneEnabled === "boolean" ? value.fastLaneEnabled : rollout.configuredFastLaneEnabled,
+    autoApprovalEnabled: typeof value?.autoApprovalEnabled === "boolean" ? value.autoApprovalEnabled : rollout.configuredAutoApprovalEnabled,
+  };
+}
+
+export async function setProgressiveTrustPhaseAction(phase: ProgressiveTrustPhase) {
+  const admin = await requireAdminUser();
+  const supabase = createSupabaseServiceClient();
+  const current = await readProgressiveTrustConfig();
+  const next = {
+    ...current,
+    phase,
+    updatedBy: admin.email,
+    updatedAt: new Date().toISOString()
+  };
+
+  const { error } = await supabase.from("sys_config").upsert({
+    key: "progressive_trust_rollout",
+    value: next,
+    updated_at: new Date().toISOString()
+  });
+
+  if (error) {
+    logRuntimeIssue("Failed to update progressive trust phase", error, { scope: "admin", surface: "ops.setProgressiveTrustPhaseAction", fallback: "no-op", optional: true, schemaSensitive: true });
+    return false;
+  }
+
+  await recordOperationalEvent({
+    eventType: "progressive_trust_rollout_updated",
+    severity: "info",
+    scopeType: "system",
+    actorId: admin.id,
+    actorEmail: admin.email,
+    reason: `phase_${phase}`,
+    payload: { previous: current, next }
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/ops");
+  return true;
+}
+
+export async function setProgressiveTrustFlagAction(flag: "fastLaneEnabled" | "autoApprovalEnabled", value: boolean) {
+  const admin = await requireAdminUser();
+  const supabase = createSupabaseServiceClient();
+  const current = await readProgressiveTrustConfig();
+  const next = {
+    ...current,
+    [flag]: value,
+    updatedBy: admin.email,
+    updatedAt: new Date().toISOString()
+  };
+
+  const { error } = await supabase.from("sys_config").upsert({
+    key: "progressive_trust_rollout",
+    value: next,
+    updated_at: new Date().toISOString()
+  });
+
+  if (error) {
+    logRuntimeIssue("Failed to update progressive trust flag", error, { scope: "admin", surface: "ops.setProgressiveTrustFlagAction", fallback: "no-op", optional: true, schemaSensitive: true });
+    return false;
+  }
+
+  await recordOperationalEvent({
+    eventType: "progressive_trust_rollout_updated",
+    severity: "info",
+    scopeType: "system",
+    actorId: admin.id,
+    actorEmail: admin.email,
+    reason: `${flag}:${value ? "on" : "off"}`,
+    payload: { previous: current, next }
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/ops");
+  return true;
 }
 
 export async function updateGroupRolloutAction(
