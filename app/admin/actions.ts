@@ -93,6 +93,22 @@ function buildModerationRedirect(decision: "approved" | "rejected") {
   return `${ADMIN_ROUTE}?${query.toString()}` as Route;
 }
 
+function parseModerationFormPayload(formData: FormData, forcedDecision?: "approved" | "rejected") {
+  const reportId = String(formData.get("reportId") ?? "");
+  const confirmationIds = formData.getAll("confirmationIds").map((id) => String(id));
+  const decision = (forcedDecision ?? String(formData.get("decision") ?? "")) as "approved" | "rejected";
+  const moderationNote = String(formData.get("moderationNote") ?? "");
+  const allIds = [reportId, ...confirmationIds].filter(Boolean);
+
+  return {
+    reportId,
+    confirmationIds,
+    decision,
+    moderationNote,
+    allIds
+  };
+}
+
 function isLegacyPriceReportWriteError(message: string | undefined) {
   const normalized = (message ?? "").toLowerCase();
   return (
@@ -302,30 +318,42 @@ export async function signOutAdminAction() {
   redirect(ADMIN_LOGIN_ROUTE);
 }
 
+const MODERATION_REPORT_SELECT_FULL = "id,station_id,fuel_type,price,reported_at,reporter_nickname,ip_hash,status,moderation_note,location_confidence,metadata";
+const MODERATION_REPORT_SELECT_LEGACY = "id,station_id,fuel_type,price,reported_at,reporter_nickname,ip_hash,status,moderation_note";
+
+type ModerationReportRow = {
+  id: string;
+  station_id: string;
+  fuel_type: string;
+  price: number;
+  reported_at: string;
+  reporter_nickname: string | null;
+  ip_hash: string | null;
+  status: string;
+  moderation_note: string | null;
+  location_confidence?: "high" | "low" | "none" | null;
+  metadata?: Record<string, unknown> | null;
+};
+
 async function moderateReports(reportIds: string[], decision: "approved" | "rejected", moderationNote?: string) {
   const admin = await requireAdminUser();
   const supabase = createSupabaseServiceClient();
   const targetReportIds = await expandModerationTargetIds(supabase, reportIds);
 
-  const { data: reports, error: reportError } = await supabase
+  let { data: reports, error: reportError } = await supabase
     .from("price_reports")
-    .select("id,station_id,fuel_type,price,reported_at,reporter_nickname,ip_hash,status,moderation_note,location_confidence,metadata")
-    .in("id", targetReportIds) as {
-      data: {
-        id: string;
-        station_id: string;
-        fuel_type: string;
-        price: number;
-        reported_at: string;
-        reporter_nickname: string | null;
-        ip_hash: string | null;
-        status: string;
-        moderation_note: string | null;
-        location_confidence: "high" | "low" | "none" | null;
-        metadata: Record<string, unknown> | null;
-      }[] | null;
-      error: any;
-    };
+    .select(MODERATION_REPORT_SELECT_FULL)
+    .in("id", targetReportIds) as { data: ModerationReportRow[] | null; error: any };
+
+  if (reportError && isLegacyPriceReportWriteError(reportError.message)) {
+    const legacyResult = await supabase
+      .from("price_reports")
+      .select(MODERATION_REPORT_SELECT_LEGACY)
+      .in("id", targetReportIds) as { data: ModerationReportRow[] | null; error: any };
+
+    reports = legacyResult.data;
+    reportError = legacyResult.error;
+  }
 
   if (reportError || !reports || reports.length === 0) {
     redirect(`${ADMIN_ROUTE}?error=report_not_found` as Route);
@@ -350,12 +378,16 @@ async function moderateReports(reportIds: string[], decision: "approved" | "reje
         approved_at: null
       };
 
-  let { error } = await supabase
+  const updateResult = await supabase
     .from("price_reports")
     .update(updatePayload)
-    .in("id", targetReportIds);
+    .in("id", targetReportIds)
+    .select("id,status");
 
-  if (error && isLegacyPriceReportWriteError(error.message)) {
+  let updatedRows = updateResult.data as Array<{ id: string; status: string }> | null;
+  let updateError: { message: string } | null = updateResult.error;
+
+  if (updateError && isLegacyPriceReportWriteError(updateError.message)) {
     const fallbackPayload = {
       status: decision,
       moderation_note: note
@@ -364,12 +396,21 @@ async function moderateReports(reportIds: string[], decision: "approved" | "reje
     const retryResult = await supabase
       .from("price_reports")
       .update(fallbackPayload)
-      .in("id", targetReportIds);
+      .in("id", targetReportIds)
+      .select("id,status");
 
-    error = retryResult.error;
+    updatedRows = retryResult.data as Array<{ id: string; status: string }> | null;
+    updateError = retryResult.error;
   }
 
-  if (error) {
+  const updatedRowIds = new Set((updatedRows ?? []).map((row: { id: string }) => String(row.id)));
+  const primaryReportUpdated = updatedRowIds.has(reportIds[0]);
+
+  if (!updateError && (!updatedRows || updatedRows.length === 0 || !primaryReportUpdated)) {
+    updateError = { message: "no_rows_updated" };
+  }
+
+  if (updateError) {
     await recordOperationalEvent({
       eventType: "moderation_failed",
       severity: "error",
@@ -379,7 +420,7 @@ async function moderateReports(reportIds: string[], decision: "approved" | "reje
       actorEmail: admin.email,
       stationId: report.station_id,
       fuelType: report.fuel_type,
-      reason: error.message,
+      reason: updateError.message,
       payload: {
         decision,
         moderationNote: note,
@@ -395,7 +436,7 @@ async function moderateReports(reportIds: string[], decision: "approved" | "reje
         action: decision === "approved" ? "approve" : "reject",
         reason: note,
         photoQuality: undefined,
-        locationConfidence: item.location_confidence === "high" ? "high" : "low",
+        locationConfidence: item.location_confidence === "high" ? "high" : item.location_confidence === "low" ? "low" : "low",
         isConsistencyBonus: false
       });
     });
@@ -460,12 +501,7 @@ async function moderateReports(reportIds: string[], decision: "approved" | "reje
   revalidatePath("/auditoria");
 }
 export async function moderateReportAction(formData: FormData) {
-  const reportId = String(formData.get("reportId") ?? "");
-  const confirmationIds = formData.getAll("confirmationIds").map(id => String(id));
-  const decision = String(formData.get("decision") ?? "") as "approved" | "rejected";
-  const moderationNote = String(formData.get("moderationNote") ?? "");
-
-  const allIds = [reportId, ...confirmationIds].filter(Boolean);
+  const { decision, moderationNote, allIds } = parseModerationFormPayload(formData);
 
   if (allIds.length === 0 || (decision !== "approved" && decision !== "rejected")) {
     redirect(`${ADMIN_ROUTE}?error=invalid_request` as Route);
@@ -477,12 +513,7 @@ export async function moderateReportAction(formData: FormData) {
 }
 
 export async function moderateReportQueueAction(formData: FormData) {
-  const reportId = String(formData.get("reportId") ?? "");
-  const confirmationIds = formData.getAll("confirmationIds").map(id => String(id));
-  const decision = String(formData.get("decision") ?? "") as "approved" | "rejected";
-  const moderationNote = String(formData.get("moderationNote") ?? "");
-
-  const allIds = [reportId, ...confirmationIds].filter(Boolean);
+  const { decision, moderationNote, allIds } = parseModerationFormPayload(formData);
 
   if (allIds.length === 0 || (decision !== "approved" && decision !== "rejected")) {
     return { ok: false as const, error: "invalid_request" };
@@ -491,6 +522,30 @@ export async function moderateReportQueueAction(formData: FormData) {
   await moderateReports(allIds, decision, moderationNote);
 
   return { ok: true as const };
+}
+
+export async function approveReportAction(formData: FormData) {
+  const { moderationNote, allIds } = parseModerationFormPayload(formData, "approved");
+
+  if (allIds.length === 0) {
+    redirect(`${ADMIN_ROUTE}?error=invalid_request` as Route);
+  }
+
+  await moderateReports(allIds, "approved", moderationNote);
+
+  redirect(buildModerationRedirect("approved"));
+}
+
+export async function rejectReportAction(formData: FormData) {
+  const { moderationNote, allIds } = parseModerationFormPayload(formData, "rejected");
+
+  if (allIds.length === 0) {
+    redirect(`${ADMIN_ROUTE}?error=invalid_request` as Route);
+  }
+
+  await moderateReports(allIds, "rejected", moderationNote);
+
+  redirect(buildModerationRedirect("rejected"));
 }
 
 export async function moderateReportsBatchAction(formData: FormData) {

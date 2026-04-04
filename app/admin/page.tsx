@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { Check, LogOut, MessageSquareText, SlidersHorizontal, X } from "lucide-react";
 
-import { moderateReportAction, signOutAdminAction, updateStationCurationAction } from "@/app/admin/actions";
+import { approveReportAction, rejectReportAction, signOutAdminAction, updateStationCurationAction } from "@/app/admin/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
@@ -489,7 +489,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   </div>
                 </div>
 
-                <form action={moderateReportAction} className="space-y-3 rounded-[22px] border border-white/8 bg-black/20 p-4">
+                <form action={approveReportAction} className="space-y-3 rounded-[22px] border border-white/8 bg-black/20 p-4">
                   <input type="hidden" name="reportId" value={report.id} />
                   <div className="space-y-2">
                     <label className="text-xs uppercase tracking-[0.2em] text-white/42" htmlFor={`moderationNote-${report.id}`}>
@@ -505,11 +505,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <Button type="submit" name="decision" value="approved" className="w-full">
+                    <Button type="submit" formAction={approveReportAction} className="w-full">
                       <Check className="h-4 w-4" />
                       Aprovar
                     </Button>
-                    <Button type="submit" name="decision" value="rejected" variant="secondary" className="w-full border-[color:var(--color-danger)]/30 text-[color:var(--color-danger)]">
+                    <Button type="submit" formAction={rejectReportAction} variant="secondary" className="w-full border-[color:var(--color-danger)]/30 text-[color:var(--color-danger)]">
                       <X className="h-4 w-4" />
                       Rejeitar
                     </Button>
