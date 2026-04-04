@@ -2,6 +2,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { assembleStationWithReports, groupReportsByStation, mapReportRow, mapReportsWithStations, mapStationRow } from "@/lib/data/mappers";
 import { getReportPriorityScore } from "@/lib/ops/moderation-priority";
+import { deriveContributorHistorySummary, deriveContributorTrustLevel, deriveContributorTrustReasons } from "@/lib/ops/progressive-trust";
 import { isPreviewFixturesEnabled, getPreviewApprovedReportsSince, getPreviewRecentCount, getPreviewRecentFeed, getPreviewStations, getPreviewStationById } from "@/lib/dev/preview-data";
 import { getAuditGroups, getAllGroupMembersForGroups } from "@/lib/audit/groups";
 import type { Station, StationWithReports, ReportWithStation, PriceReport, ReportStatus } from "@/lib/types";
@@ -360,11 +361,79 @@ async function getAdminStations() {
   return (data as StationRow[]).map(mapStationRow);
 }
 
+function readStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0) : [];
+}
+
+function applyProgressiveTrustMetadata(
+  report: ReportWithStation,
+  trust?: { score: number; stage: string; totalReports: number; approvedReports: number; rejectedReports: number }
+) {
+  const metadata = report.metadata ?? {};
+
+  if (trust) {
+    report.collectorTrustScore = trust.score;
+    report.collectorTrustStage = trust.stage as ReportWithStation["collectorTrustStage"];
+  }
+
+  report.contributorTrustLevel = typeof metadata.contributor_trust_level === "string"
+    ? metadata.contributor_trust_level as ReportWithStation["contributorTrustLevel"]
+    : deriveContributorTrustLevel({
+        score: trust?.score ?? 50,
+        totalReports: trust?.totalReports ?? 0,
+        approvedReports: trust?.approvedReports ?? 0,
+        rejectedReports: trust?.rejectedReports ?? 0,
+        trustStage: trust?.stage ?? "novo"
+      });
+
+  report.contributorTrustReasons = readStringArray(metadata.contributor_trust_reasons);
+  if (report.contributorTrustReasons.length === 0) {
+    report.contributorTrustReasons = deriveContributorTrustReasons({
+      score: trust?.score ?? 50,
+      totalReports: trust?.totalReports ?? 0,
+      approvedReports: trust?.approvedReports ?? 0,
+      rejectedReports: trust?.rejectedReports ?? 0,
+      trustStage: trust?.stage ?? "novo"
+    });
+  }
+
+  report.contributorHistorySummary = readStringArray(metadata.contributor_history_summary);
+  if (report.contributorHistorySummary.length === 0) {
+    report.contributorHistorySummary = deriveContributorHistorySummary({
+      score: trust?.score ?? 50,
+      totalReports: trust?.totalReports ?? 0,
+      approvedReports: trust?.approvedReports ?? 0,
+      rejectedReports: trust?.rejectedReports ?? 0,
+      trustStage: trust?.stage ?? "novo"
+    });
+  }
+
+  report.submissionRiskLevel = typeof metadata.submission_risk_level === "string"
+    ? metadata.submission_risk_level as ReportWithStation["submissionRiskLevel"]
+    : report.status === "flagged"
+      ? "high"
+      : "medium";
+
+  report.submissionRiskReasons = readStringArray(metadata.submission_risk_reasons);
+  if (report.submissionRiskReasons.length === 0 && report.moderationReason) {
+    report.submissionRiskReasons = [report.moderationReason.replace(/_/g, " ")];
+  }
+
+  report.submissionRouting = typeof metadata.submission_routing === "string"
+    ? metadata.submission_routing as ReportWithStation["submissionRouting"]
+    : "review_normal";
+
+  report.submissionRoutingReasons = readStringArray(metadata.submission_routing_reasons);
+  if (report.submissionRoutingReasons.length === 0) {
+    report.submissionRoutingReasons = [report.submissionRouting === "review_normal" ? "fluxo padrão de revisão" : (report.submissionRouting ?? "review_normal")];
+  }
+}
+
 export async function getModerationReports(status: ReportStatus | "all" = "pending", limit = 24): Promise<ReportWithStation[]> {
   const supabase = createSupabaseServiceClient();
   let query = supabase
     .from("price_reports")
-    .select("id,station_id,fuel_type,price,photo_url,photo_taken_at,reported_at,created_at,reporter_nickname,status,moderation_note")
+    .select("id,station_id,fuel_type,price,photo_url,photo_taken_at,reported_at,created_at,approved_at,rejected_at,reporter_nickname,ip_hash,status,moderation_note,moderation_reason,moderated_by,source_kind,photo_hash,location_distance,location_confidence,reconciliation_id,is_confirmation,metadata,version")
     .order("reported_at", { ascending: false })
     .limit(limit);
 
@@ -380,27 +449,36 @@ export async function getModerationReports(status: ReportStatus | "all" = "pendi
   }
 
   const reports = mapReportsWithStations((reportsData as PriceReportRow[]).map(mapReportRow), stations);
-
-  // Fetch collector trust for these reports
   const collectorKeys = reports
-    .filter(r => r.reporterNickname || r.ipHash)
-    .map(r => ({ nickname: r.reporterNickname || "", ip_hash: r.ipHash || "" }));
-  
-  const trustMap = new Map<string, { score: number, stage: any }>();
+    .filter((report) => report.reporterNickname || report.ipHash)
+    .map((report) => ({ nickname: report.reporterNickname || "", ip_hash: report.ipHash || "" }));
+
+  const trustMap = new Map<string, { score: number; stage: string; totalReports: number; approvedReports: number; rejectedReports: number }>();
   if (collectorKeys.length > 0) {
-    // We can't easily do multiple composite keys in one .in(), so we fetch all likely matches or chunk it
-    const nicknames = Array.from(new Set(collectorKeys.map(k => k.nickname)));
-    const ipHashes = Array.from(new Set(collectorKeys.map(k => k.ip_hash)));
+    const nicknames = Array.from(new Set(collectorKeys.map((key) => key.nickname).filter(Boolean)));
+    const ipHashes = Array.from(new Set(collectorKeys.map((key) => key.ip_hash).filter(Boolean)));
 
     try {
-      const { data: trustData } = await supabase
-        .from("collector_trust")
-        .select("nickname,ip_hash,score,trust_stage")
-        .or(`nickname.in.(${nicknames.map(n => `"${n}"`).join(",")}),ip_hash.in.(${ipHashes.map(h => `"${h}"`).join(",")})`);
+      const clauses: string[] = [];
+      if (nicknames.length > 0) clauses.push(`nickname.in.(${nicknames.map((nickname) => `"${nickname}"`).join(",")})`);
+      if (ipHashes.length > 0) clauses.push(`ip_hash.in.(${ipHashes.map((ipHash) => `"${ipHash}"`).join(",")})`);
 
-      if (trustData) {
-        for (const t of trustData) {
-          trustMap.set(`${t.nickname}:${t.ip_hash}`, { score: t.score, stage: t.trust_stage });
+      if (clauses.length > 0) {
+        const { data: trustData } = await supabase
+          .from("collector_trust")
+          .select("nickname,ip_hash,score,trust_stage,total_reports,approved_reports,rejected_reports")
+          .or(clauses.join(","));
+
+        if (trustData) {
+          for (const trustRow of trustData) {
+            trustMap.set(`${trustRow.nickname}:${trustRow.ip_hash}`, {
+              score: Number(trustRow.score ?? 50),
+              stage: String(trustRow.trust_stage ?? "novo"),
+              totalReports: Number(trustRow.total_reports ?? 0),
+              approvedReports: Number(trustRow.approved_reports ?? 0),
+              rejectedReports: Number(trustRow.rejected_reports ?? 0)
+            });
+          }
         }
       }
     } catch {
@@ -408,32 +486,25 @@ export async function getModerationReports(status: ReportStatus | "all" = "pendi
     }
   }
 
-  // Add priority score if pending
-  if (status === "pending" || status === "all") {
-    reports.forEach((report) => {
-      const trust = trustMap.get(`${report.reporterNickname || ""}:${report.ipHash || ""}`);
-      if (trust) {
-        report.collectorTrustScore = trust.score;
-        report.collectorTrustStage = trust.stage;
-      }
+  reports.forEach((report) => {
+    const trust = trustMap.get(`${report.reporterNickname || ""}:${report.ipHash || ""}`);
+    applyProgressiveTrustMetadata(report, trust);
 
-      if (report.status === "pending") {
-        const station = stations.find((s) => s.id === report.stationId) || null;
-        report.priorityScore = getReportPriorityScore(report, station as any, { 
-          betaInviteCode: null,
-          reporterTrustScore: report.collectorTrustScore
-        });
-      }
-    });
-
-    if (status === "pending") {
-      reports.sort((a, b) => (b.priorityScore ?? 0) - (a.priorityScore ?? 0));
+    if (report.status === "pending") {
+      const station = stations.find((item) => item.id === report.stationId) || null;
+      report.priorityScore = getReportPriorityScore(report, station as any, {
+        betaInviteCode: null,
+        reporterTrustScore: trust?.score
+      });
     }
+  });
+
+  if (status === "pending") {
+    reports.sort((left, right) => (right.priorityScore ?? 0) - (left.priorityScore ?? 0));
   }
 
   return reports;
 }
-
 export async function getRecentModeratedReports(limit = 6): Promise<ReportWithStation[]> {
   return getModerationReports("all", limit).then((reports) => reports.filter((report) => report.status !== "pending"));
 }
@@ -480,8 +551,44 @@ export async function getReportByIdAdmin(id: string): Promise<ReportWithStation 
     return null;
   }
 
-  const report = mapReportRow(data as PriceReportRow);
-  return mapReportsWithStations([report], stations)[0] ?? null;
+  const report = mapReportsWithStations([mapReportRow(data as PriceReportRow)], stations)[0] ?? null;
+  if (!report) return null;
+
+  if (report.reporterNickname || report.ipHash) {
+    try {
+      let trustRow: { score: number; stage: string; totalReports: number; approvedReports: number; rejectedReports: number } | undefined;
+      if (report.reporterNickname || report.ipHash) {
+        const clauses: string[] = [];
+        if (report.reporterNickname) clauses.push(`nickname.eq."${report.reporterNickname}"`);
+        if (report.ipHash) clauses.push(`ip_hash.eq."${report.ipHash}"`);
+
+        const { data: trustData } = await supabase
+          .from("collector_trust")
+          .select("nickname,ip_hash,score,trust_stage,total_reports,approved_reports,rejected_reports")
+          .or(clauses.join(","))
+          .limit(1);
+
+        const trust = trustData?.[0];
+        if (trust) {
+          trustRow = {
+            score: Number(trust.score ?? 50),
+            stage: String(trust.trust_stage ?? "novo"),
+            totalReports: Number(trust.total_reports ?? 0),
+            approvedReports: Number(trust.approved_reports ?? 0),
+            rejectedReports: Number(trust.rejected_reports ?? 0)
+          };
+        }
+      }
+
+      applyProgressiveTrustMetadata(report, trustRow);
+    } catch {
+      applyProgressiveTrustMetadata(report);
+    }
+  } else {
+    applyProgressiveTrustMetadata(report);
+  }
+
+  return report;
 }
 export async function getModerationCounts() {
   const supabase = createSupabaseServiceClient();
@@ -596,5 +703,10 @@ export async function getRecentReportsForStations(stationIds: string[], limit = 
 
   return (data as PriceReportRow[]).map(mapReportRow);
 }
+
+
+
+
+
 
 

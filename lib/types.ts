@@ -5,6 +5,9 @@ export type ReportStatus = "pending" | "approved" | "rejected" | "flagged";
 export type StationSource = "anp" | "manual" | "osm_enriched";
 export type GeoSource = "anp" | "osm" | "manual";
 export type GeoConfidence = "high" | "medium" | "low";
+export type ContributorTrustLevel = "N0" | "N1" | "N2" | "N3";
+export type SubmissionRiskLevel = "low" | "medium" | "high";
+export type SubmissionRouting = "review_normal" | "fast_lane" | "auto_approved";
 
 export interface Station {
   id: string;
@@ -81,5 +84,15 @@ export interface ReportWithStation extends PriceReport {
   priorityScore?: number;
   collectorTrustScore?: number;
   collectorTrustStage?: "new" | "trusted" | "review_needed" | "blocked";
+  contributorTrustLevel?: ContributorTrustLevel;
+  contributorTrustReasons?: string[];
+  contributorHistorySummary?: string[];
+  submissionRiskLevel?: SubmissionRiskLevel;
+  submissionRiskReasons?: string[];
+  submissionRouting?: SubmissionRouting;
+  submissionRoutingReasons?: string[];
 }
+
+
+
 

@@ -113,6 +113,11 @@ function formatTrend(previous: number, current: number) {
 }
 
 
+function hasUsableProofImage(src: string | null | undefined) {
+  const value = String(src ?? "").trim();
+  return value.startsWith("https://") || value.startsWith("http://") || value.startsWith("/");
+}
+
 export default async function StationPage({ params, searchParams }: StationPageProps) {
   const { id } = await params;
   const query = (await searchParams) ?? {};
@@ -287,7 +292,7 @@ export default async function StationPage({ params, searchParams }: StationPageP
       )}
 
       {/* Proof of Life / Main Evidence */}
-      {latest ? (
+      {latest && hasUsableProofImage(latest.photoUrl) ? (
         <SectionCard className="p-0 overflow-hidden border-white/10 group">
           <div className="relative aspect-video w-full">
             <Image 

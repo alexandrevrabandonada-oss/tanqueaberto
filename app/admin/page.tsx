@@ -30,6 +30,18 @@ const statusOptions = [
   { value: "flagged", label: "Sinalizados" }
 ] as const;
 
+const routingLabels = {
+  review_normal: "Revisão normal",
+  fast_lane: "Fast-lane",
+  auto_approved: "Autoaprovado"
+} as const;
+
+const riskLabels = {
+  low: "Risco baixo",
+  medium: "Risco moderado",
+  high: "Risco alto"
+} as const;
+
 function resolveNotice(searchParams?: Record<string, string | string[] | undefined>) {
   const notice = typeof searchParams?.notice === "string" ? searchParams.notice : "";
   const error = typeof searchParams?.error === "string" ? searchParams.error : "";
@@ -450,6 +462,29 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                       <p className="text-xs uppercase tracking-[0.2em] text-white/42">Nota de moderação</p>
                       <p className="mt-1 text-sm text-white/56">{report.moderationNote ?? "Nenhuma nota ainda."}</p>
                     </div>
+
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <div className="rounded-[20px] border border-white/8 bg-black/20 px-4 py-3">
+                        <p className="text-xs uppercase tracking-[0.2em] text-white/42">Confiança</p>
+                        <p className="mt-1 text-base font-semibold text-white">{report.contributorTrustLevel ?? "N0"}</p>
+                        <p className="mt-2 text-xs text-white/46">{report.contributorTrustReasons?.[0] ?? "Sem histórico suficiente ainda."}</p>
+                      </div>
+                      <div className="rounded-[20px] border border-white/8 bg-black/20 px-4 py-3">
+                        <p className="text-xs uppercase tracking-[0.2em] text-white/42">Saída</p>
+                        <p className="mt-1 text-base font-semibold text-white">{routingLabels[report.submissionRouting ?? "review_normal"]}</p>
+                        <p className="mt-2 text-xs text-white/46">{report.submissionRoutingReasons?.[0] ?? "Fluxo padrão de revisão."}</p>
+                      </div>
+                      <div className="rounded-[20px] border border-white/8 bg-black/20 px-4 py-3">
+                        <p className="text-xs uppercase tracking-[0.2em] text-white/42">Risco</p>
+                        <p className="mt-1 text-base font-semibold text-white">{riskLabels[report.submissionRiskLevel ?? "medium"]}</p>
+                        <p className="mt-2 text-xs text-white/46">{report.submissionRiskReasons?.[0] ?? "Sem motivo adicional registrado."}</p>
+                      </div>
+                    </div>
+
+                    <div className="rounded-[20px] border border-white/8 bg-black/20 px-4 py-3">
+                      <p className="text-xs uppercase tracking-[0.2em] text-white/42">Histórico curto</p>
+                      <p className="mt-1 text-sm text-white/56">{report.contributorHistorySummary?.join(" · ") ?? "Sem histórico curto agregado ainda."}</p>
+                    </div>
                   </div>
                 </div>
 
@@ -517,6 +552,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 <p className="mt-2 text-sm text-white/58">
                   {fuelLabels[report.fuelType]} · {formatCurrencyBRL(report.price)} · {formatRecencyLabel(report.reportedAt)}
                 </p>
+                <p className="mt-1 text-xs text-white/42">
+                  {(report.contributorTrustLevel ?? "N0")} · {routingLabels[report.submissionRouting ?? "review_normal"]} · {riskLabels[report.submissionRiskLevel ?? "medium"]}
+                </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <ButtonLink href={`/postos/${report.stationId}` as Route} variant="secondary" className="h-9 px-3 text-[10px] font-bold uppercase tracking-[0.16em]">
                     Ver posto
@@ -541,6 +579,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     </div>
   );
 }
+
+
+
 
 
 

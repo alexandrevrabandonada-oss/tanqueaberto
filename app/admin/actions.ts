@@ -203,31 +203,50 @@ async function moderateReports(reportIds: string[], decision: "approved" | "reje
 
   const { data: reports, error: reportError } = await supabase
     .from("price_reports")
-    .select("id,station_id,fuel_type,price,reported_at,reporter_nickname,status,moderation_note")
-    .in("id", reportIds) as { data: { id: string; station_id: string; fuel_type: string; price: number; reported_at: string; reporter_nickname: string | null; status: string; moderation_note: string | null }[] | null; error: any };
+    .select("id,station_id,fuel_type,price,reported_at,reporter_nickname,ip_hash,status,moderation_note,location_confidence,metadata")
+    .in("id", reportIds) as {
+      data: {
+        id: string;
+        station_id: string;
+        fuel_type: string;
+        price: number;
+        reported_at: string;
+        reporter_nickname: string | null;
+        ip_hash: string | null;
+        status: string;
+        moderation_note: string | null;
+        location_confidence: "high" | "low" | "none" | null;
+        metadata: Record<string, unknown> | null;
+      }[] | null;
+      error: any;
+    };
 
   if (reportError || !reports || reports.length === 0) {
     redirect(ADMIN_ROUTE);
   }
 
   const report = reports[0];
-
   const now = new Date().toISOString();
   const note = moderationNote?.trim() || normalizeNotice(decision);
+  const updatePayload = decision === "approved"
+    ? {
+        status: decision,
+        moderation_note: note,
+        moderated_by: admin.id,
+        approved_at: now,
+        rejected_at: null
+      }
+    : {
+        status: decision,
+        moderation_note: note,
+        moderated_by: admin.id,
+        rejected_at: now,
+        approved_at: null
+      };
 
   const { error } = await supabase
     .from("price_reports")
-    .update(
-      decision === "approved"
-        ? {
-            status: decision,
-            moderation_note: note
-          }
-        : {
-            status: decision,
-            moderation_note: note
-          }
-    )
+    .update(updatePayload)
     .in("id", reportIds);
 
   if (error) {
@@ -250,14 +269,13 @@ async function moderateReports(reportIds: string[], decision: "approved" | "reje
     redirect(ADMIN_ROUTE);
   }
 
-  // Update collector trust score for each report moderated
   try {
-    const trustUpdates = reports.map((r) => {
-      return updateCollectorScore(r.reporter_nickname, null, {
+    const trustUpdates = reports.map((item) => {
+      return updateCollectorScore(item.reporter_nickname, item.ip_hash, {
         action: decision === "approved" ? "approve" : "reject",
         reason: note,
         photoQuality: undefined,
-        locationConfidence: undefined,
+        locationConfidence: item.location_confidence === "high" ? "high" : "low",
         isConsistencyBonus: false
       });
     });
@@ -321,7 +339,6 @@ async function moderateReports(reportIds: string[], decision: "approved" | "reje
   revalidatePath(`/postos/${report.station_id}`);
   revalidatePath("/auditoria");
 }
-
 export async function moderateReportAction(formData: FormData) {
   const reportId = String(formData.get("reportId") ?? "");
   const confirmationIds = formData.getAll("confirmationIds").map(id => String(id));
@@ -486,6 +503,44 @@ export async function updatePriceReportAction(formData: FormData) {
       }
     });
     redirect(buildReportEditRedirect(reportId, { error: "save_failed" }));
+  }
+
+  const wasAutoApproved = String(current.metadata?.submission_routing ?? "") === "auto_approved";
+  const correctedAutoApproved = wasAutoApproved && (nextStatus === "rejected" || price !== current.price || fuelType !== current.fuelType);
+
+  if (correctedAutoApproved) {
+    await recordOperationalEvent({
+      eventType: "progressive_trust_auto_approved_corrected",
+      severity: "warning",
+      scopeType: "report",
+      scopeId: reportId,
+      actorId: admin.id,
+      actorEmail: admin.email,
+      stationId: current.stationId,
+      reportId,
+      fuelType,
+      reason: moderationNote ?? "auto approved report corrected later",
+      payload: {
+        previousStatus: current.status,
+        nextStatus,
+        diff,
+        submissionRouting: current.metadata?.submission_routing ?? null,
+        contributorTrustLevel: current.metadata?.contributor_trust_level ?? null
+      }
+    });
+  }
+
+  if (nextStatus === "rejected") {
+    try {
+      await updateCollectorScore(current.reporterNickname, current.ipHash, {
+        action: "reject",
+        reason: moderationNote ?? "report corrected after admin review",
+        locationConfidence: current.locationConfidence === "high" ? "high" : "low",
+        isConsistencyBonus: false
+      });
+    } catch (trustError) {
+      console.error("Failed to update collector trust after admin revision:", trustError);
+    }
   }
 
   await recordAdminActionLog({
@@ -1296,6 +1351,8 @@ export async function setTerritoryWorkflowStateAction(formData: FormData) {
 
   redirect(withNotice(targetReturnTo, TERRITORY_WORKFLOW_NOTICE) as Route);
 }
+
+
 
 
 

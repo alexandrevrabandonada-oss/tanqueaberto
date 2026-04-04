@@ -11,61 +11,73 @@ export function getReportPriorityScore(
   context: ModerationPriorityContext
 ): number {
   let score = 0;
+  const routing = String(report.metadata?.submission_routing ?? "").toLowerCase();
+  const trustLevel = String(report.metadata?.contributor_trust_level ?? "").toUpperCase();
+  const riskLevel = String(report.metadata?.submission_risk_level ?? "").toLowerCase();
 
-  // 1. Trusted Beta Source (Higher weight)
   if (context.betaInviteCode) {
     const trustedPrefixes = ["BA-EQUIPE", "BA-VIP", "EQUIPE", "MKT"];
-    if (trustedPrefixes.some(prefix => context.betaInviteCode?.startsWith(prefix))) {
+    if (trustedPrefixes.some((prefix) => context.betaInviteCode?.startsWith(prefix))) {
       score += 60;
     } else {
-      score += 20; // Regular beta
+      score += 20;
     }
   }
 
-  // 2. Station Readiness (Green cities)
   const priorityCities = ["VOLTA REDONDA", "BARRA MANSA", "RESENDE", "BARRA DO PIRAI"];
   if (station?.city && priorityCities.includes(station.city.trim().toUpperCase())) {
     score += 25;
   }
 
-  // 3. High Fidelity Station (Reviewed)
   if (station?.geoReviewStatus === "ok") {
     score += 15;
   }
 
-  // 4. Manual/Admin source (Internal)
   if (report.sourceKind === "admin") {
-    score += 100; // Instant priority
+    score += 100;
   }
 
-  // 5. Geographic Confidence Signal (Hardening)
   if (report.locationConfidence === "low") {
-    score -= 30; // Significant penalty for distant reports
+    score -= 30;
   } else if (report.locationConfidence === "high") {
-    score += 10; // Small bonus for proximity
+    score += 10;
   }
 
-  // 6. Price Discrepancy (Hardening)
   if (report.metadata?.price_discrepancy) {
-    score -= 40; // Heavy penalty for suspicious prices
+    score -= 40;
   }
 
-  // 7. Photo Reuse (Hardening)
   if (report.metadata?.potential_photo_reuse) {
-    score -= 50; // Very heavy penalty for reused photos
+    score -= 50;
   }
 
-  // 8. Collector Trust Score (Enhanced Fast Lane)
+  if (routing === "fast_lane") {
+    score += 35;
+  }
+
+  if (riskLevel === "high") {
+    score -= 35;
+  } else if (riskLevel === "low") {
+    score += 8;
+  }
+
+  if (trustLevel === "N3") {
+    score += 28;
+  } else if (trustLevel === "N2") {
+    score += 18;
+  } else if (trustLevel === "N0") {
+    score -= 12;
+  }
+
   if (context.reporterTrustScore !== undefined) {
     if (context.reporterTrustScore >= 90) {
-      score += 65; // Elite collectors get top-tier fast lane priority
+      score += 65;
     } else if (context.reporterTrustScore >= 70) {
-      score += 45; // Reliable collectors get standard fast lane priority
+      score += 45;
     } else if (context.reporterTrustScore < 40) {
-      score -= 40; // Low trust collectors are significantly deprioritized
+      score -= 40;
     }
   }
 
   return Math.max(-100, Math.min(100, score));
 }
-

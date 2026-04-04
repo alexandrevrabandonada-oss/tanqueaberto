@@ -20,6 +20,18 @@ export const metadata: Metadata = {
   description: "Ajuste preço, combustível e status de um report, mesmo após aprovação."
 };
 
+const routingLabels = {
+  review_normal: "Revisão normal",
+  fast_lane: "Fast-lane",
+  auto_approved: "Autoaprovado"
+} as const;
+
+const riskLabels = {
+  low: "Risco baixo",
+  medium: "Risco moderado",
+  high: "Risco alto"
+} as const;
+
 interface AdminReportEditPageProps {
   params: Promise<{ reportId: string }>;
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -92,6 +104,24 @@ export default async function AdminReportEditPage({ params, searchParams }: Admi
             <p className="mt-1 text-sm text-white/54">{report.approvedAt ? `Aprovado em ${formatDateTimeBR(report.approvedAt)}` : report.rejectedAt ? `Rejeitado em ${formatDateTimeBR(report.rejectedAt)}` : `Criado em ${formatDateTimeBR(report.createdAt)}`}</p>
           </div>
         </div>
+
+        <div className="grid gap-3 md:grid-cols-3">
+          <div className="rounded-[20px] border border-white/8 bg-black/20 p-4">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Confiança</p>
+            <p className="mt-2 text-lg font-semibold text-white">{report.contributorTrustLevel ?? "N0"}</p>
+            <p className="mt-1 text-sm text-white/54">{report.contributorTrustReasons?.[0] ?? "Sem motivo detalhado salvo."}</p>
+          </div>
+          <div className="rounded-[20px] border border-white/8 bg-black/20 p-4">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Saída</p>
+            <p className="mt-2 text-lg font-semibold text-white">{routingLabels[report.submissionRouting ?? "review_normal"]}</p>
+            <p className="mt-1 text-sm text-white/54">{report.submissionRoutingReasons?.[0] ?? "Fluxo padrão de revisão."}</p>
+          </div>
+          <div className="rounded-[20px] border border-white/8 bg-black/20 p-4">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Risco</p>
+            <p className="mt-2 text-lg font-semibold text-white">{riskLabels[report.submissionRiskLevel ?? "medium"]}</p>
+            <p className="mt-1 text-sm text-white/54">{report.submissionRiskReasons?.[0] ?? "Sem motivo detalhado salvo."}</p>
+          </div>
+        </div>
       </SectionCard>
 
       <SectionCard className="space-y-4 border-white/8 bg-black/25">
@@ -112,6 +142,7 @@ export default async function AdminReportEditPage({ params, searchParams }: Admi
               <p className="text-sm text-white/68">{fuelLabels[report.fuelType]} · {formatCurrencyBRL(report.price)} · {formatRecencyLabel(report.reportedAt)}</p>
               <p className="text-sm text-white/52">Apelido: {report.reporterNickname ?? "anônimo"}</p>
               <p className="text-sm text-white/52">ID do report: {report.id}</p>
+              <p className="text-sm text-white/52">Histórico curto: {report.contributorHistorySummary?.join(" · ") ?? "Sem histórico curto agregado."}</p>
             </div>
 
             <form action={updatePriceReportAction} className="space-y-4 rounded-[22px] border border-white/8 bg-black/20 p-4">
@@ -183,5 +214,8 @@ export default async function AdminReportEditPage({ params, searchParams }: Admi
     </div>
   );
 }
+
+
+
 
 

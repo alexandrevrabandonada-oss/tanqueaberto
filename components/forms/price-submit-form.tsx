@@ -59,6 +59,15 @@ const ContextualFeedback = dynamic(() => import("@/components/feedback/contextua
   loading: () => null
 });
 const fuelOptions: FuelType[] = ["gasolina_comum", "gasolina_aditivada", "etanol", "diesel_s10", "diesel_comum", "gnv"];
+
+type EvidenceMode = "placa_faixa" | "sem_placa_faixa";
+type ManualPriceSource = "" | "bomba" | "recibo" | "painel_interno" | "informacao_local";
+const manualPriceSourceLabels: Record<Exclude<ManualPriceSource, "">, string> = {
+  bomba: "Bomba",
+  recibo: "Recibo",
+  painel_interno: "Painel interno",
+  informacao_local: "Informação local"
+};
 const allowedFuelSet = new Set<FuelType>(fuelOptions);
 const initialState: SubmitState = { error: null, errorCode: null, retryable: false, success: false, noticeTitle: null, noticeBody: null, noticeTone: null, noticeCode: null };
 
@@ -283,6 +292,8 @@ function PriceSubmitFormBody({
   const [fuelType, setFuelType] = useState<FuelType>(defaultFuelType);
   const [price, setPrice] = useState("");
   const [nickname, setNickname] = useState("");
+  const [evidenceMode, setEvidenceMode] = useState<EvidenceMode>("placa_faixa");
+  const [priceSource, setPriceSource] = useState<ManualPriceSource>("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [stationSearch, setStationSearch] = useState("");
   const [homeContextSnapshot, setHomeContextSnapshot] = useState<ReturnType<typeof readHomeContext>>({});
@@ -299,6 +310,13 @@ function PriceSubmitFormBody({
   const [isOnline, setIsOnline] = useState(true);
   const [showStationPicker, setShowStationPicker] = useState(true);
   const [showFuelPicker, setShowFuelPicker] = useState(false);
+  const [showStationProposalFlow, setShowStationProposalFlow] = useState(false);
+  const [stationProposalConfirmed, setStationProposalConfirmed] = useState(false);
+  const [stationProposalName, setStationProposalName] = useState("");
+  const [stationProposalStreet, setStationProposalStreet] = useState("");
+  const [stationProposalNeighborhood, setStationProposalNeighborhood] = useState("");
+  const [stationProposalBrand, setStationProposalBrand] = useState("");
+  const [stationProposalCity, setStationProposalCity] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const priceInputRef = useRef<HTMLInputElement | null>(null);
@@ -384,6 +402,8 @@ function PriceSubmitFormBody({
   const fuelSuggestionTrackedRef = useRef(false);
   const hasStartedRef = useRef(false);
   const completedRef = useRef(false);
+  const stationProposalNameInputRef = useRef<HTMLInputElement | null>(null);
+  const stationProposalStreetInputRef = useRef<HTMLInputElement | null>(null);
   const abandonmentSentRef = useRef(false);
   const currentStepRef = useRef<SubmissionDraftStep | null>(null);
   const telemetryContextRef = useRef({ stationId: stationId || null, fuelType, compactMode, lockedStation });
@@ -619,10 +639,17 @@ function PriceSubmitFormBody({
     });
 
     void saveSubmissionDraft(snapshot).catch(() => undefined);
-  }, [draftKey, draftLoaded, fuelType, nickname, pending, price, stationId, state.error]);
+  }, [draftKey, draftLoaded, evidenceMode, fuelType, nickname, pending, price, priceSource, stationId, state.error]);
 
   const currentQueueItem = queueItems.find((item) => item.draftKey === draftKey) ?? null;
   const selectedStation = stations.find((station) => station.id === stationId) ?? stations[0] ?? null;
+  const proposalCity = stationProposalCity.trim() || homeContextSnapshot.city?.trim() || lastStationSnapshot?.city?.trim() || selectedStation?.city?.trim() || "";
+
+  useEffect(() => {
+    if (stationProposalCity.trim()) return;
+    const fallbackCity = homeContextSnapshot.city?.trim() || lastStationSnapshot?.city?.trim() || selectedStation?.city?.trim() || "";
+    if (fallbackCity) setStationProposalCity(fallbackCity);
+  }, [homeContextSnapshot.city, lastStationSnapshot?.city, selectedStation?.city, stationProposalCity]);
 
   const isFirstSendFlow = useMemo(() => submissions.length === 0 && history.length === 0 && !draftRestored, [draftRestored, history.length, submissions.length]);
 
@@ -946,6 +973,31 @@ function PriceSubmitFormBody({
       .slice(0, 14);
   }, [normalizedStationSearch, stationCandidates]);
 
+  const normalizedProposalSearch = useMemo(() => normalizeContextValue([stationProposalName, stationProposalStreet, stationProposalNeighborhood, proposalCity].filter(Boolean).join(" ")), [proposalCity, stationProposalName, stationProposalNeighborhood, stationProposalStreet]);
+  const proposalDuplicateCandidates = useMemo(() => {
+    if (!normalizedProposalSearch) return [] as StationPickerCandidate[];
+    return stationCandidates
+      .map((candidate) => ({ candidate, score: getStationSearchScore(candidate, normalizedProposalSearch) }))
+      .filter((entry) => entry.score > 0)
+      .sort((left, right) => right.score - left.score)
+      .map((entry) => entry.candidate)
+      .slice(0, 3);
+  }, [normalizedProposalSearch, stationCandidates]);
+  const proposalReady = Boolean(stationProposalName.trim() && proposalCity.trim() && (stationProposalStreet.trim() || coords));
+  const stationSuggestionTone: "high" | "medium" | "none" = isSuggested ? (locationConfidence === "high" ? "high" : "medium") : "none";
+  const stationSuggestionReason = showStationProposalFlow
+    ? "Seu posto ainda não está na base? Faça uma proposta leve e a curadoria revisa antes de publicar."
+    : isSuggested
+      ? locationConfidence === "high"
+        ? "O app cruzou GPS, histórico curto e contexto para sugerir este posto primeiro."
+        : "Há um posto provável por perto, mas a confirmação manual ainda vale."
+      : "Use nome, bairro, endereço, cidade ou bandeira. Se não achar, proponha o posto na hora.";
+  const geoStatusCopy = coords
+    ? locationConfidence === "high"
+      ? "Sua localização está ajudando a priorizar os postos mais prováveis."
+      : "Sua localização existe, mas o contexto ainda pede confirmação manual."
+    : "Sem sua localização, a lista usa memória curta, busca e ranking territorial.";
+
   const nextStationNode = useMemo(() => {
     if (!mission || mission.currentIndex + 1 >= mission.stationIds.length) return null;
     const nextId = mission.stationIds[mission.currentIndex + 1];
@@ -1029,7 +1081,7 @@ function PriceSubmitFormBody({
       fileInputRef.current.value = "";
     }
     router.refresh();
-  }, [currentQueueItem, draftKey, router, state.success, stationId]);
+  }, [currentQueueItem, draftKey, nickname, router, state.success, stationId]);
 
   useEffect(() => {
     return () => {
@@ -1684,6 +1736,46 @@ function PriceSubmitFormBody({
     recordActivity("touch", candidate.station.id);
   }
 
+
+  function openStationProposalFlow() {
+    setShowStationProposalFlow(true);
+    setStationConfirmed(false);
+    setStationProposalConfirmed(false);
+    setStationId("");
+    setValidationErrors((prev) => ({ ...prev, stationId: undefined }));
+    queueMicrotask(() => stationProposalNameInputRef.current?.focus());
+  }
+
+  function handleConfirmStationProposal() {
+    if (!proposalReady) {
+      if (!stationProposalName.trim()) {
+        stationProposalNameInputRef.current?.focus();
+      } else if (!stationProposalStreet.trim() && !coords) {
+        stationProposalStreetInputRef.current?.focus();
+      }
+      return;
+    }
+
+    setStationId("");
+    setStationConfirmed(true);
+    setStationProposalConfirmed(true);
+    setValidationErrors((prev) => ({ ...prev, stationId: undefined }));
+    markStarted("station", {
+      changed: true,
+      source: "station_proposal",
+      proposalCity,
+      hasCoords: Boolean(coords)
+    });
+  }
+
+  function handleRejectStationProposal() {
+    setShowStationProposalFlow(false);
+    setStationProposalConfirmed(false);
+    if (!stationId && stations[0]) {
+      setStationId(stations[0].id);
+    }
+    queueMicrotask(() => stationSearchInputRef.current?.focus());
+  }
   function renderStationOption(candidate: StationPickerCandidate, source: "nearby" | "recent" | "search" | "fallback") {
     const isSelected = candidate.station.id === stationId;
     const geoBadge = getGeoReviewBadge(candidate);
@@ -1849,8 +1941,8 @@ function PriceSubmitFormBody({
             )}
             {!isStreetMode && (
               <>
-                <h3 className="mt-2 text-xl font-semibold text-white">{isFirstSendFlow ? "Foto primeiro. O resto é guiado." : "Foto primeiro, resto rápido."}</h3>
-                <p className="mt-1 text-sm text-white/62">{isFirstSendFlow ? "Tire a foto. O posto e o combustível entram sozinhos quando der." : "Abra a câmera, tire a prova e complete o envio com o mínimo de toque possível."}</p>
+                <h3 className="mt-2 text-xl font-semibold text-white">{isFirstSendFlow ? "Escolha sua prova. O resto é guiado." : "Foto, contexto ou proposta leve. O resto continua rápido."}</h3>
+                <p className="mt-1 text-sm text-white/62">{isFirstSendFlow ? "Se houver placa ou faixa, use foto. Se não houver, siga com preço manual e origem do dado." : "Com placa ou faixa, use foto. Sem isso, o app aceita contexto manual e manda para revisão mais conservadora."}</p>
               </>
             )}
           </div>
@@ -1858,7 +1950,7 @@ function PriceSubmitFormBody({
         </div>
         {!isStreetMode && (
           <div className="mt-4 flex flex-wrap gap-2 text-[11px] text-white/52">
-            <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1">1. Foto</span>
+            <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1">1. Prova</span>
             <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1">2. Posto</span>
             <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1">3. Combustível</span>
             <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1">4. Preço</span>
@@ -2044,36 +2136,126 @@ function PriceSubmitFormBody({
         </div>
       ) : null}
 
-      <div className={cn("space-y-2", guidedStage !== "photo" && "hidden")} id="photo">
-        <label className="text-sm font-medium text-white" htmlFor="photo-input">
-          Foto
-        </label>
-        <input
-          ref={cameraInputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          tabIndex={-1}
-          aria-hidden="true"
-          onChange={handleFileChange}
-          className="hidden"
-        />
-        <input
-          id="photo-input"
-          name="photo"
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onFocus={() => handleFieldFocus("photo")}
-          onChange={(e) => {
-            setValidationErrors(prev => ({ ...prev, photo: undefined }));
-            handleFileChange(e);
-          }}
-          className={cn(
-            "w-full rounded-[18px] border border-dashed px-4 py-3 text-sm text-white file:mr-4 file:rounded-full file:border-0 file:bg-[color:var(--color-accent)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-black transition-all",
-            validationErrors.photo ? "border-red-500/50 bg-red-500/5" : "border-white/14 bg-black/30"
-          )}
-        />
+      <div className={cn("space-y-3", guidedStage !== "photo" && "hidden")} id="photo">
+        <div className="grid gap-2 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => {
+              setEvidenceMode("placa_faixa");
+              setValidationErrors((prev) => ({ ...prev, photo: undefined }));
+            }}
+            className={cn(
+              "rounded-[18px] border px-4 py-3 text-left transition",
+              evidenceMode === "placa_faixa" ? "border-[color:var(--color-accent)]/40 bg-[color:var(--color-accent)]/10" : "border-white/10 bg-black/20"
+            )}
+          >
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/42">Tem placa ou faixa</p>
+            <p className="mt-1 text-sm font-semibold text-white">Usar foto documental</p>
+            <p className="mt-1 text-xs text-white/56">Melhor caminho quando a prova visual está clara.</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setEvidenceMode("sem_placa_faixa");
+              setValidationErrors((prev) => ({ ...prev, photo: undefined }));
+            }}
+            className={cn(
+              "rounded-[18px] border px-4 py-3 text-left transition",
+              evidenceMode === "sem_placa_faixa" ? "border-[color:var(--color-accent)]/40 bg-[color:var(--color-accent)]/10" : "border-white/10 bg-black/20"
+            )}
+          >
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/42">Sem placa ou sem faixa</p>
+            <p className="mt-1 text-sm font-semibold text-white">Preço manual com contexto</p>
+            <p className="mt-1 text-xs text-white/56">Para bomba, recibo, painel interno ou informação local.</p>
+          </button>
+        </div>
+
+        {evidenceMode === "placa_faixa" ? (
+          <>
+            <label className="text-sm font-medium text-white" htmlFor="photo-input">
+              Foto da placa, faixa ou bomba
+            </label>
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              tabIndex={-1}
+              aria-hidden="true"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+            <input
+              id="photo-input"
+              name="photo"
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onFocus={() => handleFieldFocus("photo")}
+              onChange={(e) => {
+                setValidationErrors(prev => ({ ...prev, photo: undefined }));
+                handleFileChange(e);
+              }}
+              className={cn(
+                "w-full rounded-[18px] border border-dashed px-4 py-3 text-sm text-white file:mr-4 file:rounded-full file:border-0 file:bg-[color:var(--color-accent)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-black transition-all",
+                validationErrors.photo ? "border-red-500/50 bg-red-500/5" : "border-white/14 bg-black/30"
+              )}
+            />
+          </>
+        ) : (
+          <div className="space-y-3 rounded-[20px] border border-white/10 bg-black/20 p-4">
+            <div>
+              <p className="text-sm font-medium text-white">De onde veio esse preço?</p>
+              <p className="mt-1 text-xs text-white/56">Esse modo entra em revisão mais conservadora.</p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {(["bomba", "recibo", "painel_interno", "informacao_local"] as const).map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => {
+                    setPriceSource(option);
+                    setValidationErrors((prev) => ({ ...prev, photo: undefined }));
+                    markStarted("photo", { evidenceMode: "sem_placa_faixa", priceSource: option });
+                  }}
+                  className={cn(
+                    "rounded-[16px] border px-3 py-3 text-left text-sm transition",
+                    priceSource === option ? "border-[color:var(--color-accent)]/40 bg-[color:var(--color-accent)]/10 text-white" : "border-white/10 bg-black/20 text-white/72"
+                  )}
+                >
+                  {manualPriceSourceLabels[option]}
+                </button>
+              ))}
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-white" htmlFor="photo-input">Foto opcional de contexto</label>
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                tabIndex={-1}
+                aria-hidden="true"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              <input
+                id="photo-input"
+                name="photo"
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onFocus={() => handleFieldFocus("photo")}
+                onChange={(e) => {
+                  setValidationErrors(prev => ({ ...prev, photo: undefined }));
+                  handleFileChange(e);
+                }}
+                className="w-full rounded-[18px] border border-dashed border-white/14 bg-black/30 px-4 py-3 text-sm text-white file:mr-4 file:rounded-full file:border-0 file:bg-[color:var(--color-accent)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-black"
+              />
+              <p className="text-xs text-white/48">Se tiver recibo, visor ou ambiente útil, anexe. Sem foto também pode seguir.</p>
+            </div>
+          </div>
+        )}
         {validationErrors.photo && <p className="mt-1.5 px-1 text-[10px] font-bold uppercase text-red-300 tracking-wider animate-in fade-in slide-in-from-top-1">{validationErrors.photo}</p>}
       </div>
 
@@ -2227,6 +2409,90 @@ function PriceSubmitFormBody({
                 </Button>
               ) : null}
             </div>
+
+            {showStationProposalFlow ? (
+              <div className="rounded-[18px] border border-[color:var(--color-accent)]/22 bg-[color:var(--color-accent)]/8 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[color:var(--color-accent)]/72">Posto ausente na lista</p>
+                    <p className="mt-1 text-sm font-semibold text-white">Proposta leve para revisão</p>
+                    <p className="mt-1 text-xs text-white/58">Informe o básico. O time valida antes de abrir isso para o público.</p>
+                  </div>
+                  <Badge variant="warning">Revisão</Badge>
+                </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <label className="space-y-1 sm:col-span-2">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/42">Nome ou apelido do posto</span>
+                    <input
+                      ref={stationProposalNameInputRef}
+                      value={stationProposalName}
+                      onChange={(event) => { setStationProposalName(event.target.value); setStationProposalConfirmed(false); }}
+                      placeholder="Ex.: Posto da subida"
+                      className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none"
+                    />
+                  </label>
+                  <label className="space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/42">Bairro</span>
+                    <input
+                      value={stationProposalNeighborhood}
+                      onChange={(event) => { setStationProposalNeighborhood(event.target.value); setStationProposalConfirmed(false); }}
+                      placeholder="Ex.: Aterrado"
+                      className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none"
+                    />
+                  </label>
+                  <label className="space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/42">Cidade</span>
+                    <input
+                      value={stationProposalCity}
+                      onChange={(event) => { setStationProposalCity(event.target.value); setStationProposalConfirmed(false); }}
+                      placeholder="Ex.: Volta Redonda"
+                      className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none"
+                    />
+                  </label>
+                  <label className="space-y-1 sm:col-span-2">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/42">Endereco ou referencia</span>
+                    <input
+                      ref={stationProposalStreetInputRef}
+                      value={stationProposalStreet}
+                      onChange={(event) => { setStationProposalStreet(event.target.value); setStationProposalConfirmed(false); }}
+                      placeholder="Rua, numero, esquina ou referencia. Se o GPS estiver ligado, pode deixar em branco."
+                      className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none"
+                    />
+                  </label>
+                  <label className="space-y-1 sm:col-span-2">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/42">Bandeira</span>
+                    <input
+                      value={stationProposalBrand}
+                      onChange={(event) => { setStationProposalBrand(event.target.value); setStationProposalConfirmed(false); }}
+                      placeholder="Opcional"
+                      className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none"
+                    />
+                  </label>
+                </div>
+                <div className={cn("mt-3 rounded-[16px] border px-3 py-2.5 text-xs", coords ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-50" : "border-orange-400/20 bg-orange-400/10 text-orange-50")}>
+                  {coords ? "Seu GPS vai junto para ajudar a posicionar esse posto novo." : "Sem GPS agora. Ainda dá para propor com bairro, cidade e referência."}
+                </div>
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/42">Parecidos antes de criar</p>
+                    <span className="text-[10px] uppercase tracking-[0.18em] text-white/28">Até 3</span>
+                  </div>
+                  <div className="space-y-2">
+                    {proposalDuplicateCandidates.length > 0 ? proposalDuplicateCandidates.map((candidate) => renderStationOption(candidate, "search")) : (
+                      <div className="rounded-[16px] border border-white/8 bg-black/20 px-3 py-2 text-xs text-white/54">Digite o nome ou a referência para checar se ele já existe na base.</div>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                  <Button type="button" className="w-full justify-center sm:flex-1" disabled={!proposalReady} onClick={() => handleConfirmStationProposal()}>
+                    Confirmar proposta
+                  </Button>
+                  <Button type="button" variant="secondary" className="w-full justify-center sm:flex-1" onClick={() => handleRejectStationProposal()}>
+                    Voltar para lista
+                  </Button>
+                </div>
+              </div>
+            ) : null}
 
             {selectedStation ? (
               <div className="rounded-[18px] border border-[color:var(--color-accent)]/22 bg-[color:var(--color-accent)]/8 px-4 py-3">
@@ -2451,7 +2717,7 @@ function PriceSubmitFormBody({
           <div className="mt-4 space-y-2 text-sm text-white/72">
             <div className="flex items-center justify-between gap-3 rounded-[16px] border border-white/8 bg-black/20 px-3 py-2">
               <span className="text-white/48">Posto</span>
-              <span className="truncate text-right font-medium text-white">{selectedStation ? getStationPublicName(selectedStation) : "Posto"}</span>
+              <span className="truncate text-right font-medium text-white">{showStationProposalFlow ? (stationProposalName || "Posto novo proposto") : selectedStation ? getStationPublicName(selectedStation) : "Posto"}</span>
             </div>
             <div className="flex items-center justify-between gap-3 rounded-[16px] border border-white/8 bg-black/20 px-3 py-2">
               <span className="text-white/48">Combustível</span>
@@ -2515,6 +2781,7 @@ export function PriceSubmitForm(props: PriceSubmitFormProps) {
 
   return <PriceSubmitFormBody key={`${props.initialStationId ?? "default"}-${formVersion}`} {...props} onResetRequest={() => setFormVersion((value) => value + 1)} />;
 }
+
 
 
 

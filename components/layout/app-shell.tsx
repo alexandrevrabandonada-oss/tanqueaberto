@@ -63,6 +63,7 @@ export function AppShell({ children, killSwitches, hideShellSubmitCta = false, a
           </div>
         </header>
 
+        <VrAbandonadaBadge compact className="relative z-10 mb-2 ml-auto w-fit max-w-full md:hidden" />
         <VrAbandonadaBadge compact className="relative z-10 mb-2 hidden w-full md:block lg:hidden" />
 
         {!hideShellSubmitCta && globalSubmitCta ? (
@@ -118,3 +119,4 @@ export function AppShell({ children, killSwitches, hideShellSubmitCta = false, a
     </div>
   );
 }
+

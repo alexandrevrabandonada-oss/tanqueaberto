@@ -38,7 +38,10 @@ export function HomeServerLead({
   initialPresenceFilter
 }: HomeServerLeadProps) {
   const { location } = useLocationHardening();
-  const coords = location ? { lat: location.lat, lng: location.lng } : null;
+  const coords = useMemo(
+    () => (location ? { lat: location.lat, lng: location.lng } : null),
+    [location]
+  );
 
   const nearbyStations = useMemo(() => {
     const baseStations = initialCity

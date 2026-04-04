@@ -16,13 +16,19 @@ import { HomeMapSurface } from "@/components/home/home-map-surface";
 import { RecorteActivityWidget } from "@/components/home/recorte-activity-widget";
 import { MySubmissionsList } from "@/components/history/my-submissions-list";
 import { cn } from "@/lib/utils";
+import { formatDistance } from "@/lib/geo/distance";
 import { formatCurrencyBRL } from "@/lib/format/currency";
 import { formatRecencyLabel, getRecencyTone } from "@/lib/format/time";
 import { fuelLabels } from "@/lib/format/labels";
 import { canShowStationOnMap, getStationPublicName, hasPendingStationLocationReview } from "@/lib/quality/stations";
 import { getSelectedStationReport, hasRecentStationPriceForFilter } from "@/lib/filters/public";
 import { rememberStationVisit } from "@/lib/navigation/home-context";
+import { openExternalNavigation } from "@/lib/navigation/external-maps";
 import { trackProductEvent } from "@/lib/telemetry/client";
+
+function getStationHref(stationId: string, returnToHref?: string) {
+  return returnToHref ? `/postos/${stationId}?returnTo=${encodeURIComponent(returnToHref)}` : `/postos/${stationId}`;
+}
 
 function getSendHref(stationId: string, returnToHref?: string, fuelFilter?: string) {
   const fuelParam = fuelFilter && fuelFilter !== "all" ? `&fuel=${fuelFilter}` : "";
@@ -30,6 +36,37 @@ function getSendHref(stationId: string, returnToHref?: string, fuelFilter?: stri
   return returnToHref ? `${base}&returnTo=${encodeURIComponent(returnToHref)}` : base;
 }
 
+function getReportConfidenceMeta(report: any) {
+  const evidenceMode = String(report?.metadata?.evidence_mode ?? "");
+  if (evidenceMode === "sem_placa_faixa") {
+    return { label: "Confianca moderada", detail: "Sem placa", variant: "warning" as const };
+  }
+  if (report?.locationConfidence === "high") {
+    return { label: "Confianca alta", detail: "GPS forte", variant: "default" as const };
+  }
+  if (report?.locationConfidence === "low") {
+    return { label: "Confianca media", detail: "GPS razoavel", variant: "warning" as const };
+  }
+  return { label: "Confianca basica", detail: "Vale checar", variant: "secondary" as const };
+}
+
+function hasRouteCoordinates(station: any) {
+  return Number.isFinite(Number(station?.lat)) && Number.isFinite(Number(station?.lng));
+}
+
+function dedupeStationItems(items: Array<{ station: any; report: any; key?: string }>) {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const stationId = String(item?.station?.id ?? "");
+    if (!stationId || seen.has(stationId)) return false;
+    seen.add(stationId);
+    return true;
+  });
+}
+
+function getEconomyLocalityLabel(station: any) {
+  return [station?.neighborhood, station?.city].filter(Boolean).join(" · ") || "Regiao sem bairro";
+}
 export function HomeDeferredSections(props: Record<string, any>) {
   const {
     homeState,
@@ -72,7 +109,98 @@ export function HomeDeferredSections(props: Record<string, any>) {
   } = props;
 
   const showQuickAccess = homeState?.showQuickAccess && !missionActive && (recentIds.length > 0 || favoriteIds.length > 0);
+  const priceCandidates = orderedStations
+    .map((station: any) => ({ station, report: getSelectedStationReport(station, fuelFilter) }))
+    .filter((item: any) => item.report);
+  const cheapestRecent = dedupeStationItems(
+    priceCandidates
+      .filter(({ report }: any) => getRecencyTone(report.reportedAt) !== "stale")
+      .sort((left: any, right: any) => {
+        const priceDiff = left.report.price - right.report.price;
+        if (priceDiff !== 0) return priceDiff;
+        return new Date(right.report.reportedAt).getTime() - new Date(left.report.reportedAt).getTime();
+      })
+  ).slice(0, 3);
+  const cheapestNearYou = dedupeStationItems(
+    cheapestNow
+      .map((entry: any) => entry?.station && entry?.report ? entry : { station: entry, report: getSelectedStationReport(entry, fuelFilter) })
+      .filter((item: any) => item.station && item.report)
+      .sort((left: any, right: any) => {
+        const leftDistance = Number.isFinite(left.station?.distance) ? left.station.distance : Number.MAX_SAFE_INTEGER;
+        const rightDistance = Number.isFinite(right.station?.distance) ? right.station.distance : Number.MAX_SAFE_INTEGER;
+        if (leftDistance !== rightDistance) return leftDistance - rightDistance;
+        return left.report.price - right.report.price;
+      })
+  ).slice(0, 3);
+  const cheapestStale = dedupeStationItems(
+    priceCandidates
+      .filter(({ report }: any) => getRecencyTone(report.reportedAt) === "stale")
+      .sort((left: any, right: any) => {
+        const priceDiff = left.report.price - right.report.price;
+        if (priceDiff !== 0) return priceDiff;
+        return new Date(right.report.reportedAt).getTime() - new Date(left.report.reportedAt).getTime();
+      })
+  ).slice(0, 3);
+  const economyGroups = [
+    {
+      id: "recent",
+      eyebrow: "Decida agora",
+      title: "Mais barato recente",
+      hint: "Bom preço com atualização fresca para decidir sem rodeio.",
+      items: cheapestRecent,
+      empty: "Ainda nao apareceu um preço bom e recente neste recorte."
+    },
+    {
+      id: "near",
+      eyebrow: "No seu caminho",
+      title: "Mais barato perto",
+      hint: "Aqui o preço baixo ja vem junto com a distância.",
+      items: cheapestNearYou,
+      empty: "Ative o GPS ou refine o recorte para comparar o que compensa perto de voce."
+    },
+    {
+      id: "stale",
+      eyebrow: "Vale conferir",
+      title: "Barato, mas desatualizado",
+      hint: "Pode compensar, mas ja pede uma checagem antes de sair.",
+      items: cheapestStale,
+      empty: "Nao ha preço barato envelhecido chamando atenção agora."
+    }
+  ];
+  const hasEconomyItems = economyGroups.some((group) => group.items.length > 0);
 
+  function handleEconomyRoute(station: any, groupId: string) {
+    if (!hasRouteCoordinates(station)) return;
+    const lat = Number(station.lat);
+    const lng = Number(station.lng);
+    const stationName = getStationPublicName(station);
+    const isMobile = typeof navigator !== "undefined" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+    void onRouteTrack?.(station.id, groupId);
+    void trackProductEvent({
+      eventType: "quick_action_clicked",
+      pagePath: "/",
+      pageTitle: "Home",
+      stationId: station.id,
+      scopeType: "block",
+      scopeId: `economy-${groupId}`,
+      payload: {
+        source: "economy_surface",
+        action: "route",
+        groupId,
+        stationName,
+        fuelFilter
+      }
+    });
+
+    openExternalNavigation(isMobile ? "waze" : "google", {
+      lat,
+      lng,
+      stationId: station.id,
+      stationName,
+      source: `economy_${groupId}`
+    });
+  }
   return (
     <>
       {homeState.state !== "operation-normal" ? (
@@ -250,15 +378,30 @@ export function HomeDeferredSections(props: Record<string, any>) {
         ))}
       </SectionCard>
 
-      <SectionCard className="space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Mais baratos agora</p>
-            <h2 className="mt-1 text-xl font-semibold text-white">Leitura rápida do filtro atual</h2>
+      <SectionCard className="space-y-5">
+        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div className="max-w-2xl">
+            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Mais barato para abastecer</p>
+            <h2 className="mt-1 text-xl font-semibold text-white">Veja o que ainda compensa de verdade</h2>
+            <p className="mt-2 text-sm leading-relaxed text-white/50">Preço bom sozinho engana. Aqui o app separa o que está barato e recente, o que cabe no caminho e o que está barato, mas já pode ter mudado.</p>
           </div>
           <Badge variant="warning">{fuelFilter === "all" ? "Todos os combustíveis" : fuelLabels[fuelFilter as keyof typeof fuelLabels]}</Badge>
         </div>
-        {cheapestNow.length === 0 ? (
+
+        <div className="grid gap-2 sm:grid-cols-3">
+          {[
+            { label: "Recência", note: "Quanto mais novo, melhor para decidir agora." },
+            { label: "Confiança", note: "Mostra se o dado chegou com contexto forte ou básico." },
+            { label: "Distância", note: "Ajuda a ver quando o barato continua valendo no caminho." }
+          ].map((signal) => (
+            <div key={signal.label} className="rounded-[18px] border border-white/8 bg-white/[0.04] px-4 py-3">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">{signal.label}</p>
+              <p className="mt-1 text-sm leading-relaxed text-white/58">{signal.note}</p>
+            </div>
+          ))}
+        </div>
+
+        {!hasEconomyItems ? (
           <EmptyStateCard
             title={mapStations.length > 0 ? "Há postos cadastrados, mas ainda sem preço recente neste recorte." : "Nenhum preço disponível para este recorte."}
             description={mapStations.length > 0 ? "Abra a lista dos postos sem atualização e envie a primeira foto onde puder." : "Tente outro bairro, cidade, combustível ou remova os filtros para voltar ao mapa completo."}
@@ -267,17 +410,112 @@ export function HomeDeferredSections(props: Record<string, any>) {
             className="text-left"
           />
         ) : (
-          <div className="grid gap-2 sm:grid-cols-3">
-            {cheapestNow.map(({ station, report }: any) => (
-              <div key={report.id} className="rounded-[18px] border border-white/5 bg-white/5 p-4 flex flex-col justify-between">
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider text-white/30 truncate">{getStationPublicName(station)}</p>
-                  <p className="mt-1 text-2xl font-bold tracking-tight text-white">{formatCurrencyBRL(report.price)}</p>
+          <div className="grid gap-4 xl:grid-cols-3">
+            {economyGroups.map((group: any) => (
+              <div key={group.id} className="rounded-[22px] border border-white/8 bg-white/5 p-4">
+                <div className="mb-4 flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-white/38">{group.eyebrow}</p>
+                    <h3 className="mt-1 text-base font-semibold text-white">{group.title}</h3>
+                    <p className="mt-1 text-sm leading-relaxed text-white/50">{group.hint}</p>
+                  </div>
+                  <Badge variant="outline">{group.items.length}</Badge>
                 </div>
-                <div className="mt-3 flex items-center justify-between text-[10px] text-white/40">
-                  <span className="truncate">{fuelLabels[report.fuelType as keyof typeof fuelLabels]}</span>
-                  <span className="shrink-0">{formatRecencyLabel(report.reportedAt)}</span>
-                </div>
+
+                {group.items.length === 0 ? (
+                  <p className="text-sm leading-relaxed text-white/48">{group.empty}</p>
+                ) : (
+                  <div className="space-y-3">
+                    {group.items.map(({ station, report }: any) => {
+                      const recencyTone = getRecencyTone(report.reportedAt);
+                      const confidence = getReportConfidenceMeta(report);
+                      const canRoute = hasRouteCoordinates(station);
+                      const stationHref = getStationHref(station.id, contextHref) as Route;
+                      const sendHref = getSendHref(station.id, contextHref, fuelFilter) as Route;
+
+                      return (
+                        <div key={report.id || `${group.id}-${station.id}`} className="rounded-[18px] border border-white/8 bg-black/20 p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <Link
+                                href={stationHref}
+                                className="block"
+                                onClick={() => {
+                                  rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
+                                  void onStationTrack?.(`economy-${group.id}`);
+                                }}
+                              >
+                                <p className="truncate text-sm font-semibold text-white">{getStationPublicName(station)}</p>
+                                <p className="mt-1 text-[11px] text-white/46">{getEconomyLocalityLabel(station)}</p>
+                              </Link>
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <p className="text-2xl font-black tracking-tight text-white">{formatCurrencyBRL(report.price)}</p>
+                              <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-accent)]/78">{group.id === "stale" ? "Pode ter mudado" : group.id === "near" ? "Bom no caminho" : "Bom agora"}</p>
+                            </div>
+                          </div>
+
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <Badge variant={recencyTone === "fresh" ? "default" : recencyTone === "warning" ? "warning" : "danger"}>
+                              {recencyTone === "stale" ? `Preço de ${formatRecencyLabel(report.reportedAt)}` : `Atualizado ${formatRecencyLabel(report.reportedAt)}`}
+                            </Badge>
+                            <Badge variant={confidence.variant}>{confidence.label}</Badge>
+                            <Badge variant="secondary">{confidence.detail}</Badge>
+                            {station.distance ? <Badge variant="secondary">{formatDistance(station.distance)}</Badge> : null}
+                          </div>
+
+                          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                            <ButtonLink
+                              href={stationHref}
+                              variant="secondary"
+                              className="h-9 px-3 text-[10px] font-black uppercase tracking-[0.16em]"
+                              onClick={() => {
+                                rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
+                                void onStationTrack?.(`economy-${group.id}`);
+                              }}
+                            >
+                              Ver posto
+                            </ButtonLink>
+                            <ButtonLink
+                              href={sendHref}
+                              className="h-9 px-3 text-[10px] font-black uppercase tracking-[0.16em]"
+                              onClick={() => {
+                                rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
+                                void trackProductEvent({
+                                  eventType: "quick_action_clicked",
+                                  pagePath: sendHref,
+                                  pageTitle: "Home",
+                                  stationId: station.id,
+                                  scopeType: "block",
+                                  scopeId: `economy-${group.id}`,
+                                  payload: {
+                                    source: "economy_surface",
+                                    action: "photo",
+                                    groupId: group.id,
+                                    fuelFilter
+                                  }
+                                });
+                              }}
+                            >
+                              Atualizar preço
+                            </ButtonLink>
+                            {canRoute ? (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                className="h-9 px-3 text-[10px] font-black uppercase tracking-[0.16em] text-white/72 sm:col-span-2"
+                                onClick={() => handleEconomyRoute(station, group.id)}
+                              >
+                                <Navigation className="h-3.5 w-3.5" />
+                                Traçar rota
+                              </Button>
+                            ) : null}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -394,5 +632,4 @@ export function HomeDeferredSections(props: Record<string, any>) {
     </>
   );
 }
-
 
