@@ -5,7 +5,7 @@ import { Check, LogOut, MessageSquareText, SlidersHorizontal, X } from "lucide-r
 
 import { moderateReportAction, signOutAdminAction, updateStationCurationAction } from "@/app/admin/actions";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
 import { requireAdminUser } from "@/lib/auth/admin";
 import { getModerationCounts, getModerationReports, getRecentModeratedReports, getStationReviewQueue } from "@/lib/data";
@@ -212,10 +212,22 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           { label: "Rejeitados", value: counts.rejected },
           { label: "Sinalizados", value: counts.flagged }
         ].map((item) => (
-          <div key={item.label} className="rounded-[22px] border border-white/8 bg-black/30 p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-white/42">{item.label}</p>
-            <p className="mt-3 text-3xl font-semibold text-white">{item.value}</p>
-          </div>
+          item.label === "Sinalizados" ? (
+            <ButtonLink
+              key={item.label}
+              href={"/admin?status=flagged" as Route}
+              variant="secondary"
+              className="rounded-[22px] border border-white/8 bg-black/30 p-4 text-left"
+            >
+              <span className="block text-xs uppercase tracking-[0.2em] text-white/42">{item.label}</span>
+              <span className="mt-3 block text-3xl font-semibold text-white">{item.value}</span>
+            </ButtonLink>
+          ) : (
+            <div key={item.label} className="rounded-[22px] border border-white/8 bg-black/30 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-white/42">{item.label}</p>
+              <p className="mt-3 text-3xl font-semibold text-white">{item.value}</p>
+            </div>
+          )
         ))}
       </SectionCard>
 
@@ -467,6 +479,11 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                     </Button>
                   </div>
                 </form>
+                <div className="flex flex-wrap gap-2">
+                  <ButtonLink href={`/admin/reports/${report.id}` as Route} variant="secondary" className="h-9 px-3 text-[10px] font-bold uppercase tracking-[0.16em]">
+                    Editar report
+                  </ButtonLink>
+                </div>
               </SectionCard>
             ))}
           </div>
@@ -500,6 +517,22 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 <p className="mt-2 text-sm text-white/58">
                   {fuelLabels[report.fuelType]} · {formatCurrencyBRL(report.price)} · {formatRecencyLabel(report.reportedAt)}
                 </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <ButtonLink href={`/postos/${report.stationId}` as Route} variant="secondary" className="h-9 px-3 text-[10px] font-bold uppercase tracking-[0.16em]">
+                    Ver posto
+                  </ButtonLink>
+                  <ButtonLink href={`/postos/${report.stationId}/editar` as Route} variant="secondary" className="h-9 px-3 text-[10px] font-bold uppercase tracking-[0.16em]">
+                    Editar posto
+                  </ButtonLink>
+                  <ButtonLink href={`/admin/reports/${report.id}` as Route} variant="secondary" className="h-9 px-3 text-[10px] font-bold uppercase tracking-[0.16em]">
+                    Editar report
+                  </ButtonLink>
+                  {report.status === "flagged" ? (
+                    <ButtonLink href={"/admin?status=flagged" as Route} className="h-9 px-3 text-[10px] font-bold uppercase tracking-[0.16em]">
+                      Moderar agora
+                    </ButtonLink>
+                  ) : null}
+                </div>
               </div>
             ))}
           </div>
@@ -508,6 +541,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     </div>
   );
 }
+
+
+
 
 
 

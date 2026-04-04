@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { Route } from "next";
+import type { FuelType } from "@/lib/types";
 
 import { recordAdminActionLog, recordOperationalEvent } from "@/lib/ops/logs";
 import { recordPriceReportAuditEvent } from "@/lib/audit/events";
@@ -11,6 +12,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseServiceClient } from "@/lib/supabase/service";
 import { updateCollectorScore } from "@/lib/ops/collector-trust";
 import { mapStationRow } from "@/lib/data/mappers";
+import { getActiveStations, getReportByIdAdmin, getStationByIdAdmin } from "@/lib/data/queries";
 import { canPromoteStationToMap } from "@/lib/ops/territorial-curation";
 import { grantStationEditorRole, revokeStationEditorRole } from "@/lib/ops/station-editors";
 import { StationEditorInviteError, createStationEditorInvite, revokeStationEditorInvite } from "@/lib/ops/station-editor-invites";
@@ -364,6 +366,181 @@ export async function moderateReportsBatchAction(formData: FormData) {
   }
 
   await moderateReports(reportIds, decision, moderationNote);
+}
+
+const reportFuelTypes: FuelType[] = ["gasolina_comum", "gasolina_aditivada", "etanol", "diesel_s10", "diesel_comum", "gnv"];
+
+
+function buildReportEditRedirect(reportId: string, params: Record<string, string | null | undefined>) {
+  const query = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(params)) {
+    if (value && value.trim()) {
+      query.set(key, value);
+    }
+  }
+
+  const suffix = query.toString();
+  return suffix ? (`/admin/reports/${reportId}?${suffix}` as Route) : (`/admin/reports/${reportId}` as Route);
+}
+
+function makeReportEditDiff(before: Record<string, unknown>, after: Record<string, unknown>) {
+  const diff: Record<string, { before: unknown; after: unknown }> = {};
+  const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
+
+  for (const key of keys) {
+    const beforeValue = before[key];
+    const afterValue = after[key];
+    if (JSON.stringify(beforeValue) !== JSON.stringify(afterValue)) {
+      diff[key] = { before: beforeValue, after: afterValue };
+    }
+  }
+
+  return diff;
+}
+
+export async function updatePriceReportAction(formData: FormData) {
+  const admin = await requireAdminUser();
+  const reportId = String(formData.get("reportId") ?? "").trim();
+  const decision = String(formData.get("decision") ?? "save").trim();
+
+  if (!reportId) {
+    redirect(ADMIN_ROUTE);
+  }
+
+  const current = await getReportByIdAdmin(reportId);
+  if (!current) {
+    redirect(buildReportEditRedirect(reportId, { error: "report_not_found" }));
+  }
+
+  const price = parseOptionalNumber(formData, "price");
+  if (price === null || price <= 0) {
+    redirect(buildReportEditRedirect(reportId, { error: "invalid_price" }));
+  }
+
+  const fuelType = String(formData.get("fuelType") ?? "").trim() as FuelType;
+  if (!reportFuelTypes.includes(fuelType)) {
+    redirect(buildReportEditRedirect(reportId, { error: "invalid_fuel" }));
+  }
+
+  const reporterNickname = getOptionalText(formData, "reporterNickname");
+  const moderationNote = getOptionalText(formData, "moderationNote");
+  const now = new Date().toISOString();
+  const nextStatus = decision === "approved" ? "approved" : decision === "rejected" ? "rejected" : current.status;
+
+  const beforeSnapshot = {
+    price: current.price,
+    fuelType: current.fuelType,
+    reporterNickname: current.reporterNickname,
+    moderationNote: current.moderationNote,
+    status: current.status
+  };
+
+  const afterSnapshot = {
+    price,
+    fuelType,
+    reporterNickname,
+    moderationNote,
+    status: nextStatus
+  };
+
+  const diff = makeReportEditDiff(beforeSnapshot, afterSnapshot);
+  const shouldTouchModeration = decision === "approved" || decision === "rejected";
+  const updatePayload: Record<string, unknown> = {
+    price,
+    fuel_type: fuelType,
+    reporter_nickname: reporterNickname,
+    moderation_note: moderationNote,
+    version: (current.version ?? 1) + 1
+  };
+
+  if (shouldTouchModeration) {
+    updatePayload.status = nextStatus;
+    updatePayload.moderated_by = admin.id;
+    if (nextStatus === "approved") {
+      updatePayload.approved_at = now;
+      updatePayload.rejected_at = null;
+    } else if (nextStatus === "rejected") {
+      updatePayload.rejected_at = now;
+      updatePayload.approved_at = null;
+    }
+  }
+
+  const supabase = createSupabaseServiceClient();
+  const { error } = await supabase.from("price_reports").update(updatePayload).eq("id", reportId);
+
+  if (error) {
+    await recordOperationalEvent({
+      eventType: "report_revision_failed",
+      severity: "error",
+      scopeType: "report",
+      scopeId: reportId,
+      actorId: admin.id,
+      actorEmail: admin.email,
+      stationId: current.stationId,
+      fuelType: current.fuelType,
+      reason: error.message,
+      payload: {
+        decision,
+        diff
+      }
+    });
+    redirect(buildReportEditRedirect(reportId, { error: "save_failed" }));
+  }
+
+  await recordAdminActionLog({
+    actionKind: shouldTouchModeration ? "report_moderation_edit" : "report_revision",
+    actorId: admin.id,
+    actorEmail: admin.email,
+    targetType: "report",
+    targetId: reportId,
+    note: moderationNote ?? `Report editado no admin (${decision}).`,
+    payload: {
+      stationId: current.stationId,
+      fuelType,
+      price,
+      decision,
+      diff
+    }
+  });
+
+  await recordOperationalEvent({
+    eventType: shouldTouchModeration ? "report_moderation_edit" : "report_revision",
+    severity: shouldTouchModeration ? "warning" : "info",
+    scopeType: "report",
+    scopeId: reportId,
+    actorId: admin.id,
+    actorEmail: admin.email,
+    stationId: current.stationId,
+    fuelType,
+    reason: moderationNote ?? "report edited in admin",
+    payload: {
+      decision,
+      diff
+    }
+  });
+
+  await recordPriceReportAuditEvent({
+    reportId,
+    eventType: "revised",
+    actorId: admin.id,
+    payload: {
+      stationId: current.stationId,
+      fuelType,
+      price,
+      decision,
+      diff
+    }
+  });
+
+  revalidatePath("/");
+  revalidatePath("/atualizacoes");
+  revalidatePath("/admin");
+  revalidatePath(`/admin/reports/${reportId}`);
+  revalidatePath(`/postos/${current.stationId}`);
+  revalidatePath("/auditoria");
+
+  redirect(buildReportEditRedirect(reportId, { notice: decision === "approved" ? "approved" : decision === "rejected" ? "rejected" : "saved" }));
 }
 
 export async function updateStationCurationAction(formData: FormData) {
@@ -1119,3 +1296,6 @@ export async function setTerritoryWorkflowStateAction(formData: FormData) {
 
   redirect(withNotice(targetReturnTo, TERRITORY_WORKFLOW_NOTICE) as Route);
 }
+
+
+

@@ -1,10 +1,15 @@
+"use client";
+
 import Link from "next/link";
 import type { Route } from "next";
+import { useMemo } from "react";
 import { MapPinned, Search, Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
+import { useLocationHardening } from "@/hooks/use-location-hardening";
+import { calculateDistance, formatDistance } from "@/lib/geo/distance";
 import { formatCurrencyBRL } from "@/lib/format/currency";
 import { formatRecencyLabel } from "@/lib/format/time";
 import { getSelectedStationReport } from "@/lib/filters/public";
@@ -32,10 +37,30 @@ export function HomeServerLead({
   initialRecencyFilter,
   initialPresenceFilter
 }: HomeServerLeadProps) {
-  const nearbyStations = (initialCity
-    ? stations.filter((station) => station.city?.trim().toUpperCase() === initialCity.trim().toUpperCase())
-    : stations
-  ).slice(0, 3);
+  const { location } = useLocationHardening();
+  const coords = location ? { lat: location.lat, lng: location.lng } : null;
+
+  const nearbyStations = useMemo(() => {
+    const baseStations = initialCity
+      ? stations.filter((station) => station.city?.trim().toUpperCase() === initialCity.trim().toUpperCase())
+      : stations;
+
+    if (!coords) {
+      return baseStations.slice(0, 3);
+    }
+
+    return [...baseStations]
+      .map((station) => ({
+        station,
+        distance:
+          station.lat !== null && station.lng !== null
+            ? calculateDistance(coords.lat, coords.lng, station.lat, station.lng)
+            : Number.POSITIVE_INFINITY
+      }))
+      .sort((left, right) => left.distance - right.distance)
+      .slice(0, 3)
+      .map(({ station }) => station);
+  }, [coords, initialCity, stations]);
 
   const selectedModeLabel =
     initialFuelFilter !== "all"
@@ -110,6 +135,10 @@ export function HomeServerLead({
         <div className="space-y-2">
           {nearbyStations.map((station) => {
             const latest = getSelectedStationReport(station, initialFuelFilter);
+            const distance = coords && station.lat !== null && station.lng !== null
+              ? calculateDistance(coords.lat, coords.lng, station.lat, station.lng)
+              : null;
+
             return (
               <Link
                 key={station.id}
@@ -126,7 +155,14 @@ export function HomeServerLead({
                       {station.brand || "Sem bandeira"} · {latest ? `${formatCurrencyBRL(latest.price)} · ${formatRecencyLabel(latest.reportedAt)}` : "Sem preço recente"}
                     </p>
                   </div>
-                  <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--color-accent)]/70" />
+                  <div className="mt-0.5 flex shrink-0 flex-col items-end gap-1">
+                    <Sparkles className="h-4 w-4 text-[color:var(--color-accent)]/70" />
+                    {distance !== null ? (
+                      <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-[color:var(--color-accent)]/72">
+                        {formatDistance(distance)}
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
               </Link>
             );
@@ -141,5 +177,3 @@ export function HomeServerLead({
     </SectionCard>
   );
 }
-
-

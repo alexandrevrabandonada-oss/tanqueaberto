@@ -459,6 +459,30 @@ export async function getReportsByIds(ids: string[]): Promise<PriceReport[]> {
   return (data as PriceReportRow[]).map(mapReportRow);
 }
 
+export async function getReportByIdAdmin(id: string): Promise<ReportWithStation | null> {
+  if (isPreviewFixturesMode()) {
+    const previewReport = getPreviewRecentFeed().find((report) => report.id === id);
+    return previewReport ?? null;
+  }
+
+  const supabase = createSupabaseServiceClient();
+  const [{ data, error }, stations] = await Promise.all([
+    supabase
+      .from("price_reports")
+      .select("id,station_id,fuel_type,price,photo_url,photo_taken_at,reported_at,created_at,approved_at,rejected_at,reporter_nickname,ip_hash,status,moderation_note,moderation_reason,moderated_by,source_kind,photo_hash,location_distance,location_confidence,reconciliation_id,is_confirmation,metadata,version")
+      .eq("id", id)
+      .maybeSingle(),
+    getAdminStations()
+  ]);
+
+  if (error || !data) {
+    if (error) console.error(`Failed to load report ${id} for admin`, error);
+    return null;
+  }
+
+  const report = mapReportRow(data as PriceReportRow);
+  return mapReportsWithStations([report], stations)[0] ?? null;
+}
 export async function getModerationCounts() {
   const supabase = createSupabaseServiceClient();
   const { data, error } = await supabase.from("price_reports").select("status").order("created_at", { ascending: false });
@@ -572,4 +596,5 @@ export async function getRecentReportsForStations(stationIds: string[], limit = 
 
   return (data as PriceReportRow[]).map(mapReportRow);
 }
+
 
