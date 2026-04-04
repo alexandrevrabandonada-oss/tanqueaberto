@@ -30,11 +30,11 @@ import type { FuelType } from "@/lib/types";
 
 const ECONOMY_FUEL_STORAGE_KEY = "bomba-aberta:economy-fuel-filter";
 const ECONOMY_FUEL_OPTIONS = publicFuelFilters.filter((item) => item.value !== "all") as Array<{ value: FuelType; label: string }>;
-const FLEX_FUEL_RATIO_THRESHOLD = 0.7;
+const FLEX_FUEL_RATIO_THRESHOLD = 0.75;
 const ECONOMY_REFERENCE_MIN_ITEMS = 3;
 const ECONOMY_SAVINGS_LITERS = [40, 50] as const;
-const OPPORTUNITY_MIN_DELTA = 0.05;
-const FOLLOWED_DROP_MIN_DELTA = 0.03;
+const OPPORTUNITY_MIN_DELTA = 0.03;
+const FOLLOWED_DROP_MIN_DELTA = 0.02;
 
 function getStationHref(stationId: string, returnToHref?: string) {
   return returnToHref ? `/postos/${stationId}?returnTo=${encodeURIComponent(returnToHref)}` : `/postos/${stationId}`;
@@ -118,23 +118,23 @@ function buildPracticalReason(
   distanceValue: number | null,
   preferDistance = false
 ) {
-  if (recencyTone === "stale" || confidenceScore < 0.58) {
-    return "Preco bom, mas a leitura ja pede confirmacao.";
+  if (recencyTone === "stale" || confidenceScore < 0.65) {
+    return "Bom, mas checa o preço de novo antes de sair.";
   }
 
   if (preferDistance && distanceValue !== null && distanceValue <= 1500 && priceGap <= 0.12) {
-    return "Nao e so barato: esta perto e atualizado.";
+    return "Eh barato mesmo e nao sai do caminho.";
   }
 
   if (priceGap <= 0.03 && recencyTone === "fresh" && confidenceScore >= 0.7) {
-    return "Menor preco com dado ainda quente.";
+    return "Menor preco e o dado ainda ta quentinho.";
   }
 
   if (priceGap <= 0.12) {
-    return "Equilibra preco, recencia e contexto melhor que o resto.";
+    return "Melhor que o resto: preco, distancia e recencia combinam bem.";
   }
 
-  return "Preco baixo, mas ainda vale comparar com calma.";
+  return "Eh barato. Mas compara bem ligeirinho antes de ir.";
 }
 
 function buildPracticalCandidate(item: any, scopeMinPrice: number, options?: { preferDistance?: boolean }) {
@@ -176,18 +176,18 @@ function pickBestPracticalCandidate(items: Array<{ station: any; report: any }>,
 
 function getEconomyRecommendationMeta(candidate: any) {
   if (!candidate) {
-    return { label: "Sem leitura", variant: "secondary" as const };
+    return { label: "Sem base", variant: "secondary" as const };
   }
 
   if (candidate.reliable) {
-    return { label: "Vale agora", variant: "default" as const };
+    return { label: "To indo", variant: "default" as const };
   }
 
-  if (candidate.recencyTone === "stale" || candidate.confidence.score < 0.58) {
-    return { label: "Leitura fraca", variant: "danger" as const };
+  if (candidate.recencyTone === "stale" || candidate.confidence.score < 0.65) {
+    return { label: "Checa depois", variant: "danger" as const };
   }
 
-  return { label: "Vale com cautela", variant: "warning" as const };
+  return { label: "Talvez", variant: "warning" as const };
 }
 export function HomeDeferredSections(props: Record<string, any>) {
   const {
@@ -516,16 +516,16 @@ export function HomeDeferredSections(props: Record<string, any>) {
         cards.push({
           id: "nearby-price-window",
           eyebrow: "Perto de voce",
-          title: `${fuelLabels[economyFuelFilter]} chamando atencao perto de voce`,
+          title: `${fuelLabels[economyFuelFilter]} bom perto de voce`,
           station: nearbyBestOption.station,
           report: nearbyBestOption.report,
           fuelType: economyFuelFilter,
           contextLabel: nearbyBestOption.distanceValue !== null ? `${formatDistance(nearbyBestOption.distanceValue)} · ${getEconomyLocalityLabel(nearbyBestOption.station)}` : getEconomyLocalityLabel(nearbyBestOption.station),
-          summary: `${formatCurrencyBRL(deltaPerLiter)} abaixo da media recente do recorte.`,
+          summary: `${formatCurrencyBRL(deltaPerLiter)} mais barato que a media deste recorte.`,
           detail: nearbyBestOption.reliable
-            ? `Sai a ${formatCurrencyBRL(nearbyBestOption.report.price)} e ainda encaixa bem no caminho.`
-            : `O preco abriu vantagem, mas a leitura ainda pede confirmacao rapida antes de sair.`,
-          badgeLabel: nearbyBestOption.reliable ? "Oportunidade real" : "Vale conferir",
+            ? `Paga ${formatCurrencyBRL(nearbyBestOption.report.price)} e nao sai do caminho.`
+            : `Preco abriu mesmo, mas confere rapido antes de sair.`,
+          badgeLabel: nearbyBestOption.reliable ? "To indo" : "Vale a pena",
           badgeVariant: nearbyBestOption.reliable ? "default" as const : "warning" as const,
           recencyTone: nearbyBestOption.recencyTone,
           confidence: nearbyBestOption.confidence,
@@ -545,15 +545,15 @@ export function HomeDeferredSections(props: Record<string, any>) {
 
       cards.push({
         id: "flex-neighborhood-window",
-        eyebrow: "Comparacao popular",
-        title: `${winningFuel === "etanol" ? "Etanol compensa" : "Gasolina compensa"} no seu bairro`,
+        eyebrow: "Gasolina vs etanol",
+        title: `${winningFuel === "etanol" ? "Etanol compensa" : "Gasolina compensa"} no bairro`,
         station: flexComparator.station,
         report: winningReport,
         fuelType: winningFuel,
         contextLabel: flexComparator.contextLabel,
         summary: flexComparator.description,
-        detail: `${fuelLabels.gasolina_comum}: ${formatCurrencyBRL(flexComparator.gasolineReport.price)} · ${fuelLabels.etanol}: ${formatCurrencyBRL(flexComparator.ethanolReport.price)}`,
-        badgeLabel: flexComparator.strong ? "Base boa" : "Base util",
+        detail: `Gasolina: ${formatCurrencyBRL(flexComparator.gasolineReport.price)} | Etanol: ${formatCurrencyBRL(flexComparator.ethanolReport.price)}`,
+        badgeLabel: flexComparator.strong ? "Nota boa" : "Serve",
         badgeVariant: flexComparator.strong ? "default" as const : "warning" as const,
         recencyTone: winningTone,
         confidence: winningConfidence,
