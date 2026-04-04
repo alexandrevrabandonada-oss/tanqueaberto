@@ -432,7 +432,7 @@ async function moderateReports(reportIds: string[], decision: "approved" | "reje
 
   try {
     const trustUpdates = reports.map((item) => {
-      return updateCollectorScore(item.reporter_nickname, item.ip_hash, {
+      return updateCollectorScore(item.reporter_nickname, item.ip_hash ?? null, {
         action: decision === "approved" ? "approve" : "reject",
         reason: note,
         photoQuality: undefined,
