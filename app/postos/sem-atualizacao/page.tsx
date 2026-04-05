@@ -38,9 +38,9 @@ export default async function StationsWithoutRecentPricePage({ searchParams }: S
   const workflowReadout = await getTerritoryWorkflowReadout(120);
   const currentWorkflow = territory.city || territory.neighborhood ? resolveTerritoryWorkflowState(workflowReadout.records, territory.city || undefined, territory.neighborhood || undefined) : null;
   const withoutRecentAll = stations.filter((station) => canShowStationOnMap(station) && !hasRecentStationPrice(station)).sort((left, right) => {
-    const cityCompare = left.city.localeCompare(right.city);
+    const cityCompare = (left.city || "").localeCompare(right.city || "");
     if (cityCompare !== 0) return cityCompare;
-    return left.neighborhood.localeCompare(right.neighborhood);
+    return (left.neighborhood || "").localeCompare(right.neighborhood || "");
   });
   const withoutRecent = territory.city || territory.neighborhood
     ? withoutRecentAll.filter((station) => matchesTerritory(station, territory))
