@@ -2,6 +2,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { StationCard } from "@/components/station/station-card";
 import { ButtonLink } from "@/components/ui/button";
 import { MissionStartButton } from "@/components/mission/mission-start-button";
+import { MissionProvider } from "@/components/mission/mission-context";
 import { SectionCard } from "@/components/ui/section-card";
 import { getHomeStations } from "@/lib/data";
 import { TerritoryWorkflowControls } from "@/components/admin/ops/territory-workflow-controls";
@@ -48,77 +49,79 @@ export default async function StationsWithoutRecentPricePage({ searchParams }: S
 
   return (
     <AppShell>
-      <div className="space-y-4 pb-10 pt-1">
-        <SectionCard className="space-y-4">
-          <div className="space-y-2">
-            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Lacunas do mapa</p>
-            <h1 className="text-[2rem] font-semibold leading-none text-white">Postos cadastrados sem preço recente</h1>
-            <p className="max-w-2xl text-sm text-white/58">
-              Esses postos já existem no território visível. O que falta é um preço aprovado recente para deixar a leitura viva.
-            </p>
-          </div>
+      <MissionProvider>
+        <div className="space-y-4 pb-10 pt-1">
+          <SectionCard className="space-y-4">
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Lacunas do mapa</p>
+              <h1 className="text-[2rem] font-semibold leading-none text-white">Postos cadastrados sem preço recente</h1>
+              <p className="max-w-2xl text-sm text-white/58">
+                Esses postos já existem no território visível. O que falta é um preço aprovado recente para deixar a leitura viva.
+              </p>
+            </div>
 
-          {territory.city || territory.neighborhood ? (
-            <div className="space-y-3 rounded-[18px] border border-[color:var(--color-accent)]/20 bg-[color:var(--color-accent)]/8 px-4 py-3 text-sm text-white/72">
-              <div>
-                <p className="text-xs uppercase tracking-[0.18em] text-[color:var(--color-accent)]">Território em foco</p>
-                <p className="mt-1 font-semibold text-white">{territory.neighborhood || territory.city}</p>
-                <p className="text-white/48">{territory.city && territory.neighborhood ? `${territory.city} · ${territory.neighborhood}` : territory.city || territory.neighborhood}</p>
+            {territory.city || territory.neighborhood ? (
+              <div className="space-y-3 rounded-[18px] border border-[color:var(--color-accent)]/20 bg-[color:var(--color-accent)]/8 px-4 py-3 text-sm text-white/72">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.18em] text-[color:var(--color-accent)]">Território em foco</p>
+                  <p className="mt-1 font-semibold text-white">{territory.neighborhood || territory.city}</p>
+                  <p className="text-white/48">{territory.city && territory.neighborhood ? `${territory.city} · ${territory.neighborhood}` : territory.city || territory.neighborhood}</p>
+                </div>
+                <TerritoryWorkflowControls
+                  city={territory.city || territory.neighborhood || ""}
+                  neighborhood={territory.neighborhood || null}
+                  returnTo={buildTerritoryWorkflowReturnTo("/postos/sem-atualizacao", territory.city || undefined, territory.neighborhood || undefined, "station_editor")}
+                  currentState={currentWorkflow}
+                  compact
+                />
               </div>
-              <TerritoryWorkflowControls
-                city={territory.city || territory.neighborhood || ""}
-                neighborhood={territory.neighborhood || null}
-                returnTo={buildTerritoryWorkflowReturnTo("/postos/sem-atualizacao", territory.city || undefined, territory.neighborhood || undefined, "station_editor")}
-                currentState={currentWorkflow}
-                compact
-              />
-            </div>
-          ) : null}
+            ) : null}
 
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Sem atualização recente</p>
-              <p className="mt-3 text-3xl font-semibold text-white">{withoutRecent.length}</p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-white/42">Sem atualização recente</p>
+                <p className="mt-3 text-3xl font-semibold text-white">{withoutRecent.length}</p>
+              </div>
+              <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-white/42">Apto ao mapa</p>
+                <p className="mt-3 text-3xl font-semibold text-white">{stations.filter((station) => canShowStationOnMap(station)).length}</p>
+              </div>
+              <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-white/42">Como colaborar</p>
+                <p className="mt-3 text-sm text-white/58">Enviar foto, preço e horário do momento.</p>
+              </div>
             </div>
-            <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Apto ao mapa</p>
-              <p className="mt-3 text-3xl font-semibold text-white">{stations.filter((station) => canShowStationOnMap(station)).length}</p>
-            </div>
-            <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Como colaborar</p>
-              <p className="mt-3 text-sm text-white/58">Enviar foto, preço e horário do momento.</p>
-            </div>
-          </div>
 
-          <div className="flex flex-wrap gap-3">
-            <ButtonLink href="/enviar">Enviar preço</ButtonLink>
-            {withoutRecent.length > 0 && (
-              <MissionStartButton 
-                groupId="gaps" 
-                groupName="Lacunas do Mapa" 
-                stationIds={withoutRecent.map(s => s.id)}
-              >
-                Missão: Resolver Lacunas
-              </MissionStartButton>
-            )}
-            <ButtonLink href="/" variant="secondary">Voltar ao mapa</ButtonLink>
-          </div>
-        </SectionCard>
-
-        {withoutRecent.length === 0 ? (
-          <SectionCard>
-            <div className="rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/58">
-              Não há postos visíveis sem preço recente neste momento.
+            <div className="flex flex-wrap gap-3">
+              <ButtonLink href="/enviar">Enviar preço</ButtonLink>
+              {withoutRecent.length > 0 && (
+                <MissionStartButton 
+                  groupId="gaps" 
+                  groupName="Lacunas do Mapa" 
+                  stationIds={withoutRecent.map(s => s.id)}
+                >
+                  Missão: Resolver Lacunas
+                </MissionStartButton>
+              )}
+              <ButtonLink href="/" variant="secondary">Voltar ao mapa</ButtonLink>
             </div>
           </SectionCard>
-        ) : (
-          <div className="space-y-3">
-            {withoutRecent.map((station) => (
-              <StationCard key={station.id} station={station} />
-            ))}
-          </div>
-        )}
-      </div>
+
+          {withoutRecent.length === 0 ? (
+            <SectionCard>
+              <div className="rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/58">
+                Não há postos visíveis sem preço recente neste momento.
+              </div>
+            </SectionCard>
+          ) : (
+            <div className="space-y-3">
+              {withoutRecent.map((station) => (
+                <StationCard key={station.id} station={station} />
+              ))}
+            </div>
+          )}
+        </div>
+      </MissionProvider>
     </AppShell>
   );
 }
