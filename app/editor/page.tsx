@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Route } from "next";
 import { ShieldCheck, Smartphone, Link2 } from "lucide-react";
@@ -82,6 +83,19 @@ export default async function EditorEntryPage({ searchParams }: EditorEntryPageP
             </div>
             <p className="mt-1">Se o link vier incompleto, use apenas o codigo recebido para reativar.</p>
           </div>
+        </SectionCard>
+
+        <SectionCard className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Acesso completo</p>
+              <h2 className="mt-1 text-base font-semibold text-white">Sou Admin do sistema</h2>
+            </div>
+            <Link href="/admin/login" className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/80 hover:bg-white/10 transition">
+              Fazer login admin
+            </Link>
+          </div>
+          <p className="text-xs text-white/60">Se você for admin, entre com sua conta para acessar livremente a operação completa e a semeadura de postos.</p>
         </SectionCard>
 
         <SectionCard className="space-y-3">
