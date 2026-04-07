@@ -51,6 +51,11 @@ import { getProgressiveTrustOperationalReadout } from "@/lib/ops/progressive-tru
 import { ProgressiveTrustRolloutPanel } from "./components/progressive-trust-rollout-panel";
 import { ProgressiveTrustOperationsPanel } from "./components/progressive-trust-operations-panel";
 import { getProgressiveTrustRollout } from "@/lib/ops/progressive-trust";
+import { getEconomyTelemetryReadout } from "@/lib/ops/economy-telemetry";
+import { getTerritorialCoverageReadout } from "@/lib/ops/territorial-coverage";
+import { getTerritorialSeedingImpactReadout } from "@/lib/ops/territorial-seeding-impact";
+import { getTerritoryWorkflowQueueReadout } from "@/lib/ops/territory-workflow";
+import { UnifiedOperationalSummaryPanel } from "./components/unified-operational-summary-panel";
 
 export default async function OpsDashboardPage() {
   const supabase = await createSupabaseServerClient();
@@ -59,7 +64,7 @@ export default async function OpsDashboardPage() {
     .select('*')
     .order('created_at', { ascending: false })
     .limit(10);
-  const [killSwitches, groups, alerts, history, collectors, territorialHistory, synthesis, territoryWorkflow, progressiveTrustReadout, progressiveTrustRollout] = await Promise.all([
+  const [killSwitches, groups, alerts, history, collectors, territorialHistory, synthesis, territoryWorkflow, progressiveTrustReadout, progressiveTrustRollout, economyTelemetryReadout, coverageReadout, seedingReadout, territorialQueueReadout] = await Promise.all([
     getKillSwitches(),
     getAuditGroups(),
     detectActiveAlerts(),
@@ -69,7 +74,11 @@ export default async function OpsDashboardPage() {
     getOperationalSynthesisAction(),
     getTerritoryWorkflowReadout(120),
     getProgressiveTrustOperationalReadout(14),
-    getProgressiveTrustRollout()
+    getProgressiveTrustRollout(),
+    getEconomyTelemetryReadout(14),
+    getTerritorialCoverageReadout(30),
+    getTerritorialSeedingImpactReadout(30),
+    getTerritoryWorkflowQueueReadout(120)
   ]);
 
   return (
@@ -90,6 +99,16 @@ export default async function OpsDashboardPage() {
 
       <div className="mb-8">
         <OperationalSynthesis synthesis={synthesis} />
+      </div>
+
+      <div className="mb-8">
+        <UnifiedOperationalSummaryPanel
+          coverageReadout={coverageReadout}
+          seedingReadout={seedingReadout}
+          territorialQueueReadout={territorialQueueReadout}
+          progressiveTrustReadout={progressiveTrustReadout}
+          economyReadout={economyTelemetryReadout}
+        />
       </div>
 
       <div className="mb-8">
