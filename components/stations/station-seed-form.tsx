@@ -13,7 +13,7 @@ import { calculateDistance, formatDistance } from "@/lib/geo/distance";
 import { cn } from "@/lib/utils";
 import { normalizeContextValue, readHomeContext, readLastStationContext } from "@/lib/navigation/home-context";
 import { useGeolocation } from "@/hooks/use-geolocation";
-import { getStationPublicName } from "@/lib/quality/stations";
+import { getStationPublicName, isValidStationCoordinate } from "@/lib/quality/stations";
 import { trackProductEvent } from "@/lib/telemetry/client";
 
 import { createStationSeedAction, geocodeStationSeedAddressAction, type StationSeedState } from "@/app/postos/cadastrar/actions";
@@ -38,6 +38,11 @@ interface CandidateStation {
   score: number;
   reason: string;
   distance: number | null;
+}
+
+interface NearbyStationCandidate {
+  station: Station;
+  distance: number;
 }
 
 type LocationMode = "gps" | "address";
@@ -137,6 +142,28 @@ function SeedDuplicateCard({ candidate, onUseExisting }: { candidate: CandidateS
   );
 }
 
+function SeedNearbyCard({ candidate, onUseExisting }: { candidate: NearbyStationCandidate; onUseExisting: (station: Station) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onUseExisting(candidate.station)}
+      className="w-full rounded-[18px] border border-white/10 bg-black/25 px-4 py-3 text-left transition hover:border-white/18 hover:bg-white/[0.04]"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 space-y-1">
+          <p className="truncate text-sm font-semibold text-white">{getStationPublicName(candidate.station)}</p>
+          <p className="text-xs text-white/58">{candidate.station.brand || "Sem bandeira"} · {candidate.station.neighborhood || "Sem bairro"} · {candidate.station.city || "Sem cidade"}</p>
+          <p className="text-[11px] text-white/42">{candidate.station.address || "Endereco nao informado"}</p>
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-2 text-[11px] text-white/42">
+          <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 font-semibold text-white/78">{formatDistance(candidate.distance)}</span>
+          <Badge variant="outline">Abrir este</Badge>
+        </div>
+      </div>
+    </button>
+  );
+}
+
 export function StationSeedForm({ stations, notice, initialCity, initialNeighborhood, seedOrigin }: StationSeedFormProps) {
   const router = useRouter();
   const [state, formAction, pending] = useActionState(createStationSeedAction, initialState);
@@ -167,6 +194,7 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
   const gpsStateTrackedRef = useRef<string | null>(null);
   const flowAbandonedTrackedRef = useRef(false);
   const hasSubmittedRef = useRef(false);
+  const gpsAutoRequestedRef = useRef(false);
   const latestSnapshotRef = useRef({ nickname: "", city: "", duplicateCount: 0, hasCoords: false });
 
   useEffect(() => {
@@ -190,6 +218,19 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
     setLat((value) => value || coords.lat.toFixed(6));
     setLng((value) => value || coords.lng.toFixed(6));
   }, [coords, locationMode]);
+
+  useEffect(() => {
+    if (locationMode !== "gps") {
+      return;
+    }
+
+    if (gpsAutoRequestedRef.current || coords || loading || errorCode === "denied" || errorCode === "unsupported") {
+      return;
+    }
+
+    gpsAutoRequestedRef.current = true;
+    getLocation();
+  }, [coords, errorCode, getLocation, loading, locationMode]);
 
 
   useEffect(() => {
@@ -305,6 +346,29 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
       .sort((left, right) => right.score - left.score)
       .slice(0, 3);
   }, [brand, city, currentCoords, neighborhood, nickname, officialName, stations, street]);
+
+  const nearbyStations = useMemo(() => {
+    if (!currentCoords) {
+      return [] as NearbyStationCandidate[];
+    }
+
+    return stations
+      .filter((station) => isValidStationCoordinate(station.lat, station.lng))
+      .map((station) => ({
+        station,
+        distance: calculateDistance(currentCoords.lat, currentCoords.lng, station.lat, station.lng)
+      }))
+      .sort((left, right) => left.distance - right.distance)
+      .slice(0, 5);
+  }, [currentCoords, stations]);
+
+  const nearbySectionTitle = locationMode === "gps"
+    ? "Postos já cadastrados perto de você"
+    : "Postos já cadastrados perto desse ponto";
+
+  const nearbySectionHint = locationMode === "gps"
+    ? "Use essa lista para perceber se o posto já existe na base antes de criar outro."
+    : "Use essa lista para conferir se já existe um posto cadastrado nesse endereço ou entorno.";
 
   useEffect(() => {
     latestSnapshotRef.current = {
@@ -551,6 +615,35 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
             required
           />
         </label>
+      </section>
+
+      <section className="space-y-3 rounded-[24px] border border-white/8 bg-black/25 p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Proximidade</p>
+            <h2 className="mt-1 text-base font-semibold text-white">{nearbySectionTitle}</h2>
+          </div>
+          <Badge variant={nearbyStations.length > 0 ? "accent" : "outline"}>{nearbyStations.length} listados</Badge>
+        </div>
+        <p className="text-sm text-white/58">{nearbySectionHint}</p>
+
+        {!currentCoords ? (
+          <div className="rounded-[18px] border border-white/8 bg-black/20 px-4 py-3 text-sm text-white/58">
+            {locationMode === "gps"
+              ? "Toque em \"Usar GPS agora\" para listar os postos mais próximos da sua localização."
+              : "Geocodifique ou ajuste o ponto no mapa para listar os postos já cadastrados por perto."}
+          </div>
+        ) : nearbyStations.length > 0 ? (
+          <div className="space-y-2">
+            {nearbyStations.map((candidate) => (
+              <SeedNearbyCard key={`nearby:${candidate.station.id}`} candidate={candidate} onUseExisting={handleUseExisting} />
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-[18px] border border-white/8 bg-black/20 px-4 py-3 text-sm text-white/58">
+            Nenhum posto com coordenada valida apareceu perto desse ponto. Ainda assim, confira os parecidos abaixo antes de salvar.
+          </div>
+        )}
       </section>
 
       <section className="space-y-3 rounded-[24px] border border-white/8 bg-black/25 p-4">
