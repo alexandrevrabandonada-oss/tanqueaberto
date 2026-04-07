@@ -30,9 +30,9 @@ function isLegacyAdminUsersColumnError(message: string | undefined) {
     || normalized.includes("column role does not exist");
 }
 
-async function lookupAdminUser(authUser: { id: string; email: string }) {
+async function lookupAdminUser(authUser: { id: string; email?: string | null }) {
   const supabase = await createSupabaseServerClient();
-  const normalizedEmail = authUser.email.trim().toLowerCase();
+  const normalizedEmail = authUser.email ? authUser.email.trim().toLowerCase() : "";
 
   const fullLookup = await supabase
     .from("admin_users")
@@ -42,53 +42,55 @@ async function lookupAdminUser(authUser: { id: string; email: string }) {
 
   if (!fullLookup.error) {
     if (!fullLookup.data?.user_id) {
-      const byEmailLookup = await supabase
-        .from("admin_users")
-        .select("user_id,email,role")
-        .eq("email", normalizedEmail)
-        .maybeSingle();
+      if (normalizedEmail) {
+        const byEmailLookup = await supabase
+          .from("admin_users")
+          .select("user_id,email,role")
+          .eq("email", normalizedEmail)
+          .maybeSingle();
 
-      if (!byEmailLookup.error) {
-        return {
-          data: byEmailLookup.data ? ({
-            user_id: byEmailLookup.data.user_id ?? authUser.id,
-            email: byEmailLookup.data.email ?? normalizedEmail,
-            role: byEmailLookup.data.role ?? "admin"
-          } satisfies AdminLookupRow) : null,
-          error: null
-        };
-      }
+        if (!byEmailLookup.error) {
+          return {
+            data: byEmailLookup.data ? ({
+              user_id: byEmailLookup.data.user_id ?? authUser.id,
+              email: byEmailLookup.data.email ?? normalizedEmail,
+              role: byEmailLookup.data.role ?? "admin"
+            } satisfies AdminLookupRow) : null,
+            error: null
+          };
+        }
 
-      if (!isLegacyAdminUsersColumnError(byEmailLookup.error.message)) {
-        return byEmailLookup;
-      }
+        if (!isLegacyAdminUsersColumnError(byEmailLookup.error.message)) {
+          return byEmailLookup;
+        }
 
-      const byEmailLegacyLookup = await supabase
-        .from("admin_users")
-        .select("email")
-        .eq("email", normalizedEmail)
-        .maybeSingle();
+        const byEmailLegacyLookup = await supabase
+          .from("admin_users")
+          .select("email")
+          .eq("email", normalizedEmail)
+          .maybeSingle();
 
-      if (!byEmailLegacyLookup.error) {
-        return {
-          data: byEmailLegacyLookup.data ? ({
-            user_id: authUser.id,
-            email: normalizedEmail,
-            role: "admin"
-          } satisfies AdminLookupRow) : null,
-          error: null
-        };
-      }
+        if (!byEmailLegacyLookup.error) {
+          return {
+            data: byEmailLegacyLookup.data ? ({
+              user_id: authUser.id,
+              email: normalizedEmail,
+              role: "admin"
+            } satisfies AdminLookupRow) : null,
+            error: null
+          };
+        }
 
-      if (!isLegacyAdminUsersColumnError(byEmailLegacyLookup.error.message)) {
-        return byEmailLegacyLookup;
+        if (!isLegacyAdminUsersColumnError(byEmailLegacyLookup.error.message)) {
+          return byEmailLegacyLookup;
+        }
       }
     }
 
     return {
       data: fullLookup.data ? ({
         user_id: fullLookup.data.user_id,
-        email: fullLookup.data.email ?? normalizedEmail,
+        email: fullLookup.data.email || normalizedEmail || "no-email@admin.local",
         role: fullLookup.data.role ?? "admin"
       } satisfies AdminLookupRow) : null,
       error: null
@@ -109,7 +111,7 @@ async function lookupAdminUser(authUser: { id: string; email: string }) {
     return {
       data: emailLookup.data ? ({
         user_id: emailLookup.data.user_id,
-        email: emailLookup.data.email ?? normalizedEmail,
+        email: emailLookup.data.email || normalizedEmail || "no-email@admin.local",
         role: "admin"
       } satisfies AdminLookupRow) : null,
       error: null
@@ -133,7 +135,7 @@ async function lookupAdminUser(authUser: { id: string; email: string }) {
   return {
     data: legacyLookup.data ? ({
       user_id: legacyLookup.data.user_id,
-      email: normalizedEmail,
+      email: normalizedEmail || "no-email@admin.local",
       role: "admin"
     } satisfies AdminLookupRow) : null,
     error: null
@@ -148,7 +150,7 @@ export async function getCurrentAdminUser(): Promise<AdminUser | null> {
   const supabase = await createSupabaseServerClient();
   const { data: userResult, error: userError } = await supabase.auth.getUser();
 
-  if (userError || !userResult.user?.email || !userResult.user.id) {
+  if (userError || !userResult.user?.id) {
     return null;
   }
 
@@ -166,18 +168,18 @@ export async function getCurrentAdminUser(): Promise<AdminUser | null> {
     return null;
   }
 
-  if (!data?.email || !data?.user_id) {
+  if (!data?.user_id) {
     return null;
   }
 
-  return { id: data.user_id, email: data.email ?? userResult.user.email, role: normalizeRole(data.role) };
+  return { id: data.user_id, email: data.email || userResult.user.email || "no-email@admin.local", role: normalizeRole(data.role) };
 }
 
 async function requireUserForRoute(allowedRoles: AdminRole[], loginRoute: Route): Promise<AdminUser> {
   const supabase = await createSupabaseServerClient();
   const { data: userResult, error: userError } = await supabase.auth.getUser();
 
-  if (userError || !userResult.user?.email || !userResult.user.id) {
+  if (userError || !userResult.user?.id) {
     redirect(`${loginRoute}?error=session_expired` as Route);
   }
 
@@ -195,7 +197,7 @@ async function requireUserForRoute(allowedRoles: AdminRole[], loginRoute: Route)
     redirect(`${loginRoute}?error=session_expired` as Route);
   }
 
-  if (!data?.email || !data?.user_id) {
+  if (!data?.user_id) {
     await supabase.auth.signOut();
     redirect(`${loginRoute}?error=not_authorized` as Route);
   }
@@ -205,14 +207,14 @@ async function requireUserForRoute(allowedRoles: AdminRole[], loginRoute: Route)
     redirect(`${loginRoute}?error=not_authorized` as Route);
   }
 
-  return { id: data.user_id, email: data.email ?? userResult.user.email, role };
+  return { id: data.user_id, email: data.email || userResult.user.email || "no-email@admin.local", role };
 }
 
 async function resolveAuthAdminUser(): Promise<AdminUser | null> {
   const supabase = await createSupabaseServerClient();
   const { data: userResult, error: userError } = await supabase.auth.getUser();
 
-  if (userError || !userResult.user?.email || !userResult.user.id) {
+  if (userError || !userResult.user?.id) {
     return null;
   }
 
@@ -229,11 +231,11 @@ async function resolveAuthAdminUser(): Promise<AdminUser | null> {
     return null;
   }
 
-  if (!data?.email || !data?.user_id) {
+  if (!data?.user_id) {
     return null;
   }
 
-  return { id: data.user_id, email: data.email ?? userResult.user.email, role: normalizeRole(data.role) };
+  return { id: data.user_id, email: data.email || userResult.user.email || "no-email@admin.local", role: normalizeRole(data.role) };
 }
 
 export async function requireAdminUser() {
