@@ -216,11 +216,11 @@ function FirstFoldSignalCard({
   const recencyTone = report ? getRecencyTone(report.reportedAt) : null;
 
   return (
-    <div className="rounded-[22px] border border-white/8 bg-black/22 p-4">
+    <div className="min-w-0 rounded-[22px] border border-white/8 bg-black/22 p-4">
       <p className="text-[10px] uppercase tracking-[0.18em] text-white/38">{eyebrow}</p>
       <h3 className="mt-1 text-base font-semibold text-white">{title}</h3>
-      <p className="mt-3 truncate text-sm font-semibold text-white">{getStationPublicName(station)}</p>
-      <p className="mt-1 truncate text-[11px] uppercase tracking-[0.16em] text-white/34">{[station?.neighborhood, station?.city].filter(Boolean).join(" · ") || "Recorte aberto"}</p>
+      <p className="mt-3 break-words text-sm font-semibold leading-snug text-white">{getStationPublicName(station)}</p>
+      <p className="mt-1 break-words text-[11px] uppercase tracking-[0.16em] text-white/34">{[station?.neighborhood, station?.city].filter(Boolean).join(" · ") || "Recorte aberto"}</p>
       <div className="mt-3 flex flex-wrap gap-2">
         {report ? <Badge variant="secondary" className="text-[10px]">{formatCurrencyBRL(Number(report.price))}</Badge> : <Badge variant="warning" className="text-[10px]">Sem preço recente</Badge>}
         {report && recencyTone ? <Badge variant={recencyToneToBadgeVariant(recencyTone)} className="text-[10px]">{formatRecencyLabel(report.reportedAt)}</Badge> : null}
@@ -750,9 +750,9 @@ export function HomeDeferredSections(props: Record<string, any>) {
               <p className="text-sm leading-relaxed text-white/40 xl:max-w-xl">Veja os postos do recorte e entre no envio sem rodeio.</p>
             </div>
 
-            <div className="flex items-center justify-between min-h-[1.5rem]">
+            <div className="flex min-h-[1.5rem] flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               {selectedReadiness ? (
-                <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
+                <div className="flex min-w-0 flex-wrap items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
                   <span className="text-xs text-white/40">{selectedReadiness.status === "ready" ? "✨ Recorte forte e validado." : selectedReadiness.status === "validating" ? "🧪 Recorte em validação técnica." : "🧱 Sua contribuição é útil aqui."}</span>
                   {selectedReadiness && <GroupStatusBadge status={selectedReadiness.status} className="mt-1" />}
                 </div>
@@ -1125,20 +1125,20 @@ export function HomeDeferredSections(props: Record<string, any>) {
 
                 return (
                   <div key={opportunity.id} className="rounded-[20px] border border-white/8 bg-white/[0.04] p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
                         <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">{opportunity.eyebrow}</p>
                         <h3 className="mt-1 text-base font-semibold text-white">{opportunity.title}</h3>
                       </div>
-                      <Badge variant={opportunity.badgeVariant}>{opportunity.badgeLabel}</Badge>
+                      <Badge variant={opportunity.badgeVariant} className="self-start">{opportunity.badgeLabel}</Badge>
                     </div>
 
-                    <div className="mt-4 flex items-start justify-between gap-3">
+                    <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-white">{getStationPublicName(opportunity.station)}</p>
+                        <p className="break-words text-sm font-semibold leading-snug text-white">{getStationPublicName(opportunity.station)}</p>
                         <p className="mt-1 text-[11px] text-white/46">{opportunity.contextLabel}</p>
                       </div>
-                      <div className="shrink-0 text-right">
+                      <div className="shrink-0 sm:text-right">
                         <p className="text-2xl font-black tracking-tight text-white">{formatCurrencyBRL(opportunity.report.price)}</p>
                         <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-white/34">{fuelLabels[opportunity.fuelType as FuelType]}</p>
                       </div>
@@ -1160,7 +1160,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
                       <ButtonLink
                         href={stationHref}
                         variant="secondary"
-                        className="h-9 px-3 text-[10px] font-black uppercase tracking-[0.16em]"
+                        className="min-h-9 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em]"
                         onClick={() => {
                           rememberStationVisit({ id: opportunity.station.id, name: getStationPublicName(opportunity.station), city: opportunity.station.city });
                           void onStationTrack?.(`economy-opportunity-${opportunity.id}`);
@@ -1170,7 +1170,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
                       </ButtonLink>
                       <ButtonLink
                         href={sendHref}
-                        className="h-9 px-3 text-[10px] font-black uppercase tracking-[0.16em]"
+                        className="min-h-9 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em]"
                         onClick={() => {
                           rememberStationVisit({ id: opportunity.station.id, name: getStationPublicName(opportunity.station), city: opportunity.station.city });
                           void trackProductEvent({
@@ -1195,7 +1195,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
                         <Button
                           type="button"
                           variant="ghost"
-                          className="h-9 px-3 text-[10px] font-black uppercase tracking-[0.16em] text-white/72 sm:col-span-2"
+                          className="min-h-9 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/72 sm:col-span-2"
                           onClick={() => handleEconomyRoute(opportunity.station, opportunity.id)}
                         >
                           <Navigation className="h-3.5 w-3.5" />
@@ -1226,21 +1226,21 @@ export function HomeDeferredSections(props: Record<string, any>) {
 
                 return (
                   <div key={readout.id} className="rounded-[20px] border border-white/8 bg-white/[0.04] p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
                         <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">{readout.title}</p>
                         <p className="mt-1 text-sm text-white/58">{readout.hint}</p>
                       </div>
-                      {entry ? <Badge variant={recommendation.variant}>{recommendation.label}</Badge> : null}
+                      {entry ? <Badge variant={recommendation.variant} className="self-start">{recommendation.label}</Badge> : null}
                     </div>
                     {report && station ? (
                       <>
-                        <div className="mt-4 flex items-start justify-between gap-3">
+                        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold text-white">{getStationPublicName(station)}</p>
+                            <p className="break-words text-sm font-semibold leading-snug text-white">{getStationPublicName(station)}</p>
                             <p className="mt-1 text-[11px] text-white/42">{readout.context}</p>
                           </div>
-                          <div className="shrink-0 text-right">
+                          <div className="shrink-0 sm:text-right">
                             <p className="text-xl font-black tracking-tight text-white">{formatCurrencyBRL(report.price)}</p>
                             <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-white/34">{fuelLabels[economyFuelFilter]}</p>
                           </div>
@@ -1264,13 +1264,13 @@ export function HomeDeferredSections(props: Record<string, any>) {
 
           <div className="space-y-4">
             <div className="rounded-[22px] border border-white/8 bg-black/20 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
                   <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Gasolina x etanol</p>
                   <h3 className="mt-1 text-base font-semibold text-white">Comparador flex</h3>
                   <p className="mt-1 text-sm leading-relaxed text-white/52">Regra popular dos 70% sem virar calculadora complicada.</p>
                 </div>
-                <Badge variant={flexComparator ? flexComparator.strong ? "default" : flexComparator.reliable ? "warning" : "danger" : "secondary"}>
+                <Badge variant={flexComparator ? flexComparator.strong ? "default" : flexComparator.reliable ? "warning" : "danger" : "secondary"} className="self-start">
                   {flexComparator ? flexComparator.strong ? "Base boa" : flexComparator.reliable ? "Base util" : "Base fraca" : "Sem base"}
                 </Badge>
               </div>
@@ -1312,9 +1312,9 @@ export function HomeDeferredSections(props: Record<string, any>) {
                   </div>
 
                   <div className="mt-3 rounded-[18px] border border-white/8 bg-black/20 p-4">
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <p className="text-base font-semibold text-white">{flexComparator.headline}</p>
-                      <Badge variant="secondary">{flexComparator.ratioLabel}</Badge>
+                      <Badge variant="secondary" className="self-start">{flexComparator.ratioLabel}</Badge>
                     </div>
                     <p className="mt-2 text-sm leading-relaxed text-white/58">{flexComparator.description}</p>
                     {!flexComparator.strong ? (
@@ -1328,13 +1328,13 @@ export function HomeDeferredSections(props: Record<string, any>) {
             </div>
 
             <div className="rounded-[22px] border border-white/8 bg-black/20 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
                   <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Economia estimada</p>
                   <h3 className="mt-1 text-base font-semibold text-white">Quanto isso pode representar no tanque</h3>
                   <p className="mt-1 text-sm leading-relaxed text-white/52">Leitura curta contra a referencia recente do proprio recorte.</p>
                 </div>
-                <Badge variant={economySavings ? economySavings.kind === "positive" ? "default" : economySavings.kind === "insufficient" ? "secondary" : "warning" : "secondary"}>
+                <Badge variant={economySavings ? economySavings.kind === "positive" ? "default" : economySavings.kind === "insufficient" ? "secondary" : "warning" : "secondary"} className="self-start">
                   {economySavings ? economySavings.kind === "positive" ? "Abrindo economia" : economySavings.kind === "insufficient" ? "Base curta" : "Sem folga clara" : "Sem base"}
                 </Badge>
               </div>
@@ -1397,13 +1397,13 @@ export function HomeDeferredSections(props: Record<string, any>) {
           <div className="grid gap-4 xl:grid-cols-3">
             {economyGroups.map((group: any) => (
               <div key={group.id} className="rounded-[22px] border border-white/8 bg-white/5 p-4">
-                <div className="mb-4 flex items-start justify-between gap-3">
-                  <div>
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
                     <p className="text-[10px] uppercase tracking-[0.18em] text-white/38">{group.eyebrow}</p>
                     <h3 className="mt-1 text-base font-semibold text-white">{group.title}</h3>
                     <p className="mt-1 text-sm leading-relaxed text-white/50">{group.hint}</p>
                   </div>
-                  <Badge variant="outline">{group.items.length}</Badge>
+                  <Badge variant="outline" className="self-start">{group.items.length}</Badge>
                 </div>
 
                 {group.items.length === 0 ? (
@@ -1420,7 +1420,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
 
                       return (
                         <div key={report.id || `${group.id}-${station.id}`} className="rounded-[18px] border border-white/8 bg-black/20 p-4">
-                          <div className="flex items-start justify-between gap-3">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                             <div className="min-w-0">
                               <Link
                                 href={stationHref}
@@ -1430,11 +1430,11 @@ export function HomeDeferredSections(props: Record<string, any>) {
                                   void onStationTrack?.(`economy-${group.id}`);
                                 }}
                               >
-                                <p className="truncate text-sm font-semibold text-white">{getStationPublicName(station)}</p>
+                                <p className="break-words text-sm font-semibold leading-snug text-white">{getStationPublicName(station)}</p>
                                 <p className="mt-1 text-[11px] text-white/46">{getEconomyLocalityLabel(station)}</p>
                               </Link>
                             </div>
-                            <div className="shrink-0 text-right">
+                            <div className="shrink-0 sm:text-right">
                               <p className="text-2xl font-black tracking-tight text-white">{formatCurrencyBRL(report.price)}</p>
                               <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-white/34">{fuelLabels[economyFuelFilter]}</p>
                               <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-accent)]/78">{group.id === "stale" ? "Pode ter mudado" : group.id === "near" ? "Bom no caminho" : "Bom agora"}</p>
@@ -1454,7 +1454,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
                             <ButtonLink
                               href={stationHref}
                               variant="secondary"
-                              className="h-9 px-3 text-[10px] font-black uppercase tracking-[0.16em]"
+                              className="min-h-9 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em]"
                               onClick={() => {
                                 rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
                                 void onStationTrack?.(`economy-${group.id}`);
@@ -1464,7 +1464,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
                             </ButtonLink>
                             <ButtonLink
                               href={sendHref}
-                              className="h-9 px-3 text-[10px] font-black uppercase tracking-[0.16em]"
+                              className="min-h-9 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em]"
                               onClick={() => {
                                 rememberStationVisit({ id: station.id, name: getStationPublicName(station), city: station.city });
                                 void trackProductEvent({
@@ -1483,13 +1483,13 @@ export function HomeDeferredSections(props: Record<string, any>) {
                                 });
                               }}
                             >
-                              Atualizar preco desse combustivel
+                              Atualizar preco
                             </ButtonLink>
                             {canRoute ? (
                               <Button
                                 type="button"
                                 variant="ghost"
-                                className="h-9 px-3 text-[10px] font-black uppercase tracking-[0.16em] text-white/72 sm:col-span-2"
+                                className="min-h-9 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/72 sm:col-span-2"
                                 onClick={() => handleEconomyRoute(station, group.id)}
                               >
                                 <Navigation className="h-3.5 w-3.5" />

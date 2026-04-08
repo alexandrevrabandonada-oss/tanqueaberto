@@ -15,7 +15,7 @@ interface ButtonLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> 
 }
 
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-semibold transition active:scale-[0.99]";
+  "inline-flex min-w-0 items-center justify-center gap-2 rounded-full px-4 py-3 text-center text-sm font-semibold leading-tight whitespace-normal transition active:scale-[0.99]";
 
 const variants: Record<ButtonVariant, string> = {
   primary: "bg-[color:var(--color-accent)] text-black shadow-[0_10px_30px_rgba(255,212,0,0.18)]",

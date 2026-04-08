@@ -10,7 +10,7 @@ export function Badge({ children, variant = "default", className }: BadgeProps) 
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em]",
+        "inline-flex max-w-full min-w-0 items-center justify-center rounded-full px-3 py-1 text-center text-xs font-semibold uppercase leading-tight tracking-[0.16em] whitespace-normal break-words",
         variant === "default" && "bg-[color:var(--color-accent)] text-black",
         variant === "warning" && "bg-white/10 text-[color:var(--color-accent)] ring-1 ring-white/10",
         variant === "danger" && "bg-[color:var(--color-danger)]/15 text-[color:var(--color-danger)]",
