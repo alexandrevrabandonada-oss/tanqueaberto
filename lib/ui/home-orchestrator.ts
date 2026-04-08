@@ -37,7 +37,7 @@ export interface HomeOrchestration {
 export function orchestrateHomeState(input: HomeOrchestrationInput): HomeOrchestration {
   const isTrueBeginner = input.role === "iniciante" && input.submissionsCount === 0;
   const isSenior = input.role === "senior";
-  const hasOperationalDepth = input.favoriteCount > 0 || input.recentCount > 0 || input.submissionsCount > 0;
+  const hasOperationalDepth = input.favoriteCount > 0;
   const isOfflineSevere = !input.online || Boolean(input.geoError && !input.isWarm && !input.isRefreshing);
 
   if (isOfflineSevere) {

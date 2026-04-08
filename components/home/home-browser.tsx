@@ -73,11 +73,6 @@ const ProgressiveIdentityPrompt = dynamic(() => import("@/components/identity/pr
   loading: () => null
 });
 
-const MySubmissionsList = dynamic(() => import("@/components/history/my-submissions-list").then((mod) => mod.MySubmissionsList), {
-  ssr: false,
-  loading: () => null
-});
-
 const RecorteActivityWidget = dynamic(() => import("@/components/home/recorte-activity-widget").then((mod) => mod.RecorteActivityWidget), {
   ssr: false,
   loading: () => null
@@ -246,7 +241,7 @@ export function HomeBrowser({
   const { isStreetMode, toggleStreetMode, recentIds, favoriteIds, toggleFavorite, isFavorite } = useStreetMode();
   const { recordActivity, closeSessionManual } = useStreetSession();
   const [listMode, setListMode] = useState<'ultra-claro' | 'avancado' | 'normal'>(initialDensityMode);
-  const { reporterNickname, submissions } = useMySubmissions();
+  const { submissions } = useMySubmissions();
   const { focus, updateTownFocus, updateSuggestedStation } = useOperationalFocus();
   const submissionsCount = submissions.length;
   const { addRecentCut } = useOperationalMemory();
@@ -786,6 +781,9 @@ export function HomeBrowser({
   const priorityHint = stationsWithoutRecentPrice > 0
     ? "Vale completar o recorte antes de abrir novos pontos."
     : "O recorte atual já está bem coberto.";
+  const mobileLeadBest = cheapestNow[0] ?? null;
+  const mobileLeadPriority = priorityStations[0] ?? null;
+  const mobileLeadPriorityReport = mobileLeadPriority ? getSelectedStationReport(mobileLeadPriority, fuelFilter) : null;
 
   useEffect(() => {
     const ref = searchParams.get("ref");
@@ -1028,35 +1026,6 @@ export function HomeBrowser({
   return (
     <>
       {debriefOverlay}
-      {showMobileLead ? (
-        <div className="mb-4 space-y-3">
-          <SectionCard className="space-y-3 border-white/10 bg-white/5 shadow-lg shadow-black/12">
-            <div className="space-y-1.5">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Leitura rápida</p>
-              <h1 className="text-[1.3rem] font-semibold leading-tight text-white">Ache um posto. Envie o preço.</h1>
-              <p className="text-sm leading-relaxed text-white/56">Lista primeiro. O mapa fica abaixo.</p>
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <ButtonLink href={railSendHref} className="h-11 flex-1 justify-center px-4 text-[11px] font-black uppercase tracking-[0.18em]">
-                Enviar preço
-              </ButtonLink>
-              <button
-                type="button"
-                onClick={() => mapSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                className="inline-flex h-11 flex-1 items-center justify-center rounded-full border border-white/10 bg-white/5 px-4 text-[11px] font-black uppercase tracking-[0.18em] text-white/82 transition hover:border-white/20 hover:bg-white/8"
-              >
-                Abrir mapa
-              </button>
-            </div>
-          </SectionCard>
-          <div ref={mapSectionRef}>
-            <HomeMapSurface stations={mapStations} contextHref={contextHref} fuelFilter={fuelFilter} center={coords} preferListFirst={Boolean(initialListFirstMode || isLowPerf || isStreetMode)} />
-          </div>
-        </div>
-      ) : null}
-      <div className={cn("mb-4", showMobileLead && "hidden")}>
-        <ProgressiveIdentityPrompt context="home" source="return" />
-      </div>
       <TopOrchestrator
         isWarm={isWarm}
         isRefreshing={isRefreshing}
@@ -1087,6 +1056,82 @@ export function HomeBrowser({
         isMicro={isMicroMode}
         isMissionActive={missionActive}
       />
+      {showMobileLead ? (
+        <div className="mb-4 min-w-0 space-y-3 overflow-x-clip">
+          <SectionCard className="space-y-4 border-white/10 bg-white/5 shadow-lg shadow-black/12">
+            <div className="space-y-1.5">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Primeiro movimento</p>
+              <h1 className="text-[1.3rem] font-semibold leading-tight text-white">Buscar, comparar e enviar.</h1>
+              <p className="text-sm leading-relaxed text-white/56">Veja o melhor sinal do recorte, descubra onde falta atualização e entre no envio sem desviar para histórico pessoal.</p>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="rounded-[18px] border border-white/8 bg-black/20 px-3 py-2.5">
+                <p className="text-[9px] uppercase tracking-[0.16em] text-white/34">No recorte</p>
+                <p className="mt-1 text-lg font-semibold text-white">{mapStations.length}</p>
+              </div>
+              <div className="rounded-[18px] border border-white/8 bg-black/20 px-3 py-2.5">
+                <p className="text-[9px] uppercase tracking-[0.16em] text-white/34">Com preço</p>
+                <p className="mt-1 text-lg font-semibold text-white">{stationsWithRecentPrice.length}</p>
+              </div>
+              <div className="rounded-[18px] border border-[color:var(--color-accent)]/18 bg-[color:var(--color-accent)]/8 px-3 py-2.5">
+                <p className="text-[9px] uppercase tracking-[0.16em] text-white/40">Pra atualizar</p>
+                <p className="mt-1 text-lg font-semibold text-[color:var(--color-accent)]">{stationsWithoutRecentPrice}</p>
+              </div>
+            </div>
+            <div className="grid gap-3">
+              {mobileLeadBest ? (
+                <a href={getStationHref(mobileLeadBest.station.id, contextHref)} className="rounded-[22px] border border-emerald-500/20 bg-emerald-500/8 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-emerald-300/72">Comparar agora</p>
+                      <p className="mt-1 text-base font-semibold text-white">{getStationPublicName(mobileLeadBest.station)}</p>
+                    </div>
+                    <Badge variant="default" className="shrink-0 text-[10px]">{formatCurrencyBRL(Number(mobileLeadBest.report.price))}</Badge>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Badge variant={recencyToneToBadgeVariant(getRecencyTone(mobileLeadBest.report.reportedAt))} className="text-[10px]">{formatRecencyLabel(mobileLeadBest.report.reportedAt)}</Badge>
+                    {mobileLeadBest.station.distance !== undefined ? <Badge variant="outline" className="text-[10px]">{formatDistance(mobileLeadBest.station.distance)}</Badge> : null}
+                  </div>
+                </a>
+              ) : null}
+
+              {mobileLeadPriority ? (
+                <a href={getSendHref(mobileLeadPriority.id, contextHref, fuelFilter)} className="rounded-[22px] border border-[color:var(--color-accent)]/20 bg-[color:var(--color-accent)]/8 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-accent)]/72">Enviar onde falta</p>
+                      <p className="mt-1 text-base font-semibold text-white">{getStationPublicName(mobileLeadPriority)}</p>
+                    </div>
+                    <Badge variant="warning" className="shrink-0 text-[10px]">{mobileLeadPriorityReport ? formatRecencyLabel(mobileLeadPriorityReport.reportedAt) : "Sem preço"}</Badge>
+                  </div>
+                  <p className="mt-3 text-sm leading-relaxed text-white/58">{priorityHint}</p>
+                </a>
+              ) : null}
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <ButtonLink href={railSendHref} className="h-11 flex-1 justify-center px-4 text-[11px] font-black uppercase tracking-[0.18em]">
+                Enviar preço
+              </ButtonLink>
+              <ButtonLink href={"/#comparar-agora" as Route} variant="secondary" className="h-11 flex-1 justify-center px-4 text-[11px] font-black uppercase tracking-[0.18em]">
+                Comparar agora
+              </ButtonLink>
+              <button
+                type="button"
+                onClick={() => mapSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                className="inline-flex h-11 flex-1 items-center justify-center rounded-full border border-white/10 bg-white/5 px-4 text-[11px] font-black uppercase tracking-[0.18em] text-white/82 transition hover:border-white/20 hover:bg-white/8"
+              >
+                Abrir mapa
+              </button>
+            </div>
+          </SectionCard>
+          <div id="mapa-ao-vivo" ref={mapSectionRef}>
+            <HomeMapSurface stations={mapStations} contextHref={contextHref} fuelFilter={fuelFilter} center={coords} preferListFirst={Boolean(initialListFirstMode || isLowPerf || isStreetMode)} />
+          </div>
+        </div>
+      ) : null}
+      <div className={cn("mb-4", showMobileLead && "hidden")}>
+        <ProgressiveIdentityPrompt context="home" source="return" />
+      </div>
       {!isMobileLeanHome && homeState.state !== "operation-normal" ? (
       <div className={cn("mb-6 transition-all duration-300", (isHeroCollapsed || missionActive) && "opacity-0 h-0 overflow-hidden mb-0")}>
         <SurfaceOrchestrator 
@@ -1147,6 +1192,7 @@ export function HomeBrowser({
           railSendHref={railSendHref}
           isHeroCollapsed={isHeroCollapsed}
           role={role}
+          suppressPrimaryMapHero={showMobileLead}
           onQuickAccessTrack={(stationId: string, kind: string) => {
             void trackProductEvent({
               eventType: "quick_action_clicked",

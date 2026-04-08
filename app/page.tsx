@@ -1,7 +1,6 @@
 import { headers } from "next/headers";
 import { AppShell } from "@/components/layout/app-shell";
 import { HomeBrowser } from "@/components/home/home-browser";
-import { HomeServerLead } from "@/components/home/home-server-lead";
 import { SubmissionHistoryProvider } from "@/components/history/submission-history-context";
 import { MissionProvider } from "@/components/mission/mission-context";
 import { RouteRuntimeSignals } from "@/components/layout/route-runtime-signals";
@@ -122,17 +121,6 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       >
         <MissionProvider>
           <RouteRuntimeSignals />
-        {initialListFirstMode ? (
-          <HomeServerLead
-            stations={stations}
-            recentCount={recentCount}
-            initialCity={initialCity}
-            initialQuery={initialQuery}
-            initialFuelFilter={initialFuelFilter}
-            initialRecencyFilter={initialRecencyFilter}
-            initialPresenceFilter={initialPresenceFilter}
-          />
-        ) : null}
         <HomeBrowser
           stations={stations}
           feed={feed}
@@ -148,7 +136,6 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           initialPresenceFilter={initialPresenceFilter}
           initialDensityMode={initialDensityMode}
           initialListFirstMode={initialListFirstMode}
-          suppressMobileLead={initialListFirstMode}
         />
         </MissionProvider>
       </AppShell>

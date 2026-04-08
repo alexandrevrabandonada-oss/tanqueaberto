@@ -15,7 +15,6 @@ import { QuickActionButton } from "@/components/ui/quick-action";
 import { OperationalMemoryBar } from "@/components/home/operational-memory-bar";
 import { HomeMapSurface } from "@/components/home/home-map-surface";
 import { RecorteActivityWidget } from "@/components/home/recorte-activity-widget";
-import { MySubmissionsList } from "@/components/history/my-submissions-list";
 import { cn } from "@/lib/utils";
 import { formatDistance } from "@/lib/geo/distance";
 import { formatCurrencyBRL } from "@/lib/format/currency";
@@ -189,6 +188,54 @@ function getEconomyRecommendationMeta(candidate: any) {
 
   return { label: "Talvez", variant: "warning" as const };
 }
+
+function FirstFoldSignalCard({
+  eyebrow,
+  title,
+  station,
+  report,
+  note,
+  href,
+  actionLabel,
+  actionVariant = "secondary"
+}: {
+  eyebrow: string;
+  title: string;
+  station: any;
+  report?: any;
+  note: string;
+  href?: Route;
+  actionLabel?: string;
+  actionVariant?: "primary" | "secondary" | "ghost" | "accent";
+}) {
+  if (!station) {
+    return null;
+  }
+
+  const distanceValue = getStationDistanceValue(station);
+  const recencyTone = report ? getRecencyTone(report.reportedAt) : null;
+
+  return (
+    <div className="rounded-[22px] border border-white/8 bg-black/22 p-4">
+      <p className="text-[10px] uppercase tracking-[0.18em] text-white/38">{eyebrow}</p>
+      <h3 className="mt-1 text-base font-semibold text-white">{title}</h3>
+      <p className="mt-3 truncate text-sm font-semibold text-white">{getStationPublicName(station)}</p>
+      <p className="mt-1 truncate text-[11px] uppercase tracking-[0.16em] text-white/34">{[station?.neighborhood, station?.city].filter(Boolean).join(" · ") || "Recorte aberto"}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {report ? <Badge variant="secondary" className="text-[10px]">{formatCurrencyBRL(Number(report.price))}</Badge> : <Badge variant="warning" className="text-[10px]">Sem preço recente</Badge>}
+        {report && recencyTone ? <Badge variant={recencyToneToBadgeVariant(recencyTone)} className="text-[10px]">{formatRecencyLabel(report.reportedAt)}</Badge> : null}
+        {distanceValue !== null ? <Badge variant="outline" className="text-[10px]">{formatDistance(distanceValue)}</Badge> : null}
+      </div>
+      <p className="mt-3 text-sm leading-relaxed text-white/52">{note}</p>
+      {href && actionLabel ? (
+        <ButtonLink href={href} variant={actionVariant} className="mt-4 h-10 justify-center px-4 text-[11px] font-black uppercase tracking-[0.16em]">
+          {actionLabel}
+        </ButtonLink>
+      ) : null}
+    </div>
+  );
+}
+
 export function HomeDeferredSections(props: Record<string, any>) {
   const {
     homeState,
@@ -225,6 +272,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
     isHeroCollapsed = false,
     role,
     selectedCityLabel = selectedCity,
+    suppressPrimaryMapHero = false,
     onQuickAccessTrack,
     onRouteTrack,
     onStationTrack
@@ -655,6 +703,9 @@ export function HomeDeferredSections(props: Record<string, any>) {
     ];
   }, [cheapestNearYou, cheapestRecent, cheapestStale]);
   const hasEconomyItems = economyGroups.some((group) => group.items.length > 0);
+  const heroComparisonEntry = cheapestRecent[0] ?? cheapestNearYou[0] ?? nearbyBestOption ?? null;
+  const heroPriorityStation = priorityStations[0] ?? noRecentStations[0] ?? null;
+  const heroPriorityReport = heroPriorityStation ? getSelectedStationReport(heroPriorityStation, fuelFilter) : null;
 
   function handleEconomyRoute(station: any, groupId: string) {
     if (!hasRouteCoordinates(station)) return;
@@ -692,7 +743,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
     <>
       {homeState.state !== "operation-normal" ? (
         <div className="mb-6 transition-all duration-300">
-          <SectionCard className="space-y-3 border-white/8 bg-white/[0.04] py-4 xl:mb-3">
+          <SectionCard className="space-y-4 border-white/8 bg-white/[0.04] py-4 xl:mb-3">
             <div className="space-y-1">
               <Badge className="text-[10px] uppercase tracking-widest">Mapa Vivo {role === 'senior' && "· Senior"}</Badge>
               <h2 className="text-2xl font-bold tracking-tight text-white xl:text-[1.6rem]">Buscar, comparar e enviar.</h2>
@@ -740,6 +791,40 @@ export function HomeDeferredSections(props: Record<string, any>) {
                   Missão Coleta
                 </Button>
               ) : null}
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <FirstFoldSignalCard
+                eyebrow="Comparar agora"
+                title="Melhor leitura do recorte"
+                station={heroComparisonEntry?.station}
+                report={heroComparisonEntry?.report}
+                note="Preco, recencia e contexto para decidir antes de sair."
+                href={heroComparisonEntry ? (getStationHref(heroComparisonEntry.station.id, contextHref) as Route) : undefined}
+                actionLabel="Ver posto"
+              />
+              <FirstFoldSignalCard
+                eyebrow="Enviar agora"
+                title="Ponto que pede atualização"
+                station={heroPriorityStation}
+                report={heroPriorityReport}
+                note="Se passar por aqui, vale transformar o recorte em dado novo."
+                href={heroPriorityStation ? (getSendHref(heroPriorityStation.id, contextHref, fuelFilter) as Route) : undefined}
+                actionLabel="Atualizar preço"
+                actionVariant="primary"
+              />
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <ButtonLink href={railSendHref as Route} className="h-11 flex-1 justify-center px-4 text-[11px] font-black uppercase tracking-[0.18em]">
+                Enviar preço
+              </ButtonLink>
+              <ButtonLink href={"/#comparar-agora" as Route} variant="secondary" className="h-11 flex-1 justify-center px-4 text-[11px] font-black uppercase tracking-[0.18em]">
+                Comparar agora
+              </ButtonLink>
+              <ButtonLink href={"/#mapa-ao-vivo" as Route} variant="secondary" className="h-11 flex-1 justify-center px-4 text-[11px] font-black uppercase tracking-[0.18em]">
+                Abrir mapa
+              </ButtonLink>
             </div>
           </SectionCard>
         </div>
@@ -812,9 +897,67 @@ export function HomeDeferredSections(props: Record<string, any>) {
       ) : null}
 
       {homeState.state === "senior-hub" ? (
-        <div className="mb-6" onClick={() => void onStationTrack?.("my_submissions") }>
-          <MySubmissionsList />
-        </div>
+        <SectionCard className="mb-6 space-y-4" onClick={() => void onStationTrack?.("priority_refresh") }>
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-xs uppercase tracking-[0.2em] text-white/42">Avance o recorte</p>
+              <h2 className="mt-1 text-xl font-semibold text-white">{selectedCity ? `Onde vale atualizar em ${selectedCity}` : "Próximos postos para atualizar"}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-white/50">{priorityHint}</p>
+            </div>
+            <Badge variant={priorityStations.length > 0 ? "warning" : "secondary"}>{priorityLabel}</Badge>
+          </div>
+
+          {priorityStations.length > 0 ? (
+            <div className="grid gap-3">
+              {priorityStations.map((station: any) => {
+                const latest = getSelectedStationReport(station, fuelFilter);
+                const distanceValue = getStationDistanceValue(station);
+                const recencyTone = latest ? getRecencyTone(latest.reportedAt) : null;
+
+                return (
+                  <div key={station.id} className="rounded-[22px] border border-white/8 bg-black/20 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-base font-semibold text-white">{getStationPublicName(station)}</p>
+                        <p className="mt-1 truncate text-xs uppercase tracking-[0.16em] text-white/36">
+                          {[station.neighborhood, station.city].filter(Boolean).join(" · ") || "Recorte aberto"}
+                        </p>
+                      </div>
+                      {distanceValue !== null ? (
+                        <Badge variant="outline" className="shrink-0 text-[10px]">{formatDistance(distanceValue)}</Badge>
+                      ) : null}
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Badge variant={latest && recencyTone ? recencyToneToBadgeVariant(recencyTone) : "warning"} className="text-[10px]">
+                        {latest ? formatRecencyLabel(latest.reportedAt) : "Sem preço recente"}
+                      </Badge>
+                      {latest ? <Badge variant="secondary" className="text-[10px]">{formatCurrencyBRL(Number(latest.price))}</Badge> : null}
+                      {station.brand ? <Badge variant="outline" className="text-[10px]">{station.brand}</Badge> : null}
+                    </div>
+
+                    <div className="mt-4 flex gap-2">
+                      <ButtonLink href={getSendHref(station.id, contextHref, fuelFilter) as Route} className="flex-1 justify-center text-[11px] font-black uppercase tracking-[0.18em]">
+                        Atualizar preço
+                      </ButtonLink>
+                      <ButtonLink href={getStationHref(station.id, contextHref) as Route} variant="secondary" className="justify-center px-4 text-[11px] font-bold uppercase tracking-[0.16em]">
+                        Ver posto
+                      </ButtonLink>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <EmptyStateCard
+              title="Sem prioridade aberta agora"
+              description="O recorte atual está coberto. Vale abrir o mapa ou mudar a cidade para procurar lacunas reais."
+              actionHref={"/#mapa-ao-vivo" as Route}
+              actionLabel="Abrir mapa"
+              className="text-left"
+            />
+          )}
+        </SectionCard>
       ) : null}
 
       {homeState.state === "senior-hub" && selectedCity && !isLowPerf ? (
@@ -823,15 +966,50 @@ export function HomeDeferredSections(props: Record<string, any>) {
         </div>
       ) : null}
 
-      {homeState.state === "operation-normal" && !isHeroCollapsed ? (
+      {homeState.state === "operation-normal" && !isHeroCollapsed && !suppressPrimaryMapHero ? (
         <SectionCard id="mapa-ao-vivo" data-hero-primary="home-map" className="space-y-3 shadow-lg shadow-black/14 xl:p-5">
-          <div className="flex items-center gap-3 px-5 xl:px-0">
-            <div className="flex w-full items-center justify-between gap-3">
+          <div className="space-y-4 px-5 xl:px-0">
+            <div className="flex w-full items-start justify-between gap-3">
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-white/42">Mapa vivo</p>
-                <h3 className="mt-1 text-lg font-semibold text-white xl:text-[1.25rem]">Busca, contexto e postos por perto</h3>
+                <p className="text-xs uppercase tracking-[0.2em] text-white/42">Primeiro movimento</p>
+                <h3 className="mt-1 text-xl font-semibold text-white xl:text-[1.35rem]">Buscar, comparar e enviar.</h3>
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-white/50">A capa mostra primeiro o melhor sinal do recorte, o ponto que pede atualização e só depois abre o mapa completo.</p>
               </div>
               <ButtonLink href="/enviar" data-cta-inline="home-send-now" className="relative z-[1001] hidden h-9 whitespace-nowrap px-3.5 text-[11px] font-black uppercase tracking-[0.18em] md:inline-flex">Enviar preço</ButtonLink>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <FirstFoldSignalCard
+                eyebrow="Comparar agora"
+                title="Melhor leitura do recorte"
+                station={heroComparisonEntry?.station}
+                report={heroComparisonEntry?.report}
+                note="Comece pelo melhor equilibrio entre preço, recencia e proximidade." 
+                href={heroComparisonEntry ? (getStationHref(heroComparisonEntry.station.id, contextHref) as Route) : undefined}
+                actionLabel="Ver posto"
+              />
+              <FirstFoldSignalCard
+                eyebrow="Enviar agora"
+                title="Onde sua foto destrava o mapa"
+                station={heroPriorityStation}
+                report={heroPriorityReport}
+                note="Se passar aqui, vale transformar dúvida do recorte em preço confirmado."
+                href={heroPriorityStation ? (getSendHref(heroPriorityStation.id, contextHref, fuelFilter) as Route) : undefined}
+                actionLabel="Atualizar preço"
+                actionVariant="primary"
+              />
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <ButtonLink href={railSendHref as Route} className="h-11 flex-1 justify-center px-4 text-[11px] font-black uppercase tracking-[0.18em]">
+                Enviar preço
+              </ButtonLink>
+              <ButtonLink href={"/#comparar-agora" as Route} variant="secondary" className="h-11 flex-1 justify-center px-4 text-[11px] font-black uppercase tracking-[0.18em]">
+                Comparar agora
+              </ButtonLink>
+              <ButtonLink href={"/atualizacoes" as Route} variant="secondary" className="h-11 flex-1 justify-center px-4 text-[11px] font-black uppercase tracking-[0.18em]">
+                Ver atualizações
+              </ButtonLink>
             </div>
           </div>
           {mapStations.length > 0 ? (
@@ -865,7 +1043,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
         ))}
       </SectionCard>
 
-      <SectionCard className="space-y-5">
+      <SectionCard id="comparar-agora" className="space-y-5">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div className="max-w-2xl">
             <p className="text-xs uppercase tracking-[0.2em] text-white/42">Vale a pena para mim</p>

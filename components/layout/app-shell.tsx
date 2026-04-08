@@ -44,7 +44,7 @@ export function AppShell({ children, killSwitches, hideShellSubmitCta = false, a
 
       <div
         data-app-shell-frame="root"
-        className="relative mx-auto flex min-h-screen w-full max-w-[560px] flex-col px-3 pb-[calc(env(safe-area-inset-bottom)+8.5rem)] pt-2 transition-all duration-500 md:max-w-[920px] md:px-6 md:pb-28 lg:max-w-[1180px] lg:px-8 lg:pb-24 xl:max-w-[1540px] xl:px-10 xl:pb-20 2xl:max-w-[1760px] 2xl:px-12 2xl:pb-20"
+        className="relative mx-auto flex min-h-screen w-full max-w-[560px] flex-col overflow-x-clip px-3 pb-[calc(env(safe-area-inset-bottom)+8.5rem)] pt-2 transition-all duration-500 md:max-w-[920px] md:px-6 md:pb-28 lg:max-w-[1180px] lg:px-8 lg:pb-24 xl:max-w-[1540px] xl:px-10 xl:pb-20 2xl:max-w-[1760px] 2xl:px-12 2xl:pb-20"
       >
         <div className="pointer-events-none absolute inset-x-0 top-0 hidden h-56 bg-[radial-gradient(circle_at_top,rgba(255,199,0,0.18),transparent_72%)] md:block" data-low-perf-hide="true" />
 
@@ -105,7 +105,7 @@ export function AppShell({ children, killSwitches, hideShellSubmitCta = false, a
           </div>
         ) : null}
 
-        <main className="relative z-10 flex-1 space-y-3 md:space-y-4 xl:space-y-5">{children}</main>
+        <main className="relative z-10 flex-1 min-w-0 space-y-3 overflow-x-clip md:space-y-4 xl:space-y-5">{children}</main>
 
         <footer className="relative z-10 mt-6 flex justify-center pb-2">
           <a
