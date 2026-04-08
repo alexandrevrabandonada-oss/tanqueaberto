@@ -221,10 +221,10 @@ export async function updateStationLightEditAction(formData: FormData) {
   let status: "saved" | "manual_review" | "duplicate_linked" = nextDuplicate ? "duplicate_linked" : hasSensitiveChange ? "manual_review" : "saved";
   let reason = duplicateReason;
 
-  if (error && nextDuplicate && isMissingDuplicateLinkColumnError(error.message)) {
+  if (error && isMissingDuplicateLinkColumnError(error.message)) {
     const fallbackPayload = {
       ...updatePayload,
-      curation_note: [currentStation.curationNote, reviewReason, proposalSignal.label, proposalSignal.reason].filter(Boolean).join(" · ")
+      curation_note: [currentStation.curationNote, duplicateChanged ? reviewReason : reason, proposalSignal.label, proposalSignal.reason].filter(Boolean).join(" · ")
     };
     delete (fallbackPayload as { duplicate_of_station_id?: string | null }).duplicate_of_station_id;
 
@@ -237,13 +237,13 @@ export async function updateStationLightEditAction(formData: FormData) {
       actorEmail: editor.email,
       stationId,
       reason: error.message,
-      payload: { requestedDuplicateOfStationId: nextDuplicate }
+      payload: { requestedDuplicateOfStationId: nextDuplicate, duplicateChanged }
     });
 
     const retryResult = await supabase.from("stations").update(fallbackPayload).eq("id", stationId);
     error = retryResult.error;
 
-    if (!error) {
+    if (!error && duplicateChanged) {
       changeKind = "manual_review";
       status = "manual_review";
       reason = reviewReason;
@@ -569,6 +569,8 @@ export async function mergeStationIntoCanonicalAction(formData: FormData) {
 
   redirect(buildStationEditRedirect(targetStation.id, { notice: "stations_merged", returnTo }));
 }
+
+
 
 
 
