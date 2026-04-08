@@ -7,8 +7,8 @@ import { ButtonLink } from "@/components/ui/button";
 import { brand } from "@/styles/design-tokens";
 
 export const metadata: Metadata = {
-  title: "Apoie o projeto",
-  description: `Apoie o desenvolvimento e a manutenção do ${brand.name}. Um projeto independente, sem anúncios.`,
+  title: "Campanha de apoio",
+  description: `Apoie o desenvolvimento e a manutenção do ${brand.name} pela campanha no APOIA.se. Um projeto independente, sem anúncios.`,
 };
 
 const APOIA_URL = "https://apoia.se/bombaaberta";
@@ -45,7 +45,7 @@ export default function ApoiePage() {
     <AppShell>
       <SectionCard className="space-y-4">
         <div className="space-y-2">
-          <p className="text-xs uppercase tracking-[0.2em] text-white/42">Sustentabilidade</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-white/42">Campanha APOIA.se</p>
           <h1 className="text-[1.9rem] font-semibold leading-tight text-white">
             Apoie o {brand.name}
           </h1>
@@ -55,10 +55,19 @@ export default function ApoiePage() {
             iniciativa {brand.initiative}.
           </p>
           <p className="text-sm leading-relaxed text-white/62">
-            Se o app é útil na hora de escolher onde abastecer, um apoio pontual ou recorrente faz
-            diferença real para a continuidade do projeto.
+            A campanha oficial de apoio fica em <a href={APOIA_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-[color:var(--color-accent)] underline decoration-white/20 underline-offset-2">apoia.se/bombaaberta</a>.
+            Se o app é útil na hora de escolher onde abastecer, um apoio pontual ou recorrente faz diferença real para a continuidade do projeto.
           </p>
         </div>
+        <a
+          href={APOIA_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[color:var(--color-accent)] px-4 py-3 text-sm font-semibold text-black shadow-[0_10px_30px_rgba(255,212,0,0.18)] transition active:scale-[0.99]"
+        >
+          <Heart className="h-4 w-4" />
+          Abrir campanha no APOIA.se
+        </a>
       </SectionCard>
 
       <SectionCard className="space-y-4">
@@ -100,7 +109,7 @@ export default function ApoiePage() {
           className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[color:var(--color-accent)] px-4 py-3 text-sm font-semibold text-black shadow-[0_10px_30px_rgba(255,212,0,0.18)] transition active:scale-[0.99]"
         >
           <Heart className="h-4 w-4" />
-          Apoiar mensalmente via APOIA.se
+          Apoiar mensalmente na campanha
         </a>
       </SectionCard>
 
@@ -119,7 +128,7 @@ export default function ApoiePage() {
           rel="noopener noreferrer"
           className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:border-[color:var(--color-accent)] active:scale-[0.99]"
         >
-          Fazer apoio pontual
+          Abrir campanha para apoio pontual
         </a>
       </SectionCard>
 

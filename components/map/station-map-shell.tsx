@@ -19,10 +19,11 @@ interface StationMapShellProps {
   returnToHref?: string;
   fuelFilter?: FuelFilter;
   center?: { lat: number; lng: number } | null;
+  userLocation?: { lat: number; lng: number; accuracy: number; trustStatus: "confiável" | "provável" | "incerto"; speed: number | null } | null;
   compact?: boolean;
 }
 
-export function StationMapShell({ stations, className, returnToHref, fuelFilter = "all", center, compact = false }: StationMapShellProps) {
+export function StationMapShell({ stations, className, returnToHref, fuelFilter = "all", center, userLocation, compact = false }: StationMapShellProps) {
   const status = useNetworkHardening();
   const [shouldMountMap, setShouldMountMap] = useState(() => !status.isLowPerf);
   const mountStartedAt = useRef<number>(Date.now());
@@ -79,10 +80,11 @@ export function StationMapShell({ stations, className, returnToHref, fuelFilter 
 
   return (
     <div className={cn("w-full", className)}>
-      <StationMap stations={stations} className={className} returnToHref={returnToHref} fuelFilter={fuelFilter} center={center} compact={compact} />
+      <StationMap stations={stations} className={className} returnToHref={returnToHref} fuelFilter={fuelFilter} center={center} userLocation={userLocation} compact={compact} />
     </div>
   );
 }
+
 
 
 

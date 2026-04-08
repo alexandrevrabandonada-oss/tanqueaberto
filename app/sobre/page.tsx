@@ -6,6 +6,8 @@ import { SectionCard } from "@/components/ui/section-card";
 import { ButtonLink } from "@/components/ui/button";
 import { brand } from "@/styles/design-tokens";
 
+const APOIA_URL = "https://apoia.se/bombaaberta";
+
 const points = [
   "Com foto e horário para aumentar a confiança.",
   "Recência sempre visível para leitura rápida.",
@@ -27,32 +29,18 @@ export default function SobrePage() {
             {brand.name} é uma iniciativa do {brand.initiative} para criar um mapa popular, rápido e confiável dos
             preços de combustíveis no Sul Fluminense.
           </p>
+          <p className="text-sm text-white/62">
+            A ideia é simples: combinar rastreabilidade, revisão comunitária e contexto local para que cada
+            leitura seja útil na hora de abastecer.
+          </p>
         </div>
       </SectionCard>
 
-      <SectionCard className="space-y-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-white/42">Fonte dos postos</p>
-          <h3 className="mt-1 text-xl font-semibold text-white">Cadastro oficial + mapa aberto</h3>
-        </div>
-        <div className="space-y-3 text-sm text-white/70">
-          <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
-            A base cadastral dos postos vem da ANP. O OpenStreetMap entra como apoio cartográfico e geográfico quando a coordenada precisa ser enriquecida.
-          </div>
-          <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
-            Preços, fotos, recência e histórico são dados próprios do Bomba Aberta, enviados pela comunidade e moderados pelo painel interno.
-          </div>
-        </div>
-      </SectionCard>
-
-      <SectionCard className="space-y-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-white/42">Metodologia</p>
-          <h3 className="mt-1 text-xl font-semibold text-white">Como o app organiza a confiança</h3>
-        </div>
-        <div className="space-y-3">
+      <SectionCard className="space-y-3">
+        <p className="text-xs uppercase tracking-[0.2em] text-white/42">Princípios</p>
+        <div className="grid gap-2 sm:grid-cols-2">
           {points.map((point) => (
-            <div key={point} className="rounded-[22px] border border-white/8 bg-black/30 p-4 text-sm text-white/70">
+            <div key={point} className="rounded-[18px] border border-white/8 bg-black/25 px-4 py-3 text-sm text-white/68">
               {point}
             </div>
           ))}
@@ -83,11 +71,10 @@ export default function SobrePage() {
           O projeto é independente e não tem publicidade. Apoio da comunidade ajuda a manter a infraestrutura
           no ar e ampliar a cobertura de postos.
         </p>
-        <ButtonLink href={"/apoie" as Route} variant="secondary">
+        <ButtonLink href={APOIA_URL} variant="secondary" target="_blank" rel="noopener noreferrer">
           Apoiar o projeto
         </ButtonLink>
       </SectionCard>
     </AppShell>
   );
 }
-

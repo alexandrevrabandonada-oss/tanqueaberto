@@ -11,7 +11,7 @@ import { SectionCard } from "@/components/ui/section-card";
 import { readRouteContext, stopRoute, skipStationInRoute, type RouteContext } from "@/lib/navigation/route-context";
 import { getNextPriorityStation } from "@/lib/ops/route-priority";
 import { useGeolocation } from "@/hooks/use-geolocation";
-import { formatDistance } from "@/lib/geo/distance";
+import { formatDistanceFromYou } from "@/lib/geo/distance";
 import { trackProductEvent } from "@/lib/telemetry/client";
 import { getStationPublicName } from "@/lib/quality/stations";
 import { Navigation } from "lucide-react";
@@ -147,7 +147,7 @@ export function RouteAssistant({ stations, currentStationId = null, isCondensed 
           <div className="min-w-0">
             <p className="truncate text-xs font-black text-white italic tracking-tight">{getStationPublicName(nextStation)}</p>
             {nextStation.distance !== undefined && (
-              <p className="text-[9px] font-bold text-[color:var(--color-accent)] uppercase">{formatDistance(nextStation.distance)}</p>
+              <p className="text-[9px] font-bold text-[color:var(--color-accent)] uppercase">{formatDistanceFromYou(nextStation.distance)}</p>
             )}
           </div>
         </div>
@@ -189,7 +189,7 @@ export function RouteAssistant({ stations, currentStationId = null, isCondensed 
             {nextStation.distance !== undefined && (
               <span className="flex items-center gap-1 text-[color:var(--color-accent)]">
                 <span className="h-1 w-1 rounded-full bg-white/20" />
-                {formatDistance(nextStation.distance)}
+                {formatDistanceFromYou(nextStation.distance)}
               </span>
             )}
           </p>

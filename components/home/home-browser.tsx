@@ -16,7 +16,7 @@ import { SectionCard } from "@/components/ui/section-card";
 import { ReadinessBadge } from "./readiness-badge";
 import { EmptyStateCard } from "@/components/state/empty-state-card";
 import { useLocationHardening } from "@/hooks/use-location-hardening";
-import { calculateDistance, formatDistance } from "@/lib/geo/distance";
+import { calculateDistance, formatDistanceFromYou } from "@/lib/geo/distance";
 import { cn } from "@/lib/utils";
 import { trackProductEvent } from "@/lib/telemetry/client";
 import { formatCurrencyBRL } from "@/lib/format/currency";
@@ -1033,6 +1033,8 @@ export function HomeBrowser({
         effectiveType={effectiveType}
         coords={coords}
         geoLoading={geoLoading}
+        gpsAccuracy={location?.accuracy ?? null}
+        gpsTrustStatus={location?.trustStatus ?? null}
         onGetLocation={getLocation}
         query={query}
         onQueryChange={(val) => setQuery(val)}
@@ -1090,7 +1092,7 @@ export function HomeBrowser({
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <Badge variant={recencyToneToBadgeVariant(getRecencyTone(mobileLeadBest.report.reportedAt))} className="text-[10px]">{formatRecencyLabel(mobileLeadBest.report.reportedAt)}</Badge>
-                    {mobileLeadBest.station.distance !== undefined ? <Badge variant="outline" className="text-[10px]">{formatDistance(mobileLeadBest.station.distance)}</Badge> : null}
+                    {mobileLeadBest.station.distance !== undefined ? <Badge variant="outline" className="text-[10px]">{formatDistanceFromYou(mobileLeadBest.station.distance)}</Badge> : null}
                   </div>
                 </a>
               ) : null}
@@ -1125,7 +1127,14 @@ export function HomeBrowser({
             </div>
           </SectionCard>
           <div id="mapa-ao-vivo" ref={mapSectionRef}>
-            <HomeMapSurface stations={mapStations} contextHref={contextHref} fuelFilter={fuelFilter} center={coords} preferListFirst={Boolean(initialListFirstMode || isLowPerf || isStreetMode)} />
+            <HomeMapSurface
+              stations={mapStations}
+              contextHref={contextHref}
+              fuelFilter={fuelFilter}
+              center={coords}
+              userLocation={location}
+              preferListFirst={Boolean(initialListFirstMode || isLowPerf || isStreetMode)}
+            />
           </div>
         </div>
       ) : null}
@@ -1216,6 +1225,7 @@ export function HomeBrowser({
     </>
   );
 }
+
 
 
 

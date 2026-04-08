@@ -32,3 +32,6 @@ export function formatDistance(meters: number): string {
   return `${km.toFixed(1).replace(".", ",")}km`;
 }
 
+export function formatDistanceFromYou(meters: number): string {
+  return `a ${formatDistance(meters)} de você`;
+}

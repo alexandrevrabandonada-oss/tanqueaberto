@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { FuelType, StationWithReports } from "@/lib/types";
 import { formatCurrencyBRL } from "@/lib/format/currency";
-import { calculateDistance, formatDistance } from "@/lib/geo/distance";
+import { calculateDistance, formatDistanceFromYou } from "@/lib/geo/distance";
 import { formatRecencyLabel } from "@/lib/format/time";
 import { cn } from "@/lib/utils";
 import { getSelectedStationReport } from "@/lib/filters/public";
@@ -158,7 +158,7 @@ function StationOption({
             <span className="truncate">{streetLabel}</span>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-[10px] text-white/54">
-            {candidate.distance !== null ? <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1 font-semibold text-white/72">{formatDistance(candidate.distance)}</span> : null}
+            {candidate.distance !== null ? <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1 font-semibold text-white/72">{formatDistanceFromYou(candidate.distance)}</span> : null}
             {recentPriceLabel ? <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-1 text-emerald-100">Preço {recentPriceLabel} · {recentTimeLabel}</span> : <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1">Sem preço</span>}
             <Badge variant={geoBadge.variant}>{geoBadge.label}</Badge>
             {candidate.ambiguityCount > 1 ? <Badge variant="warning">Parecido</Badge> : null}
@@ -283,7 +283,7 @@ export function PriceSubmitStationPicker({
                   <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/72">
                     <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1">{selectedStation.distributorName?.trim() || selectedStation.brand?.trim() || "Sem bandeira"}</span>
                     <span className="truncate">{shortAddress(selectedStation.address) || selectedStation.neighborhood || selectedStation.city}</span>
-                    {coords && isValidStationCoordinate(selectedStation.lat, selectedStation.lng) ? <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1">{formatDistance(calculateDistance(coords.lat, coords.lng, selectedStation.lat, selectedStation.lng))}</span> : null}
+                    {coords && isValidStationCoordinate(selectedStation.lat, selectedStation.lng) ? <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1">{formatDistanceFromYou(calculateDistance(coords.lat, coords.lng, selectedStation.lat, selectedStation.lng))}</span> : null}
                   </div>
                   {selectedStationReport ? (
                     <p className="text-[11px] text-emerald-100/80">Preço {formatCurrencyBRL(selectedStationReport.price)} · {formatRecencyLabel(selectedStationReport.reportedAt)}</p>

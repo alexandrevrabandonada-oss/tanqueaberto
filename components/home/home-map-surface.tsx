@@ -17,10 +17,11 @@ interface HomeMapSurfaceProps {
   contextHref: string;
   fuelFilter: FuelFilter;
   center?: { lat: number; lng: number } | null;
+  userLocation?: { lat: number; lng: number; accuracy: number; trustStatus: "confiável" | "provável" | "incerto"; speed: number | null } | null;
   preferListFirst?: boolean;
 }
 
-export function HomeMapSurface({ stations, contextHref, fuelFilter, center, preferListFirst = false }: HomeMapSurfaceProps) {
+export function HomeMapSurface({ stations, contextHref, fuelFilter, center, userLocation, preferListFirst = false }: HomeMapSurfaceProps) {
   const [isMobileNarrow, setIsMobileNarrow] = useState(false);
   const [showMap, setShowMap] = useState(() => !preferListFirst);
 
@@ -129,6 +130,7 @@ export function HomeMapSurface({ stations, contextHref, fuelFilter, center, pref
         returnToHref={contextHref}
         fuelFilter={fuelFilter}
         center={center}
+        userLocation={userLocation}
         compact={listFirstMode}
       />
 
@@ -149,5 +151,7 @@ export function HomeMapSurface({ stations, contextHref, fuelFilter, center, pref
     </SectionCard>
   );
 }
+
+
 
 

@@ -16,7 +16,7 @@ import { fuelLabels } from "@/lib/format/labels";
 import { submitPriceReportAction, type SubmitState } from "@/app/enviar/actions";
 import { completeStationInRoute, readRouteContext } from "@/lib/navigation/route-context";
 import { useGeolocation } from "@/hooks/use-geolocation";
-import { calculateDistance, formatDistance } from "@/lib/geo/distance";
+import { calculateDistance, formatDistanceFromYou } from "@/lib/geo/distance";
 import { formatCurrencyBRL } from "@/lib/format/currency";
 import { formatRecencyLabel } from "@/lib/format/time";
 import { trackProductEvent } from "@/lib/telemetry/client";
@@ -1787,7 +1787,7 @@ function PriceSubmitFormBody({
   const submitButtonLabel =
     guidedStage === "photo"
       ? evidenceMode === "sem_placa_faixa"
-        ? (priceSource ? "Continuar" : "Escolher origem")
+        ? (priceSource ? "Continuar sem foto" : "Escolher origem")
         : "Abrir camera"
       : guidedStage === "station"
         ? "Confirmar posto"
@@ -2054,7 +2054,7 @@ function PriceSubmitFormBody({
             ) : null}
             <div className="flex flex-wrap items-center gap-2 text-[10px] text-white/54">
               <Badge variant={sourceBadge.variant}>{sourceBadge.label}</Badge>
-              {candidate.distance !== null ? <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1 font-semibold text-white/72">{formatDistance(candidate.distance)}</span> : null}
+              {candidate.distance !== null ? <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1 font-semibold text-white/72">{formatDistanceFromYou(candidate.distance)}</span> : null}
               {recentPriceLabel ? <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-1 text-emerald-100">Preço {recentPriceLabel} · {recentTimeLabel}</span> : <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1">Sem preço</span>}
               <Badge variant={geoBadge.variant}>{geoBadge.label}</Badge>
               {candidate.ambiguityCount > 1 ? <Badge variant="warning">Parecido</Badge> : null}
@@ -2171,7 +2171,7 @@ function PriceSubmitFormBody({
             )}
             {locationConfidence === "low" && (
               <div className={cn("mt-2 rounded-lg border border-orange-400/20 bg-orange-400/10 px-3 py-2 text-[11px] text-orange-200", isStreetMode && "mt-1")}>
-                ⚠️ <strong>Posto distante:</strong> Você está a {formatDistance(currentDistance!)} daqui.
+                ⚠️ <strong>Posto distante:</strong> Este posto está {formatDistanceFromYou(currentDistance!)}.
               </div>
             )}
             {isAmbiguous && !lockedStation && (
@@ -2449,6 +2449,7 @@ function PriceSubmitFormBody({
               <p className="text-sm font-medium text-white">De onde veio esse preço?</p>
               <p className="mt-1 text-xs text-white/56">Esse modo entra em revisão mais conservadora.</p>
             </div>
+            <p className="text-xs text-white/56">Sem foto também pode seguir. Se quiser, anexe contexto opcional.</p>
             <div className="grid gap-2 sm:grid-cols-2">
               {(["bomba", "recibo", "painel_interno", "informacao_local"] as const).map((option) => (
                 <button
@@ -2747,7 +2748,7 @@ function PriceSubmitFormBody({
                     <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/72">
                       <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1">{selectedStation.distributorName?.trim() || selectedStation.brand?.trim() || "Sem bandeira"}</span>
                       <span className="truncate">{shortAddress(selectedStation.address) || selectedStation.neighborhood || selectedStation.city}</span>
-                      {coords && isValidStationCoordinate(selectedStation.lat, selectedStation.lng) ? <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1">{formatDistance(calculateDistance(coords.lat, coords.lng, selectedStation.lat, selectedStation.lng))}</span> : null}
+                      {coords && isValidStationCoordinate(selectedStation.lat, selectedStation.lng) ? <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1">{formatDistanceFromYou(calculateDistance(coords.lat, coords.lng, selectedStation.lat, selectedStation.lng))}</span> : null}
                     </div>
                     {getSelectedStationReport(selectedStation, fuelType) ? (
                       <p className="text-[11px] text-emerald-100/80">Preço {formatCurrencyBRL(getSelectedStationReport(selectedStation, fuelType)!.price)} · {formatRecencyLabel(getSelectedStationReport(selectedStation, fuelType)!.reportedAt)}</p>
@@ -2942,8 +2943,8 @@ function PriceSubmitFormBody({
               <span className="truncate text-right font-medium text-white">{showStationProposalFlow ? (stationProposalName || "Posto novo proposto") : selectedStation ? getStationPublicName(selectedStation) : "Posto"}</span>
             </div>
             <div className="flex items-center justify-between gap-3 rounded-[16px] border border-white/8 bg-black/20 px-3 py-2">
-              <span className="text-white/48">Foto</span>
-              <span className="truncate text-right font-medium text-white">{hasPhoto ? "Anexada" : evidenceMode === "sem_placa_faixa" ? manualPriceSourceLabels[priceSource as Exclude<ManualPriceSource, "">] ?? "Origem manual" : "Pendente"}</span>
+              <span className="text-white/48">Evidência</span>
+              <span className="truncate text-right font-medium text-white">{hasPhoto ? "Anexada" : evidenceMode === "sem_placa_faixa" ? "Sem foto" : "Pendente"}</span>
             </div>
           </div>
           <div className="mt-3 rounded-[18px] border border-white/8 bg-black/20 p-3">

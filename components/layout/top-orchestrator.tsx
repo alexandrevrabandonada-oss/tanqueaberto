@@ -35,6 +35,8 @@ interface TopOrchestratorProps {
   effectiveType?: string;
   coords: { lat: number; lng: number } | null;
   geoLoading: boolean;
+  gpsAccuracy?: number | null;
+  gpsTrustStatus?: "confiável" | "provável" | "incerto" | null;
   onGetLocation: () => void;
   query: string;
   onQueryChange: (query: string) => void;
@@ -53,19 +55,21 @@ interface TopOrchestratorProps {
 function getSystemState({
   coords,
   geoLoading,
+  gpsAccuracy,
+  gpsTrustStatus,
   isWarm,
   isRefreshing
-}: Pick<TopOrchestratorProps, "coords" | "geoLoading" | "isWarm" | "isRefreshing">) {
+}: Pick<TopOrchestratorProps, "coords" | "geoLoading" | "gpsAccuracy" | "gpsTrustStatus" | "isWarm" | "isRefreshing">) {
   if (geoLoading) {
     return { label: "GPS", detail: "Lendo", tone: "muted" as const, icon: Navigation };
   }
 
   if (coords && isRefreshing) {
-    return { label: "GPS ativo", detail: "Snapshot", tone: "good" as const, icon: Navigation };
+    return { label: "GPS ativo", detail: gpsAccuracy != null ? `${Math.round(gpsAccuracy)}m · Snapshot` : "Snapshot", tone: "good" as const, icon: Navigation };
   }
 
   if (coords) {
-    return { label: "GPS ativo", detail: "Território", tone: "good" as const, icon: Navigation };
+    return { label: "GPS ativo", detail: gpsAccuracy != null ? `${Math.round(gpsAccuracy)}m · ao vivo` : "Ao vivo", tone: gpsTrustStatus === "incerto" ? ("muted" as const) : ("good" as const), icon: Navigation };
   }
 
   if (isRefreshing) {
@@ -153,6 +157,8 @@ export function TopOrchestrator({
   effectiveType,
   coords,
   geoLoading,
+  gpsAccuracy = null,
+  gpsTrustStatus = null,
   onGetLocation,
   query,
   onQueryChange,
@@ -173,7 +179,7 @@ export function TopOrchestrator({
   const stickyMode = isSticky || isMicro;
   const compactMode = !isWideDesktop || stickyMode;
   const budget = isMicro ? TOP_BUDGETS.micro : !isWideDesktop ? TOP_BUDGETS.compact : isSticky ? TOP_BUDGETS.sticky : TOP_BUDGETS.expanded;
-  const system = getSystemState({ coords, geoLoading, isWarm, isRefreshing });
+  const system = getSystemState({ coords, geoLoading, gpsAccuracy, gpsTrustStatus, isWarm, isRefreshing });
   const SystemIcon = system.icon;
   const priorityCities = cityOptions.priority.slice(0, stickyMode ? 2 : compactMode ? 3 : 5);
 
@@ -336,5 +342,8 @@ export function TopOrchestrator({
     </div>
   );
 }
+
+
+
 
 

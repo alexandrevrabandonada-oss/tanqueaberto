@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { type StationWithReports } from "@/lib/types";
 import { type MissionState as Mission } from "@/hooks/use-mission";
 import { type SubmissionQueueEntry } from "@/lib/queue/submission-queue";
-import { calculateDistance, formatDistance } from "@/lib/geo/distance";
+import { calculateDistance, formatDistanceFromYou } from "@/lib/geo/distance";
 import { getStationPublicName } from "@/lib/quality/stations";
 import { trackProductEvent } from "@/lib/telemetry/client";
 import { cn } from "@/lib/utils";
@@ -91,7 +91,7 @@ export function HubOperatingAgenda({ stations, mission, localQueue, submissions,
           id: `nearby-${target.id}`,
           type: "PROXIMITY",
           title: "Posto Próximo sem Preço",
-          description: `${getStationPublicName(target)} está a ${formatDistance(dist)} e precisa de atualização.`,
+          description: `${getStationPublicName(target)} está ${formatDistanceFromYou(dist)} e precisa de atualização.`,
           icon: MapPin,
           href: `/enviar?stationId=${target.id}#photo`,
           label: "ABRIR CÂMERA",

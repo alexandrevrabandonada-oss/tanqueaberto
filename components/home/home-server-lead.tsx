@@ -12,7 +12,7 @@ import { useLocationHardening } from "@/hooks/use-location-hardening";
 import { filterStations, getSelectedStationReport } from "@/lib/filters/public";
 import { formatCurrencyBRL } from "@/lib/format/currency";
 import { formatRecencyLabel } from "@/lib/format/time";
-import { calculateDistance, formatDistance } from "@/lib/geo/distance";
+import { calculateDistance, formatDistanceFromYou } from "@/lib/geo/distance";
 import { rememberStationVisit } from "@/lib/navigation/home-context";
 import { getStationPublicName } from "@/lib/quality/stations";
 import { cn } from "@/lib/utils";
@@ -200,7 +200,7 @@ export function HomeServerLead({
                     <Sparkles className="h-4 w-4 text-[color:var(--color-accent)]/70" />
                     {distance !== null ? (
                       <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-[color:var(--color-accent)]/72">
-                        {formatDistance(distance)}
+                        {formatDistanceFromYou(distance)}
                       </span>
                     ) : null}
                   </div>

@@ -8,6 +8,7 @@ import { ArrowRight, CheckCircle2, Clock3, History, LayoutDashboard, MapPin, Tro
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { fuelLabels } from "@/lib/format/labels";
+import { formatDistanceFromYou } from "@/lib/geo/distance";
 import { getStationPublicName } from "@/lib/quality/stations";
 import { trackProductEvent } from "@/lib/telemetry/client";
 import type { FuelType, StationWithReports } from "@/lib/types";
@@ -149,7 +150,7 @@ export function PostSubmissionBridge({
                 </div>
                 <div className="text-left">
                   <p className="text-sm font-bold leading-tight">Posto próximo sem preço</p>
-                  <p className="text-xs text-white/50">{getStationPublicName(recommendedStation)} • {Math.round(recommendedStation.distance || 0)}m</p>
+                  <p className="text-xs text-white/50">{getStationPublicName(recommendedStation)} • {formatDistanceFromYou(recommendedStation.distance || 0)}</p>
                 </div>
               </div>
               <ArrowRight className="h-5 w-5" />

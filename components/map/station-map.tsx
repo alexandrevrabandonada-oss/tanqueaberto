@@ -26,14 +26,43 @@ interface StationMapProps {
   returnToHref?: string;
   fuelFilter?: FuelFilter;
   center?: { lat: number; lng: number } | null;
+  userLocation?: { lat: number; lng: number; accuracy: number; trustStatus: "confiável" | "provável" | "incerto"; speed: number | null } | null;
   compact?: boolean;
 }
+
+const FOLLOW_SPEED_THRESHOLD_MS = 1.2;
 
 function ChangeView({ center }: { center: { lat: number; lng: number } }) {
   const map = useMap();
   useEffect(() => {
     map.setView([center.lat, center.lng], 13);
   }, [center.lat, center.lng, map]);
+  return null;
+}
+
+function FollowUserView({
+  userLocation,
+  enabled
+}: {
+  userLocation: StationMapProps["userLocation"];
+  enabled: boolean;
+}) {
+  const map = useMap();
+  const isMoving = Boolean(userLocation && userLocation.speed !== null && userLocation.speed >= FOLLOW_SPEED_THRESHOLD_MS);
+
+  useEffect(() => {
+    if (!enabled || !userLocation) {
+      return;
+    }
+
+    const currentZoom = map.getZoom();
+    const targetZoom = isMoving ? Math.min(currentZoom, 14) : Math.max(currentZoom, 17);
+
+    map.setView([userLocation.lat, userLocation.lng], targetZoom, {
+      animate: true
+    });
+  }, [enabled, isMoving, map, userLocation]);
+
   return null;
 }
 
@@ -48,6 +77,17 @@ function createPinIcon(status: "recent" | "stale" | "review") {
   });
 }
 
+function createUserIcon(trustStatus: "confiável" | "provável" | "incerto") {
+  const ringClass = trustStatus === "incerto" ? "border-orange-400/70 bg-orange-400/18 shadow-orange-400/20" : "border-[color:var(--color-accent)]/70 bg-[color:var(--color-accent)]/18 shadow-[color:var(--color-accent)]/20";
+
+  return new L.DivIcon({
+    className: "custom-user-pin",
+    html: `<div class="relative flex h-6 w-6 items-center justify-center"><div class="absolute h-10 w-10 animate-ping rounded-full ${ringClass} opacity-35"></div><div class="relative h-4 w-4 rounded-full border border-white/90 ${ringClass}"></div></div>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12]
+  });
+}
+
 function getStationHref(stationId: string, returnToHref?: string) {
   return returnToHref ? (`/postos/${stationId}?returnTo=${encodeURIComponent(returnToHref)}` as Route) : (`/postos/${stationId}` as Route);
 }
@@ -58,14 +98,37 @@ function getSendHref(stationId: string, returnToHref?: string, fuelFilter?: Fuel
   return returnToHref ? (`${base}&returnTo=${encodeURIComponent(returnToHref)}` as Route) : (base as Route);
 }
 
-export function StationMap({ stations, className = "h-[360px]", returnToHref, fuelFilter = "all", center, compact = false }: StationMapProps) {
+export function StationMap({ stations, className = "h-[360px]", returnToHref, fuelFilter = "all", center, userLocation, compact = false }: StationMapProps) {
   const mapStations = stations.filter((station) => canShowStationOnMap(station));
   const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [followUserLocation, setFollowUserLocation] = useState(false);
+  const [followPreferenceSet, setFollowPreferenceSet] = useState(false);
 
   const selectedStation = useMemo(() => mapStations.find((station) => station.id === selectedStationId) ?? null, [mapStations, selectedStationId]);
   const selectedReport = selectedStation ? getSelectedStationReport(selectedStation, fuelFilter) : null;
   const selectedTone = selectedReport ? getRecencyTone(selectedReport.reportedAt) : "stale";
   const selectedStationName = selectedStation ? getStationPublicName(selectedStation) : "";
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const media = window.matchMedia("(max-width: 767px)");
+    const sync = () => setIsMobileViewport(media.matches);
+
+    sync();
+    media.addEventListener?.("change", sync);
+    return () => media.removeEventListener?.("change", sync);
+  }, []);
+
+  useEffect(() => {
+    if (!followPreferenceSet) {
+      setFollowUserLocation(isMobileViewport);
+    }
+  }, [followPreferenceSet, isMobileViewport]);
+
 
   if (mapStations.length === 0) {
     return (
@@ -94,6 +157,35 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
             <span className="h-2 w-2 rounded-full bg-amber-400" />
             Localização em ajuste
           </span>
+          {userLocation ? (
+            <span className="inline-flex items-center gap-2 rounded-full border border-[color:var(--color-accent)]/25 bg-[color:var(--color-accent)]/10 px-3 py-1 text-[color:var(--color-accent)]">
+              <span className="h-2 w-2 rounded-full bg-[color:var(--color-accent)]" />
+              Você
+            </span>
+          ) : null}
+          {userLocation ? (
+            <button
+              type="button"
+              onClick={() => {
+                setFollowPreferenceSet(true);
+                setFollowUserLocation((value) => !value);
+              }}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-full border px-3 py-1 transition",
+                followUserLocation
+                  ? "border-[color:var(--color-accent)]/35 bg-[color:var(--color-accent)]/14 text-[color:var(--color-accent)]"
+                  : "border-white/10 bg-white/5 text-white/72 hover:border-white/20 hover:bg-white/10"
+              )}
+            >
+              <Navigation className="h-3 w-3" />
+              {followUserLocation ? "Seguindo GPS" : "Seguir GPS"}
+            </button>
+          ) : null}
+          {isMobileViewport ? (
+            <span className="inline-flex items-center gap-2 rounded-full border border-[color:var(--color-accent)]/20 bg-[color:var(--color-accent)]/8 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[color:var(--color-accent)]">
+              Auto no celular
+            </span>
+          ) : null}
           <p className="w-full text-[10px] leading-relaxed text-white/48">Os postos aparecem no mapa. O preço aprovado ganha destaque.</p>
         </div>
       ) : null}
@@ -119,6 +211,9 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         {center && <ChangeView center={center} />}
+        {userLocation ? <Marker position={[userLocation.lat, userLocation.lng]} icon={createUserIcon(userLocation.trustStatus)} zIndexOffset={1500} /> : null}
+        <FollowUserView userLocation={userLocation} enabled={followUserLocation} />
+
         {mapStations.map((station) => {
           const selectedReportForStation = getSelectedStationReport(station, fuelFilter);
           const stationHref = getStationHref(station.id, returnToHref);
@@ -318,6 +413,11 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
     </div>
   );
 }
+
+
+
+
+
 
 
 

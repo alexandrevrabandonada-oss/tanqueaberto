@@ -893,7 +893,7 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
         ip_hash: context.ipHash,
         status: resolvedStatus,
         source_kind: "community",
-        moderated_by: effectiveRoutingDecision.autoApproved ? "system:progressive_trust" : null,
+        moderated_by: null,
         photo_hash: photoHash,
         location_distance: distance,
         location_confidence: locationConfidence,
@@ -922,10 +922,7 @@ export async function submitPriceReportAction(_prevState: SubmitState, formData:
             reported_at: timestamp,
             reporter_nickname: nickname || null,
             status: resolvedStatus,
-            moderation_note: submissionNotice?.body ?? null,
-            reconciliation_id: reconciliationId,
-            metadata,
-            version: 1
+            moderation_note: submissionNotice?.body ?? null
           })
           .select("id")
           .single();

@@ -9,7 +9,7 @@ import { LocateFixed, Loader2, MapPin, MapPinned, Search, ShieldCheck } from "lu
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { Station } from "@/lib/types";
-import { calculateDistance, formatDistance } from "@/lib/geo/distance";
+import { calculateDistance, formatDistanceFromYou } from "@/lib/geo/distance";
 import { cn } from "@/lib/utils";
 import { normalizeContextValue, readHomeContext, readLastStationContext } from "@/lib/navigation/home-context";
 import { useGeolocation } from "@/hooks/use-geolocation";
@@ -134,7 +134,7 @@ function SeedDuplicateCard({ candidate, onUseExisting }: { candidate: CandidateS
           <p className="text-[11px] text-white/42">{candidate.reason}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2 text-[11px] text-white/42">
-          {candidate.distance !== null ? <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1">{formatDistance(candidate.distance)}</span> : null}
+          {candidate.distance !== null ? <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1">{formatDistanceFromYou(candidate.distance)}</span> : null}
           <Badge variant="outline">Usar este</Badge>
         </div>
       </div>
@@ -156,7 +156,7 @@ function SeedNearbyCard({ candidate, onUseExisting }: { candidate: NearbyStation
           <p className="text-[11px] text-white/42">{candidate.station.address || "Endereco nao informado"}</p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-2 text-[11px] text-white/42">
-          <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 font-semibold text-white/78">{formatDistance(candidate.distance)}</span>
+          <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 font-semibold text-white/78">{formatDistanceFromYou(candidate.distance)}</span>
           <Badge variant="outline">Abrir este</Badge>
         </div>
       </div>

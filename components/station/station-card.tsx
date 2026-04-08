@@ -16,7 +16,7 @@ import { getSelectedStationReport } from "@/lib/filters/public";
 import { getStationPublicName, hasPendingStationLocationReview } from "@/lib/quality/stations";
 import { rememberStationVisit } from "@/lib/navigation/home-context";
 import { GroupStatusBadge } from "@/components/ui/group-status-badge";
-import { formatDistance } from "@/lib/geo/distance";
+import { formatDistanceFromYou } from "@/lib/geo/distance";
 import { openExternalNavigation } from "@/lib/navigation/external-maps";
 import { saveSubmissionDraft } from "@/lib/drafts/submission-draft";
 import type { FuelType, PriceReport, StationWithReports } from "@/lib/types";
@@ -194,7 +194,7 @@ export function StationCard({
                 {station.distance !== undefined && (
                   <>
                     <span className="h-1 w-1 rounded-full bg-white/20" />
-                    <span className="shrink-0 text-[11px] font-semibold text-white/34">{formatDistance(station.distance)}</span>
+                    <span className="shrink-0 text-[11px] font-semibold text-white/34">{formatDistanceFromYou(station.distance)}</span>
                   </>
                 )}
               </div>

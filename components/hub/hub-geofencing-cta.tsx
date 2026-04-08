@@ -1,38 +1,27 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MapPin, Zap, ChevronRight, AlertCircle, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getHubRecommendationsAction } from "@/app/hub/actions";
 import { HubRecommendation } from "@/lib/ops/hub-recommendation";
 import { trackProductEvent } from "@/lib/telemetry/client";
 import Link from "next/link";
+import { useLocationHardening } from "@/hooks/use-location-hardening";
 
 interface HubGeofencingCTAProps {
   nickname: string;
 }
 
 export function HubGeofencingCTA({ nickname }: HubGeofencingCTAProps) {
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const { location, loading: geoLoading } = useLocationHardening();
   const [recommendations, setRecommendations] = useState<HubRecommendation[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!navigator.geolocation) {
-      setLoading(false);
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-      },
-      () => {
-        setLoading(false);
-      },
-      { enableHighAccuracy: false, timeout: 5000 }
-    );
-  }, []);
+  const coords = useMemo(
+    () => (location ? { lat: location.lat, lng: location.lng } : null),
+    [location]
+  );
 
   useEffect(() => {
     const fetchRecs = async () => {
@@ -42,8 +31,12 @@ export function HubGeofencingCTA({ nickname }: HubGeofencingCTAProps) {
       setLoading(false);
     };
 
+    if (geoLoading && !coords) {
+      return;
+    }
+
     fetchRecs();
-  }, [nickname, coords]);
+  }, [coords, geoLoading, nickname]);
 
   if (loading && recommendations.length === 0) {
     return (

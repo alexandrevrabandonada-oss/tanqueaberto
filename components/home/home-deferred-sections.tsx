@@ -16,7 +16,7 @@ import { OperationalMemoryBar } from "@/components/home/operational-memory-bar";
 import { HomeMapSurface } from "@/components/home/home-map-surface";
 import { RecorteActivityWidget } from "@/components/home/recorte-activity-widget";
 import { cn } from "@/lib/utils";
-import { formatDistance } from "@/lib/geo/distance";
+import { formatDistanceFromYou } from "@/lib/geo/distance";
 import { formatCurrencyBRL } from "@/lib/format/currency";
 import { formatRecencyLabel, getRecencyTone, recencyToneToBadgeVariant } from "@/lib/format/time";
 import { fuelLabels, publicFuelFilters } from "@/lib/format/labels";
@@ -224,7 +224,7 @@ function FirstFoldSignalCard({
       <div className="mt-3 flex flex-wrap gap-2">
         {report ? <Badge variant="secondary" className="text-[10px]">{formatCurrencyBRL(Number(report.price))}</Badge> : <Badge variant="warning" className="text-[10px]">Sem preço recente</Badge>}
         {report && recencyTone ? <Badge variant={recencyToneToBadgeVariant(recencyTone)} className="text-[10px]">{formatRecencyLabel(report.reportedAt)}</Badge> : null}
-        {distanceValue !== null ? <Badge variant="outline" className="text-[10px]">{formatDistance(distanceValue)}</Badge> : null}
+        {distanceValue !== null ? <Badge variant="outline" className="text-[10px]">{formatDistanceFromYou(distanceValue)}</Badge> : null}
       </div>
       <p className="mt-3 text-sm leading-relaxed text-white/52">{note}</p>
       {href && actionLabel ? (
@@ -419,7 +419,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
         title: "Melhor opcao perto de voce",
         hint: "Preco que ainda fecha melhor no caminho.",
         entry: nearbyBestOption,
-        context: nearbyBestOption?.distanceValue !== null && nearbyBestOption?.distanceValue !== undefined ? formatDistance(nearbyBestOption.distanceValue) : "Sem GPS forte"
+        context: nearbyBestOption?.distanceValue !== null && nearbyBestOption?.distanceValue !== undefined ? formatDistanceFromYou(nearbyBestOption.distanceValue) : "Sem GPS forte"
       },
       {
         id: "neighborhood",
@@ -568,7 +568,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
           station: nearbyBestOption.station,
           report: nearbyBestOption.report,
           fuelType: economyFuelFilter,
-          contextLabel: nearbyBestOption.distanceValue !== null ? `${formatDistance(nearbyBestOption.distanceValue)} · ${getEconomyLocalityLabel(nearbyBestOption.station)}` : getEconomyLocalityLabel(nearbyBestOption.station),
+          contextLabel: nearbyBestOption.distanceValue !== null ? `${formatDistanceFromYou(nearbyBestOption.distanceValue)} · ${getEconomyLocalityLabel(nearbyBestOption.station)}` : getEconomyLocalityLabel(nearbyBestOption.station),
           summary: `${formatCurrencyBRL(deltaPerLiter)} mais barato que a media deste recorte.`,
           detail: nearbyBestOption.reliable
             ? `Paga ${formatCurrencyBRL(nearbyBestOption.report.price)} e nao sai do caminho.`
@@ -924,7 +924,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
                         </p>
                       </div>
                       {distanceValue !== null ? (
-                        <Badge variant="outline" className="shrink-0 text-[10px]">{formatDistance(distanceValue)}</Badge>
+                        <Badge variant="outline" className="shrink-0 text-[10px]">{formatDistanceFromYou(distanceValue)}</Badge>
                       ) : null}
                     </div>
 
@@ -1150,7 +1150,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
                     <div className="mt-3 flex flex-wrap gap-2">
                       <Badge variant={recencyToneToBadgeVariant(opportunity.recencyTone)}>{formatRecencyLabel(opportunity.report.reportedAt)}</Badge>
                       <Badge variant={opportunity.confidence.variant}>{opportunity.confidence.label}</Badge>
-                      {opportunity.distanceValue !== null ? <Badge variant="secondary">{formatDistance(opportunity.distanceValue)}</Badge> : null}
+                      {opportunity.distanceValue !== null ? <Badge variant="secondary">{formatDistanceFromYou(opportunity.distanceValue)}</Badge> : null}
                       {opportunity.referenceDelta !== null && opportunity.referenceDelta >= 0.02 ? <Badge variant="secondary">{formatCurrencyBRL(opportunity.referenceDelta)} abaixo da media</Badge> : null}
                       {opportunity.dropAmount !== null ? <Badge variant="secondary">Caiu {formatCurrencyBRL(opportunity.dropAmount)}</Badge> : null}
                       {opportunity.ratioLabel ? <Badge variant="secondary">{opportunity.ratioLabel}</Badge> : null}
@@ -1250,7 +1250,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
                           <Badge variant={recencyToneToBadgeVariant(entry.recencyTone)}>{formatRecencyLabel(report.reportedAt)}</Badge>
                           <Badge variant={entry.confidence.variant}>{entry.confidence.label}</Badge>
                           <Badge variant="secondary">{entry.confidence.detail}</Badge>
-                          {entry.distanceValue !== null ? <Badge variant="secondary">{formatDistance(entry.distanceValue)}</Badge> : null}
+                          {entry.distanceValue !== null ? <Badge variant="secondary">{formatDistanceFromYou(entry.distanceValue)}</Badge> : null}
                         </div>
                       </>
                     ) : (
@@ -1447,7 +1447,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
                             </Badge>
                             <Badge variant={confidence.variant}>{confidence.label}</Badge>
                             <Badge variant="secondary">{confidence.detail}</Badge>
-                            {distanceValue !== null ? <Badge variant="secondary">{formatDistance(distanceValue)}</Badge> : null}
+                            {distanceValue !== null ? <Badge variant="secondary">{formatDistanceFromYou(distanceValue)}</Badge> : null}
                           </div>
 
                           <div className="mt-4 grid gap-2 sm:grid-cols-2">
