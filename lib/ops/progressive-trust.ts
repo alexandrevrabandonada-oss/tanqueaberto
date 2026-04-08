@@ -371,14 +371,27 @@ export function evaluateSubmissionRisk(input: SubmissionRiskInput): SubmissionRi
   const highReasons: string[] = [];
   const mediumReasons: string[] = [];
   const flags: string[] = [];
+  const identitySignalCount = Number(Boolean(input.deviceId)) + Number(Boolean(input.sessionId)) + Number(Boolean(input.nickname));
   const hasKnownStationContext = input.contributorProfile.stats.sameStationCount > 0;
-  const hasStrongIdentityContext = Boolean(input.deviceId || input.sessionId || input.nickname);
+  const hasKnownTerritoryContext = input.contributorProfile.stats.sameCityCount > 0;
+  const hasStrongIdentityContext = identitySignalCount >= 2;
+  const hasBasicIdentityContext = identitySignalCount >= 1;
   const hasHighConfidenceLocation = input.locationConfidence === "high";
-  const hasSensitiveConflict = input.duplicateLikely || input.potentialPhotoReuse || input.isDuplicate || input.priceConflict || input.priceDiscrepancy;
+  const isTrustedContributor = input.contributorProfile.level === "N2" || input.contributorProfile.level === "N3" || input.contributorProfile.operationalScore >= 68;
+  const hardDuplicateSignal = input.potentialPhotoReuse || input.isDuplicate;
+  const softDuplicateSignal = input.duplicateLikely && !hardDuplicateSignal;
+  const hardPriceOutlier = input.priceConflict && input.priceDiscrepancy && !hasKnownStationContext && !hasKnownTerritoryContext && !isTrustedContributor;
+  const priceNeedsReview = input.priceConflict || input.priceDiscrepancy;
+  const hasSensitiveConflict = hardDuplicateSignal || hardPriceOutlier;
+  const hasStrongOperationalContext = (hasKnownStationContext || hasKnownTerritoryContext || isTrustedContributor) && hasHighConfidenceLocation && hasBasicIdentityContext;
   const canDowngradeStationReviewRisk = hasKnownStationContext && hasStrongIdentityContext && hasHighConfidenceLocation && !hasSensitiveConflict;
 
   if (input.stationProposalMode) {
-    highReasons.push("posto novo");
+    if (hasStrongOperationalContext && !hardDuplicateSignal) {
+      mediumReasons.push("posto novo com contexto suficiente para revisão normal");
+    } else {
+      highReasons.push("posto novo");
+    }
     flags.push("new_station");
   }
 
@@ -386,6 +399,8 @@ export function evaluateSubmissionRisk(input: SubmissionRiskInput): SubmissionRi
     if (canDowngradeStationReviewRisk) {
       mediumReasons.push("posto em revisão, mas com recorrência confiável neste local");
       flags.push("station_under_review_known_context");
+    } else if (hasStrongOperationalContext && !hardDuplicateSignal) {
+      mediumReasons.push("posto em revisão com contexto operacional suficiente");
     } else {
       highReasons.push("posto em revisão");
     }
@@ -393,7 +408,7 @@ export function evaluateSubmissionRisk(input: SubmissionRiskInput): SubmissionRi
   }
 
   if (!input.locationConfidence || input.locationConfidence === "none" || input.locationConfidence === "low") {
-    if (hasSensitiveConflict || input.stationProposalMode) {
+    if (hardDuplicateSignal || (input.stationProposalMode && !hasBasicIdentityContext) || (hardPriceOutlier && !isTrustedContributor)) {
       highReasons.push("geolocalização ruim ou ausente");
     } else {
       mediumReasons.push("geolocalização ruim ou ausente");
@@ -401,13 +416,26 @@ export function evaluateSubmissionRisk(input: SubmissionRiskInput): SubmissionRi
     flags.push("weak_geo");
   }
 
-  if (input.duplicateLikely || input.potentialPhotoReuse || input.isDuplicate) {
+  if (hardDuplicateSignal) {
     highReasons.push("suspeita de duplicidade");
     flags.push("duplicate_suspected");
+  } else if (softDuplicateSignal) {
+    mediumReasons.push("parece repetido, mas sem prova forte de duplicidade");
+    flags.push("duplicate_watch");
   }
 
-  if (input.priceConflict || input.priceDiscrepancy) {
-    highReasons.push("valor fora da faixa recente");
+  if (priceNeedsReview) {
+    if (hardPriceOutlier && !hasStrongOperationalContext && !hasBasicIdentityContext) {
+      highReasons.push("valor fora da faixa recente");
+    } else if (input.priceConflict && input.priceDiscrepancy && hasStrongOperationalContext) {
+      mediumReasons.push("valor diverge da faixa recente, mas o contexto favorece revisão curta");
+    } else if (input.priceConflict) {
+      mediumReasons.push("há outro preço recente diferente para o mesmo posto");
+    } else if (input.priceDiscrepancy) {
+      mediumReasons.push("o preço destoou da última leitura aprovada");
+    } else {
+      mediumReasons.push("valor pede revisão, mas sem sinal forte de fraude");
+    }
     flags.push("price_outlier");
   }
 
@@ -456,6 +484,26 @@ export function decideSubmissionRouting(input: {
   trust: ContributorTrustProfile;
   risk: SubmissionRiskProfile;
 }): SubmissionRoutingDecision {
+  const mediumRiskLooksLikePriceReview = input.risk.level === "medium"
+    && input.risk.flags.includes("price_outlier")
+    && !input.risk.flags.includes("duplicate_suspected")
+    && !input.risk.flags.includes("new_station");
+
+  const canFastLaneEarlyN1 = input.rollout.fastLaneEnabled
+    && input.trust.level === "N1"
+    && (input.risk.level === "low" || mediumRiskLooksLikePriceReview)
+    && input.trust.operationalScore >= 72
+    && input.trust.stats.rejectionRate <= 0.15
+    && (input.trust.stats.sameStationCount >= 1 || input.trust.stats.sameCityCount >= 3);
+
+  const canAutoApproveMatureN2 = input.rollout.autoApprovalEnabled
+    && input.trust.level === "N2"
+    && input.risk.level === "low"
+    && input.trust.operationalScore >= 90
+    && input.trust.stats.sameStationCount >= 2
+    && input.trust.stats.geoHighRatio >= 0.7
+    && input.trust.stats.rejectionRate <= 0.1;
+
   if (input.rollout.shadowMode) {
     return {
       outcome: "review_normal",
@@ -478,10 +526,12 @@ export function decideSubmissionRouting(input: {
     };
   }
 
-  if (input.rollout.autoApprovalEnabled && input.trust.level === "N3" && input.risk.level === "low") {
+  if (input.rollout.autoApprovalEnabled && ((input.trust.level === "N3" && input.risk.level === "low") || canAutoApproveMatureN2)) {
     return {
       outcome: "auto_approved",
-      reasons: ["N3 autoaprovável", "baixo risco operacional", "rollout permite autoaprovação limitada"],
+      reasons: canAutoApproveMatureN2
+        ? ["N2 com consistência local forte", "baixo risco operacional", "autoaprovação limitada liberada por histórico confiável"]
+        : ["N3 autoaprovável", "baixo risco operacional", "rollout permite autoaprovação limitada"],
       phase: input.rollout.phase,
       shadowMode: false,
       fastLane: false,
@@ -489,10 +539,12 @@ export function decideSubmissionRouting(input: {
     };
   }
 
-  if (input.rollout.fastLaneEnabled && (input.trust.level === "N2" || input.trust.level === "N3")) {
+  if (input.rollout.fastLaneEnabled && (input.trust.level === "N2" || input.trust.level === "N3" || canFastLaneEarlyN1)) {
     return {
       outcome: "fast_lane",
-      reasons: [`${input.trust.level} confiável`, `${input.risk.level === "medium" ? "risco moderado ainda precisa revisão curta" : "baixo risco com revisão acelerada"}`],
+      reasons: canFastLaneEarlyN1
+        ? ["N1 com recorrência territorial suficiente", "baixo risco operacional", "fast-lane liberada para reduzir fila manual"]
+        : [`${input.trust.level} confiável`, `${input.risk.level === "medium" ? "risco moderado ainda precisa revisão curta" : "baixo risco com revisão acelerada"}`],
       phase: input.rollout.phase,
       shadowMode: false,
       fastLane: true,
@@ -508,6 +560,13 @@ export function decideSubmissionRouting(input: {
     fastLane: false,
     autoApproved: false
   };
+}
+
+export function shouldMarkSubmissionFlagged(input: {
+  potentialPhotoReuse: boolean;
+  isDuplicate: boolean;
+}) {
+  return input.potentialPhotoReuse || input.isDuplicate;
 }
 
 
