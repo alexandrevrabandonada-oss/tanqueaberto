@@ -134,7 +134,11 @@ export async function updateStationLightEditAction(formData: FormData) {
   );
 
   const duplicateMatch = nextDuplicate ? duplicateCandidates.find((candidate) => candidate.stationId === nextDuplicate) ?? null : null;
-  if (nextDuplicate && !duplicateMatch) {
+  const currentDuplicateStation = nextDuplicate && nextDuplicate === currentDuplicate
+    ? await getStationByIdAdmin(nextDuplicate)
+    : null;
+
+  if (nextDuplicate && !duplicateMatch && !currentDuplicateStation) {
     redirect(buildStationEditRedirect(stationId, { error: "invalid_duplicate", returnTo }));
   }
 
@@ -184,15 +188,16 @@ export async function updateStationLightEditAction(formData: FormData) {
   };
 
   const diff = makeDiff(beforeSnapshot, afterSnapshot);
+  const duplicateReferenceName = duplicateMatch?.publicName ?? (currentDuplicateStation ? getStationPublicName(currentDuplicateStation) : nextDuplicate);
   const duplicateReason = nextDuplicate
-    ? `Vinculado como duplicado de ${duplicateMatch?.publicName ?? nextDuplicate}`
+    ? `Vinculado como duplicado de ${duplicateReferenceName}`
     : currentDuplicate && !nextDuplicate
       ? "Vínculo de duplicado removido; revisão manual"
       : hasSensitiveChange
         ? "Edição leve com revisão manual de coordenada ou vínculo"
         : "Edição leve salva sem revisão adicional";
   const reviewReason = nextDuplicate
-    ? `Possível duplicado de ${duplicateMatch?.publicName ?? nextDuplicate}; revisão manual pendente`
+    ? `Possível duplicado de ${duplicateReferenceName}; revisão manual pendente`
     : duplicateReason;
   const updatePayload = {
     name: nextName,
@@ -564,5 +569,9 @@ export async function mergeStationIntoCanonicalAction(formData: FormData) {
 
   redirect(buildStationEditRedirect(targetStation.id, { notice: "stations_merged", returnTo }));
 }
+
+
+
+
 
 

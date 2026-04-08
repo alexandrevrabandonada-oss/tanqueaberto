@@ -71,7 +71,7 @@ function isLegacyStationsColumnError(message: string | undefined) {
 }
 
 export async function geocodeStationSeedAddressAction(formData: FormData): Promise<StationSeedGeocodeState> {
-  await requireStationEditorUser();
+  await requireStationEditorUser("/postos/cadastrar");
 
   const nickname = getOptionalText(formData, "nickname") ?? "Posto";
   const street = getOptionalText(formData, "street");
@@ -120,7 +120,7 @@ export async function geocodeStationSeedAddressAction(formData: FormData): Promi
 }
 
 export async function createStationSeedAction(_prevState: StationSeedState, formData: FormData): Promise<StationSeedState> {
-  const editor = await requireStationEditorUser();
+  const editor = await requireStationEditorUser("/postos/cadastrar");
   const locationMode = (getOptionalText(formData, "locationMode") ?? "gps") as "gps" | "address";
   const locationConfirmed = readBoolean(formData, "locationConfirmed");
   const nickname = getOptionalText(formData, "nickname");
@@ -354,6 +354,7 @@ export async function createStationSeedAction(_prevState: StationSeedState, form
   const nextParams = new URLSearchParams({ notice: "station_saved", stationId: data.id });
   redirect(`/postos?${nextParams.toString()}` as Route);
 }
+
 
 
 

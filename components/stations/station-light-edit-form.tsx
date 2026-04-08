@@ -59,10 +59,12 @@ function normalizeSearchValue(value: string) {
 export function StationLightEditForm({ station, duplicateCandidates, canonicalMergeOptions, notice, error, returnToHref, duplicateMode = false, initialDuplicateOfStationId, canAdminMerge = false }: StationLightEditFormProps) {
   const banner = getBanner(notice, error);
   const publicName = getStationPublicName(station);
-  const preferredDuplicateOfStationId = initialDuplicateOfStationId ?? station.duplicateOfStationId ?? duplicateCandidates[0]?.stationId ?? "";
+  const preferredDuplicateOfStationId = initialDuplicateOfStationId
+    ?? station.duplicateOfStationId
+    ?? (duplicateMode ? duplicateCandidates[0]?.stationId ?? "" : "");
   const canonicalNameDefault = duplicateCandidates.find((candidate) => candidate.stationId === preferredDuplicateOfStationId)?.publicName ?? canonicalMergeOptions.find((candidate) => candidate.stationId === preferredDuplicateOfStationId)?.publicName ?? publicName;
   const [selectedDuplicateOfStationId, setSelectedDuplicateOfStationId] = useState(preferredDuplicateOfStationId);
-  const [selectedMergeTargetStationId, setSelectedMergeTargetStationId] = useState(preferredDuplicateOfStationId);
+  const [selectedMergeTargetStationId, setSelectedMergeTargetStationId] = useState(preferredDuplicateOfStationId || canonicalMergeOptions[0]?.stationId || "");
   const [canonicalName, setCanonicalName] = useState(canonicalNameDefault);
   const [mergeConfirmationText, setMergeConfirmationText] = useState("");
   const [mergeSearchQuery, setMergeSearchQuery] = useState("");
@@ -343,4 +345,5 @@ export function StationLightEditForm({ station, duplicateCandidates, canonicalMe
     </SectionCard>
   );
 }
+
 

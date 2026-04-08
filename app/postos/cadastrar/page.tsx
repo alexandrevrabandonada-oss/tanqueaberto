@@ -41,7 +41,7 @@ function buildSeedHref(city: string, neighborhood?: string | null) {
 }
 
 export default async function StationSeedPage({ searchParams }: StationSeedPageProps) {
-  await requireStationEditorUser();
+  await requireStationEditorUser("/postos/cadastrar");
   const resolvedSearchParams = (await searchParams) ?? {};
   const { notice, stationId, outcome, city, neighborhood, seedOrigin } = readSeedParams(resolvedSearchParams);
   const stations = await getActiveStations();
@@ -177,5 +177,6 @@ export default async function StationSeedPage({ searchParams }: StationSeedPageP
     </div>
   );
 }
+
 
 

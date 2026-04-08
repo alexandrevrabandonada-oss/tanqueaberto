@@ -18,6 +18,11 @@ function readString(searchParams: Record<string, string | string[] | undefined>,
   return typeof searchParams[key] === "string" ? String(searchParams[key]).trim() : "";
 }
 
+function safeReturnTo(value: string | string[] | undefined) {
+  const candidate = Array.isArray(value) ? value[0] : value ?? "";
+  return candidate.startsWith("/") && !candidate.startsWith("//") ? candidate : "";
+}
+
 function mapErrorMessage(error: string) {
   if (error === "session_expired") return "Sua sessao deste aparelho expirou. Reative com convite ou codigo.";
   if (error === "invite_not_found") return "Codigo ou link nao encontrado. Verifique e tente novamente.";
@@ -34,8 +39,13 @@ export default async function EditorEntryPage({ searchParams }: EditorEntryPageP
   const error = readString(resolvedSearchParams, "error");
   const inviteToken = readString(resolvedSearchParams, "token");
   const inviteCode = readString(resolvedSearchParams, "code");
+  const returnToHref = safeReturnTo(resolvedSearchParams.returnTo);
 
   if (currentAdmin || lightSession) {
+    if (returnToHref) {
+      redirect(returnToHref as Route);
+    }
+
     const passthrough = new URLSearchParams();
     if (notice) passthrough.set("notice", notice);
     const query = passthrough.toString();
@@ -73,7 +83,7 @@ export default async function EditorEntryPage({ searchParams }: EditorEntryPageP
           <StationEditorInviteAcceptForm
             inviteToken={inviteToken}
             inviteCode={inviteCode}
-            successRedirectTo="/editor?notice=invite_accepted"
+            successRedirectTo={returnToHref ? returnToHref : "/editor?notice=invite_accepted"}
           />
 
           <div className="rounded-[16px] border border-white/10 bg-white/5 px-3 py-3 text-xs text-white/70">

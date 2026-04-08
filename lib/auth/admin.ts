@@ -242,7 +242,18 @@ export async function requireAdminUser() {
   return requireUserForRoute(["admin"], ADMIN_LOGIN_ROUTE);
 }
 
-export async function requireStationEditorUser() {
+function buildStationEditorLoginRedirect(returnTo?: string | null) {
+  const params = new URLSearchParams({ error: "session_expired" });
+  const safeReturnTo = typeof returnTo === "string" && returnTo.startsWith("/") && !returnTo.startsWith("//") ? returnTo : "";
+
+  if (safeReturnTo) {
+    params.set("returnTo", safeReturnTo);
+  }
+
+  return `${STATION_EDITOR_LOGIN_ROUTE}?${params.toString()}` as Route;
+}
+
+export async function requireStationEditorUser(returnTo?: string | null) {
   const authUser = await resolveAuthAdminUser();
   if (authUser && (authUser.role === "admin" || authUser.role === "station_editor")) {
     return authUser;
@@ -258,5 +269,6 @@ export async function requireStationEditorUser() {
     };
   }
 
-  redirect(`${STATION_EDITOR_LOGIN_ROUTE}?error=session_expired` as Route);
+  redirect(buildStationEditorLoginRedirect(returnTo));
 }
+
