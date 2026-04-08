@@ -1,14 +1,15 @@
 import type { Route } from "next";
 import type { FuelType } from "@/lib/types";
-import { storeQueuePhoto, getQueuePhoto, deleteQueuePhoto } from "./photo-storage";
+import { createEmptyFuelPriceMap, getFilledFuelPriceEntries, getPrimaryFuelSelection, normalizeFuelPriceMap, type FuelPriceMap } from "@/lib/submissions/fuel-prices";
+import { storeQueuePhoto, deleteQueuePhoto } from "./photo-storage";
 
 export type SubmissionQueueStatus = 
-  | "stored"         // Guardado localmente, aguardando primeira tentativa
-  | "ready"          // Conexão detectada, pronto para reenvio assistido
-  | "photo_required" // Falha na foto (corrompida ou deletada)
-  | "failed"         // Falha técnica persistente
-  | "success"        // Enviado com sucesso (mantido brevemente para feedback)
-  | "expired";       // Passou do TTL de 12h
+  | "stored"
+  | "ready"
+  | "photo_required"
+  | "failed"
+  | "success"
+  | "expired";
 
 export interface SubmissionQueueEntry {
   id: string;
@@ -19,6 +20,7 @@ export interface SubmissionQueueEntry {
   neighborhood: string | null;
   fuelType: FuelType;
   price: string;
+  fuelPrices?: FuelPriceMap;
   nickname: string;
   status: SubmissionQueueStatus;
   hasPhoto: boolean;
@@ -40,8 +42,9 @@ export interface SubmissionQueueEntryInput {
   stationName: string;
   city: string;
   neighborhood?: string | null;
-  fuelType: FuelType;
-  price: string;
+  fuelType?: FuelType;
+  price?: string;
+  fuelPrices?: FuelPriceMap | null;
   nickname: string;
   status: SubmissionQueueStatus;
   photo?: File | null;
@@ -77,12 +80,28 @@ function isFresh(updatedAt: string) {
   return Number.isFinite(age) && age <= QUEUE_TTL_MS;
 }
 
+function resolveFuelPayload(entry: Pick<SubmissionQueueEntry, "fuelType" | "price" | "fuelPrices">) {
+  const fuelPrices = normalizeFuelPriceMap(entry.fuelPrices, entry.fuelType, entry.price);
+  const primary = getPrimaryFuelSelection(fuelPrices, entry.fuelType);
+  return { fuelPrices, primary };
+}
+
 function normalizeEntry(entry: SubmissionQueueEntry): SubmissionQueueEntry | null {
-  if (!entry.draftKey || !entry.stationId || !entry.stationName || !entry.city || !entry.fuelType || !entry.price) {
+  if (!entry.draftKey || !entry.stationId || !entry.stationName || !entry.city) {
     return null;
   }
 
-  // Items are marked as expired instead of being immediately deleted if they pass TTL
+  const fallbackFuelType = entry.fuelType || "gasolina_comum";
+  const { fuelPrices, primary } = resolveFuelPayload({
+    fuelType: fallbackFuelType,
+    price: entry.price,
+    fuelPrices: entry.fuelPrices
+  });
+
+  if (!primary.price) {
+    return null;
+  }
+
   if (!isFresh(entry.updatedAt) && entry.status !== "expired") {
     entry.status = "expired";
   }
@@ -91,6 +110,9 @@ function normalizeEntry(entry: SubmissionQueueEntry): SubmissionQueueEntry | nul
     ...entry,
     id: entry.id || entry.draftKey,
     neighborhood: entry.neighborhood ?? null,
+    fuelType: primary.fuelType,
+    price: primary.price,
+    fuelPrices,
     photoName: entry.photoName ?? null,
     photoType: entry.photoType ?? null,
     photoSize: typeof entry.photoSize === "number" ? entry.photoSize : null,
@@ -128,11 +150,15 @@ export async function upsertSubmissionQueueEntry(input: SubmissionQueueEntryInpu
   const current = await readQueue();
   const timestamp = input.updatedAt ?? new Date().toISOString();
   const existing = current.find((entry) => entry.draftKey === input.draftKey);
-  
-  // Store photo in IndexedDB if provided
+
   if (input.photo) {
     await storeQueuePhoto(input.draftKey, input.photo);
   }
+
+  const seedFuelType = input.fuelType ?? existing?.fuelType ?? "gasolina_comum";
+  const seedPrice = input.price ?? existing?.price ?? "";
+  const fuelPrices = normalizeFuelPriceMap(input.fuelPrices ?? existing?.fuelPrices ?? createEmptyFuelPriceMap(), seedFuelType, seedPrice);
+  const primary = getPrimaryFuelSelection(fuelPrices, seedFuelType);
 
   const nextEntry: SubmissionQueueEntry = {
     id: existing?.id ?? input.draftKey,
@@ -141,8 +167,9 @@ export async function upsertSubmissionQueueEntry(input: SubmissionQueueEntryInpu
     stationName: input.stationName,
     city: input.city,
     neighborhood: input.neighborhood ?? null,
-    fuelType: input.fuelType,
-    price: input.price,
+    fuelType: primary.fuelType,
+    price: primary.price,
+    fuelPrices,
     nickname: input.nickname,
     status: input.status,
     hasPhoto: Boolean(input.photo || existing?.hasPhoto),
@@ -164,7 +191,7 @@ export async function upsertSubmissionQueueEntry(input: SubmissionQueueEntryInpu
 
 export async function removeSubmissionQueueEntry(id: string) {
   const current = await readQueue();
-  const entry = current.find(e => e.id === id);
+  const entry = current.find((item) => item.id === id);
   if (entry) {
     await deleteQueuePhoto(entry.draftKey);
   }
@@ -179,7 +206,7 @@ export async function clearSubmissionQueueForDraftKey(draftKey: string) {
 
 export async function markEntryAsSuccess(draftKey: string) {
   const current = await readQueue();
-  const entry = current.find(e => e.draftKey === draftKey);
+  const entry = current.find((item) => item.draftKey === draftKey);
   if (entry) {
     entry.status = "success";
     entry.updatedAt = new Date().toISOString();
@@ -191,8 +218,9 @@ export async function markEntryAsSuccess(draftKey: string) {
 
 export function buildSubmissionQueueHref(entry: SubmissionQueueEntry) {
   const fuelParam = `fuel=${entry.fuelType}`;
+  const draftKeyParam = `draftKey=${encodeURIComponent(entry.draftKey)}`;
   const returnParam = entry.returnToHref ? `&returnTo=${encodeURIComponent(entry.returnToHref)}` : "";
-  return (`/enviar?stationId=${entry.stationId}&${fuelParam}${returnParam}#photo` as Route);
+  return (`/enviar?stationId=${entry.stationId}&${fuelParam}&${draftKeyParam}${returnParam}#photo` as Route);
 }
 
 export function getSubmissionQueueStatusLabel(status: SubmissionQueueStatus) {
@@ -207,3 +235,6 @@ export function getSubmissionQueueStatusLabel(status: SubmissionQueueStatus) {
   }
 }
 
+export function getSubmissionQueueFuelEntries(entry: SubmissionQueueEntry) {
+  return getFilledFuelPriceEntries(entry.fuelPrices ?? normalizeFuelPriceMap(undefined, entry.fuelType, entry.price));
+}

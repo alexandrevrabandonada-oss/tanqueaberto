@@ -11,6 +11,7 @@ import { Camera, ShieldCheck, ArrowRight, Clock3, Trophy, Target, Zap, Search, M
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { FuelType, StationWithReports } from "@/lib/types";
+import { countFilledFuelPrices, getFilledFuelPriceEntries, getPrimaryFuelSelection, normalizeFuelPriceMap, submissionFuelOptions, type FuelPriceMap } from "@/lib/submissions/fuel-prices";
 import { fuelLabels } from "@/lib/format/labels";
 import { submitPriceReportAction, type SubmitState } from "@/app/enviar/actions";
 import { completeStationInRoute, readRouteContext } from "@/lib/navigation/route-context";
@@ -58,7 +59,7 @@ const ContextualFeedback = dynamic(() => import("@/components/feedback/contextua
   ssr: false,
   loading: () => null
 });
-const fuelOptions: FuelType[] = ["gasolina_comum", "gasolina_aditivada", "etanol", "diesel_s10", "diesel_comum", "gnv"];
+const fuelOptions: FuelType[] = submissionFuelOptions;
 
 type EvidenceMode = "placa_faixa" | "sem_placa_faixa";
 type ManualPriceSource = "" | "bomba" | "recibo" | "painel_interno" | "informacao_local";
@@ -70,19 +71,23 @@ const manualPriceSourceLabels: Record<Exclude<ManualPriceSource, "">, string> = 
 };
 const allowedFuelSet = new Set<FuelType>(fuelOptions);
 const initialState: SubmitState = { error: null, errorCode: null, retryable: false, success: false, noticeTitle: null, noticeBody: null, noticeTone: null, noticeCode: null };
-
 interface PriceSubmitFormProps {
   stations: StationWithReports[];
   initialStationId?: string;
   initialFuelType?: FuelType;
   returnToHref?: string;
+  draftKeyOverride?: string;
 }
 
 function safeRoute(value?: string): Route | null {
   return value && value.startsWith("/") ? (value as Route) : null;
 }
 
-function createDraftKey(initialStationId?: string) {
+function createDraftKey(initialStationId?: string, override?: string) {
+  if (override) {
+    return override;
+  }
+
   return `bomba-aberta:price-draft:${initialStationId ?? "default"}`;
 }
 
@@ -95,6 +100,7 @@ function buildDraftSnapshot(input: {
   stationId: string;
   fuelType: FuelType;
   price: string;
+  fuelPrices: FuelPriceMap;
   nickname: string;
   lastStep: SubmissionDraftStep;
   status: SubmissionDraftStatus;
@@ -105,6 +111,7 @@ function buildDraftSnapshot(input: {
     stationId: input.stationId,
     fuelType: input.fuelType,
     price: input.price,
+    fuelPrices: input.fuelPrices,
     nickname: input.nickname,
     status: input.status,
     lastStep: input.lastStep,
@@ -439,6 +446,7 @@ function PriceSubmitFormBody({
   initialStationId,
   initialFuelType,
   returnToHref,
+  draftKeyOverride,
   onResetRequest
 }: PriceSubmitFormProps & {
   onResetRequest: () => void;
@@ -452,7 +460,7 @@ function PriceSubmitFormBody({
   const safeReturnToHref = useMemo(() => safeRoute(returnToHref), [returnToHref]);
   const { recordActivity, session, history, lastSummary } = useStreetSession();
   const { isActive: isTestMode } = useTestMode();
-  const draftKey = useMemo(() => createDraftKey(initialStationId), [initialStationId]);
+  const draftKey = useMemo(() => createDraftKey(initialStationId, draftKeyOverride), [draftKeyOverride, initialStationId]);
 
   const initialStation = useMemo(() => stations.find((station) => station.id === initialStationId) ?? null, [initialStationId, stations]);
   const hasInitialStation = Boolean(initialStation);
@@ -461,8 +469,8 @@ function PriceSubmitFormBody({
   const defaultStationId = useMemo(() => initialStation?.id ?? stations[0]?.id ?? "", [initialStation, stations]);
   const defaultFuelType: FuelType = initialFuelType && allowedFuelSet.has(initialFuelType) ? initialFuelType : "gasolina_comum";
   const [stationId, setStationId] = useState(defaultStationId);
-  const [fuelType, setFuelType] = useState<FuelType>(defaultFuelType);
-  const [price, setPrice] = useState("");
+  const [lastTouchedFuelType, setLastTouchedFuelType] = useState<FuelType>(defaultFuelType);
+  const [fuelPrices, setFuelPrices] = useState<FuelPriceMap>(() => normalizeFuelPriceMap(undefined, defaultFuelType, ""));
   const [nickname, setNickname] = useState("");
   const [evidenceMode, setEvidenceMode] = useState<EvidenceMode>("placa_faixa");
   const [priceSource, setPriceSource] = useState<ManualPriceSource>("");
@@ -475,13 +483,11 @@ function PriceSubmitFormBody({
   const [draftPhotoMissing, setDraftPhotoMissing] = useState(false);
   const [isSuggested, setIsSuggested] = useState(false);
   const [stationConfirmed, setStationConfirmed] = useState(Boolean(hasInitialStation));
-  const [fuelConfirmed, setFuelConfirmed] = useState(false);
-  const [priceReviewed, setPriceReviewed] = useState(false);
+  const [pricesReviewed, setPricesReviewed] = useState(false);
   const [submittedStationId, setSubmittedStationId] = useState<string | null>(null);
   const [queueItems, setQueueItems] = useState<SubmissionQueueEntry[]>([]);
   const [isOnline, setIsOnline] = useState(true);
   const [showStationPicker, setShowStationPicker] = useState(true);
-  const [showFuelPicker, setShowFuelPicker] = useState(false);
   const [showStationProposalFlow, setShowStationProposalFlow] = useState(false);
   const [stationProposalConfirmed, setStationProposalConfirmed] = useState(false);
   const [stationProposalName, setStationProposalName] = useState("");
@@ -491,73 +497,88 @@ function PriceSubmitFormBody({
   const [stationProposalCity, setStationProposalCity] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
-  const priceInputRef = useRef<HTMLInputElement | null>(null);
+  const priceInputRefs = useRef<Partial<Record<FuelType, HTMLInputElement | null>>>({});
+
+  const filledFuelEntries = useMemo(() => getFilledFuelPriceEntries(fuelPrices), [fuelPrices]);
+  const primaryFuelSelection = useMemo(() => getPrimaryFuelSelection(fuelPrices, lastTouchedFuelType), [fuelPrices, lastTouchedFuelType]);
+  const fuelType = primaryFuelSelection.fuelType;
+  const price = primaryFuelSelection.price;
 
   // Record history on success
   useEffect(() => {
-    if (state.success && state.reportId) {
-      const station = stations.find(s => s.id === stationId);
-      if (station) {
-        addSubmission({
-          reportId: state.reportId,
-          stationId: station.id,
-          stationName: getStationPublicName(station),
-          fuelType,
-          price: String(Number(price.replace(",", ".")) || 0),
-          status: "pending",
-          submittedAt: new Date().toISOString(),
-          reporterNickname: nickname || null
-        });
-
-        // Activation Milestone (Iniciante -> Ativo)
-        if (submissions.length === 0) {
-          void trackProductEvent({
-            eventType: "first_submission_milestone" as any,
-            pagePath: "/enviar",
-            pageTitle: "Enviar preço",
-            stationId: station.id,
-            fuelType,
-            payload: { source: "activation_funnel" }
-          });
-        }
-
-        // Hub Conversion Tracking
-        if (consumeHubAttribution()) {
-          void trackProductEvent({
-            eventType: "hub_conversion_success",
-            pagePath: "/enviar",
-            pageTitle: "Enviar preço",
-            stationId: station.id,
-            fuelType,
-            payload: { 
-              reportId: state.reportId,
-              source: "hub"
-            }
-          });
-        }
-
-        // Sessão de Rua: Concluir envio
-        recordActivity('complete', station.id);
-
-        if (state.noticeCode && state.noticeTone === "warning") {
-          void trackProductEvent({
-            eventType: "submission_quality_flagged",
-            pagePath: "/enviar",
-            pageTitle: "Enviar preço",
-            stationId: station.id,
-            fuelType,
-            reason: state.noticeCode,
-            payload: {
-              reportId: state.reportId,
-              noticeTitle: state.noticeTitle,
-              noticeTone: state.noticeTone,
-              reviewReason: state.noticeCode
-            }
-          });
-        }
-      }
+    if (!state.success || !state.reportId) {
+      return;
     }
-  }, [state.success, state.reportId, state.noticeCode, state.noticeTitle, state.noticeTone, addSubmission, stations, stationId, fuelType, price, nickname, recordActivity, submissions.length]);
+
+    const station = stations.find((item) => item.id === stationId);
+    if (!station) {
+      return;
+    }
+
+    const submittedReports = state.submittedReports?.length
+      ? state.submittedReports
+      : [{ reportId: state.reportId, fuelType, price }];
+
+    submittedReports.forEach((entry) => {
+      addSubmission({
+        reportId: entry.reportId,
+        stationId: station.id,
+        stationName: getStationPublicName(station),
+        fuelType: entry.fuelType,
+        price: String(Number(entry.price.replace(",", ".")) || 0),
+        status: "pending",
+        submittedAt: new Date().toISOString(),
+        reporterNickname: nickname || null
+      });
+    });
+
+    if (submissions.length === 0) {
+      void trackProductEvent({
+        eventType: "first_submission_milestone" as any,
+        pagePath: "/enviar",
+        pageTitle: "Enviar preço",
+        stationId: station.id,
+        fuelType,
+        payload: { source: "activation_funnel", packageSize: submittedReports.length }
+      });
+    }
+
+    if (consumeHubAttribution()) {
+      void trackProductEvent({
+        eventType: "hub_conversion_success",
+        pagePath: "/enviar",
+        pageTitle: "Enviar preço",
+        stationId: station.id,
+        fuelType,
+        payload: {
+          reportId: state.reportId,
+          reportIds: submittedReports.map((entry) => entry.reportId),
+          source: "hub",
+          packageSize: submittedReports.length
+        }
+      });
+    }
+
+    recordActivity("complete", station.id);
+
+    if (state.noticeCode && state.noticeTone === "warning") {
+      void trackProductEvent({
+        eventType: "submission_quality_flagged",
+        pagePath: "/enviar",
+        pageTitle: "Enviar preço",
+        stationId: station.id,
+        fuelType,
+        reason: state.noticeCode,
+        payload: {
+          reportId: state.reportId,
+          noticeTitle: state.noticeTitle,
+          noticeTone: state.noticeTone,
+          reviewReason: state.noticeCode,
+          packageSize: submittedReports.length
+        }
+      });
+    }
+  }, [state.success, state.reportId, state.submittedReports, state.noticeCode, state.noticeTitle, state.noticeTone, addSubmission, stations, stationId, fuelType, price, nickname, recordActivity, submissions.length]);
   const [showFeedback, setShowFeedback] = useState(false);
   const stationSuggestionShownKeyRef = useRef<string | null>(null);
   const stationSuggestionAcceptedKeyRef = useRef<string | null>(null);
@@ -580,7 +601,6 @@ function PriceSubmitFormBody({
   const telemetryContextRef = useRef({ stationId: stationId || null, fuelType, compactMode, lockedStation });
   const formRef = useRef<HTMLFormElement | null>(null);
   const stationSearchInputRef = useRef<HTMLInputElement | null>(null);
-  const fuelSelectRef = useRef<HTMLSelectElement | null>(null);
   const restoredDraftTrackedRef = useRef(false);
   const lastFailureKeyRef = useRef<string | null>(null);
   const submitFeedbackRef = useRef<HTMLDivElement | null>(null);
@@ -588,8 +608,8 @@ function PriceSubmitFormBody({
   const [qualityResult, setQualityResult] = useState<PhotoQualityResult | null>(null);
   const [validationErrors, setValidationErrors] = useState<{
     stationId?: string;
-    fuelType?: string;
-    price?: string;
+    fuelPrices?: string;
+    priceByFuel?: Partial<Record<FuelType, string>>;
     photo?: string;
     priceSource?: string;
   }>({});
@@ -662,88 +682,86 @@ function PriceSubmitFormBody({
           return;
         }
 
+        const restoredPrices = normalizeFuelPriceMap(draft.fuelPrices, draft.fuelType, draft.price);
+        if (draft.stationId && stations.some((station) => station.id === draft.stationId)) {
+          setStationId(draft.stationId);
+          setStationConfirmed(true);
+        }
+        if (draft.fuelType && allowedFuelSet.has(draft.fuelType)) {
+          setLastTouchedFuelType(draft.fuelType);
+        }
+        setFuelPrices(restoredPrices);
+        setPricesReviewed(draft.lastStep === "submit");
+        if (typeof draft.nickname === "string") {
+          setNickname(draft.nickname);
+          persistProgressiveIdentityNickname(draft.nickname, "draft");
+        }
 
-      if (draft.stationId && stations.some((station) => station.id === draft.stationId)) {
-        setStationId(draft.stationId);
-        setStationConfirmed(true);
-      }
-      if (draft.fuelType && allowedFuelSet.has(draft.fuelType)) {
-        setFuelType(draft.fuelType);
-        setFuelConfirmed(true);
-      }
-      if (typeof draft.price === "string") {
-        setPrice(draft.price);
-        setPriceReviewed(draft.lastStep === "submit");
-      }
-      if (typeof draft.nickname === "string") {
-        setNickname(draft.nickname);
-        persistProgressiveIdentityNickname(draft.nickname, "draft");
-      }
-
-      if (draft.photo && draft.photo instanceof Blob) {
-        const restoredFile = new File([draft.photo], getPhotoName(draft.photoType, draft.photoName ?? "foto"), {
-          type: draft.photoType ?? draft.photo.type ?? "image/jpeg",
-          lastModified: new Date(draft.updatedAt).getTime()
-        });
-        selectedFileRef.current = restoredFile;
-        syncProcessedFileToInput(fileInputRef.current, restoredFile);
-        const objectUrl = URL.createObjectURL(restoredFile);
-        setPreviewUrl(objectUrl);
-        setDraftPhotoMissing(false);
-      } else {
-        const queuedPhoto = await getQueuePhoto(draftKey).catch(() => null);
-        if (queuedPhoto) {
-          selectedFileRef.current = queuedPhoto;
-          syncProcessedFileToInput(fileInputRef.current, queuedPhoto);
-          const objectUrl = URL.createObjectURL(queuedPhoto);
+        if (draft.photo && draft.photo instanceof Blob) {
+          const restoredFile = new File([draft.photo], getPhotoName(draft.photoType, draft.photoName ?? "foto"), {
+            type: draft.photoType ?? draft.photo.type ?? "image/jpeg",
+            lastModified: new Date(draft.updatedAt).getTime()
+          });
+          selectedFileRef.current = restoredFile;
+          syncProcessedFileToInput(fileInputRef.current, restoredFile);
+          const objectUrl = URL.createObjectURL(restoredFile);
           setPreviewUrl(objectUrl);
           setDraftPhotoMissing(false);
-        } else if (isPhotoMetadataPresent(draft)) {
-          setDraftPhotoMissing(true);
+        } else {
+          const queuedPhoto = await getQueuePhoto(draftKey).catch(() => null);
+          if (queuedPhoto) {
+            selectedFileRef.current = queuedPhoto;
+            syncProcessedFileToInput(fileInputRef.current, queuedPhoto);
+            const objectUrl = URL.createObjectURL(queuedPhoto);
+            setPreviewUrl(objectUrl);
+            setDraftPhotoMissing(false);
+          } else if (isPhotoMetadataPresent(draft)) {
+            setDraftPhotoMissing(true);
+          }
         }
-      }
 
-      setDraftRestored(true);
-      setDraftLoaded(true);
+        setDraftRestored(true);
+        setDraftLoaded(true);
 
         if (!restoredDraftTrackedRef.current) {
-        restoredDraftTrackedRef.current = true;
-        void trackProductEvent({
-          eventType: "submission_draft_restored",
-          pagePath: "/enviar",
-          pageTitle: "Enviar preço",
-          stationId: draft.stationId || null,
-          fuelType: draft.fuelType,
-          scopeType: "submission",
-          scopeId: draft.stationId || null,
-          payload: {
-            lastStep: draft.lastStep,
-            status: draft.status,
-            hasPhoto: Boolean(draft.photo),
-            ageMs: Date.now() - new Date(draft.updatedAt).getTime(),
-            compactMode,
-            lockedStation
-          }
-        });
-      }
+          restoredDraftTrackedRef.current = true;
+          void trackProductEvent({
+            eventType: "submission_draft_restored",
+            pagePath: "/enviar",
+            pageTitle: "Enviar preço",
+            stationId: draft.stationId || null,
+            fuelType: draft.fuelType,
+            scopeType: "submission",
+            scopeId: draft.stationId || null,
+            payload: {
+              lastStep: draft.lastStep,
+              status: draft.status,
+              hasPhoto: Boolean(draft.photo),
+              ageMs: Date.now() - new Date(draft.updatedAt).getTime(),
+              compactMode,
+              lockedStation,
+              packageSize: countFilledFuelPrices(restoredPrices)
+            }
+          });
+        }
 
         if (!draft.photo && isPhotoMetadataPresent(draft)) {
-        void trackProductEvent({
-          eventType: "submission_photo_lost",
-          pagePath: "/enviar",
-          pageTitle: "Enviar preço",
-          stationId: draft.stationId || null,
-          fuelType: draft.fuelType,
-          scopeType: "submission",
-          scopeId: draft.stationId || null,
-          payload: {
-            lastStep: draft.lastStep,
-            compactMode,
-            lockedStation,
-            source: "restore_missing_photo"
-          }
-        });
-      }
+          void trackProductEvent({
+            eventType: "submission_photo_lost",
+            pagePath: "/enviar",
+            pageTitle: "Enviar preço",
+            stationId: draft.stationId || null,
+            fuelType: draft.fuelType,
+            scopeType: "submission",
+            scopeId: draft.stationId || null,
+            payload: {
+              lastStep: draft.lastStep,
+              compactMode,
+              lockedStation,
+              source: "restore_missing_photo"
+            }
+          });
+        }
       } catch {
         setDraftLoaded(true);
       }
@@ -805,6 +823,7 @@ function PriceSubmitFormBody({
       stationId,
       fuelType,
       price,
+      fuelPrices,
       nickname,
       lastStep: currentStepRef.current ?? "photo",
       status,
@@ -812,7 +831,7 @@ function PriceSubmitFormBody({
     });
 
     void saveSubmissionDraft(snapshot).catch(() => undefined);
-  }, [draftKey, draftLoaded, evidenceMode, fuelType, nickname, pending, price, priceSource, stationId, state.error]);
+  }, [draftKey, draftLoaded, evidenceMode, fuelPrices, fuelType, nickname, pending, price, priceSource, stationId, state.error]);
 
   const currentQueueItem = queueItems.find((item) => item.draftKey === draftKey) ?? null;
   const selectedStation = stations.find((station) => station.id === stationId) ?? stations[0] ?? null;
@@ -872,7 +891,7 @@ function PriceSubmitFormBody({
 
     fuelSuggestionTrackedRef.current = true;
     submissionAutoDecisionCountRef.current += 1;
-    setFuelType(nextFuel);
+    setLastTouchedFuelType(nextFuel);
     void trackProductEvent({
       eventType: "submission_context_autofilled",
       pagePath: "/enviar",
@@ -1216,7 +1235,8 @@ function PriceSubmitFormBody({
       persistProgressiveIdentityNickname(nickname, "submission");
     }
     setSubmittedStationId(stationId);
-    setPrice("");
+    setFuelPrices(normalizeFuelPriceMap(undefined, lastTouchedFuelType, ""));
+    setPricesReviewed(false);
     setNickname("");
     setPreviewUrl(null);
     selectedFileRef.current = null;
@@ -1314,7 +1334,7 @@ function PriceSubmitFormBody({
         }
       });
 
-      const queuedSignature = [draftKey, "abandonment", hasPhoto ? "photo" : "no-photo", price.trim(), fuelType, stationId || ""].join(":");
+      const queuedSignature = [draftKey, "abandonment", hasPhoto ? "photo" : "no-photo", JSON.stringify(filledFuelEntries), stationId || ""].join(":");
       if (lastQueuedAbandonmentSignatureRef.current === queuedSignature) {
         return;
       }
@@ -1329,6 +1349,7 @@ function PriceSubmitFormBody({
         neighborhood: resolvedStation?.neighborhood ?? null,
         fuelType,
         price,
+        fuelPrices,
         nickname,
         status: hasPhoto ? "stored" : "photo_required",
         photo: selectedFileRef.current,
@@ -1369,7 +1390,7 @@ function PriceSubmitFormBody({
       window.removeEventListener("pagehide", sendAbandonment);
       window.removeEventListener("beforeunload", sendAbandonment);
     };
-  }, [draftKey, draftPhotoMissing, fuelType, nickname, price, safeReturnToHref, selectedStation, stationConfirmed, locationConfidence, stationId, stations]);
+  }, [draftKey, draftPhotoMissing, filledFuelEntries, fuelPrices, fuelType, nickname, price, safeReturnToHref, selectedStation, stationConfirmed, locationConfidence, stationId, stations]);
 
   useEffect(() => {
     if (!state.error || state.errorCode === lastFailureKeyRef.current) {
@@ -1416,7 +1437,7 @@ function PriceSubmitFormBody({
       return;
     }
 
-    const queuedSignature = [draftKey, state.errorCode ?? "error", state.retryable ? "retryable" : "final", Boolean(selectedFileRef.current) ? "photo" : "no-photo", price.trim(), fuelType, stationId || ""].join(":");
+    const queuedSignature = [draftKey, state.errorCode ?? "error", state.retryable ? "retryable" : "final", Boolean(selectedFileRef.current) ? "photo" : "no-photo", JSON.stringify(filledFuelEntries), stationId || ""].join(":");
     if (lastQueuedFailureSignatureRef.current === queuedSignature) {
       return;
     }
@@ -1443,6 +1464,7 @@ function PriceSubmitFormBody({
       neighborhood: resolvedStation?.neighborhood ?? null,
       fuelType,
       price,
+      fuelPrices,
       nickname,
       status: nextQueueStatus,
       photo: selectedFileRef.current,
@@ -1616,9 +1638,7 @@ function PriceSubmitFormBody({
       setDraftPhotoMissing(false);
       setPreviewUrl(URL.createObjectURL(processed));
       
-      if (priceInputRef.current) {
-        priceInputRef.current.focus();
-      }
+      focusPreferredPriceField();
     } catch (error) {
       selectedFileRef.current = null;
       setPreviewUrl(null);
@@ -1658,8 +1678,7 @@ function PriceSubmitFormBody({
   function formatPrice(value: string) {
     const digits = value.replace(/\D/g, "");
     if (!digits) return "";
-    
-    // Suporte a 3 casas decimais (padrão posto: 5.699)
+
     const num = parseInt(digits, 10);
     const formatted = (num / 1000).toLocaleString("pt-BR", {
       minimumFractionDigits: 3,
@@ -1668,45 +1687,84 @@ function PriceSubmitFormBody({
     return formatted;
   }
 
-  function handlePriceChange(e: ChangeEvent<HTMLInputElement>) {
-    const raw = e.target.value;
-    const formatted = formatPrice(raw);
-    setPrice(formatted);
-    setPriceReviewed(false);
+  function focusPreferredPriceField(targetFuelType?: FuelType) {
+    const preferredFuel = targetFuelType ?? lastTouchedFuelType;
+    const orderedFuelTypes = [preferredFuel, ...fuelOptions.filter((fuel) => fuel !== preferredFuel)];
 
-    // Clear error on change
-    if (validationErrors.price) {
-      setValidationErrors(prev => ({ ...prev, price: undefined }));
+    for (const fuel of orderedFuelTypes) {
+      const input = priceInputRefs.current[fuel];
+      if (input) {
+        input.focus();
+        input.select();
+        return;
+      }
     }
   }
+
+  function handleFuelPriceChange(fuel: FuelType, rawValue: string) {
+    const formatted = formatPrice(rawValue);
+    setFuelPrices((current) => ({ ...current, [fuel]: formatted }));
+    setLastTouchedFuelType(fuel);
+    setPricesReviewed(false);
+
+    setValidationErrors((current) => {
+      const nextByFuel = { ...(current.priceByFuel ?? {}) };
+      delete nextByFuel[fuel];
+      return {
+        ...current,
+        fuelPrices: undefined,
+        priceByFuel: Object.keys(nextByFuel).length > 0 ? nextByFuel : undefined
+      };
+    });
+  }
+
+  function handlePriceFieldFocus(fuel: FuelType) {
+    setLastTouchedFuelType(fuel);
+    handleFieldFocus(`price:${fuel}`);
+  }
+
   function handleFieldFocus(fieldName: string) {
     lastFieldRef.current = fieldName;
   }
 
-    function validateForm() {
+  function validateForm() {
     const errors: typeof validationErrors = {};
-    if (!stationId) errors.stationId = "Selecione um posto.";
-    if (!fuelType) errors.fuelType = "Selecione o combustível.";
+    const priceByFuel: Partial<Record<FuelType, string>> = {};
+    const filledEntries = getFilledFuelPriceEntries(fuelPrices);
 
-    if (!price || price.length < 5) {
-      errors.price = "Informe um preço válido (ex: 5,699).";
+    if (!stationId) errors.stationId = "Selecione um posto.";
+
+    if (filledEntries.length === 0) {
+      errors.fuelPrices = "Preencha pelo menos um preço que apareca na foto.";
+    }
+
+    filledEntries.forEach((entry) => {
+      if (!entry.price || entry.price.length < 5) {
+        priceByFuel[entry.fuelType] = "Use um preco valido, como 5,699.";
+      }
+    });
+
+    if (Object.keys(priceByFuel).length > 0) {
+      errors.priceByFuel = priceByFuel;
+      errors.fuelPrices = errors.fuelPrices ?? "Revise os precos destacados antes de enviar.";
     }
 
     if (evidenceMode === "placa_faixa") {
       if (!selectedFileRef.current) {
-        errors.photo = "A foto é obrigatória para o envio de rua.";
+        errors.photo = "A foto e obrigatoria para o envio de rua.";
       }
     } else if (!priceSource) {
-      errors.priceSource = "Escolha a origem do preço.";
+      errors.priceSource = "Escolha a origem do preco.";
     }
 
     setValidationErrors(errors);
 
     Object.entries(errors).forEach(([field, message]) => {
+      if (!message) return;
       void trackProductEvent({
         eventType: "submission_validation_error" as any,
         pagePath: "/enviar",
-        payload: { field, message, price, fuelType }
+        payload: { field, message, price, fuelType, packageSize: filledEntries.length }
       });
     });
 
@@ -1717,29 +1775,25 @@ function PriceSubmitFormBody({
   const hasPhoto = Boolean(previewUrl);
   const manualSourceReady = evidenceMode === "sem_placa_faixa" ? Boolean(priceSource) : true;
   const evidenceReady = requiresDocumentPhoto ? hasPhoto : manualSourceReady;
-  const canSubmit = Boolean(selectedStation && price.trim() && fuelType && evidenceReady);
+  const canSubmit = Boolean(selectedStation && filledFuelEntries.length > 0 && evidenceReady);
   const retryableError = state.error && state.retryable;
-  const guidedStage: SubmissionDraftStep = !evidenceReady ? "photo" : !stationConfirmed ? "station" : !fuelConfirmed ? "fuel" : !price.trim() ? "price" : !priceReviewed ? "price" : "submit";
+  const guidedStage: SubmissionDraftStep = !evidenceReady ? "photo" : !stationConfirmed ? "station" : filledFuelEntries.length === 0 ? "price" : !pricesReviewed ? "price" : "submit";
   const stageLabel = {
     photo: evidenceMode === "sem_placa_faixa" ? "Origem" : "Foto",
     station: "Posto",
-    fuel: "Combustível",
-    price: "Preço",
-    submit: "Revisão"
+    price: "Precos",
+    submit: "Revisao"
   }[guidedStage];
   const submitButtonLabel =
     guidedStage === "photo"
       ? evidenceMode === "sem_placa_faixa"
         ? (priceSource ? "Continuar" : "Escolher origem")
-        : "Abrir câmera"
+        : "Abrir camera"
       : guidedStage === "station"
         ? "Confirmar posto"
-        : guidedStage === "fuel"
-          ? "Confirmar combustível"
-          : guidedStage === "price"
-            ? "Ver revisão"
-            : "Enviar preço";
-
+        : guidedStage === "price"
+          ? (filledFuelEntries.length > 0 ? "Ver revisao" : "Preencher precos")
+          : `Enviar ${filledFuelEntries.length > 1 ? `${filledFuelEntries.length} precos` : "preco"}`;
   async function refreshQueueItems() {
     const items = await loadSubmissionQueue().catch(() => [] as SubmissionQueueEntry[]);
     setQueueItems(items);
@@ -1796,15 +1850,14 @@ function PriceSubmitFormBody({
     window.sessionStorage.removeItem(item.draftKey);
     if (item.draftKey === draftKey) {
       completedRef.current = false;
-      setPrice("");
+      setFuelPrices(normalizeFuelPriceMap(undefined, lastTouchedFuelType, ""));
+      setPricesReviewed(false);
       setNickname("");
       setPreviewUrl(null);
       selectedFileRef.current = null;
       setDraftRestored(false);
       setDraftPhotoMissing(false);
       setStationConfirmed(false);
-      setFuelConfirmed(false);
-      setPriceReviewed(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -1905,7 +1958,7 @@ function PriceSubmitFormBody({
     setValidationErrors((prev) => ({ ...prev, stationId: undefined }));
     setIsSuggested(source === "nearby" && candidate.distance !== null);
     setStationConfirmed(true);
-    setFuelConfirmed(false);
+    setPricesReviewed(false);
     markStarted("station", {
       changed: true,
       source,
@@ -2041,22 +2094,13 @@ function PriceSubmitFormBody({
       return;
     }
 
-    if (guidedStage === "fuel") {
-      setFuelConfirmed(true);
-      markStarted("fuel", {
-        confirmed: true,
-        source: "guided_footer"
-      });
-      return;
-    }
-
     if (guidedStage === "price") {
-      if (!price.trim()) {
-        priceInputRef.current?.focus();
+      if (filledFuelEntries.length === 0) {
+        focusPreferredPriceField();
         return;
       }
 
-      setPriceReviewed(true);
+      setPricesReviewed(true);
       markStarted("submit", {
         confirmed: true,
         source: "guided_footer"
@@ -2255,6 +2299,7 @@ function PriceSubmitFormBody({
             station={selectedStation!}
             fuelType={fuelType}
             price={price}
+            submittedReports={state.submittedReports}
             isStreetMode={isStreetMode}
             mission={mission}
             nextMissionStation={nextStationNode}
@@ -2801,85 +2846,65 @@ function PriceSubmitFormBody({
         {validationErrors.stationId && <p className="mt-1.5 px-1 text-[10px] font-bold uppercase text-red-400 tracking-wider transition-all animate-in fade-in slide-in-from-top-1">{validationErrors.stationId}</p>}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        {guidedStage !== "fuel" ? (
-          <div className="rounded-[22px] border border-white/8 bg-black/30 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/42">Combustível sugerido</p>
-                <p className="mt-1 truncate text-sm font-semibold text-white">{fuelLabels[fuelType]}</p>
-              </div>
-              <Button type="button" variant="secondary" className="shrink-0" onClick={() => { setShowFuelPicker(true); setFuelConfirmed(false); }} >
+      <input type="hidden" name="fuelType" value={fuelType} />
+      <input type="hidden" name="price" value={price} />
+      <input type="hidden" name="priceEntriesJson" value={JSON.stringify(filledFuelEntries)} />
 
-                Trocar
-
-              </Button>
-            </div>
-          </div>
-        ) : null}
-        <div className={cn("space-y-2 rounded-[22px] border border-white/8 bg-black/30 p-4", guidedStage !== "fuel" && "hidden")}>
-          <label className="text-sm font-medium text-white" htmlFor="fuelType">
-            Combustível
-          </label>
-          <select
-            id="fuelType"
-            name="fuelType"
-            value={fuelType}
-            onFocus={() => handleFieldFocus("fuelType")}
-            onChange={(event) => {
-              setFuelType(event.target.value as FuelType);
-              setValidationErrors(prev => ({ ...prev, fuelType: undefined }));
-              markStarted("fuel", { fuelType: event.target.value });
-            }}
-            className={cn(
-               "w-full rounded-[18px] border bg-black/30 px-4 py-3 text-sm text-white outline-none ring-0 transition-all",
-               validationErrors.fuelType ? "border-red-500/50 ring-1 ring-red-500/20" : "border-white/10"
-            )}
-          >
-            {fuelOptions.map((option) => (
-              <option key={option} value={option}>
-                {fuelLabels[option]}
-              </option>
-            ))}
-          </select>
-          {validationErrors.fuelType && <p className="mt-1.5 px-1 text-[10px] font-bold uppercase text-red-400 tracking-wider animate-in fade-in slide-in-from-top-1">{validationErrors.fuelType}</p>}
-        </div>
-
-
-      {guidedStage !== "price" && price ? (
-        <div className="rounded-[22px] border border-white/10 bg-black/25 p-3">
+      <div className="space-y-3 rounded-[22px] border border-white/8 bg-black/30 p-4">
+        <div className="space-y-2">
           <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/42">Preço</p>
-              <p className="text-sm font-semibold text-white">{price}</p>
-              <p className="mt-1 text-xs text-white/52">Falta só revisar antes de enviar.</p>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/42">Precos por combustivel</p>
+              <p className="mt-1 text-sm font-semibold text-white">Preencha so os precos que aparecem na foto.</p>
             </div>
-            <Button type="button" variant="secondary" className="shrink-0" onClick={() => { setPriceReviewed(false); priceInputRef.current?.focus(); }}>
-              Editar
-            </Button>
+            <Badge variant="outline">Pode enviar 1 ou varios</Badge>
           </div>
+          <p className="text-xs text-white/56">Cada linha e opcional. Se um preco nao aparece, deixe em branco.</p>
         </div>
-      ) : null}        <div className={cn("space-y-2 rounded-[22px] border border-white/8 bg-black/30 p-4", guidedStage !== "price" && "hidden")}>
-          <label className="text-sm font-medium text-white" htmlFor="price">
-            Preço
-          </label>
-          <input
-            id="price"
-            name="price"
-            ref={priceInputRef}
-            type="text"
-            inputMode="numeric"
-            value={price}
-            onFocus={() => handleFieldFocus("price")}
-            onChange={handlePriceChange}
-            placeholder="0,000"
-            className={cn(
-              "w-full rounded-[18px] border bg-black/30 px-4 py-3 text-lg font-bold text-[color:var(--color-accent)] outline-none ring-0 transition-all placeholder:text-white/10",
-              validationErrors.price ? "border-red-500/50 ring-1 ring-red-500/20" : "border-white/10"
-            )}
-          />
-          {validationErrors.price && <p className="mt-1 px-1 text-[10px] font-bold uppercase text-red-400 tracking-wider animate-in fade-in slide-in-from-top-1">{validationErrors.price}</p>}
+
+        <div className="space-y-2">
+          {fuelOptions.map((option) => {
+            const stationReport = selectedStation ? getSelectedStationReport(selectedStation, option) : null;
+            const fieldError = validationErrors.priceByFuel?.[option];
+            const value = fuelPrices[option] ?? "";
+
+            return (
+              <label key={option} className={cn(
+                "flex items-center gap-3 rounded-[18px] border px-3 py-3 transition",
+                value ? "border-[color:var(--color-accent)]/24 bg-[color:var(--color-accent)]/8" : "border-white/8 bg-black/20",
+                fieldError && "border-red-500/50 bg-red-500/5"
+              )}>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-white">{fuelLabels[option]}</span>
+                    {value ? <Badge variant="accent">Preenchido</Badge> : <Badge variant="outline">Opcional</Badge>}
+                  </div>
+                  <p className="mt-1 text-[11px] text-white/52">
+                    {stationReport ? `Ultimo no posto: ${formatCurrencyBRL(stationReport.price)} · ${formatRecencyLabel(stationReport.reportedAt)}` : "Sem preco recente neste posto."}
+                  </p>
+                  {fieldError ? <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-red-400">{fieldError}</p> : null}
+                </div>
+                <input
+                  ref={(node) => { priceInputRefs.current[option] = node; }}
+                  inputMode="numeric"
+                  value={value}
+                  onFocus={() => handlePriceFieldFocus(option)}
+                  onChange={(event) => {
+                    handleFuelPriceChange(option, event.target.value);
+                    markStarted("price", {
+                      fuelType: option,
+                      filledCount: countFilledFuelPrices({ ...fuelPrices, [option]: formatPrice(event.target.value) })
+                    });
+                  }}
+                  placeholder="0,000"
+                  className="w-28 shrink-0 rounded-[16px] border border-white/10 bg-black/30 px-3 py-2 text-right text-base font-bold text-[color:var(--color-accent)] outline-none placeholder:text-white/18"
+                />
+              </label>
+            );
+          })}
         </div>
+
+        {validationErrors.fuelPrices ? <p className="px-1 text-[10px] font-bold uppercase tracking-[0.16em] text-red-400">{validationErrors.fuelPrices}</p> : null}
       </div>
 
       {!isStreetMode && (
@@ -2895,7 +2920,7 @@ function PriceSubmitFormBody({
               value={nickname}
               onChange={(event) => {
                 setNickname(event.target.value);
-                markStarted("nickname", { hasValue: event.target.value.trim().length > 0 });
+                markStarted("submit", { field: "nickname", hasValue: event.target.value.trim().length > 0 });
               }}
               onBlur={(event) => {
                 persistProgressiveIdentityNickname(event.target.value, "manual");
@@ -2910,29 +2935,39 @@ function PriceSubmitFormBody({
       {guidedStage === "submit" ? (
         <div className="rounded-[22px] border border-[color:var(--color-accent)]/18 bg-[color:var(--color-accent)]/8 p-4">
           <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[color:var(--color-accent)]/72">Revisão final</p>
-          <p className="mt-2 text-sm font-semibold text-white">Confirme antes de enviar.</p>
+          <p className="mt-2 text-sm font-semibold text-white">Confirme a foto, o posto e os preços preenchidos.</p>
           <div className="mt-4 space-y-2 text-sm text-white/72">
             <div className="flex items-center justify-between gap-3 rounded-[16px] border border-white/8 bg-black/20 px-3 py-2">
               <span className="text-white/48">Posto</span>
               <span className="truncate text-right font-medium text-white">{showStationProposalFlow ? (stationProposalName || "Posto novo proposto") : selectedStation ? getStationPublicName(selectedStation) : "Posto"}</span>
             </div>
             <div className="flex items-center justify-between gap-3 rounded-[16px] border border-white/8 bg-black/20 px-3 py-2">
-              <span className="text-white/48">Combustível</span>
-              <span className="truncate text-right font-medium text-white">{fuelLabels[fuelType]}</span>
-            </div>
-            <div className="flex items-center justify-between gap-3 rounded-[16px] border border-white/8 bg-black/20 px-3 py-2">
-              <span className="text-white/48">Preço</span>
-              <span className="truncate text-right font-medium text-white">{price}</span>
+              <span className="text-white/48">Foto</span>
+              <span className="truncate text-right font-medium text-white">{hasPhoto ? "Anexada" : evidenceMode === "sem_placa_faixa" ? manualPriceSourceLabels[priceSource as Exclude<ManualPriceSource, "">] ?? "Origem manual" : "Pendente"}</span>
             </div>
           </div>
-          <p className="mt-3 text-xs text-white/58">Quando você tocar em enviar, o preço entra em revisão.</p>
+          <div className="mt-3 rounded-[18px] border border-white/8 bg-black/20 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/42">Preços do pacote</p>
+              <Badge variant="accent">{filledFuelEntries.length} preenchido{filledFuelEntries.length > 1 ? "s" : ""}</Badge>
+            </div>
+            <div className="mt-3 space-y-2">
+              {filledFuelEntries.map((entry) => (
+                <div key={entry.fuelType} className="flex items-center justify-between gap-3 rounded-[14px] border border-white/8 bg-white/[0.03] px-3 py-2">
+                  <span className="text-white/58">{fuelLabels[entry.fuelType]}</span>
+                  <span className="font-medium text-white">{entry.price}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <p className="mt-3 text-xs text-white/58">Quando você tocar em enviar, o pacote entra em revisão com foto e contexto compartilhados.</p>
         </div>
       ) : null}
       <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] z-[1090] px-4 py-3 lg:bottom-4 xl:left-1/2 xl:right-auto xl:w-[min(1120px,calc(100vw-2rem))] xl:-translate-x-1/2 xl:px-0">
         <div className="mx-auto flex w-full max-w-3xl items-center gap-3 rounded-[24px] border border-white/10 bg-black/92 px-4 py-3 backdrop-blur-md md:backdrop-blur-xl">
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/36">Etapa {stageLabel}</p>
-            <p className="truncate text-sm text-white/66">{state.error ? state.error : guidedStage === "submit" ? "Confira e envie." : "Uma ação por vez."}</p>
+            <p className="truncate text-sm text-white/66">{state.error ? state.error : guidedStage === "submit" ? "Confira o pacote e envie." : guidedStage === "price" ? "Preencha um ou varios precos." : "Uma acao por vez."}</p>
           </div>
           <Button type={guidedStage === "submit" ? "submit" : "button"} className="h-14 min-w-[11rem] rounded-full text-sm font-bold" disabled={pending || (guidedStage === "submit" && !canSubmit)} onClick={guidedStage === "submit" ? undefined : handlePrimaryAction}>
             {pending ? "Enviando..." : submitButtonLabel}
@@ -2978,6 +3013,28 @@ export function PriceSubmitForm(props: PriceSubmitFormProps) {
 
   return <PriceSubmitFormBody key={`${props.initialStationId ?? "default"}-${formVersion}`} {...props} onResetRequest={() => setFormVersion((value) => value + 1)} />;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

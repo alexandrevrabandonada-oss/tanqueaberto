@@ -1,4 +1,5 @@
 import type { FuelType } from "@/lib/types";
+import type { FuelPriceMap } from "@/lib/submissions/fuel-prices";
 
 export type SubmissionDraftStep = "photo" | "station" | "fuel" | "price" | "nickname" | "submit";
 export type SubmissionDraftStatus = "in_progress" | "submitting" | "failed" | "completed";
@@ -8,6 +9,7 @@ export interface SubmissionDraftSnapshot {
   stationId: string;
   fuelType: FuelType;
   price: string;
+  fuelPrices?: FuelPriceMap | null;
   nickname: string;
   status: SubmissionDraftStatus;
   lastStep: SubmissionDraftStep;
@@ -116,4 +118,3 @@ export async function clearSubmissionDraft(key: string) {
 export function getSubmissionDraftTtlMs() {
   return DRAFT_TTL_MS;
 }
-

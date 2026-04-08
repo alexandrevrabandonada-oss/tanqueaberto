@@ -20,10 +20,9 @@ interface PriceSubmitIslandProps {
   initialStationId?: string;
   initialFuelType?: FuelType;
   returnToHref?: string;
+  draftKeyOverride?: string;
 }
 
 export function PriceSubmitIsland(props: PriceSubmitIslandProps) {
   return <PriceSubmitForm {...props} />;
 }
-
-

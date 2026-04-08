@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
 import { fuelLabels } from "@/lib/format/labels";
 import { formatRecencyLabel } from "@/lib/format/time";
-import { getSubmissionQueueStatusLabel, type SubmissionQueueEntry } from "@/lib/queue/submission-queue";
+import { getSubmissionQueueFuelEntries, getSubmissionQueueStatusLabel, type SubmissionQueueEntry } from "@/lib/queue/submission-queue";
 import { cn } from "@/lib/utils";
 
 interface SubmissionQueuePanelProps {
@@ -45,10 +45,10 @@ export function SubmissionQueuePanel({ items, online, className, onRetry, onRevi
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-white/42">Envios pendentes</p>
           <h3 className="mt-1 text-xl font-semibold text-white">Guardados no aparelho</h3>
-          <p className="mt-1 text-sm text-white/58">{online ? "A rede voltou. Você pode reenviar ou revisar antes." : "Sem rede agora. Os envios ficam guardados até a conexão voltar."}</p>
+          <p className="mt-1 text-sm text-white/58">{online ? "A rede voltou. Voce pode reenviar ou revisar antes." : "Sem rede agora. Os envios ficam guardados ate a conexao voltar."}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Badge variant="outline">{summary.total} pendência{summary.total > 1 ? "s" : ""}</Badge>
+          <Badge variant="outline">{summary.total} pendencia{summary.total > 1 ? "s" : ""}</Badge>
           <Badge variant="outline">{summary.withPhoto} com foto</Badge>
           <Badge variant={summary.needsPhoto > 0 ? "warning" : "outline"}>{summary.needsPhoto} sem foto</Badge>
         </div>
@@ -56,14 +56,15 @@ export function SubmissionQueuePanel({ items, online, className, onRetry, onRevi
 
       <div className="space-y-3">
         {items.map((item) => {
+          const entries = getSubmissionQueueFuelEntries(item);
           const isSuccess = item.status === "success";
           const isExpired = item.status === "expired";
           const isPhotoRequired = item.status === "photo_required";
           const isReady = item.status === "ready" || (online && item.hasPhoto && !isSuccess && !isExpired);
 
           return (
-            <div 
-              key={item.id} 
+            <div
+              key={item.id}
               className={cn(
                 "rounded-[22px] border p-4 transition-colors",
                 isSuccess ? "border-green-500/20 bg-green-500/5" :
@@ -77,11 +78,11 @@ export function SubmissionQueuePanel({ items, online, className, onRetry, onRevi
                   <p className="text-base font-semibold text-white">{item.stationName}</p>
                   <p className="text-sm text-white/54">{item.neighborhood ? `${item.neighborhood}, ` : ""}{item.city}</p>
                 </div>
-                <Badge 
+                <Badge
                   variant={
-                    isSuccess ? "accent" : 
-                    isExpired ? "secondary" : 
-                    isPhotoRequired ? "danger" : 
+                    isSuccess ? "accent" :
+                    isExpired ? "secondary" :
+                    isPhotoRequired ? "danger" :
                     isReady ? "default" : "warning"
                   }
                 >
@@ -90,8 +91,11 @@ export function SubmissionQueuePanel({ items, online, className, onRetry, onRevi
               </div>
 
               <div className="mt-3 flex flex-wrap gap-2 text-xs text-white/58">
-                <Badge variant="outline">{fuelLabels[item.fuelType]}</Badge>
-                <Badge variant="outline">{item.price}</Badge>
+                {entries.map((entry) => (
+                  <Badge key={`${item.id}-${entry.fuelType}`} variant="outline">
+                    {fuelLabels[entry.fuelType]} · {entry.price}
+                  </Badge>
+                ))}
                 <Badge variant="outline">{formatRecencyLabel(item.updatedAt)}</Badge>
                 {item.hasPhoto ? (
                   <Badge variant="outline" className="border-green-500/20 text-green-400">Foto guardada</Badge>
@@ -133,7 +137,7 @@ export function SubmissionQueuePanel({ items, online, className, onRetry, onRevi
                   </Button>
                 </div>
               )}
-              
+
               {isPhotoRequired && (
                 <p className="mt-2 text-xs text-orange-400/80">A foto sumiu deste aparelho. Toque em Revisar para tirar outra.</p>
               )}
@@ -144,5 +148,3 @@ export function SubmissionQueuePanel({ items, online, className, onRetry, onRevi
     </SectionCard>
   );
 }
-
-
