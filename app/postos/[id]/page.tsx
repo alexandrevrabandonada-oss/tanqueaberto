@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import type { Route } from "next";
 import { ArrowLeft, ArrowRight, Camera, Clock3, MapPinned, Share2, ShieldCheck, History, Info } from "lucide-react";
@@ -295,11 +294,10 @@ export default async function StationPage({ params, searchParams }: StationPageP
       {latest && hasUsableProofImage(latest.photoUrl) ? (
         <SectionCard className="p-0 overflow-hidden border-white/10 group">
           <div className="relative aspect-video w-full">
-            <Image 
+            <img
               src={latest.photoUrl} 
               alt={`Prova de vida: ${publicName}`} 
-              fill
-              className="object-cover transition duration-700 group-hover:scale-105" 
+              className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
             <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between">

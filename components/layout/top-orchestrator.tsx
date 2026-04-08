@@ -218,7 +218,7 @@ export function TopOrchestrator({
     "flex flex-col gap-1.5 transition-all duration-300 will-change-transform",
     !compactMode && "xl:rounded-[24px] xl:border xl:border-white/8 xl:bg-black/18 xl:px-3 xl:py-2 xl:backdrop-blur-md",
     compactMode && !stickyMode && "xl:rounded-[20px] xl:border xl:border-white/8 xl:bg-black/20 xl:px-2.5 xl:py-1.5 xl:backdrop-blur-md",
-    isSticky && "sticky top-0 z-[110] -mx-4 rounded-b-[18px] border border-t-0 border-white/8 bg-[rgba(8,8,8,0.46)] px-3 py-1 shadow-[0_8px_20px_rgba(0,0,0,0.22)] lg:gap-0.5 lg:px-3 lg:py-1 md:backdrop-blur-lg xl:px-2.5 xl:py-1",
+    isSticky && "sticky top-0 z-[110] w-full rounded-b-[18px] border border-t-0 border-white/8 bg-[rgba(8,8,8,0.46)] px-3 py-1 shadow-[0_8px_20px_rgba(0,0,0,0.22)] lg:gap-0.5 lg:px-3 lg:py-1 md:backdrop-blur-lg xl:px-2.5 xl:py-1",
     isSticky && isMissionActive && "top-10 lg:top-8",
     isMicro && "gap-1 bg-[rgba(8,8,8,0.52)] px-3 py-1 shadow-none lg:px-2.5 lg:py-1",
     className

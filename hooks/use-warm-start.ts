@@ -21,6 +21,16 @@ export function useWarmStart<T>({ key, version, onRefresh }: UseWarmStartOptions
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [startTime] = useState(() => Date.now());
 
+  const persistData = useCallback((newData: T) => {
+    setData(newData);
+    const snapshot: WarmSnapshot<T> = {
+      data: newData,
+      timestamp: new Date().toISOString(),
+      version
+    };
+    localStorage.setItem(key, JSON.stringify(snapshot));
+  }, [key, version]);
+
   // 1. Initial Load (Synchronous as possible)
   useEffect(() => {
     const saved = localStorage.getItem(key);
@@ -82,14 +92,6 @@ export function useWarmStart<T>({ key, version, onRefresh }: UseWarmStartOptions
     isWarm,
     isRefreshing,
     refresh,
-    setData: (newData: T) => {
-      setData(newData);
-      const snapshot: WarmSnapshot<T> = {
-        data: newData,
-        timestamp: new Date().toISOString(),
-        version
-      };
-      localStorage.setItem(key, JSON.stringify(snapshot));
-    }
+    setData: persistData
   };
 }
