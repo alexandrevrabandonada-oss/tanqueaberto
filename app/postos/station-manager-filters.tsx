@@ -1,5 +1,6 @@
 "use client";
 
+import type { Route } from "next";
 import { startTransition, useDeferredValue, useEffect, useState, type FormEvent } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
@@ -31,6 +32,10 @@ function buildFilterParams(filters: StationManagerFilterState) {
   return params;
 }
 
+function buildRoute(pathname: string, params?: string) {
+  return (params ? `${pathname}?${params}` : pathname) as Route;
+}
+
 export function StationManagerFilters({ initialFilters }: StationManagerFiltersProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -56,7 +61,7 @@ export function StationManagerFilters({ initialFilters }: StationManagerFiltersP
     const timeoutId = window.setTimeout(() => {
       setIsSyncing(true);
       startTransition(() => {
-        router.replace(nextParams ? `${pathname}?${nextParams}` : pathname, { scroll: false });
+        router.replace(buildRoute(pathname, nextParams), { scroll: false });
       });
     }, 220);
 
@@ -68,7 +73,7 @@ export function StationManagerFilters({ initialFilters }: StationManagerFiltersP
     const nextParams = buildFilterParams(filters).toString();
     setIsSyncing(true);
     startTransition(() => {
-      router.replace(nextParams ? `${pathname}?${nextParams}` : pathname, { scroll: false });
+      router.replace(buildRoute(pathname, nextParams), { scroll: false });
     });
   }
 
@@ -85,7 +90,7 @@ export function StationManagerFilters({ initialFilters }: StationManagerFiltersP
     setFilters(emptyFilters);
     setIsSyncing(true);
     startTransition(() => {
-      router.replace(pathname, { scroll: false });
+      router.replace(buildRoute(pathname), { scroll: false });
     });
   }
 
