@@ -6,7 +6,6 @@ import { SectionCard } from "@/components/ui/section-card";
 import { ButtonLink } from "@/components/ui/button";
 import { brand } from "@/styles/design-tokens";
 
-const APOIA_URL = "https://apoia.se/bombaaberta";
 
 const points = [
   "Com foto e horário para aumentar a confiança.",
@@ -71,10 +70,11 @@ export default function SobrePage() {
           O projeto é independente e não tem publicidade. Apoio da comunidade ajuda a manter a infraestrutura
           no ar e ampliar a cobertura de postos.
         </p>
-        <ButtonLink href={APOIA_URL} variant="secondary" target="_blank" rel="noopener noreferrer">
+        <ButtonLink href={"/apoie" as Route} variant="secondary">
           Apoiar o projeto
         </ButtonLink>
       </SectionCard>
     </AppShell>
   );
 }
+

@@ -127,6 +127,15 @@ function isPhotoMetadataPresent(snapshot: Partial<SubmissionDraftSnapshot>) {
   return Boolean(snapshot.photoName || snapshot.photoType || snapshot.photoSize);
 }
 
+function hasMeaningfulDraftContent(snapshot: Partial<SubmissionDraftSnapshot>, fuelPrices: FuelPriceMap) {
+  return (
+    countFilledFuelPrices(fuelPrices) > 0 ||
+    Boolean(snapshot.nickname?.trim()) ||
+    Boolean(snapshot.photo) ||
+    isPhotoMetadataPresent(snapshot)
+  );
+}
+
 function getPhotoName(photoType?: string | null, fallbackName = "foto") {
   const suffix = photoType?.split("/")[1] ?? "jpg";
   return `${fallbackName}.${suffix}`;
@@ -592,6 +601,8 @@ function PriceSubmitFormBody({
   const submissionFlowOpenedTrackedRef = useRef(false);
   const submissionFlowCompletedTrackedRef = useRef(false);
   const stationSuggestionTrackedRef = useRef(false);
+  const stationSuggestionSourceRef = useRef<"nearby" | "recent" | "fallback" | null>(null);
+  const stationSelectionOriginRef = useRef<"auto" | "manual" | "draft" | "initial" | null>(hasInitialStation ? "initial" : null);
   const fuelSuggestionTrackedRef = useRef(false);
   const hasStartedRef = useRef(false);
   const completedRef = useRef(false);
@@ -683,7 +694,14 @@ function PriceSubmitFormBody({
         }
 
         const restoredPrices = normalizeFuelPriceMap(draft.fuelPrices, draft.fuelType, draft.price);
+        if (!hasMeaningfulDraftContent(draft, restoredPrices)) {
+          void clearSubmissionDraft(draftKey).catch(() => undefined);
+          setDraftLoaded(true);
+          return;
+        }
+
         if (draft.stationId && stations.some((station) => station.id === draft.stationId)) {
+          stationSelectionOriginRef.current = "draft";
           setStationId(draft.stationId);
           setStationConfirmed(true);
         }
@@ -777,15 +795,37 @@ function PriceSubmitFormBody({
       return;
     }
 
+    stationSelectionOriginRef.current = "initial";
     setStationId(initialStation.id);
     setStationConfirmed(true);
   }, [initialStation]);
 
   const { coords, getLocation } = useGeolocation();
 
+  useEffect(() => {
+    if (hasInitialStation) {
+      return;
+    }
+
+    getLocation();
+  }, [getLocation, hasInitialStation]);
+
+
 
   useEffect(() => {
     if (!draftLoaded || completedRef.current) {
+      return;
+    }
+
+    const shouldPersistDraft =
+      hasStartedRef.current ||
+      countFilledFuelPrices(fuelPrices) > 0 ||
+      Boolean(selectedFileRef.current) ||
+      Boolean(nickname.trim()) ||
+      draftPhotoMissing;
+
+    if (!shouldPersistDraft) {
+      void clearSubmissionDraft(draftKey).catch(() => undefined);
       return;
     }
 
@@ -803,7 +843,7 @@ function PriceSubmitFormBody({
     });
 
     void saveSubmissionDraft(snapshot).catch(() => undefined);
-  }, [draftKey, draftLoaded, evidenceMode, fuelPrices, fuelType, nickname, pending, price, priceSource, stationId, state.error]);
+  }, [draftKey, draftLoaded, draftPhotoMissing, evidenceMode, fuelPrices, fuelType, nickname, pending, price, priceSource, stationId, state.error]);
 
   const currentQueueItem = queueItems.find((item) => item.draftKey === draftKey) ?? null;
   const selectedStation = stations.find((station) => station.id === stationId) ?? null;
@@ -1018,22 +1058,38 @@ function PriceSubmitFormBody({
   }, [coords, stationCandidates]);
 
   useEffect(() => {
-    if (lockedStation || draftRestored || stationSuggestionTrackedRef.current || !autoSuggestedStation) {
-      return;
-    }
-
-    const suggestedStation = autoSuggestedStation.candidate;
-    if (!suggestedStation || suggestedStation.station.id === stationId) {
+    if (lockedStation || draftRestored || !autoSuggestedStation) {
       return;
     }
 
     const suggestionSource = autoSuggestedStation.source;
+    const canUpgradeToNearby =
+      stationSelectionOriginRef.current === "auto" &&
+      stationSuggestionSourceRef.current !== "nearby" &&
+      suggestionSource === "nearby";
+
+    if (stationSelectionOriginRef.current === "manual" || stationSelectionOriginRef.current === "draft" || stationSelectionOriginRef.current === "initial") {
+      return;
+    }
+
+    if (stationSuggestionTrackedRef.current && !canUpgradeToNearby) {
+      return;
+    }
+    const suggestedStation = autoSuggestedStation.candidate;
+    if (!suggestedStation || (suggestedStation.station.id === stationId && !canUpgradeToNearby)) {
+      return;
+    }
+
     const suggestionKey = [draftKey, suggestedStation.station.id, suggestionSource, suggestedStation.distance !== null ? "geo" : "no-geo"].join(":");
 
     stationSuggestionTrackedRef.current = true;
+    stationSuggestionSourceRef.current = suggestionSource;
+    stationSelectionOriginRef.current = "auto";
     submissionAutoDecisionCountRef.current += 1;
     suggestedStationIdRef.current = suggestedStation.station.id;
-    setStationId(suggestedStation.station.id);
+    if (suggestedStation.station.id !== stationId) {
+      setStationId(suggestedStation.station.id);
+    }
     setIsSuggested(suggestionSource === "nearby" && suggestedStation.distance !== null);
     setShowStationPicker(false);
 
@@ -1547,6 +1603,8 @@ function PriceSubmitFormBody({
     submissionFlowOpenedTrackedRef.current = false;
     submissionAutoDecisionCountRef.current = 0;
     stationSuggestionTrackedRef.current = false;
+    stationSuggestionSourceRef.current = null;
+    stationSelectionOriginRef.current = hasInitialStation ? "initial" : null;
     stationSuggestionShownKeyRef.current = null;
     stationSuggestionAcceptedKeyRef.current = null;
     stationSuggestionChangedKeyRef.current = null;
@@ -1954,6 +2012,7 @@ function PriceSubmitFormBody({
       });
     }
 
+    stationSelectionOriginRef.current = "manual";
     setStationId(candidate.station.id);
     setStationSearch("");
     setValidationErrors((prev) => ({ ...prev, stationId: undefined }));
@@ -3062,77 +3121,4 @@ export function PriceSubmitForm(props: PriceSubmitFormProps) {
 
   return <PriceSubmitFormBody key={`${props.initialStationId ?? "default"}-${formVersion}`} {...props} onResetRequest={() => setFormVersion((value) => value + 1)} />;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

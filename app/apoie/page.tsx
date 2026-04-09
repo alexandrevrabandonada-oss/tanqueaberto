@@ -8,10 +8,11 @@ import { brand } from "@/styles/design-tokens";
 
 export const metadata: Metadata = {
   title: "Campanha de apoio",
-  description: `Apoie o desenvolvimento e a manutenção do ${brand.name} pela campanha no APOIA.se. Um projeto independente, sem anúncios.`,
+  description: `Apoie o desenvolvimento e a manutenção do ${brand.name} pelo APOIA.se ou por Pix. Um projeto independente, sem anúncios.`,
 };
 
 const APOIA_URL = "https://apoia.se/bombaaberta";
+const PIX_KEY = "alexandrevrabandonada@gmai.com";
 
 const costs = [
   {
@@ -56,7 +57,7 @@ export default function ApoiePage() {
           </p>
           <p className="text-sm leading-relaxed text-white/62">
             A campanha oficial de apoio fica em <a href={APOIA_URL} target="_blank" rel="noopener noreferrer" className="font-semibold text-[color:var(--color-accent)] underline decoration-white/20 underline-offset-2">apoia.se/bombaaberta</a>.
-            Se o app é útil na hora de escolher onde abastecer, um apoio pontual ou recorrente faz diferença real para a continuidade do projeto.
+            Se o app é útil na hora de escolher onde abastecer, um apoio pontual ou recorrente faz diferença real para a continuidade do projeto. Agora também é possível contribuir por Pix, com doação direta.
           </p>
         </div>
         <a
@@ -116,20 +117,45 @@ export default function ApoiePage() {
       <SectionCard className="space-y-4">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-white/42">Apoio pontual</p>
-          <h2 className="mt-1 text-xl font-semibold text-white">Uma vez, quando quiser</h2>
+          <h2 className="mt-1 text-xl font-semibold text-white">Uma vez, do jeito que preferir</h2>
         </div>
         <p className="text-sm text-white/62">
           Sem compromisso. Uma contribuição única também é bem-vinda e vai diretamente para os custos
-          operacionais do projeto.
+          operacionais do projeto, seja pela plataforma ou por Pix direto.
         </p>
-        <a
-          href={APOIA_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:border-[color:var(--color-accent)] active:scale-[0.99]"
-        >
-          Abrir campanha para apoio pontual
-        </a>
+        <div className="grid gap-3">
+          <div className="space-y-3 rounded-[22px] border border-white/8 bg-black/25 p-4">
+            <div className="space-y-1">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-white/38">Pela plataforma</p>
+              <p className="text-sm text-white/58">
+                Para contribuir pela campanha oficial, continue usando o APOIA.se.
+              </p>
+            </div>
+            <a
+              href={APOIA_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:border-[color:var(--color-accent)] active:scale-[0.99]"
+            >
+              Abrir campanha para apoio pontual
+            </a>
+          </div>
+
+          <div className="space-y-3 rounded-[22px] border border-[color:var(--color-accent)]/18 bg-[color:var(--color-accent)]/6 p-4">
+            <div className="space-y-1">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-accent)]">Pix direto</p>
+              <p className="text-sm text-white/58">
+                Se preferir fazer uma doação direta, use a chave Pix abaixo.
+              </p>
+            </div>
+            <div className="rounded-[18px] border border-white/10 bg-black/35 px-4 py-3 font-mono text-sm text-white break-all">
+              {PIX_KEY}
+            </div>
+            <p className="text-xs text-white/42">
+              Chave Pix por e-mail para contribuição pontual ao projeto.
+            </p>
+          </div>
+        </div>
       </SectionCard>
 
       <SectionCard className="space-y-3">

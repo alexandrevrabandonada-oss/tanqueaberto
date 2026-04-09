@@ -31,7 +31,6 @@ import { formatRecencyLabel } from "@/lib/format/time";
 import { fuelLabels } from "@/lib/format/labels";
 import { SubmissionStatusLine } from "@/components/history/submission-status-line";
 import { type MySubmission } from "@/hooks/use-my-submissions";
-const APOIA_URL = "https://apoia.se/bombaaberta";
 
 interface CollectorHubProps {
   stations: StationWithReports[];
@@ -426,7 +425,7 @@ export function CollectorHub({ stations }: CollectorHubProps) {
               <p className="text-sm text-white/52">Mantenha o mapa de pé.</p>
             </div>
             <a
-              href={APOIA_URL} target="_blank" rel="noopener noreferrer"
+              href="/apoie"
               className="shrink-0 text-xs font-semibold text-[color:var(--color-accent)] hover:underline"
             >
               Apoiar
@@ -441,12 +440,4 @@ export function CollectorHub({ stations }: CollectorHubProps) {
     </div>
   );
 }
-
-
-
-
-
-
-
-
 

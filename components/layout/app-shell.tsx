@@ -10,7 +10,6 @@ import { isBetaClosed } from "@/lib/beta/gate";
 import { getBuildInfo } from "@/lib/runtime/build-info";
 
 import { type OperationalKillSwitches } from "@/lib/ops/kill-switches";
-const APOIA_URL = "https://apoia.se/bombaaberta";
 
 const GlobalSubmitCta = dynamic(() => import("@/components/layout/global-submit-cta").then((mod) => mod.GlobalSubmitCta));
 const ShellDeferredChrome = dynamic(() => import("@/components/layout/shell-deferred-chrome").then((mod) => mod.ShellDeferredChrome), {
@@ -109,12 +108,12 @@ export function AppShell({ children, killSwitches, hideShellSubmitCta = false, a
         <main className="relative z-10 flex-1 min-w-0 space-y-3 overflow-x-clip md:space-y-4 xl:space-y-5">{children}</main>
 
         <footer className="relative z-10 mt-6 flex justify-center pb-2">
-          <a
-            href={APOIA_URL} target="_blank" rel="noopener noreferrer"
+          <Link
+            href="/apoie"
             className="text-[11px] text-white/24 transition-colors hover:text-white/46"
           >
             Apoie o projeto
-          </a>
+          </Link>
         </footer>
       </div>
     </div>

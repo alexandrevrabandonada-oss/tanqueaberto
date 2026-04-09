@@ -9,7 +9,12 @@ import { EmptyStateCard } from "@/components/state/empty-state-card";
 import { ButtonLink } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StationMapShell } from "@/components/map/station-map-shell";
-import type { FuelFilter } from "@/lib/filters/public";
+import { getSelectedStationReport, type FuelFilter } from "@/lib/filters/public";
+import { formatCurrencyBRL } from "@/lib/format/currency";
+import { fuelLabels } from "@/lib/format/labels";
+import { formatRecencyLabel } from "@/lib/format/time";
+import { formatDistanceFromYou } from "@/lib/geo/distance";
+import { getStationPublicName } from "@/lib/quality/stations";
 import type { StationWithReports } from "@/lib/types";
 
 interface HomeMapSurfaceProps {
@@ -19,6 +24,10 @@ interface HomeMapSurfaceProps {
   center?: { lat: number; lng: number } | null;
   userLocation?: { lat: number; lng: number; accuracy: number; trustStatus: "confiável" | "provável" | "incerto"; speed: number | null } | null;
   preferListFirst?: boolean;
+}
+
+function getStationHref(stationId: string, returnToHref?: string) {
+  return returnToHref ? (`/postos/${stationId}?returnTo=${encodeURIComponent(returnToHref)}` as Route) : (`/postos/${stationId}` as Route);
 }
 
 export function HomeMapSurface({ stations, contextHref, fuelFilter, center, userLocation, preferListFirst = false }: HomeMapSurfaceProps) {
@@ -98,16 +107,49 @@ export function HomeMapSurface({ stations, contextHref, fuelFilter, center, user
 
         <div className="space-y-2">
           <div className="flex items-center justify-between px-1">
-            <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Postos mais úteis agora</p>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Postos visíveis agora</p>
             <span className="text-[10px] uppercase tracking-[0.18em] text-white/28">{Math.min(primaryListCount, stations.length)} de {stations.length}</span>
           </div>
           <div className="space-y-2">
-            {stations.slice(0, primaryListCount).map((station) => (
-              <div key={station.id} className="rounded-[18px] border border-white/8 bg-white/[0.04] px-3 py-2.5">
-                <p className="truncate text-sm font-semibold text-white">{station.name}</p>
-                <p className="truncate text-xs text-white/46">{station.neighborhood || "Bairro"} · {station.city}</p>
-              </div>
-            ))}
+            {stations.slice(0, primaryListCount).map((station) => {
+              const report = getSelectedStationReport(station, fuelFilter);
+              const hasDistance = typeof station.distance === "number" && Number.isFinite(station.distance);
+
+              return (
+                <a
+                  key={station.id}
+                  href={getStationHref(station.id, contextHref)}
+                  className="block rounded-[18px] border border-white/8 bg-white/[0.04] px-3 py-2.5 transition hover:border-white/12 hover:bg-white/8"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-white">{getStationPublicName(station)}</p>
+                      <p className="truncate text-xs text-white/46">{station.neighborhood || "Bairro"} · {station.city}</p>
+                    </div>
+                    {hasDistance ? (
+                      <Badge variant="outline" className="shrink-0 text-[10px]">
+                        {formatDistanceFromYou(station.distance as number)}
+                      </Badge>
+                    ) : null}
+                  </div>
+
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {report ? (
+                      <>
+                        <Badge variant="secondary" className="text-[10px]">
+                          {fuelLabels[report.fuelType]} · {formatCurrencyBRL(Number(report.price))}
+                        </Badge>
+                        <Badge variant="outline" className="text-[10px]">
+                          {formatRecencyLabel(report.reportedAt)}
+                        </Badge>
+                      </>
+                    ) : (
+                      <Badge variant="warning" className="text-[10px]">Sem preço recente</Badge>
+                    )}
+                  </div>
+                </a>
+              );
+            })}
           </div>
         </div>
       </SectionCard>
@@ -151,7 +193,4 @@ export function HomeMapSurface({ stations, contextHref, fuelFilter, center, user
     </SectionCard>
   );
 }
-
-
-
 
