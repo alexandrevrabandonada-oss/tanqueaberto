@@ -7,9 +7,7 @@ import { getStationPublicName } from "@/lib/quality/stations";
 import type { FuelType, PriceReport, Station } from "@/lib/types";
 import type { PriceReportRow, StationRow } from "@/types/supabase";
 
-interface StationEditorStationRow extends StationRow {
-  last_reported_at?: string | null;
-}
+interface StationEditorStationRow extends StationRow {}
 
 export interface StationEditorStationListFilters {
   q?: string | null;
@@ -64,8 +62,39 @@ function sanitizeTextFilter(value: string | null | undefined) {
   return String(value ?? "").trim();
 }
 
-function escapeLike(value: string) {
-  return value.replace(/[%_,]/g, " ").trim();
+function normalizeLooseText(value: string | null | undefined) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function tokenizeSearch(value: string | null | undefined) {
+  return normalizeLooseText(value).split(/\s+/).filter(Boolean);
+}
+
+function matchesTokenizedText(haystack: string, query: string) {
+  const tokens = tokenizeSearch(query);
+  if (tokens.length === 0) return true;
+
+  const normalizedHaystack = normalizeLooseText(haystack);
+  return tokens.every((token) => normalizedHaystack.includes(token));
+}
+
+function buildStationSearchHaystack(station: Station) {
+  return [
+    getStationPublicName(station),
+    station.name,
+    station.nameOfficial,
+    station.brand,
+    station.distributorName,
+    station.address,
+    station.neighborhood,
+    station.city,
+    station.cnpj
+  ].filter(Boolean).join(" ");
 }
 
 function isRecentTimestamp(value: string | null | undefined, referenceTime = Date.now()) {
@@ -103,10 +132,17 @@ function deriveStatus(station: Station, hasRecentPrice: boolean) {
   return { label: "sem preço recente", tone: "secondary" as const };
 }
 
-function applyClientFilters(stations: Array<{ station: Station; lastReportedAt: string | null }>, filters: ResolvedStationEditorStationListFilters) {
-  return stations.filter(({ station, lastReportedAt }) => {
-    const hasRecentPrice = isRecentTimestamp(lastReportedAt);
+function applyClientFilters(
+  stations: Array<{ station: Station; latestReport: PriceReport | null; lastReportedAt: string | null }>,
+  filters: ResolvedStationEditorStationListFilters
+) {
+  return stations.filter(({ station, latestReport, lastReportedAt }) => {
+    const hasRecentPrice = isRecentTimestamp(lastReportedAt ?? latestReport?.reportedAt ?? null);
 
+    if (filters.q && !matchesTokenizedText(buildStationSearchHaystack(station), filters.q)) return false;
+    if (filters.city && !matchesTokenizedText(station.city, filters.city)) return false;
+    if (filters.neighborhood && !matchesTokenizedText([station.neighborhood, station.address].filter(Boolean).join(" "), filters.neighborhood)) return false;
+    if (filters.brand && !matchesTokenizedText([station.brand, station.distributorName].filter(Boolean).join(" "), filters.brand)) return false;
     if (filters.price === "recent" && !hasRecentPrice) return false;
     if (filters.price === "without_recent" && hasRecentPrice) return false;
     if (filters.review === "review" && !isReviewStation(station)) return false;
@@ -172,7 +208,7 @@ export async function getStationEditorStationList(input: StationEditorStationLis
   };
 
   const supabase = createSupabaseServiceClient();
-  let query = supabase
+  const { data, error } = await supabase
     .from("stations")
     .select("id,name,name_official,name_public,brand,address,city,neighborhood,lat,lng,is_active,created_at,cnpj,source,source_id,official_status,sigaf_status,products,distributor_name,last_synced_at,import_notes,geo_source,geo_confidence,geo_review_status,priority_score,visibility_status,curation_note,coordinate_reviewed_at,updated_at")
     .order("city", { ascending: true })
@@ -180,24 +216,6 @@ export async function getStationEditorStationList(input: StationEditorStationLis
     .order("name_public", { ascending: true, nullsFirst: false })
     .order("name", { ascending: true });
 
-  if (filters.q) {
-    const term = escapeLike(filters.q);
-    query = query.or(`name.ilike.%${term}%,name_public.ilike.%${term}%,name_official.ilike.%${term}%`);
-  }
-
-  if (filters.city) {
-    query = query.ilike("city", `%${escapeLike(filters.city)}%`);
-  }
-
-  if (filters.neighborhood) {
-    query = query.ilike("neighborhood", `%${escapeLike(filters.neighborhood)}%`);
-  }
-
-  if (filters.brand) {
-    query = query.ilike("brand", `%${escapeLike(filters.brand)}%`);
-  }
-
-  const { data, error } = await query;
   if (error || !data) {
     return {
       filters,
@@ -207,16 +225,24 @@ export async function getStationEditorStationList(input: StationEditorStationLis
     };
   }
 
-  const allStations = (data as StationEditorStationRow[]).map((row) => ({
-    station: mapStationRow(row),
-    lastReportedAt: row.last_reported_at ?? null
+  const allStations = (data as StationEditorStationRow[]).map((row) => mapStationRow(row));
+  const allStationIds = allStations.map((station) => station.id);
+  const [latestReports, duplicateCatalog] = await Promise.all([
+    getLatestApprovedReports(allStationIds),
+    getCatalogForDuplicates()
+  ]);
+
+  const preparedStations = allStations.map((station) => ({
+    station,
+    latestReport: latestReports.get(station.id) ?? null,
+    lastReportedAt: latestReports.get(station.id)?.reportedAt ?? null
   }));
 
-  const filteredStations = applyClientFilters(allStations, filters);
+  const filteredStations = applyClientFilters(preparedStations, filters);
   const summary = {
     total: filteredStations.length,
-    recent: filteredStations.filter((item) => isRecentTimestamp(item.lastReportedAt)).length,
-    withoutRecent: filteredStations.filter((item) => !isRecentTimestamp(item.lastReportedAt)).length,
+    recent: filteredStations.filter((item) => isRecentTimestamp(item.lastReportedAt ?? item.latestReport?.reportedAt ?? null)).length,
+    withoutRecent: filteredStations.filter((item) => !isRecentTimestamp(item.lastReportedAt ?? item.latestReport?.reportedAt ?? null)).length,
     review: filteredStations.filter((item) => isReviewStation(item.station)).length
   };
 
@@ -224,16 +250,9 @@ export async function getStationEditorStationList(input: StationEditorStationLis
   const page = Math.min(filters.page, totalPages);
   const start = (page - 1) * filters.pageSize;
   const pageRows = filteredStations.slice(start, start + filters.pageSize);
-  const stationIds = pageRows.map((item) => item.station.id);
 
-  const [latestReports, duplicateCatalog] = await Promise.all([
-    getLatestApprovedReports(stationIds),
-    getCatalogForDuplicates()
-  ]);
-
-  const items = pageRows.map(({ station, lastReportedAt }) => {
+  const items = pageRows.map(({ station, latestReport, lastReportedAt }) => {
     const publicName = getStationPublicName(station);
-    const latestReport = latestReports.get(station.id) ?? null;
     const hasRecentPrice = isRecentTimestamp(lastReportedAt ?? latestReport?.reportedAt ?? null);
     const status = deriveStatus(station, hasRecentPrice);
     const duplicateCandidates = getTerritorialDuplicateCandidates(station, duplicateCatalog, 3);

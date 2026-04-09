@@ -9,6 +9,7 @@ import { getStationEditorSessionFromCookie } from "@/lib/auth/station-editor-ses
 import { getStationEditorStationList } from "@/lib/ops/station-editor-station-list";
 import type { StationEditorStationListReadout } from "@/lib/ops/station-editor-station-list";
 import { SectionCard } from "@/components/ui/section-card";
+import { StationManagerFilters } from "./station-manager-filters";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDateTimeBR, formatRecencyLabel } from "@/lib/format/time";
@@ -131,7 +132,9 @@ export default async function StationManagerPage({ searchParams }: StationManage
   const city = readString(resolvedSearchParams, "city");
   const neighborhood = readString(resolvedSearchParams, "neighborhood");
   const brand = readString(resolvedSearchParams, "brand");
-  const price = readString(resolvedSearchParams, "price") === "recent" || readString(resolvedSearchParams, "price") === "without_recent" ? readString(resolvedSearchParams, "price") as "recent" | "without_recent" : "all";
+  const price = readString(resolvedSearchParams, "price") === "recent" || readString(resolvedSearchParams, "price") === "without_recent"
+    ? readString(resolvedSearchParams, "price") as "recent" | "without_recent"
+    : "all";
   const review = readString(resolvedSearchParams, "review") === "review" ? "review" : "all";
   const page = readPage(resolvedSearchParams);
 
@@ -229,45 +232,16 @@ export default async function StationManagerPage({ searchParams }: StationManage
           <h2 className="text-xl font-semibold text-white">Busca e filtros</h2>
         </div>
 
-        <form action="/postos" className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          <label className="space-y-2 xl:col-span-3">
-            <span className="text-xs uppercase tracking-[0.18em] text-white/42">Nome ou apelido</span>
-            <input name="q" defaultValue={q} placeholder="Ex.: Shell Retiro ou Ale bairro x" className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/30" />
-          </label>
-          <label className="space-y-2">
-            <span className="text-xs uppercase tracking-[0.18em] text-white/42">Cidade</span>
-            <input name="city" defaultValue={city} placeholder="Ex.: Volta Redonda" className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/30" />
-          </label>
-          <label className="space-y-2">
-            <span className="text-xs uppercase tracking-[0.18em] text-white/42">Bairro</span>
-            <input name="neighborhood" defaultValue={neighborhood} placeholder="Ex.: Aterrado" className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/30" />
-          </label>
-          <label className="space-y-2">
-            <span className="text-xs uppercase tracking-[0.18em] text-white/42">Bandeira</span>
-            <input name="brand" defaultValue={brand} placeholder="Ex.: Shell" className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/30" />
-          </label>
-          <label className="space-y-2">
-            <span className="text-xs uppercase tracking-[0.18em] text-white/42">Preco</span>
-            <select name="price" defaultValue={price} className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none">
-              <option value="all">Todos</option>
-              <option value="recent">Com preco recente</option>
-              <option value="without_recent">Sem preco recente</option>
-            </select>
-          </label>
-          <label className="space-y-2">
-            <span className="text-xs uppercase tracking-[0.18em] text-white/42">Revisao</span>
-            <select name="review" defaultValue={review} className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none">
-              <option value="all">Todos</option>
-              <option value="review">So em revisao</option>
-            </select>
-          </label>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end xl:col-span-3">
-            <Button type="submit" className="sm:w-auto">Aplicar filtros</Button>
-            <Link href="/postos" className="inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white/74 transition hover:bg-white/10">
-              Limpar
-            </Link>
-          </div>
-        </form>
+        <StationManagerFilters
+          initialFilters={{
+            q,
+            city,
+            neighborhood,
+            brand,
+            price,
+            review
+          }}
+        />
       </SectionCard>
 
       <SectionCard className="space-y-4">
@@ -287,7 +261,9 @@ export default async function StationManagerPage({ searchParams }: StationManage
               const duplicateRisk = item.duplicateCandidates.length > 0;
               const duplicateTarget = item.duplicateCandidates[0]?.stationId ?? "";
               const editHref = `/postos/${item.station.id}/editar?returnTo=${encodeURIComponent(returnTo)}` as Route;
-              const duplicateHref = duplicateRisk && duplicateTarget ? `/postos/${item.station.id}/editar?${new URLSearchParams({ returnTo, mode: "duplicate", duplicateOfStationId: duplicateTarget }).toString()}` as Route : editHref;
+              const duplicateHref = duplicateRisk && duplicateTarget
+                ? `/postos/${item.station.id}/editar?${new URLSearchParams({ returnTo, mode: "duplicate", duplicateOfStationId: duplicateTarget }).toString()}` as Route
+                : editHref;
               const viewHref = `/postos/${item.station.id}` as Route;
               const canAdminPromote = Boolean(currentAdmin?.role === "admin" && (item.station.visibilityStatus !== "public" || item.station.isActive === false) && !item.station.duplicateOfStationId);
 
@@ -301,6 +277,7 @@ export default async function StationManagerPage({ searchParams }: StationManage
                         {duplicateRisk ? <Badge variant="warning">suspeita de duplicidade</Badge> : null}
                       </div>
                       <p className="text-sm text-white/54">{item.station.brand || "Sem bandeira"} · {item.station.neighborhood || "Sem bairro"} · {item.station.city || "Sem cidade"}</p>
+                      {item.station.address ? <p className="text-xs text-white/44">{item.station.address}</p> : null}
                       <div className="flex flex-wrap gap-2 text-xs text-white/48">
                         <span>Visibilidade: {item.station.visibilityStatus ?? "review"}</span>
                         <span>Geo: {item.station.geoReviewStatus ?? "pending"}</span>
