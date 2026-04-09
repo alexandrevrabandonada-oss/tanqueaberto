@@ -466,7 +466,7 @@ function PriceSubmitFormBody({
   const hasInitialStation = Boolean(initialStation);
   const lockedStation = false;
   const compactMode = hasInitialStation;
-  const defaultStationId = useMemo(() => initialStation?.id ?? stations[0]?.id ?? "", [initialStation, stations]);
+  const defaultStationId = useMemo(() => initialStation?.id ?? "", [initialStation]);
   const defaultFuelType: FuelType = initialFuelType && allowedFuelSet.has(initialFuelType) ? initialFuelType : "gasolina_comum";
   const [stationId, setStationId] = useState(defaultStationId);
   const [lastTouchedFuelType, setLastTouchedFuelType] = useState<FuelType>(defaultFuelType);
@@ -773,43 +773,15 @@ function PriceSubmitFormBody({
   }, [compactMode, draftKey, lockedStation, stations]);
 
   useEffect(() => {
-    if (initialStation) {
-      setStationId(initialStation.id);
-      setStationConfirmed(true);
+    if (!initialStation) {
       return;
     }
 
-    if (!stationId && stations[0]) {
-      setStationId(stations[0].id);
-    }
-  }, [initialStation, stationId, stations]);
+    setStationId(initialStation.id);
+    setStationConfirmed(true);
+  }, [initialStation]);
 
   const { coords, getLocation } = useGeolocation();
-  const [geoRequested, setGeoRequested] = useState(false);
-
-  useEffect(() => {
-    if (!coords || lockedStation || initialStation || draftRestored || geoRequested) return;
-
-    // Limit to 500m radius for suggestions
-    const MAX_SUGGESTION_DISTANCE_METERS = 500;
-    
-    let nearest: { id: string, distance: number } | null = null;
-
-    for (const s of stations) {
-      const dist = calculateDistance(coords.lat, coords.lng, s.lat, s.lng);
-      if (dist <= MAX_SUGGESTION_DISTANCE_METERS) {
-        if (!nearest || dist < nearest.distance) {
-          nearest = { id: s.id, distance: dist };
-        }
-      }
-    }
-
-    if (nearest) {
-      setStationId(nearest.id);
-      setIsSuggested(true);
-      setGeoRequested(true);
-    }
-  }, [coords, lockedStation, initialStation, draftRestored, stations, geoRequested]);
 
 
   useEffect(() => {
@@ -834,7 +806,7 @@ function PriceSubmitFormBody({
   }, [draftKey, draftLoaded, evidenceMode, fuelPrices, fuelType, nickname, pending, price, priceSource, stationId, state.error]);
 
   const currentQueueItem = queueItems.find((item) => item.draftKey === draftKey) ?? null;
-  const selectedStation = stations.find((station) => station.id === stationId) ?? stations[0] ?? null;
+  const selectedStation = stations.find((station) => station.id === stationId) ?? null;
   const proposalCity = stationProposalCity.trim() || homeContextSnapshot.city?.trim() || lastStationSnapshot?.city?.trim() || selectedStation?.city?.trim() || "";
 
   useEffect(() => {
@@ -1012,28 +984,57 @@ function PriceSubmitFormBody({
     }).sort(compareStationCandidates);
   }, [coords, homeContextSnapshot.city, recentStationIds, stations]);
 
+  const autoSuggestedStation = useMemo(() => {
+    if (stationCandidates.length === 0) {
+      return null;
+    }
+
+    if (coords) {
+      const nearbyCandidate = stationCandidates
+        .filter((candidate) => candidate.distance !== null && candidate.hasReliableCoordinate && candidate.visibilityRank > 0 && candidate.geoRank >= 1 && (candidate.distance ?? Infinity) <= 1500)
+        .sort((left, right) => {
+          if ((left.distance ?? Infinity) !== (right.distance ?? Infinity)) return (left.distance ?? Infinity) - (right.distance ?? Infinity);
+          if (left.visibilityRank !== right.visibilityRank) return right.visibilityRank - left.visibilityRank;
+          if (left.geoRank !== right.geoRank) return right.geoRank - left.geoRank;
+          if (left.recentIndex !== right.recentIndex) return left.recentIndex - right.recentIndex;
+          if (left.ambiguityCount !== right.ambiguityCount) return left.ambiguityCount - right.ambiguityCount;
+          return left.publicName.localeCompare(right.publicName, "pt-BR");
+        })[0] ?? null;
+
+      if (!nearbyCandidate) {
+        return null;
+      }
+
+      return { candidate: nearbyCandidate, source: "nearby" as const };
+    }
+
+    const recentCandidate = stationCandidates.find((candidate) => candidate.recentIndex < 999 && candidate.visibilityRank > 0) ?? null;
+    if (recentCandidate) {
+      return { candidate: recentCandidate, source: "recent" as const };
+    }
+
+    const fallbackCandidate = stationCandidates.find((candidate) => candidate.visibilityRank > 0 && candidate.geoRank >= 0) ?? stationCandidates[0] ?? null;
+    return fallbackCandidate ? { candidate: fallbackCandidate, source: "fallback" as const } : null;
+  }, [coords, stationCandidates]);
+
   useEffect(() => {
-    if (lockedStation || draftRestored || stationSuggestionTrackedRef.current || stationCandidates.length === 0) {
+    if (lockedStation || draftRestored || stationSuggestionTrackedRef.current || !autoSuggestedStation) {
       return;
     }
 
-    const suggestedStation = stationCandidates[0];
+    const suggestedStation = autoSuggestedStation.candidate;
     if (!suggestedStation || suggestedStation.station.id === stationId) {
       return;
     }
 
-    const suggestionSource = suggestedStation.distance !== null && suggestedStation.geoRank >= 2
-      ? "nearby"
-      : suggestedStation.recentIndex < 999
-        ? "recent"
-        : "fallback";
+    const suggestionSource = autoSuggestedStation.source;
     const suggestionKey = [draftKey, suggestedStation.station.id, suggestionSource, suggestedStation.distance !== null ? "geo" : "no-geo"].join(":");
 
     stationSuggestionTrackedRef.current = true;
     submissionAutoDecisionCountRef.current += 1;
     suggestedStationIdRef.current = suggestedStation.station.id;
     setStationId(suggestedStation.station.id);
-    setIsSuggested(Boolean(suggestedStation.distance !== null));
+    setIsSuggested(suggestionSource === "nearby" && suggestedStation.distance !== null);
     setShowStationPicker(false);
 
     if (stationSuggestionShownKeyRef.current !== suggestionKey) {
@@ -1111,14 +1112,14 @@ function PriceSubmitFormBody({
       scopeId: suggestedStation.station.id,
       payload: {
         field: "station",
-        source: suggestionSource === "nearby" ? "geo_recent_rank" : suggestionSource,
+        source: suggestionSource === "nearby" ? "geo_nearest" : suggestionSource,
         distance: suggestedStation.distance,
         geoReviewStatus: suggestedStation.station.geoReviewStatus ?? null,
         visibilityRank: suggestedStation.visibilityRank,
         decisionsSkipped: submissionAutoDecisionCountRef.current
       }
     });
-  }, [coords, draftKey, draftRestored, fuelType, lockedStation, stationCandidates, stationId]);
+  }, [autoSuggestedStation, draftKey, draftRestored, fuelType, lockedStation, stationId]);
 
   const normalizedStationSearch = useMemo(() => normalizeStationSearchValue(stationSearch), [stationSearch]);
 
@@ -2006,9 +2007,6 @@ function PriceSubmitFormBody({
   function handleRejectStationProposal() {
     setShowStationProposalFlow(false);
     setStationProposalConfirmed(false);
-    if (!stationId && stations[0]) {
-      setStationId(stations[0].id);
-    }
     queueMicrotask(() => stationSearchInputRef.current?.focus());
   }
   function renderStationOption(candidate: StationPickerCandidate, source: "nearby" | "recent" | "search" | "fallback") {
@@ -2432,16 +2430,40 @@ function PriceSubmitFormBody({
               ref={fileInputRef}
               type="file"
               accept="image/*"
-              onFocus={() => handleFieldFocus("photo")}
+              tabIndex={-1}
+              aria-hidden="true"
               onChange={(e) => {
-                setValidationErrors(prev => ({ ...prev, photo: undefined }));
+                setValidationErrors((prev) => ({ ...prev, photo: undefined }));
                 handleFileChange(e);
               }}
+              className="hidden"
+            />
+            <div
               className={cn(
-                "w-full rounded-[18px] border border-dashed px-4 py-3 text-sm text-white file:mr-4 file:rounded-full file:border-0 file:bg-[color:var(--color-accent)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-black transition-all",
+                "space-y-3 rounded-[20px] border border-dashed px-4 py-4 transition-all",
                 validationErrors.photo ? "border-red-500/50 bg-red-500/5" : "border-white/14 bg-black/30"
               )}
-            />
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-white">{selectedFileRef.current ? "Foto pronta para análise" : "Envie a foto que mostra os preços"}</p>
+                  <p className="mt-1 truncate text-xs text-white/56">
+                    {selectedFileRef.current?.name ?? "Pode tirar agora ou escolher da galeria do aparelho."}
+                  </p>
+                </div>
+                {previewUrl ? <Badge variant="accent" className="shrink-0">Foto pronta</Badge> : null}
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button type="button" className="h-11 flex-1 justify-center gap-2" onClick={() => { handleFieldFocus("photo"); openCameraPicker(); }}>
+                  <Camera className="h-4 w-4" />
+                  Tirar foto
+                </Button>
+                <Button type="button" variant="secondary" className="h-11 flex-1 justify-center" onClick={() => { handleFieldFocus("photo"); openGalleryPicker(); }}>
+                  Escolher arquivo
+                </Button>
+              </div>
+              <p className="text-xs text-white/48">Se a placa ou a faixa mostrar vários preços, uma foto só já resolve.</p>
+            </div>
           </>
         ) : (
           <div className="space-y-3 rounded-[20px] border border-white/10 bg-black/20 p-4">
@@ -2488,16 +2510,42 @@ function PriceSubmitFormBody({
                 ref={fileInputRef}
                 type="file"
                 accept="image/*"
-                onFocus={() => handleFieldFocus("photo")}
+                tabIndex={-1}
+                aria-hidden="true"
                 onChange={(e) => {
-                  setValidationErrors(prev => ({ ...prev, photo: undefined }));
+                  setValidationErrors((prev) => ({ ...prev, photo: undefined }));
                   handleFileChange(e);
                 }}
-                className="w-full rounded-[18px] border border-dashed border-white/14 bg-black/30 px-4 py-3 text-sm text-white file:mr-4 file:rounded-full file:border-0 file:bg-[color:var(--color-accent)] file:px-4 file:py-2 file:text-sm file:font-semibold file:text-black"
+                className="hidden"
               />
-              <p className="text-xs text-white/48">Se tiver recibo, visor ou ambiente útil, anexe. Sem foto também pode seguir.</p>
+              <div
+                className={cn(
+                  "space-y-3 rounded-[18px] border border-dashed px-4 py-4 transition-all",
+                  validationErrors.photo ? "border-red-500/50 bg-red-500/5" : "border-white/14 bg-black/30"
+                )}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-white">{selectedFileRef.current ? "Foto opcional pronta" : "Anexar contexto visual"}</p>
+                    <p className="mt-1 truncate text-xs text-white/56">
+                      {selectedFileRef.current?.name ?? "Recibo, visor ou ambiente do posto ajudam na revisão."}
+                    </p>
+                  </div>
+                  {previewUrl ? <Badge variant="outline" className="shrink-0">Com foto</Badge> : null}
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button type="button" className="h-11 flex-1 justify-center gap-2" onClick={() => { handleFieldFocus("photo"); openCameraPicker(); }}>
+                    <Camera className="h-4 w-4" />
+                    Usar câmera
+                  </Button>
+                  <Button type="button" variant="secondary" className="h-11 flex-1 justify-center" onClick={() => { handleFieldFocus("photo"); openGalleryPicker(); }}>
+                    Escolher arquivo
+                  </Button>
+                </div>
+                <p className="text-xs text-white/48">Sem foto também pode seguir.</p>
+              </div>
             </div>
-          </div>
+            </div>
         )}
         {validationErrors.photo && <p className="mt-1.5 px-1 text-[10px] font-bold uppercase text-red-300 tracking-wider animate-in fade-in slide-in-from-top-1">{validationErrors.photo}</p>}
       </div>
@@ -2641,7 +2689,7 @@ function PriceSubmitFormBody({
                   }}
                   placeholder="Buscar por nome, bairro, endereco, cidade ou bandeira"
                   className={cn(
-                    "h-12 w-full rounded-[18px] border bg-black/30 pl-11 pr-4 text-sm text-white outline-none transition",
+                    "h-12 w-full rounded-[18px] border bg-black/30 pl-11 pr-4 text-sm text-white outline-none transition focus:border-[color:var(--color-accent)]/60 focus:ring-2 focus:ring-[color:var(--color-accent)]/20",
                     validationErrors.stationId ? "border-red-500/50 ring-1 ring-red-500/20" : "border-white/10"
                   )}
                 />
@@ -2671,7 +2719,7 @@ function PriceSubmitFormBody({
                       value={stationProposalName}
                       onChange={(event) => { setStationProposalName(event.target.value); setStationProposalConfirmed(false); }}
                       placeholder="Ex.: Posto da subida"
-                      className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none"
+                      className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none transition focus:border-[color:var(--color-accent)]/60 focus:ring-2 focus:ring-[color:var(--color-accent)]/20"
                     />
                   </label>
                   <label className="space-y-1">
@@ -2680,7 +2728,7 @@ function PriceSubmitFormBody({
                       value={stationProposalNeighborhood}
                       onChange={(event) => { setStationProposalNeighborhood(event.target.value); setStationProposalConfirmed(false); }}
                       placeholder="Ex.: Aterrado"
-                      className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none"
+                      className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none transition focus:border-[color:var(--color-accent)]/60 focus:ring-2 focus:ring-[color:var(--color-accent)]/20"
                     />
                   </label>
                   <label className="space-y-1">
@@ -2689,7 +2737,7 @@ function PriceSubmitFormBody({
                       value={stationProposalCity}
                       onChange={(event) => { setStationProposalCity(event.target.value); setStationProposalConfirmed(false); }}
                       placeholder="Ex.: Volta Redonda"
-                      className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none"
+                      className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none transition focus:border-[color:var(--color-accent)]/60 focus:ring-2 focus:ring-[color:var(--color-accent)]/20"
                     />
                   </label>
                   <label className="space-y-1 sm:col-span-2">
@@ -2699,7 +2747,7 @@ function PriceSubmitFormBody({
                       value={stationProposalStreet}
                       onChange={(event) => { setStationProposalStreet(event.target.value); setStationProposalConfirmed(false); }}
                       placeholder="Rua, numero, esquina ou referencia. Se o GPS estiver ligado, pode deixar em branco."
-                      className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none"
+                      className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none transition focus:border-[color:var(--color-accent)]/60 focus:ring-2 focus:ring-[color:var(--color-accent)]/20"
                     />
                   </label>
                   <label className="space-y-1 sm:col-span-2">
@@ -2708,7 +2756,7 @@ function PriceSubmitFormBody({
                       value={stationProposalBrand}
                       onChange={(event) => { setStationProposalBrand(event.target.value); setStationProposalConfirmed(false); }}
                       placeholder="Opcional"
-                      className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none"
+                      className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none transition focus:border-[color:var(--color-accent)]/60 focus:ring-2 focus:ring-[color:var(--color-accent)]/20"
                     />
                   </label>
                 </div>
@@ -2898,7 +2946,7 @@ function PriceSubmitFormBody({
                     });
                   }}
                   placeholder="0,000"
-                  className="w-28 shrink-0 rounded-[16px] border border-white/10 bg-black/30 px-3 py-2 text-right text-base font-bold text-[color:var(--color-accent)] outline-none placeholder:text-white/18"
+                  className="w-28 shrink-0 rounded-[16px] border border-white/10 bg-black/30 px-3 py-2 text-right text-base font-bold text-[color:var(--color-accent)] outline-none placeholder:text-white/18 transition focus:border-[color:var(--color-accent)]/60 focus:ring-2 focus:ring-[color:var(--color-accent)]/20"
                 />
               </label>
             );
@@ -2927,7 +2975,7 @@ function PriceSubmitFormBody({
                 persistProgressiveIdentityNickname(event.target.value, "manual");
               }}
               placeholder="Ex.: Morador VR"
-              className="w-full rounded-[18px] border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none ring-0"
+              className="w-full rounded-[18px] border border-white/10 bg-black/30 px-4 py-3 text-sm text-white outline-none ring-0 transition focus:border-[color:var(--color-accent)]/60 focus:ring-2 focus:ring-[color:var(--color-accent)]/20"
             />
           </div>
         </details>
@@ -3014,6 +3062,12 @@ export function PriceSubmitForm(props: PriceSubmitFormProps) {
 
   return <PriceSubmitFormBody key={`${props.initialStationId ?? "default"}-${formVersion}`} {...props} onResetRequest={() => setFormVersion((value) => value + 1)} />;
 }
+
+
+
+
+
+
 
 
 

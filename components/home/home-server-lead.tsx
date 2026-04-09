@@ -12,6 +12,7 @@ import { useLocationHardening } from "@/hooks/use-location-hardening";
 import { filterStations, getSelectedStationReport } from "@/lib/filters/public";
 import { formatCurrencyBRL } from "@/lib/format/currency";
 import { formatRecencyLabel } from "@/lib/format/time";
+import { fuelLabels } from "@/lib/format/labels";
 import { calculateDistance, formatDistanceFromYou } from "@/lib/geo/distance";
 import { rememberStationVisit } from "@/lib/navigation/home-context";
 import { getStationPublicName } from "@/lib/quality/stations";
@@ -126,7 +127,7 @@ export function HomeServerLead({
             name="q"
             defaultValue={initialQuery}
             placeholder="Digite o nome ou bairro"
-            className="w-full rounded-[16px] border border-white/8 bg-black/45 px-3 py-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-[color:var(--color-accent)]"
+            className="w-full rounded-[16px] border border-white/8 bg-black/45 px-3 py-3 text-sm text-white outline-none placeholder:text-white/30 transition focus:border-[color:var(--color-accent)] focus:ring-2 focus:ring-[color:var(--color-accent)]/20"
           />
         </label>
         <input type="hidden" name="city" value={initialCity} />
@@ -193,13 +194,13 @@ export function HomeServerLead({
                       {station.neighborhood || "Bairro"}{station.city ? ` · ${station.city}` : ""}
                     </p>
                     <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-white/34">
-                      {station.brand || "Sem bandeira"} · {latest ? `${formatCurrencyBRL(latest.price)} · ${formatRecencyLabel(latest.reportedAt)}` : "Sem preço recente"}
+                      {station.brand || "Sem bandeira"} · {latest ? `${fuelLabels[latest.fuelType]} · ${formatCurrencyBRL(latest.price)} · ${formatRecencyLabel(latest.reportedAt)}` : "Sem preço recente"}
                     </p>
                   </div>
                   <div className="mt-0.5 flex shrink-0 flex-col items-end gap-1">
                     <Sparkles className="h-4 w-4 text-[color:var(--color-accent)]/70" />
                     {distance !== null ? (
-                      <span className="text-[9px] font-semibold uppercase tracking-[0.16em] text-[color:var(--color-accent)]/72">
+                      <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[color:var(--color-accent)]/78">
                         {formatDistanceFromYou(distance)}
                       </span>
                     ) : null}
@@ -218,3 +219,5 @@ export function HomeServerLead({
     </SectionCard>
   );
 }
+
+

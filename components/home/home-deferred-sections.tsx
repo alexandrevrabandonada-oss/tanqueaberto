@@ -222,7 +222,7 @@ function FirstFoldSignalCard({
       <p className="mt-3 break-words text-sm font-semibold leading-snug text-white">{getStationPublicName(station)}</p>
       <p className="mt-1 break-words text-[11px] uppercase tracking-[0.16em] text-white/34">{[station?.neighborhood, station?.city].filter(Boolean).join(" · ") || "Recorte aberto"}</p>
       <div className="mt-3 flex flex-wrap gap-2">
-        {report ? <Badge variant="secondary" className="text-[10px]">{formatCurrencyBRL(Number(report.price))}</Badge> : <Badge variant="warning" className="text-[10px]">Sem preço recente</Badge>}
+        {report ? <Badge variant="secondary" className="text-[10px]">{fuelLabels[report.fuelType as FuelType]} · {formatCurrencyBRL(Number(report.price))}</Badge> : <Badge variant="warning" className="text-[10px]">Sem preço recente</Badge>}
         {report && recencyTone ? <Badge variant={recencyToneToBadgeVariant(recencyTone)} className="text-[10px]">{formatRecencyLabel(report.reportedAt)}</Badge> : null}
         {distanceValue !== null ? <Badge variant="outline" className="text-[10px]">{formatDistanceFromYou(distanceValue)}</Badge> : null}
       </div>
@@ -932,7 +932,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
                       <Badge variant={latest && recencyTone ? recencyToneToBadgeVariant(recencyTone) : "warning"} className="text-[10px]">
                         {latest ? formatRecencyLabel(latest.reportedAt) : "Sem preço recente"}
                       </Badge>
-                      {latest ? <Badge variant="secondary" className="text-[10px]">{formatCurrencyBRL(Number(latest.price))}</Badge> : null}
+                      {latest ? <Badge variant="secondary" className="text-[10px]">{fuelLabels[latest.fuelType as FuelType]} · {formatCurrencyBRL(Number(latest.price))}</Badge> : null}
                       {station.brand ? <Badge variant="outline" className="text-[10px]">{station.brand}</Badge> : null}
                     </div>
 
@@ -1618,6 +1618,8 @@ export function HomeDeferredSections(props: Record<string, any>) {
     </>
   );
 }
+
+
 
 
 

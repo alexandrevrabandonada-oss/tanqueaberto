@@ -153,7 +153,7 @@ function FilterSelect({
         <select
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="w-full appearance-none rounded-[16px] border border-white/8 bg-black/45 px-3 py-3 pr-10 text-sm text-white outline-none transition focus:border-[color:var(--color-accent)]"
+          className="w-full appearance-none rounded-[16px] border border-white/8 bg-black/45 px-3 py-3 pr-10 text-sm text-white outline-none transition focus:border-[color:var(--color-accent)] focus:ring-2 focus:ring-[color:var(--color-accent)]/20"
         >
           {options.map((item) => (
             <option key={item.value} value={item.value} className="bg-zinc-900 text-white">
@@ -1068,15 +1068,15 @@ export function HomeBrowser({
             </div>
             <div className="grid grid-cols-3 gap-2">
               <div className="rounded-[18px] border border-white/8 bg-black/20 px-3 py-2.5">
-                <p className="text-[9px] uppercase tracking-[0.16em] text-white/34">No recorte</p>
+                <p className="text-[10px] uppercase tracking-[0.14em] text-white/38">No recorte</p>
                 <p className="mt-1 text-lg font-semibold text-white">{mapStations.length}</p>
               </div>
               <div className="rounded-[18px] border border-white/8 bg-black/20 px-3 py-2.5">
-                <p className="text-[9px] uppercase tracking-[0.16em] text-white/34">Com preço</p>
+                <p className="text-[10px] uppercase tracking-[0.14em] text-white/38">Com preço</p>
                 <p className="mt-1 text-lg font-semibold text-white">{stationsWithRecentPrice.length}</p>
               </div>
               <div className="rounded-[18px] border border-[color:var(--color-accent)]/18 bg-[color:var(--color-accent)]/8 px-3 py-2.5">
-                <p className="text-[9px] uppercase tracking-[0.16em] text-white/40">Pra atualizar</p>
+                <p className="text-[10px] uppercase tracking-[0.14em] text-white/38">Pra atualizar</p>
                 <p className="mt-1 text-lg font-semibold text-[color:var(--color-accent)]">{stationsWithoutRecentPrice}</p>
               </div>
             </div>
@@ -1087,6 +1087,7 @@ export function HomeBrowser({
                     <div>
                       <p className="text-[10px] uppercase tracking-[0.18em] text-emerald-300/72">Comparar agora</p>
                       <p className="mt-1 text-base font-semibold text-white">{getStationPublicName(mobileLeadBest.station)}</p>
+                      <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-emerald-100/58">{fuelLabels[mobileLeadBest.report.fuelType]}</p>
                     </div>
                     <Badge variant="default" className="shrink-0 text-[10px]">{formatCurrencyBRL(Number(mobileLeadBest.report.price))}</Badge>
                   </div>
@@ -1225,6 +1226,9 @@ export function HomeBrowser({
     </>
   );
 }
+
+
+
 
 
 
