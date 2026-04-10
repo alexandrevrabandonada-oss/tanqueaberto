@@ -2,15 +2,18 @@ import type { Station, StationWithReports, PriceReport, ReportWithStation } from
 import type { PriceReportRow, StationRow } from "@/types/supabase";
 
 function mapStationRow(row: StationRow): Station {
+  const lat = Number(row.lat);
+  const lng = Number(row.lng);
+
   return {
     id: row.id,
-    name: row.name_public ?? row.name,
-    brand: row.brand,
-    address: row.address,
-    city: row.city,
-    neighborhood: row.neighborhood,
-    lat: row.lat,
-    lng: row.lng,
+    name: row.name_public ?? row.name ?? "Posto",
+    brand: row.brand ?? "",
+    address: row.address ?? "",
+    city: row.city ?? "",
+    neighborhood: row.neighborhood ?? "",
+    lat: Number.isFinite(lat) ? lat : Number.NaN,
+    lng: Number.isFinite(lng) ? lng : Number.NaN,
     isActive: row.is_active,
     createdAt: row.created_at,
     cnpj: row.cnpj,

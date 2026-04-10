@@ -87,7 +87,7 @@ function normalizeNotice(action: "approved" | "rejected") {
 function buildModerationRedirect(decision: "approved" | "rejected") {
   const query = new URLSearchParams({
     notice: decision,
-    status: decision
+    status: "pending"
   });
 
   return `${ADMIN_ROUTE}?${query.toString()}` as Route;

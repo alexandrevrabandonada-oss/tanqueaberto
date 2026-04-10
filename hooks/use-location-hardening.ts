@@ -93,13 +93,17 @@ function acceptLocation(position: GeolocationPosition) {
   const { latitude, longitude, accuracy, speed } = position.coords;
   const timestamp = position.timestamp;
   const trustStatus = getTrustStatus(accuracy);
+  const previous = sharedState.lastValidLocation;
+  const timeDiffSeconds = previous ? Math.max(0, (timestamp - previous.timestamp) / 1000) : 0;
+  const movementMeters = previous ? calculateDistance(previous.lat, previous.lng, latitude, longitude) : 0;
+  const inferredSpeed = timeDiffSeconds > 0 ? movementMeters / timeDiffSeconds : null;
 
   const nextLocation: HardenedLocation = {
     lat: latitude,
     lng: longitude,
     accuracy,
     timestamp,
-    speed: speed ?? null,
+    speed: speed ?? inferredSpeed ?? null,
     trustStatus
   };
 

@@ -8,9 +8,9 @@ import type { Route } from "next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
-import { readRouteContext, stopRoute, skipStationInRoute, type RouteContext } from "@/lib/navigation/route-context";
+import { readRouteContext, setRouteTargetStation, stopRoute, skipStationInRoute, type RouteContext } from "@/lib/navigation/route-context";
 import { getNextPriorityStation } from "@/lib/ops/route-priority";
-import { useGeolocation } from "@/hooks/use-geolocation";
+import { useLocationHardening } from "@/hooks/use-location-hardening";
 import { formatDistanceFromYou } from "@/lib/geo/distance";
 import { trackProductEvent } from "@/lib/telemetry/client";
 import { getStationPublicName } from "@/lib/quality/stations";
@@ -39,12 +39,30 @@ export function RouteAssistant({ stations, currentStationId = null, isCondensed 
     setContext(readRouteContext());
   }, []);
 
-  const { coords, getLocation } = useGeolocation();
+  const { location, refresh } = useLocationHardening();
+
+  useEffect(() => {
+    if (!location) {
+      refresh();
+    }
+  }, [location, refresh]);
 
   const nextStation = useMemo(() => {
     if (!context || !context.active) return null;
-    return getNextPriorityStation(stations, context, currentStationId, coords);
-  }, [context, stations, currentStationId, coords]);
+    return getNextPriorityStation(stations, context, currentStationId, location);
+  }, [context, stations, currentStationId, location]);
+
+  useEffect(() => {
+    if (!context?.active) {
+      return;
+    }
+
+    const nextTargetId = nextStation?.id ?? null;
+    if (context.targetStationId !== nextTargetId) {
+      setRouteTargetStation(nextTargetId);
+      setContext(readRouteContext());
+    }
+  }, [context, nextStation]);
 
   if (!isMounted || !context || !context.active) {
     return null;

@@ -13,6 +13,10 @@ export function HistoryChart({ series, className }: HistoryChartProps) {
   }
 
   const values = series.flatMap((point) => [point.minPrice, point.maxPrice, point.medianPrice].filter((value): value is number => typeof value === "number"));
+  if (values.length === 0) {
+    return <div className={cn("rounded-[24px] border border-white/8 bg-black/20 p-4 text-sm text-white/52", className)}>Sem série suficiente para desenhar o histórico.</div>;
+  }
+
   const min = Math.min(...values);
   const max = Math.max(...values);
   const width = 1000;

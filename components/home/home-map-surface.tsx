@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MapPinned, Sparkles } from "lucide-react";
 import type { Route } from "next";
 
@@ -13,8 +13,8 @@ import { getSelectedStationReport, type FuelFilter } from "@/lib/filters/public"
 import { formatCurrencyBRL } from "@/lib/format/currency";
 import { fuelLabels } from "@/lib/format/labels";
 import { formatRecencyLabel } from "@/lib/format/time";
-import { formatDistanceFromYou } from "@/lib/geo/distance";
-import { getStationPublicName } from "@/lib/quality/stations";
+import { calculateDistance, formatDistance, formatDistanceFromYou } from "@/lib/geo/distance";
+import { getStationPublicName, isValidStationCoordinate } from "@/lib/quality/stations";
 import type { StationWithReports } from "@/lib/types";
 
 interface HomeMapSurfaceProps {
@@ -28,6 +28,21 @@ interface HomeMapSurfaceProps {
 
 function getStationHref(stationId: string, returnToHref?: string) {
   return returnToHref ? (`/postos/${stationId}?returnTo=${encodeURIComponent(returnToHref)}` as Route) : (`/postos/${stationId}` as Route);
+}
+
+function getStationDistance(
+  station: StationWithReports,
+  referencePoint?: { lat: number; lng: number } | null
+) {
+  if (typeof station.distance === "number" && Number.isFinite(station.distance)) {
+    return station.distance;
+  }
+
+  if (!referencePoint || !isValidStationCoordinate(station.lat, station.lng)) {
+    return null;
+  }
+
+  return calculateDistance(referencePoint.lat, referencePoint.lng, station.lat, station.lng);
 }
 
 export function HomeMapSurface({ stations, contextHref, fuelFilter, center, userLocation, preferListFirst = false }: HomeMapSurfaceProps) {
@@ -49,6 +64,52 @@ export function HomeMapSurface({ stations, contextHref, fuelFilter, center, user
 
   const listFirstMode = preferListFirst || isMobileNarrow;
   const primaryListCount = isMobileNarrow ? 4 : 6;
+  const referencePoint = useMemo(
+    () => (userLocation ? { lat: userLocation.lat, lng: userLocation.lng } : center ?? null),
+    [center, userLocation]
+  );
+  const hasReliableProximity = userLocation?.trustStatus === "confiável" || userLocation?.trustStatus === "provável";
+  const visibleNowRadiusMeters = hasReliableProximity ? 1500 : null;
+
+  const visibleNow = useMemo(() => {
+    const sortedByDistance = stations
+      .map((station) => ({
+        station,
+        distance: getStationDistance(station, referencePoint)
+      }))
+      .filter((item) => item.distance !== null)
+      .sort((left, right) => (left.distance ?? Infinity) - (right.distance ?? Infinity));
+
+    if (visibleNowRadiusMeters !== null && sortedByDistance.length > 0) {
+      const nearby = sortedByDistance.filter((item) => (item.distance ?? Infinity) <= visibleNowRadiusMeters);
+      if (nearby.length > 0) {
+        return {
+          items: nearby.slice(0, primaryListCount),
+          mode: "radius" as const
+        };
+      }
+
+      return {
+        items: sortedByDistance.slice(0, primaryListCount),
+        mode: "nearest" as const
+      };
+    }
+
+    return {
+      items: stations.slice(0, primaryListCount).map((station) => ({
+        station,
+        distance: getStationDistance(station, referencePoint)
+      })),
+      mode: "fallback" as const
+    };
+  }, [primaryListCount, referencePoint, stations, visibleNowRadiusMeters]);
+
+  const visibleNowTitle = visibleNow.mode === "fallback" ? "Postos visíveis agora" : "Postos próximos agora";
+  const visibleNowSummary = visibleNow.mode === "radius"
+    ? `${visibleNow.items.length} até ${formatDistance(visibleNowRadiusMeters ?? 0)}`
+    : visibleNow.mode === "nearest"
+      ? `${visibleNow.items.length} mais próximos`
+      : `${visibleNow.items.length} de ${stations.length}`;
 
   useEffect(() => {
     setShowMap(!listFirstMode);
@@ -107,13 +168,16 @@ export function HomeMapSurface({ stations, contextHref, fuelFilter, center, user
 
         <div className="space-y-2">
           <div className="flex items-center justify-between px-1">
-            <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Postos visíveis agora</p>
-            <span className="text-[10px] uppercase tracking-[0.18em] text-white/28">{Math.min(primaryListCount, stations.length)} de {stations.length}</span>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">{visibleNowTitle}</p>
+            <span className="text-[10px] uppercase tracking-[0.18em] text-white/28">{visibleNowSummary}</span>
           </div>
+          {visibleNow.mode === "radius" ? (
+            <p className="px-1 text-[11px] text-white/44">A lista curta usa proximidade real para não misturar bairros distantes.</p>
+          ) : null}
           <div className="space-y-2">
-            {stations.slice(0, primaryListCount).map((station) => {
+            {visibleNow.items.map(({ station, distance }) => {
               const report = getSelectedStationReport(station, fuelFilter);
-              const hasDistance = typeof station.distance === "number" && Number.isFinite(station.distance);
+              const hasDistance = typeof distance === "number" && Number.isFinite(distance);
 
               return (
                 <a
@@ -128,7 +192,7 @@ export function HomeMapSurface({ stations, contextHref, fuelFilter, center, user
                     </div>
                     {hasDistance ? (
                       <Badge variant="outline" className="shrink-0 text-[10px]">
-                        {formatDistanceFromYou(station.distance as number)}
+                        {formatDistanceFromYou(distance as number)}
                       </Badge>
                     ) : null}
                   </div>

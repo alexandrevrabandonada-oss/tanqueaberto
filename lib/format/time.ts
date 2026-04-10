@@ -1,10 +1,20 @@
 export type RecencyTone = "fresh" | "warning" | "stale";
 
+function parseDate(value: string) {
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date : null;
+}
+
 export function formatDateTimeBR(value: string) {
+  const date = parseDate(value);
+  if (!date) {
+    return "--";
+  }
+
   return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
     timeStyle: "short"
-  }).format(new Date(value));
+  }).format(date);
 }
 
 function isSameDay(left: Date, right: Date) {
@@ -18,7 +28,11 @@ function isYesterday(left: Date, right: Date) {
 }
 
 export function getRecencyTone(value: string, referenceDate = new Date()): RecencyTone {
-  const date = new Date(value);
+  const date = parseDate(value);
+  if (!date) {
+    return "stale";
+  }
+
   const diffMinutes = Math.round((referenceDate.getTime() - date.getTime()) / 60000);
   const diffHours = Math.round(diffMinutes / 60);
 
@@ -46,7 +60,11 @@ export function recencyToneToBadgeVariant(tone: RecencyTone): "default" | "warni
 }
 
 export function formatRecencyLabel(value: string, referenceDate = new Date()) {
-  const date = new Date(value);
+  const date = parseDate(value);
+  if (!date) {
+    return "sem data";
+  }
+
   const diffMinutes = Math.round((referenceDate.getTime() - date.getTime()) / 60000);
   const diffHours = Math.round(diffMinutes / 60);
 

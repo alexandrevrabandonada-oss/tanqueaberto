@@ -200,7 +200,7 @@ export default async function AdminReportEditPage({ params, searchParams }: Admi
             <h2 className="mt-1 text-xl font-semibold text-white">Abrir o posto ou voltar para a fila</h2>
           </div>
           <div className="flex flex-wrap gap-2">
-            <ButtonLink href={`/admin?status=${report.status}` as Route} variant="secondary" className="h-9 px-3 text-[10px] font-bold uppercase tracking-[0.16em]">
+            <ButtonLink href={"/admin?status=pending" as Route} variant="secondary" className="h-9 px-3 text-[10px] font-bold uppercase tracking-[0.16em]">
               <ArrowLeft className="h-4 w-4" />
               Voltar à fila
             </ButtonLink>

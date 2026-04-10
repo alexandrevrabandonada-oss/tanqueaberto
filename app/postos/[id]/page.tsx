@@ -22,7 +22,8 @@ import {
   getStationMarketPresence,
   getStationPublicName,
   getStationMarketPresenceLabel,
-  hasPendingStationLocationReview
+  hasPendingStationLocationReview,
+  isValidStationCoordinate
 } from "@/lib/quality/stations";
 import { Navigation, Target } from "lucide-react";
 import { trackProductEvent } from "@/lib/telemetry/client";
@@ -31,6 +32,7 @@ import { formatDateTimeBR, formatRecencyLabel, getRecencyTone, recencyToneToBadg
 import { formatCurrencyBRL } from "@/lib/format/currency";
 import type { FuelType, PriceReport } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { slugifyCity } from "@/lib/geo/city-slugs";
 
 export const dynamic = "force-dynamic";
 
@@ -44,17 +46,21 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
   const name = getStationPublicName(station);
   const latest = station.latestReports[0];
+  const stationNeighborhood = String(station.neighborhood ?? "").trim();
+  const stationCity = String(station.city ?? "").trim();
+  const stationLocation = [stationNeighborhood, stationCity].filter(Boolean).join(", ") || "localização em revisão";
   const presence = getStationMarketPresence(station);
   const isStale = presence === "stale" || presence === "none";
+  const latestPrice = typeof latest?.price === "number" && Number.isFinite(latest.price) ? latest.price : null;
   
-  const priceLabel = latest ? ` | ${formatCurrencyBRL(latest.price)} (${fuelLabels[latest.fuelType]})` : "";
+  const priceLabel = latest && latestPrice !== null ? ` | ${formatCurrencyBRL(latestPrice)} (${fuelLabels[latest.fuelType]})` : "";
   const recencyLabel = latest ? formatRecencyLabel(latest.reportedAt) : "";
   
   const ogParams = new URLSearchParams({
     type: "station",
     name,
-    city: `${station.neighborhood}, ${station.city}`,
-    price: latest ? latest.price.toFixed(2).replace('.', ',') : "",
+    city: stationLocation,
+    price: latestPrice !== null ? latestPrice.toFixed(2).replace('.', ',') : "",
     fuel: latest ? fuelLabels[latest.fuelType] : "",
     recency: recencyLabel,
     isStale: isStale ? "true" : "false",
@@ -63,8 +69,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   return {
     title: `${name}${priceLabel} | Bomba Aberta`,
     description: latest 
-      ? `Preço real: ${formatCurrencyBRL(latest.price)} (${fuelLabels[latest.fuelType]}). Prova de vida de ${recencyLabel} em ${station.neighborhood}, ${station.city}.`
-      : `Veja preços e prova de vida em ${station.neighborhood}, ${station.city}. Ajude a completar este recorte!`,
+      ? `Preço real: ${latestPrice !== null ? formatCurrencyBRL(latestPrice) : "sem preço"} (${fuelLabels[latest.fuelType]}). Prova de vida de ${recencyLabel} em ${stationLocation}.`
+      : `Veja preços e prova de vida em ${stationLocation}. Ajude a completar este recorte!`,
     openGraph: {
       title: `${name}${priceLabel}`,
       description: latest ? `Foto real de ${recencyLabel}.` : `Aguardando atualização.`,
@@ -139,6 +145,12 @@ export default async function StationPage({ params, searchParams }: StationPageP
   const sendPriceHref = (`/enviar?stationId=${id}&fuel=${selectedFuel}&returnTo=${encodeURIComponent(returnToHref)}#photo` as Route);
   const backHref = returnToHref as Route;
   const publicName = getStationPublicName(station);
+  const stationCity = String(station.city ?? "").trim();
+  const stationNeighborhood = String(station.neighborhood ?? "").trim();
+  const stationLocation = [stationNeighborhood, stationCity].filter(Boolean).join(", ") || "Localização em revisão";
+  const cityHref = stationCity ? (`/cidade/${slugifyCity(stationCity)}` as Route) : null;
+  const hasValidCoordinates = isValidStationCoordinate(station.lat, station.lng);
+  const latestPrice = typeof latest?.price === "number" && Number.isFinite(latest.price) ? latest.price : null;
 
   return (
     <AppShell>
@@ -147,12 +159,12 @@ export default async function StationPage({ params, searchParams }: StationPageP
         pagePath={"/postos/" + id} 
         pageTitle={publicName} 
         stationId={id} 
-        city={station.city} 
+        city={stationCity} 
         fuelType={latest?.fuelType ?? null} 
         scopeType="station" 
         scopeId={id} 
       />
-      <RememberStationVisit stationId={id} stationName={publicName} city={station.city} />
+      <RememberStationVisit stationId={id} stationName={publicName} city={stationCity} />
       
       {/* Public Entry Telemetry */}
       {query.ref === 'share_station' && (
@@ -211,17 +223,19 @@ export default async function StationPage({ params, searchParams }: StationPageP
             </h1>
             <div className="flex items-center gap-2 text-white/44 text-sm">
               <MapPinned className="h-4 w-4 text-[color:var(--color-accent)]" />
-              <span>{station.neighborhood}, {station.city}</span>
+              <span>{stationLocation}</span>
             </div>
-            <div className="pt-1 flex gap-2">
-              <ButtonLink 
-                href={`/cidade/${station.city.toLowerCase().replace(/\s+/g, '-').normalize('NFD').replace(/[\u0300-\u036f]/g, '')}` as Route} 
-                variant="ghost" 
-                className="h-7 px-0 text-[10px] font-bold text-white/30 hover:text-blue-400"
-              >
-                VER TODA A CIDADE <ArrowRight className="h-3 w-3" />
-              </ButtonLink>
-            </div>
+            {cityHref ? (
+              <div className="pt-1 flex gap-2">
+                <ButtonLink 
+                  href={cityHref}
+                  variant="ghost" 
+                  className="h-7 px-0 text-[10px] font-bold text-white/30 hover:text-blue-400"
+                >
+                  VER TODA A CIDADE <ArrowRight className="h-3 w-3" />
+                </ButtonLink>
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -244,23 +258,30 @@ export default async function StationPage({ params, searchParams }: StationPageP
             <Camera className="h-5 w-5" />
             ATUALIZAR PREÇO AGORA
           </ButtonLink>
-          <a
-            href={`https://www.google.com/maps/dir/?api=1&destination=${station.lat},${station.lng}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => {
-              void trackProductEvent({
-                eventType: "station_action_click" as any,
-                pagePath: "/postos/" + id,
-                stationId: id,
-                payload: { action: 'route_google_maps' }
-              });
-            }}
-            className="flex items-center justify-center gap-2 w-full h-12 rounded-2xl bg-white/5 border border-white/10 text-white font-bold text-sm hover:bg-white/10 transition-all"
-          >
-            <Navigation className="h-4 w-4 text-blue-400" />
-            COMO CHEGAR
-          </a>
+          {hasValidCoordinates ? (
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&destination=${station.lat},${station.lng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => {
+                void trackProductEvent({
+                  eventType: "station_action_click" as any,
+                  pagePath: "/postos/" + id,
+                  stationId: id,
+                  payload: { action: 'route_google_maps' }
+                });
+              }}
+              className="flex items-center justify-center gap-2 w-full h-12 rounded-2xl bg-white/5 border border-white/10 text-white font-bold text-sm hover:bg-white/10 transition-all"
+            >
+              <Navigation className="h-4 w-4 text-blue-400" />
+              COMO CHEGAR
+            </a>
+          ) : (
+            <div className="flex items-center justify-center gap-2 w-full h-12 rounded-2xl bg-white/5 border border-white/10 text-white/46 font-bold text-sm">
+              <Navigation className="h-4 w-4 text-white/28" />
+              LOCALIZAÇÃO EM REVISÃO
+            </div>
+          )}
         </div>
       </SectionCard>
 
@@ -303,7 +324,7 @@ export default async function StationPage({ params, searchParams }: StationPageP
             <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between">
               <div>
                 <p className="text-[10px] uppercase tracking-[0.2em] text-white/60">Última Prova de Vida</p>
-                <p className="text-lg font-bold text-white">{formatCurrencyBRL(latest.price)} · {fuelLabels[latest.fuelType]}</p>
+                <p className="text-lg font-bold text-white">{latestPrice !== null ? formatCurrencyBRL(latestPrice) : "Sem preço"} · {fuelLabels[latest.fuelType]}</p>
                 <p className="text-xs text-white/40">{formatRecencyLabel(latest.reportedAt)} por {latest.reporterNickname || "colaborador"}</p>
               </div>
               <Badge variant="secondary" className="bg-black/40 backdrop-blur-md border-white/10">

@@ -14,8 +14,8 @@ import type { FuelType, StationWithReports } from "@/lib/types";
 import { countFilledFuelPrices, getFilledFuelPriceEntries, getPrimaryFuelSelection, normalizeFuelPriceMap, submissionFuelOptions, type FuelPriceMap } from "@/lib/submissions/fuel-prices";
 import { fuelLabels } from "@/lib/format/labels";
 import { submitPriceReportAction, type SubmitState } from "@/app/enviar/actions";
-import { completeStationInRoute, readRouteContext } from "@/lib/navigation/route-context";
-import { useGeolocation } from "@/hooks/use-geolocation";
+import { completeStationInRoute, readRouteContext, type RouteContext } from "@/lib/navigation/route-context";
+import { useLocationHardening } from "@/hooks/use-location-hardening";
 import { calculateDistance, formatDistanceFromYou } from "@/lib/geo/distance";
 import { formatCurrencyBRL } from "@/lib/format/currency";
 import { formatRecencyLabel } from "@/lib/format/time";
@@ -470,10 +470,10 @@ function PriceSubmitFormBody({
   const { recordActivity, session, history, lastSummary } = useStreetSession();
   const { isActive: isTestMode } = useTestMode();
   const draftKey = useMemo(() => createDraftKey(initialStationId, draftKeyOverride), [draftKeyOverride, initialStationId]);
+  const [routeContext, setRouteContext] = useState<RouteContext | null>(null);
 
   const initialStation = useMemo(() => stations.find((station) => station.id === initialStationId) ?? null, [initialStationId, stations]);
   const hasInitialStation = Boolean(initialStation);
-  const lockedStation = false;
   const compactMode = hasInitialStation;
   const defaultStationId = useMemo(() => initialStation?.id ?? "", [initialStation]);
   const defaultFuelType: FuelType = initialFuelType && allowedFuelSet.has(initialFuelType) ? initialFuelType : "gasolina_comum";
@@ -504,6 +504,44 @@ function PriceSubmitFormBody({
   const [stationProposalNeighborhood, setStationProposalNeighborhood] = useState("");
   const [stationProposalBrand, setStationProposalBrand] = useState("");
   const [stationProposalCity, setStationProposalCity] = useState("");
+  const { location, refresh } = useLocationHardening();
+  const coords = useMemo(() => (location ? { lat: location.lat, lng: location.lng } : null), [location]);
+  const canTrustProximity = Boolean(location && location.trustStatus !== "incerto");
+  const routeTargetStation = useMemo(() => {
+    if (!routeContext?.active || !routeContext.targetStationId) {
+      return null;
+    }
+
+    return stations.find((station) => station.id === routeContext.targetStationId) ?? null;
+  }, [routeContext, stations]);
+  const lockedStationMeta = useMemo(() => {
+    if (initialStation) {
+      return {
+        stationId: initialStation.id,
+        source: "initial" as const
+      };
+    }
+
+    if (!routeTargetStation || !coords || !canTrustProximity || !isValidStationCoordinate(routeTargetStation.lat, routeTargetStation.lng)) {
+      return null;
+    }
+
+    const distance = calculateDistance(coords.lat, coords.lng, routeTargetStation.lat, routeTargetStation.lng);
+    const arrivalRadiusMeters = Math.min(450, Math.max(180, Math.round((location?.accuracy ?? 60) * 3)));
+    const retainRadiusMeters = Math.max(650, arrivalRadiusMeters * 2);
+
+    if (distance > retainRadiusMeters) {
+      return null;
+    }
+
+    return {
+      stationId: routeTargetStation.id,
+      source: "route" as const,
+      distance
+    };
+  }, [canTrustProximity, coords, initialStation, location?.accuracy, routeTargetStation]);
+  const lockedStationId = lockedStationMeta?.stationId ?? null;
+  const lockedStation = Boolean(lockedStationId);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const priceInputRefs = useRef<Partial<Record<FuelType, HTMLInputElement | null>>>({});
@@ -630,6 +668,10 @@ function PriceSubmitFormBody({
   const lastQueuedAbandonmentSignatureRef = useRef<string | null>(null);
   const abandonmentSentRef = useRef(false);
 
+  useEffect(() => {
+    setRouteContext(readRouteContext());
+  }, []);
+
   function openCameraPicker() {
     cameraInputRef.current?.click();
   }
@@ -700,7 +742,7 @@ function PriceSubmitFormBody({
           return;
         }
 
-        if (draft.stationId && stations.some((station) => station.id === draft.stationId)) {
+        if (!lockedStation && draft.stationId && stations.some((station) => station.id === draft.stationId)) {
           stationSelectionOriginRef.current = "draft";
           setStationId(draft.stationId);
           setStationConfirmed(true);
@@ -800,17 +842,29 @@ function PriceSubmitFormBody({
     setStationConfirmed(true);
   }, [initialStation]);
 
-  const { coords, getLocation } = useGeolocation();
-
   useEffect(() => {
-    if (hasInitialStation) {
+    if (location || hasInitialStation) {
       return;
     }
 
-    getLocation();
-  }, [getLocation, hasInitialStation]);
+    refresh();
+  }, [hasInitialStation, location, refresh]);
 
+  useEffect(() => {
+    if (!lockedStationId) {
+      return;
+    }
 
+    if (stationId !== lockedStationId) {
+      stationSelectionOriginRef.current = lockedStationMeta?.source === "initial" ? "initial" : "auto";
+      setStationId(lockedStationId);
+    }
+
+    setShowStationPicker(false);
+    setStationConfirmed(true);
+    setValidationErrors((current) => (current.stationId ? { ...current, stationId: undefined } : current));
+    setIsSuggested(lockedStationMeta?.source === "route");
+  }, [lockedStationId, lockedStationMeta?.source, stationId]);
 
   useEffect(() => {
     if (!draftLoaded || completedRef.current) {
@@ -922,13 +976,21 @@ function PriceSubmitFormBody({
   }, [defaultFuelType, draftRestored, fuelType, initialFuelType, selectedStation, stationId, submissions]);
 
   const { currentDistance, locationConfidence, isAmbiguous, closestStationId } = useMemo(() => {
-    if (!coords || !selectedStation) return { currentDistance: null, locationConfidence: "none", isAmbiguous: false, closestStationId: null };
-    
+    if (!coords || !selectedStation || !isValidStationCoordinate(selectedStation.lat, selectedStation.lng)) {
+      return { currentDistance: null, locationConfidence: "none", isAmbiguous: false, closestStationId: null };
+    }
+
     let closestId: string | null = null;
     let minDistance = Infinity;
     let nearbyInCluster = 0;
+    const proximityRadiusMeters = Math.min(320, Math.max(120, Math.round((location?.accuracy ?? 60) * 2.5)));
+    const cautionRadiusMeters = Math.min(900, Math.max(260, Math.round((location?.accuracy ?? 60) * 5)));
 
     for (const s of stations) {
+      if (!isValidStationCoordinate(s.lat, s.lng)) {
+        continue;
+      }
+
       const dist = calculateDistance(coords.lat, coords.lng, s.lat, s.lng);
       if (dist < minDistance) {
         minDistance = dist;
@@ -944,10 +1006,18 @@ function PriceSubmitFormBody({
     }
 
     const dist = calculateDistance(coords.lat, coords.lng, selectedStation.lat, selectedStation.lng);
-    const confidence = dist <= 200 ? "high" : "low" as "none" | "high" | "low";
-    
-    // Ambiguidade se houver outro posto muito perto do selecionado e o usuário estiver na área
-    const ambiguous = nearbyInCluster > 0 && (closestId !== selectedStation.id || minDistance > 30);
+    const confidence = !canTrustProximity
+      ? "low"
+      : dist <= proximityRadiusMeters
+        ? "high"
+        : dist <= cautionRadiusMeters
+          ? "medium"
+          : "low";
+    const ambiguous = canTrustProximity
+      && nearbyInCluster > 0
+      && closestId !== null
+      && closestId !== selectedStation.id
+      && minDistance <= Math.max(120, proximityRadiusMeters);
 
     return { 
       currentDistance: dist, 
@@ -955,15 +1025,15 @@ function PriceSubmitFormBody({
       isAmbiguous: ambiguous,
       closestStationId: closestId
     };
-  }, [coords, selectedStation, stations]);
+  }, [canTrustProximity, coords, location?.accuracy, selectedStation, stations]);
 
   const nearbyStationsList = useMemo(() => {
-    if (!coords) return [];
+    if (!coords || !canTrustProximity) return [];
     return stations
       .map(s => ({ ...s, distance: calculateDistance(coords.lat, coords.lng, s.lat, s.lng) }))
       .filter(s => (s.distance || 0) <= 2000)
       .sort((a, b) => (a.distance || 0) - (b.distance || 0));
-  }, [coords, stations]);
+  }, [canTrustProximity, coords, stations]);
 
   const recentStationIds = useMemo(() => {
     const ids: string[] = [];
@@ -1001,7 +1071,7 @@ function PriceSubmitFormBody({
       const neighborhoodLabel = station.neighborhood?.trim() || "Bairro nao informado";
       const brandLabel = station.distributorName?.trim() || station.brand?.trim() || null;
       const hasReliableCoordinate = isValidStationCoordinate(station.lat, station.lng);
-      const distance = coords && hasReliableCoordinate ? calculateDistance(coords.lat, coords.lng, station.lat, station.lng) : null;
+      const distance = coords && canTrustProximity && hasReliableCoordinate ? calculateDistance(coords.lat, coords.lng, station.lat, station.lng) : null;
       const ambiguityCount = publicNameCounts.get(getStationAmbiguityKey(station, publicName)) ?? 1;
       const recentIndex = recentStationIds.indexOf(station.id);
 
@@ -1022,14 +1092,14 @@ function PriceSubmitFormBody({
         hasReliableCoordinate
       };
     }).sort(compareStationCandidates);
-  }, [coords, homeContextSnapshot.city, recentStationIds, stations]);
+  }, [canTrustProximity, coords, homeContextSnapshot.city, recentStationIds, stations]);
 
   const autoSuggestedStation = useMemo(() => {
     if (stationCandidates.length === 0) {
       return null;
     }
 
-    if (coords) {
+    if (coords && canTrustProximity) {
       const nearbyCandidate = stationCandidates
         .filter((candidate) => candidate.distance !== null && candidate.hasReliableCoordinate && candidate.visibilityRank > 0 && candidate.geoRank >= 1 && (candidate.distance ?? Infinity) <= 1500)
         .sort((left, right) => {
@@ -1055,7 +1125,7 @@ function PriceSubmitFormBody({
 
     const fallbackCandidate = stationCandidates.find((candidate) => candidate.visibilityRank > 0 && candidate.geoRank >= 0) ?? stationCandidates[0] ?? null;
     return fallbackCandidate ? { candidate: fallbackCandidate, source: "fallback" as const } : null;
-  }, [coords, stationCandidates]);
+  }, [canTrustProximity, coords, stationCandidates]);
 
   useEffect(() => {
     if (lockedStation || draftRestored || !autoSuggestedStation) {
@@ -1243,7 +1313,7 @@ function PriceSubmitFormBody({
         ? "O app cruzou GPS, histórico curto e contexto para sugerir este posto primeiro."
         : "Há um posto provável por perto, mas a confirmação manual ainda vale."
       : "Use nome, bairro, endereço, cidade ou bandeira. Se não achar, proponha o posto na hora.";
-  const geoStatusCopy = coords
+  const geoStatusCopy = canTrustProximity
     ? locationConfidence === "high"
       ? "Sua localização está ajudando a priorizar os postos mais prováveis."
       : "Sua localização existe, mas o contexto ainda pede confirmação manual."
@@ -1260,7 +1330,7 @@ function PriceSubmitFormBody({
   const [showMoreFallback, setShowMoreFallback] = useState(false);
   const [showMoreSearch, setShowMoreSearch] = useState(false);
   useEffect(() => {
-    if (isAmbiguous && !lockedStation && coords && ambiguityTrackedRef.current !== stationId) {
+    if (isAmbiguous && !lockedStation && canTrustProximity && ambiguityTrackedRef.current !== stationId) {
       ambiguityTrackedRef.current = stationId;
       void trackProductEvent({
         eventType: "field_quality_warning_shown",
@@ -1280,7 +1350,7 @@ function PriceSubmitFormBody({
         }
       });
     }
-  }, [isAmbiguous, lockedStation, coords, stationId, selectedStation, fuelType, currentDistance, closestStationId, compactMode]);
+  }, [isAmbiguous, lockedStation, canTrustProximity, stationId, selectedStation, fuelType, currentDistance, closestStationId, compactMode]);
 
   useEffect(() => {
     if (!state.success) {
@@ -1305,6 +1375,7 @@ function PriceSubmitFormBody({
     // Route completion
     if (stationId) {
       completeStationInRoute(stationId);
+      setRouteContext(readRouteContext());
     }
 
     void clearSubmissionQueueForDraftKey(draftKey)
@@ -1618,6 +1689,7 @@ function PriceSubmitFormBody({
     selectedFileRef.current = null;
     await clearSubmissionDraft(draftKey).catch(() => undefined);
     window.sessionStorage.removeItem(draftKey);
+    setRouteContext(readRouteContext());
     onResetRequest();
   }
 
@@ -2216,14 +2288,14 @@ function PriceSubmitFormBody({
                 <p className="text-[10px] font-medium text-[color:var(--color-accent)]">📍 GPS</p>
               )}
             </div>
-            {!coords && !lockedStation && (
+            {!canTrustProximity && !lockedStation && (
               <Button 
                 type="button" 
                 variant="ghost" 
                 className="h-6 px-2 text-[10px]"
-                onClick={() => getLocation()}
+                onClick={() => refresh()}
               >
-                Ativar GPS
+                {coords ? "Reforçar GPS" : "Ativar GPS"}
               </Button>
             )}
             {locationConfidence === "low" && (
@@ -2704,15 +2776,15 @@ function PriceSubmitFormBody({
         <div className="rounded-[18px] border border-[color:var(--color-accent)]/18 bg-[color:var(--color-accent)]/8 px-4 py-3">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-accent)]/72">Posto sugerido</p>
+              <p className="text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-accent)]/72">{lockedStation ? "Posto travado" : "Posto sugerido"}</p>
               <p className="truncate text-sm font-semibold text-white">{getStationPublicName(selectedStation)}</p>
               <p className="mt-1 text-xs text-white/62">{selectedStation.neighborhood} · {shortAddress(selectedStation.address) || selectedStation.city}</p>
             </div>
-            <Button type="button" variant="secondary" className="shrink-0" onClick={() => { setStationConfirmed(false); setShowStationPicker(true); stationSearchInputRef.current?.focus(); }}>
-
-              Trocar
-
-            </Button>
+            {!lockedStation ? (
+              <Button type="button" variant="secondary" className="shrink-0" onClick={() => { setStationConfirmed(false); setShowStationPicker(true); stationSearchInputRef.current?.focus(); }}>
+                Trocar
+              </Button>
+            ) : null}
           </div>
         </div>
       ) : null}
@@ -2731,6 +2803,9 @@ function PriceSubmitFormBody({
           )}>
             <p className="font-medium text-white">{selectedStation ? getStationPublicName(selectedStation) : "Posto"}</p>
             <p className="mt-1 text-white/54">{selectedStation?.neighborhood}, {selectedStation?.city}</p>
+            <p className="mt-2 text-[11px] text-[color:var(--color-accent)]/82">
+              {lockedStationMeta?.source === "route" ? "Posto travado pela aproximacao da rota." : "Posto travado pelo contexto de chegada."}
+            </p>
             {selectedStation?.address && !isStreetMode ? <p className="mt-1 text-xs text-white/42">{shortAddress(selectedStation.address)}</p> : null}
           </div>
         ) : (
@@ -2753,9 +2828,9 @@ function PriceSubmitFormBody({
                   )}
                 />
               </div>
-              {!coords ? (
-                <Button type="button" variant="secondary" className="h-12 px-4 text-xs uppercase tracking-[0.18em]" onClick={() => getLocation()}>
-                  Ver mais proximos
+              {!canTrustProximity ? (
+                <Button type="button" variant="secondary" className="h-12 px-4 text-xs uppercase tracking-[0.18em]" onClick={() => refresh()}>
+                  {coords ? "Reforçar GPS" : "Ver mais proximos"}
                 </Button>
               ) : null}
             </div>
@@ -2855,7 +2930,7 @@ function PriceSubmitFormBody({
                     <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/72">
                       <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1">{selectedStation.distributorName?.trim() || selectedStation.brand?.trim() || "Sem bandeira"}</span>
                       <span className="truncate">{shortAddress(selectedStation.address) || selectedStation.neighborhood || selectedStation.city}</span>
-                      {coords && isValidStationCoordinate(selectedStation.lat, selectedStation.lng) ? <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1">{formatDistanceFromYou(calculateDistance(coords.lat, coords.lng, selectedStation.lat, selectedStation.lng))}</span> : null}
+                      {canTrustProximity && coords && isValidStationCoordinate(selectedStation.lat, selectedStation.lng) ? <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1">{formatDistanceFromYou(calculateDistance(coords.lat, coords.lng, selectedStation.lat, selectedStation.lng))}</span> : null}
                     </div>
                     {getSelectedStationReport(selectedStation, fuelType) ? (
                       <p className="text-[11px] text-emerald-100/80">Preço {formatCurrencyBRL(getSelectedStationReport(selectedStation, fuelType)!.price)} · {formatRecencyLabel(getSelectedStationReport(selectedStation, fuelType)!.reportedAt)}</p>
@@ -2884,7 +2959,7 @@ function PriceSubmitFormBody({
 
             {!normalizedStationSearch ? (
               <div className="space-y-4">
-                {coords ? (
+                {canTrustProximity ? (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/42">Mais proximos de voce</p>

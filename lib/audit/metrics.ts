@@ -15,6 +15,10 @@ export function getBrazilDayKey(value: string | Date) {
 
 export function formatBrazilDayLabel(value: string) {
   const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) {
+    return "--/--";
+  }
+
   return new Intl.DateTimeFormat("pt-BR", {
     timeZone: "America/Sao_Paulo",
     day: "2-digit",

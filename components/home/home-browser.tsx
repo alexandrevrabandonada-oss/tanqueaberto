@@ -25,7 +25,7 @@ import { formatRecencyLabel, getRecencyTone, recencyToneToBadgeVariant } from "@
 import { fuelLabels, publicFuelFilters, recencyFilters } from "@/lib/format/labels";
 import { filterReports, filterStations, getSelectedStationReport, hasRecentStationPriceForFilter, type StationPresenceFilter } from "@/lib/filters/public";
 import { sortStationsForPublicView } from "@/lib/filters/sort";
-import { canShowStationOnMap, getStationPublicName, hasPendingStationLocationReview } from "@/lib/quality/stations";
+import { canShowStationOnMap, getStationPublicName, hasPendingStationLocationReview, isValidStationCoordinate } from "@/lib/quality/stations";
 import { persistHomeContext, priorityCities, readHomeContext, readLastStationContext, rememberStationVisit } from "@/lib/navigation/home-context";
 import type { HomeDensityMode } from "@/lib/navigation/home-context";
 import { startRoute, readRouteContext } from "@/lib/navigation/route-context";
@@ -567,13 +567,14 @@ export function HomeBrowser({
   const stationsWithDistances = useMemo(() => {
     if (!coords || !location) return displayStations;
     
-    // Only trust proximity for suggestions if location is reliable
-    const isReliable = location.trustStatus === "confiável";
+    const canTrustProximity = location.trustStatus !== "incerto";
     
     return displayStations.map((station: StationWithReports) => ({
       ...station,
-      distance: calculateDistance(coords.lat, coords.lng, station.lat, station.lng),
-      isReliableProximity: isReliable
+      distance: canTrustProximity && isValidStationCoordinate(station.lat, station.lng)
+        ? calculateDistance(coords.lat, coords.lng, station.lat, station.lng)
+        : undefined,
+      isReliableProximity: location.trustStatus === "confiável"
     }));
   }, [displayStations, coords, location]);
 
@@ -626,11 +627,12 @@ export function HomeBrowser({
   );
   const orderedStations = useMemo(() => {
     let result = [...filteredStations];
+    const canTrustProximity = location?.trustStatus !== "incerto";
 
     // Sort: Priority 1: Distance (if available), Priority 2: Release Status, Priority 3: Score
     return result.sort((a, b) => {
       // If coordinates are active, proximity is the main driver
-      if (coords && a.distance !== undefined && b.distance !== undefined) {
+      if (canTrustProximity && coords && a.distance !== undefined && b.distance !== undefined) {
         return a.distance - b.distance;
       }
 
@@ -648,7 +650,7 @@ export function HomeBrowser({
       
       return (b.priorityScore ?? 0) - (a.priorityScore ?? 0);
     });
-  }, [filteredStations, coords]);
+  }, [filteredStations, coords, location?.trustStatus]);
   const visibleStations = useMemo(() => orderedStations.filter((station) => canShowStationOnMap(station)), [orderedStations]);
   const stationsWithRecentPrice = useMemo(
     () => visibleStations.filter((station) => hasRecentStationPriceForFilter(station, fuelFilter)),
@@ -658,17 +660,18 @@ export function HomeBrowser({
   const reviewStations = useMemo(() => orderedStations.filter((station) => hasPendingStationLocationReview(station)), [orderedStations]);
   const noRecentStations = useMemo(() => {
     const candidates = orderedStations.filter((station) => !hasRecentStationPriceForFilter(station, fuelFilter));
+    const canTrustProximity = location?.trustStatus !== "incerto";
 
     return [...candidates]
       .sort((left, right) => {
-        if (coords && left.distance !== undefined && right.distance !== undefined) {
+        if (canTrustProximity && coords && left.distance !== undefined && right.distance !== undefined) {
           return left.distance - right.distance;
         }
 
         return 0;
       })
       .slice(0, 4);
-  }, [coords, fuelFilter, orderedStations]);
+  }, [coords, fuelFilter, orderedStations, location?.trustStatus]);
 
   // Sessão de Rua: Registrar views automáticas
   useEffect(() => {
