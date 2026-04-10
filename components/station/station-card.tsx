@@ -319,7 +319,6 @@ export function StationCard({
                 isUltraClaro={isUltraClaro}
                 onClick={() => {
                   recordActivity?.("touch", station.id);
-                  const mobile = isMobileBrowser();
                   void trackProductEvent({
                     eventType: "quick_action_clicked",
                     pagePath: "/",
@@ -334,7 +333,7 @@ export function StationCard({
                       isHeaderMicro
                     }
                   });
-                  openExternalNavigation(mobile ? "waze" : "google", {
+                  openExternalNavigation({
                     lat: station.lat,
                     lng: station.lng,
                     stationId: station.id,
@@ -386,7 +385,6 @@ export function StationCard({
                 isUltraClaro={isUltraClaro}
                 onClick={() => {
                   recordActivity?.("touch", station.id);
-                  const mobile = isMobileBrowser();
                   void trackProductEvent({
                     eventType: "quick_action_clicked",
                     pagePath: "/",
@@ -401,7 +399,7 @@ export function StationCard({
                       isHeaderMicro
                     }
                   });
-                  openExternalNavigation(mobile ? "waze" : "google", {
+                  openExternalNavigation({
                     lat: station.lat,
                     lng: station.lng,
                     stationId: station.id,

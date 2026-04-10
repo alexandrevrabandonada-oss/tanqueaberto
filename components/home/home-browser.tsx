@@ -36,7 +36,7 @@ import { useMissionContext } from "@/components/mission/mission-context";
 import { type EffectiveGroupStatus } from "@/lib/ops/release-control";
 import { getSmartDefaultRecorte, getSmartDefaultPhrase, type SmartDefaultReason } from "@/lib/ops/smart-default";
 import type { FuelFilter, RecencyFilter } from "@/lib/filters/public";
-import { type ReportWithStation, StationWithReports } from "@/lib/types";
+import { type FuelType, type ReportWithStation, StationWithReports } from "@/lib/types";
 import { type SurfaceItem } from "@/components/layout/surface-orchestrator";
 import { type SurfaceType, SURFACE_PRIORITIES } from "@/lib/ui/surface-orchestrator";
 import { useOperationalFocus } from "@/hooks/use-operational-focus";
@@ -51,6 +51,9 @@ import { useOperationalMemory } from "@/hooks/use-operational-memory";
 import { useStreetSession } from "@/hooks/use-street-session";
 import { useWarmStart } from "@/hooks/use-warm-start";
 import { orchestrateHomeState } from "@/lib/ui/home-orchestrator";
+
+const COMPARISON_FUEL_STORAGE_KEY = "bomba-aberta:economy-fuel-filter";
+const COMPARISON_FUEL_OPTIONS = publicFuelFilters.filter((item) => item.value !== "all") as Array<{ value: FuelType; label: string }>;
 
 const HomeMapSurface = dynamic(() => import("@/components/home/home-map-surface").then((mod) => mod.HomeMapSurface), {
   ssr: false,
@@ -125,14 +128,36 @@ function buildContextHref(query: string, city: string, fuelFilter: FuelFilter, r
   return suffix ? `/?${suffix}` : "/";
 }
 
-function getStationHref(stationId: string, returnToHref?: string) {
-  return returnToHref ? (`/postos/${stationId}?returnTo=${encodeURIComponent(returnToHref)}` as Route) : (`/postos/${stationId}` as Route);
+function getStationHref(stationId: string, returnToHref?: string, fuelFilter?: FuelFilter | FuelType) {
+  const params = new URLSearchParams();
+  if (fuelFilter && fuelFilter !== "all") {
+    params.set("fuel", fuelFilter);
+  }
+  if (returnToHref) {
+    params.set("returnTo", returnToHref);
+  }
+
+  const suffix = params.toString();
+  return suffix ? (`/postos/${stationId}?${suffix}` as Route) : (`/postos/${stationId}` as Route);
 }
 
 function getSendHref(stationId: string, returnToHref?: string, fuelFilter?: FuelFilter) {
   const fuelParam = fuelFilter && fuelFilter !== "all" ? `&fuel=${fuelFilter}` : "";
   const base = `/enviar?stationId=${stationId}${fuelParam}#photo`;
   return returnToHref ? (`${base}&returnTo=${encodeURIComponent(returnToHref)}` as Route) : (base as Route);
+}
+
+function isComparisonFuelType(value: string): value is FuelType {
+  return COMPARISON_FUEL_OPTIONS.some((item) => item.value === value);
+}
+
+function readComparisonFuelPreference() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const saved = window.localStorage.getItem(COMPARISON_FUEL_STORAGE_KEY);
+  return saved && isComparisonFuelType(saved) ? saved : null;
 }
 
 function FilterSelect({
@@ -688,15 +713,43 @@ export function HomeBrowser({
   const contextHref = useMemo(() => buildContextHref(query, selectedCity, fuelFilter, recencyFilter, presenceFilter, listMode), [fuelFilter, listMode, presenceFilter, query, recencyFilter, selectedCity]);
 
   const cheapestNow = useMemo(() => {
+    const availableFuels = new Set<FuelType>();
+    for (const station of orderedStations) {
+      for (const report of [...(station.recentReports ?? []), ...(station.latestReports ?? [])]) {
+        if (isComparisonFuelType(String(report?.fuelType ?? ""))) {
+          availableFuels.add(report.fuelType);
+        }
+      }
+    }
+
+    const preferredFuel =
+      fuelFilter !== "all"
+        ? fuelFilter
+        : (() => {
+            const recentSubmissionFuel = submissions[0]?.fuelType ?? null;
+            const savedFuel = isHydrated ? readComparisonFuelPreference() : null;
+
+            if (savedFuel && availableFuels.has(savedFuel)) {
+              return savedFuel;
+            }
+            if (recentSubmissionFuel && availableFuels.has(recentSubmissionFuel)) {
+              return recentSubmissionFuel;
+            }
+            if (availableFuels.has("gasolina_comum")) {
+              return "gasolina_comum" as FuelType;
+            }
+            return Array.from(availableFuels)[0] ?? ("gasolina_comum" as FuelType);
+          })();
+
     return orderedStations
       .map((station) => {
-        const report = getSelectedStationReport(station, fuelFilter);
+        const report = getSelectedStationReport(station, preferredFuel);
         return report ? { station, report } : null;
       })
       .filter((item): item is { station: StationWithReports; report: NonNullable<ReturnType<typeof getSelectedStationReport>> } => Boolean(item))
       .sort((left, right) => left.report.price - right.report.price)
       .slice(0, 3);
-  }, [fuelFilter, orderedStations]);
+  }, [fuelFilter, isHydrated, orderedStations, submissions]);
 
     const hasFilters = Boolean(query || selectedCity || fuelFilter !== "all" || recencyFilter !== "all" || presenceFilter !== "all" || listMode !== "normal");
   useEffect(() => {
@@ -1085,7 +1138,7 @@ export function HomeBrowser({
             </div>
             <div className="grid gap-3">
               {mobileLeadBest ? (
-                <a href={getStationHref(mobileLeadBest.station.id, contextHref)} className="rounded-[22px] border border-emerald-500/20 bg-emerald-500/8 p-4">
+                <a href={getStationHref(mobileLeadBest.station.id, contextHref, mobileLeadBest.report.fuelType)} className="rounded-[22px] border border-emerald-500/20 bg-emerald-500/8 p-4">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-[10px] uppercase tracking-[0.18em] text-emerald-300/72">Comparar agora</p>

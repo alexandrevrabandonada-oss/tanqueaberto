@@ -90,10 +90,10 @@ interface StationPageProps {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
-function parseFuel(value: string | string[] | undefined): FuelType {
+function parseFuel(value: string | string[] | undefined): FuelType | null {
   const allowed: FuelType[] = ["gasolina_comum", "gasolina_aditivada", "etanol", "diesel_s10", "diesel_comum", "gnv"];
   const candidate = Array.isArray(value) ? value[0] : value;
-  return allowed.includes(candidate as FuelType) ? (candidate as FuelType) : "gasolina_comum";
+  return allowed.includes(candidate as FuelType) ? (candidate as FuelType) : null;
 }
 
 function parseDays(value: string | string[] | undefined) {
@@ -123,19 +123,46 @@ function hasUsableProofImage(src: string | null | undefined) {
   return value.startsWith("https://") || value.startsWith("http://") || value.startsWith("/");
 }
 
+function getGoogleMapsHref(lat: number, lng: number) {
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${lat},${lng}`)}&travelmode=driving&dir_action=navigate`;
+}
+
+function resolveStationFuel(station: Awaited<ReturnType<typeof getStationDetail>>, requestedFuel: FuelType | null) {
+  const availableFuels = Array.from(
+    new Set(
+      [...(station?.recentReports ?? []), ...(station?.latestReports ?? [])]
+        .map((report) => report.fuelType)
+        .filter(Boolean)
+    )
+  ) as FuelType[];
+
+  if (requestedFuel && availableFuels.includes(requestedFuel)) {
+    return requestedFuel;
+  }
+
+  if (availableFuels.includes("gasolina_comum")) {
+    return "gasolina_comum" as FuelType;
+  }
+
+  return availableFuels[0] ?? requestedFuel ?? "gasolina_comum";
+}
+
 export default async function StationPage({ params, searchParams }: StationPageProps) {
   const { id } = await params;
   const query = (await searchParams) ?? {};
-  const selectedFuel = parseFuel(query.fuel);
+  const requestedFuel = parseFuel(query.fuel);
   const selectedDays = parseDays(query.days);
   const returnToHref = safeReturnTo(query.returnTo);
-  const [station, audit] = await Promise.all([
-    getStationDetail(id), 
-    getStationAuditDetail(id, selectedFuel, selectedDays)
-  ]);
+  const station = await getStationDetail(id);
+  if (!station) {
+    notFound();
+  }
+
+  const selectedFuel = resolveStationFuel(station, requestedFuel);
+  const audit = await getStationAuditDetail(id, selectedFuel, selectedDays);
   const currentAdmin = await getCurrentAdminUser();
 
-  if (!station || !audit) {
+  if (!audit) {
     notFound();
   }
 
@@ -260,7 +287,7 @@ export default async function StationPage({ params, searchParams }: StationPageP
           </ButtonLink>
           {hasValidCoordinates ? (
             <a
-              href={`https://www.google.com/maps/dir/?api=1&destination=${station.lat},${station.lng}`}
+              href={getGoogleMapsHref(station.lat, station.lng)}
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => {

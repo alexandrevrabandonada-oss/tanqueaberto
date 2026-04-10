@@ -360,9 +360,8 @@ export function StationMap({ stations, className = "h-[360px]", returnToHref, fu
                   variant="secondary"
                   isStreetMode={true}
                   onClick={() => {
-                    const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
                     import("@/lib/navigation/external-maps").then(({ openExternalNavigation }) => {
-                      openExternalNavigation(isMobile ? "waze" : "google", {
+                      openExternalNavigation({
                         lat: selectedStation.lat,
                         lng: selectedStation.lng,
                         stationId: selectedStation.id,

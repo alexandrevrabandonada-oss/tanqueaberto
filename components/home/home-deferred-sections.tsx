@@ -35,8 +35,17 @@ const ECONOMY_SAVINGS_LITERS = [40, 50] as const;
 const OPPORTUNITY_MIN_DELTA = 0.03;
 const FOLLOWED_DROP_MIN_DELTA = 0.02;
 
-function getStationHref(stationId: string, returnToHref?: string) {
-  return returnToHref ? `/postos/${stationId}?returnTo=${encodeURIComponent(returnToHref)}` : `/postos/${stationId}`;
+function getStationHref(stationId: string, returnToHref?: string, fuelFilter?: FuelType | "all") {
+  const params = new URLSearchParams();
+  if (fuelFilter && fuelFilter !== "all") {
+    params.set("fuel", fuelFilter);
+  }
+  if (returnToHref) {
+    params.set("returnTo", returnToHref);
+  }
+
+  const suffix = params.toString();
+  return suffix ? `/postos/${stationId}?${suffix}` : `/postos/${stationId}`;
 }
 
 function getSendHref(stationId: string, returnToHref?: string, fuelFilter?: string) {
@@ -712,8 +721,6 @@ export function HomeDeferredSections(props: Record<string, any>) {
     const lat = Number(station.lat);
     const lng = Number(station.lng);
     const stationName = getStationPublicName(station);
-    const isMobile = typeof navigator !== "undefined" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
     void onRouteTrack?.(station.id, groupId);
     void trackProductEvent({
       eventType: "quick_action_clicked",
@@ -731,7 +738,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
       }
     });
 
-    openExternalNavigation(isMobile ? "waze" : "google", {
+    openExternalNavigation({
       lat,
       lng,
       stationId: station.id,
@@ -800,7 +807,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
                 station={heroComparisonEntry?.station}
                 report={heroComparisonEntry?.report}
                 note="Preco, recencia e contexto para decidir antes de sair."
-                href={heroComparisonEntry ? (getStationHref(heroComparisonEntry.station.id, contextHref) as Route) : undefined}
+                href={heroComparisonEntry ? (getStationHref(heroComparisonEntry.station.id, contextHref, heroComparisonEntry.report?.fuelType ?? economyFuelFilter) as Route) : undefined}
                 actionLabel="Ver posto"
               />
               <FirstFoldSignalCard
@@ -940,7 +947,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
                       <ButtonLink href={getSendHref(station.id, contextHref, fuelFilter) as Route} className="flex-1 justify-center text-[11px] font-black uppercase tracking-[0.18em]">
                         Atualizar preço
                       </ButtonLink>
-                      <ButtonLink href={getStationHref(station.id, contextHref) as Route} variant="secondary" className="justify-center px-4 text-[11px] font-bold uppercase tracking-[0.16em]">
+                      <ButtonLink href={getStationHref(station.id, contextHref, latest?.fuelType ?? fuelFilter) as Route} variant="secondary" className="justify-center px-4 text-[11px] font-bold uppercase tracking-[0.16em]">
                         Ver posto
                       </ButtonLink>
                     </div>
@@ -985,7 +992,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
                 station={heroComparisonEntry?.station}
                 report={heroComparisonEntry?.report}
                 note="Comece pelo melhor equilibrio entre preço, recencia e proximidade." 
-                href={heroComparisonEntry ? (getStationHref(heroComparisonEntry.station.id, contextHref) as Route) : undefined}
+                href={heroComparisonEntry ? (getStationHref(heroComparisonEntry.station.id, contextHref, heroComparisonEntry.report?.fuelType ?? economyFuelFilter) as Route) : undefined}
                 actionLabel="Ver posto"
               />
               <FirstFoldSignalCard
@@ -1119,7 +1126,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
           ) : (
             <div className="grid gap-3 xl:grid-cols-3">
               {economyOpportunities.map((opportunity: any) => {
-                const stationHref = getStationHref(opportunity.station.id, contextHref) as Route;
+                const stationHref = getStationHref(opportunity.station.id, contextHref, opportunity.fuelType) as Route;
                 const sendHref = getSendHref(opportunity.station.id, contextHref, opportunity.fuelType) as Route;
                 const canRoute = hasRouteCoordinates(opportunity.station);
 
@@ -1415,7 +1422,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
                       const confidence = getReportConfidenceMeta(report);
                       const canRoute = hasRouteCoordinates(station);
                       const distanceValue = getStationDistanceValue(station);
-                      const stationHref = getStationHref(station.id, contextHref) as Route;
+                      const stationHref = getStationHref(station.id, contextHref, economyFuelFilter) as Route;
                       const sendHref = getSendHref(station.id, contextHref, economyFuelFilter) as Route;
 
                       return (

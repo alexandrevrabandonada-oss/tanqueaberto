@@ -1,7 +1,5 @@
 import { trackProductEvent } from "@/lib/telemetry/client";
 
-export type MapApp = "waze" | "google" | "apple";
-
 export interface ExternalNavigationOptions {
   lat: number;
   lng: number;
@@ -10,21 +8,13 @@ export interface ExternalNavigationOptions {
   source?: string;
 }
 
-export function getNavigationUrl(app: MapApp, lat: number, lng: number): string {
-  switch (app) {
-    case "waze":
-      return `https://www.waze.com/ul?ll=${lat},${lng}&navigate=yes`;
-    case "google":
-      return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-    case "apple":
-      return `maps://?daddr=${lat},${lng}`;
-    default:
-      return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-  }
+export function getGoogleMapsNavigationUrl(lat: number, lng: number): string {
+  const destination = encodeURIComponent(`${lat},${lng}`);
+  return `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving&dir_action=navigate`;
 }
 
-export function openExternalNavigation(app: MapApp, options: ExternalNavigationOptions) {
-  const url = getNavigationUrl(app, options.lat, options.lng);
+export function openExternalNavigation(options: ExternalNavigationOptions) {
+  const url = getGoogleMapsNavigationUrl(options.lat, options.lng);
 
   void trackProductEvent({
     eventType: "external_navigation_opened",
@@ -34,7 +24,7 @@ export function openExternalNavigation(app: MapApp, options: ExternalNavigationO
     scopeType: "navigation",
     scopeId: options.stationId || null,
     payload: {
-      app,
+      app: "google_maps",
       source: options.source || "station_card",
       stationName: options.stationName,
       lat: options.lat,
@@ -50,13 +40,7 @@ export function openExternalNavigation(app: MapApp, options: ExternalNavigationO
   };
   localStorage.setItem("bomba-aberta:navigation-handoff", JSON.stringify(handoffData));
 
-  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  if (isMobile) {
-    window.location.href = url;
-    return;
-  }
-
-  window.open(url, "_blank", "noopener,noreferrer");
+  window.location.href = url;
 }
 
 export function getNavigationHandoff() {

@@ -240,8 +240,7 @@ export function RouteAssistant({ stations, currentStationId = null, isCondensed 
           variant="secondary" 
           className="h-12 flex-1 font-bold"
           onClick={() => {
-            const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-            openExternalNavigation(isMobile ? "waze" : "google", {
+            openExternalNavigation({
               lat: nextStation.lat,
               lng: nextStation.lng,
               stationId: nextStation.id,
