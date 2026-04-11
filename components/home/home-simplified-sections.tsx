@@ -19,14 +19,20 @@ import { openExternalNavigation } from "@/lib/navigation/external-maps";
 import { getStationPublicName } from "@/lib/quality/stations";
 import { trackProductEvent } from "@/lib/telemetry/client";
 import type { FuelType, StationWithReports } from "@/lib/types";
-import { cn } from "@/lib/utils";
 
 const HomeMapSurface = dynamic(() => import("@/components/home/home-map-surface").then((mod) => mod.HomeMapSurface), {
   ssr: false,
   loading: () => <div className="h-[220px] rounded-[22px] border border-white/8 bg-white/[0.04]" />
 });
 
-type DecisionLabel = "vale no caminho" | "vale desviar" | "barato, mas longe" | "barato, mas velho";
+const DETOUR_COST_PER_KM = 0.5;
+
+type DecisionLabel =
+  | "vale no caminho"
+  | "vale pequeno desvio"
+  | "só compensa se você já for passar"
+  | "barato, mas velho"
+  | "mais barato da cidade, mas longe";
 
 type ConfidenceMeta = {
   label: string;
@@ -50,10 +56,15 @@ interface RankedCandidate extends CandidateEntry {
   cityLowestPrice: number;
   priceGapToLowest: number;
   savingsPerLiter: number;
-  estimatedSavings: number;
+  grossSavings40: number;
+  grossSavings50: number;
+  netSavings40: number;
+  netSavings50: number;
+  detourCost: number;
   valueScore: number;
   decisionLabel: DecisionLabel;
   rationale: string;
+  isCityLowest: boolean;
 }
 
 interface HomeSimplifiedSectionsProps {
@@ -140,19 +151,17 @@ function clamp(value: number, min: number, max: number) {
 function getRecencyScore(reportedAt: string) {
   const tone = getRecencyTone(reportedAt);
   if (tone === "fresh") return 1;
-  if (tone === "warning") return 0.72;
-  return 0.28;
+  if (tone === "warning") return 0.7;
+  return 0.26;
 }
 
 function getDistanceScore(distance: number | null) {
-  if (distance === null) {
-    return 0.44;
-  }
+  if (distance === null) return 0.36;
   if (distance <= 1_200) return 1;
-  if (distance <= 2_500) return 0.86;
-  if (distance <= 4_500) return 0.68;
-  if (distance <= 7_000) return 0.44;
-  if (distance <= 10_000) return 0.24;
+  if (distance <= 2_500) return 0.84;
+  if (distance <= 4_000) return 0.68;
+  if (distance <= 6_000) return 0.44;
+  if (distance <= 9_000) return 0.24;
   return 0.1;
 }
 
@@ -160,7 +169,7 @@ function hasRouteCoordinates(station: StationWithReports) {
   return Number.isFinite(Number(station.lat)) && Number.isFinite(Number(station.lng));
 }
 
-function byCityLowestPrice(left: CandidateEntry, right: CandidateEntry) {
+function byCityLowestPrice(left: CandidateEntry | RankedCandidate, right: CandidateEntry | RankedCandidate) {
   const priceDiff = Number(left.report.price) - Number(right.report.price);
   if (priceDiff !== 0) return priceDiff;
 
@@ -179,114 +188,251 @@ function byCityLowestPrice(left: CandidateEntry, right: CandidateEntry) {
 }
 
 function buildDecisionLabel(candidate: {
+  distance: number | null;
   recencyTone: ReturnType<typeof getRecencyTone>;
   confidence: ConfidenceMeta;
-  distance: number | null;
-  estimatedSavings: number;
-  savingsPerLiter: number;
+  netSavings40: number;
+  netSavings50: number;
+  isCityLowest: boolean;
 }): DecisionLabel {
   if (candidate.recencyTone === "stale" || candidate.confidence.score < 0.65) {
     return "barato, mas velho";
   }
-  if (candidate.distance !== null && candidate.distance > 4_500 && candidate.estimatedSavings < 7) {
-    return "barato, mas longe";
+
+  if (candidate.isCityLowest && candidate.distance !== null && candidate.distance > 4_500) {
+    return "mais barato da cidade, mas longe";
   }
-  if (candidate.estimatedSavings >= 7 || candidate.savingsPerLiter >= 0.14) {
-    return "vale desviar";
-  }
-  if (candidate.distance !== null && candidate.distance <= 2_500) {
+
+  if (candidate.distance !== null && candidate.distance <= 1_800 && candidate.netSavings40 >= 1.2) {
     return "vale no caminho";
   }
-  return "barato, mas longe";
+
+  if (candidate.netSavings50 >= 6 || (candidate.distance !== null && candidate.distance <= 4_000 && candidate.netSavings40 >= 2.5)) {
+    return "vale pequeno desvio";
+  }
+
+  return "só compensa se você já for passar";
 }
 
-function buildRationale(label: DecisionLabel, candidate: {
-  distance: number | null;
-  estimatedSavings: number;
-  recencyTone: ReturnType<typeof getRecencyTone>;
-  confidence: ConfidenceMeta;
-}) {
-  if (label === "vale no caminho") {
-    return "Preço competitivo sem te tirar do trajeto.";
+function buildRationale(candidate: RankedCandidate) {
+  if (candidate.decisionLabel === "barato, mas velho") {
+    return "Preço interessante, mas a leitura já ficou velha ou fraca para te empurrar até lá.";
   }
-  if (label === "vale desviar") {
-    return candidate.distance !== null
-      ? `O ganho estimado compensa o desvio em ${formatDistanceFromYou(candidate.distance)}.`
-      : "O preço compensa a ida mesmo sem GPS forte.";
+  if (candidate.decisionLabel === "mais barato da cidade, mas longe") {
+    return "É o menor preço bruto do recorte, mas a distância reduz o ganho real da ida.";
   }
-  if (label === "barato, mas longe") {
-    return candidate.distance !== null
-      ? `É barato, mas ${formatDistanceFromYou(candidate.distance)} já pesa na conta real.`
-      : "Preço chama atenção, mas faltou proximidade confiável.";
+  if (candidate.decisionLabel === "vale no caminho") {
+    return `A economia líquida estimada segura bem: ${formatCurrencyBRL(candidate.netSavings40)} em 40L sem te tirar do trajeto.`;
   }
-  return candidate.recencyTone === "stale" || candidate.confidence.score < 0.65
-    ? "Preço interessante, mas a leitura já pede conferência."
-    : `Economia estimada de ${formatCurrencyBRL(candidate.estimatedSavings)} em 50L.`;
+  if (candidate.decisionLabel === "vale pequeno desvio") {
+    return `O preço aguenta um desvio curto: sobra cerca de ${formatCurrencyBRL(candidate.netSavings50)} em 50L depois do deslocamento.`;
+  }
+  return "Preço bom, mas o ganho líquido fica curto se você precisar sair do caminho só por ele.";
 }
 
 function buildRankedCandidate(candidate: CandidateEntry, cityAveragePrice: number, cityLowestPrice: number): RankedCandidate {
   const priceGapToLowest = Math.max(0, Number(candidate.report.price) - cityLowestPrice);
   const savingsPerLiter = Math.max(0, cityAveragePrice - Number(candidate.report.price));
-  const estimatedSavings = savingsPerLiter * 50;
-  const priceScore = clamp(1 - priceGapToLowest / 0.6, 0, 1);
+  const grossSavings40 = savingsPerLiter * 40;
+  const grossSavings50 = savingsPerLiter * 50;
+  const detourCost = candidate.distance === null ? 0 : (candidate.distance / 1000) * DETOUR_COST_PER_KM;
+  const netSavings40 = Math.max(0, grossSavings40 - detourCost);
+  const netSavings50 = Math.max(0, grossSavings50 - detourCost);
+  const isCityLowest = priceGapToLowest <= 0.001;
+  const priceScore = clamp(1 - priceGapToLowest / 0.65, 0, 1);
   const distanceScore = getDistanceScore(candidate.distance);
   const recencyScore = getRecencyScore(candidate.report.reportedAt);
-  const savingsScore = clamp(estimatedSavings / 16, 0, 1);
-  const compensationBonus = candidate.distance !== null && candidate.distance > 2_500 && estimatedSavings >= 7 ? 0.08 : 0;
-  const proximityGuard = candidate.distance !== null && candidate.distance <= 1_200 && estimatedSavings < 1.5 ? -0.05 : 0;
+  const netSavingsScore = clamp(netSavings50 / 12, 0, 1);
+  const compensationBoost = candidate.distance !== null && candidate.distance > 2_500 && netSavings50 >= 6 ? 0.06 : 0;
+  const proximityPenalty = candidate.distance !== null && candidate.distance <= 1_200 && netSavings40 < 1 ? 0.08 : 0;
   const valueScore =
-    priceScore * 0.3
-    + savingsScore * 0.22
-    + distanceScore * 0.18
-    + recencyScore * 0.16
-    + candidate.confidence.score * 0.14
-    + compensationBonus
-    + proximityGuard;
-  const decisionLabel = buildDecisionLabel({
-    recencyTone: candidate.recencyTone,
-    confidence: candidate.confidence,
-    distance: candidate.distance,
-    estimatedSavings,
-    savingsPerLiter
-  });
+    priceScore * 0.24
+    + netSavingsScore * 0.26
+    + distanceScore * 0.17
+    + recencyScore * 0.17
+    + candidate.confidence.score * 0.11
+    + (isCityLowest ? 0.05 : 0)
+    + compensationBoost
+    - proximityPenalty;
 
-  return {
+  const ranked: RankedCandidate = {
     ...candidate,
     cityAveragePrice,
     cityLowestPrice,
     priceGapToLowest,
     savingsPerLiter,
-    estimatedSavings,
+    grossSavings40,
+    grossSavings50,
+    netSavings40,
+    netSavings50,
+    detourCost,
     valueScore,
-    decisionLabel,
-    rationale: buildRationale(decisionLabel, {
-      distance: candidate.distance,
-      estimatedSavings,
-      recencyTone: candidate.recencyTone,
-      confidence: candidate.confidence
-    })
+    decisionLabel: "só compensa se você já for passar",
+    rationale: "",
+    isCityLowest
   };
+
+  ranked.decisionLabel = buildDecisionLabel(ranked);
+  ranked.rationale = buildRationale(ranked);
+  return ranked;
 }
 
-function DecisionCard({
-  eyebrow,
-  title,
-  summary,
+function trackHomeQuickAction({
+  station,
+  scopeId,
+  fuel,
+  mode,
+  action
+}: {
+  station: StationWithReports;
+  scopeId: string;
+  fuel: FuelType;
+  mode: "city" | "value";
+  action: "photo" | "station";
+}) {
+  void trackProductEvent({
+    eventType: "quick_action_clicked",
+    pagePath: "/",
+    pageTitle: "Home",
+    stationId: station.id,
+    scopeType: "block",
+    scopeId,
+    payload: {
+      source: "home_simplified",
+      action,
+      fuelType: fuel,
+      mode
+    }
+  });
+}
+
+function CityRankRow({
+  entry,
+  index,
+  fuel,
+  contextHref,
+  bestForYouId,
+  onTrack
+}: {
+  entry: RankedCandidate;
+  index: number;
+  fuel: FuelType;
+  contextHref: string;
+  bestForYouId?: string | null;
+  onTrack?: (scopeId: string) => void;
+}) {
+  const stationHref = getStationHref(entry.station.id, contextHref, fuel);
+  const localityLabel = entry.station.neighborhood || entry.station.city || "Sem bairro";
+
+  return (
+    <div className="rounded-[18px] border border-white/8 bg-black/20 px-3 py-3 sm:px-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={index === 0 ? "warning" : "secondary"} className="px-2 text-[10px]">
+              #{index + 1}
+            </Badge>
+            {bestForYouId === entry.station.id ? (
+              <Badge variant="default" className="text-[10px]">
+                Melhor para você
+              </Badge>
+            ) : null}
+          </div>
+          <p className="mt-2 truncate text-[15px] font-semibold text-white">{getStationPublicName(entry.station)}</p>
+          <p className="truncate text-[11px] uppercase tracking-[0.16em] text-white/34">{localityLabel}</p>
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="text-xl font-black tracking-tight text-white">{formatCurrencyBRL(Number(entry.report.price))}</p>
+          <p className="text-[10px] uppercase tracking-[0.16em] text-white/34">{fuelLabels[entry.report.fuelType]}</p>
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Badge variant={recencyToneToBadgeVariant(entry.recencyTone)} className="text-[10px]">
+          {formatRecencyLabel(entry.report.reportedAt)}
+        </Badge>
+        {entry.distance !== null ? (
+          <Badge variant="outline" className="text-[10px]">
+            {formatDistanceFromYou(entry.distance)}
+          </Badge>
+        ) : null}
+      </div>
+
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <p className="min-w-0 truncate text-xs text-white/46">
+          {index === 0 ? "Lidera o preço bruto recente na cidade." : "Leitura ampla da cidade, não da melhor ida."}
+        </p>
+        <ButtonLink
+          href={stationHref}
+          variant="secondary"
+          className="min-h-8 shrink-0 px-3 text-[9px] font-black uppercase tracking-[0.14em]"
+          onClick={() => {
+            rememberStationVisit({ id: entry.station.id, name: getStationPublicName(entry.station), city: entry.station.city });
+            trackHomeQuickAction({ station: entry.station, scopeId: `home-city-top-${index + 1}`, fuel, mode: "city", action: "station" });
+            onTrack?.(`city-top-${index + 1}-${entry.station.id}`);
+          }}
+        >
+          Ver posto
+        </ButtonLink>
+      </div>
+    </div>
+  );
+}
+
+function CityTopThreeCard({
+  entries,
+  fuel,
+  contextHref,
+  bestForYouId,
+  onTrack
+}: {
+  entries: RankedCandidate[];
+  fuel: FuelType;
+  contextHref: string;
+  bestForYouId?: string | null;
+  onTrack?: (scopeId: string) => void;
+}) {
+  return (
+    <div className="rounded-[24px] border border-[color:var(--color-accent)]/18 bg-[linear-gradient(180deg,rgba(255,199,0,0.12),rgba(255,255,255,0.03))] p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Melhor preço da cidade</p>
+          <h3 className="mt-1 text-lg font-semibold text-white">Top 3 bruto do recorte</h3>
+          <p className="mt-1 text-sm text-white/52">Visão ampla da cidade. O mais barato aqui não é automaticamente a melhor ida.</p>
+        </div>
+        <Badge variant="warning" className="text-[10px]">
+          {fuelLabels[fuel]}
+        </Badge>
+      </div>
+
+      <div className="mt-4 space-y-3">
+        {entries.map((entry, index) => (
+          <CityRankRow
+            key={`city-top-${entry.station.id}`}
+            entry={entry}
+            index={index}
+            fuel={fuel}
+            contextHref={contextHref}
+            bestForYouId={bestForYouId}
+            onTrack={onTrack}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BestChoiceCard({
   entry,
   fuel,
   contextHref,
-  highlight,
-  cityNote,
+  sameAsCityLeader,
   onTrack
 }: {
-  eyebrow: string;
-  title: string;
-  summary: string;
   entry: RankedCandidate;
   fuel: FuelType;
   contextHref: string;
-  highlight: "city" | "value";
-  cityNote?: string;
+  sameAsCityLeader: boolean;
   onTrack?: (scopeId: string) => void;
 }) {
   const stationHref = getStationHref(entry.station.id, contextHref, fuel);
@@ -295,42 +441,48 @@ function DecisionCard({
   const canNavigate = hasRouteCoordinates(entry.station);
 
   return (
-    <div
-      className={cn(
-        "rounded-[24px] border p-5",
-        highlight === "city"
-          ? "border-[color:var(--color-accent)]/18 bg-[linear-gradient(180deg,rgba(255,199,0,0.12),rgba(255,255,255,0.03))]"
-          : "border-emerald-400/18 bg-[linear-gradient(180deg,rgba(16,185,129,0.12),rgba(255,255,255,0.03))]"
-      )}
-    >
+    <div className="rounded-[24px] border border-emerald-400/18 bg-[linear-gradient(180deg,rgba(16,185,129,0.12),rgba(255,255,255,0.03))] p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">{eyebrow}</p>
-          <h3 className="mt-1 text-lg font-semibold text-white">{title}</h3>
-          <p className="mt-1 text-sm text-white/52">{summary}</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Vale mais a pena para você</p>
+          <h3 className="mt-1 text-lg font-semibold text-white">
+            {sameAsCityLeader ? "Um posto vence os dois lados" : entry.decisionLabel}
+          </h3>
+          <p className="mt-1 text-sm text-white/52">
+            {sameAsCityLeader
+              ? "O mesmo posto é o menor preço bruto da cidade e também o que mais compensa agora."
+              : "Preço, distância, recência, confiança e economia líquida por tanque entram na conta."}
+          </p>
         </div>
-        <Badge variant={highlight === "city" ? "warning" : "default"} className="shrink-0 text-[10px]">
+        <Badge variant="default" className="text-[10px]">
           {fuelLabels[fuel]}
         </Badge>
       </div>
 
       <div className="mt-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate text-lg font-semibold text-white">{getStationPublicName(entry.station)}</p>
+          <div className="flex flex-wrap gap-2">
+            {sameAsCityLeader ? (
+              <>
+                <Badge variant="warning" className="text-[10px]">Menor preço da cidade</Badge>
+                <Badge variant="default" className="text-[10px]">Melhor para você agora</Badge>
+              </>
+            ) : (
+              <Badge variant="default" className="text-[10px]">{entry.decisionLabel}</Badge>
+            )}
+          </div>
+          <p className="mt-2 truncate text-lg font-semibold text-white">{getStationPublicName(entry.station)}</p>
           <p className="truncate text-[11px] uppercase tracking-[0.16em] text-white/34">{localityLabel}</p>
         </div>
         <div className="shrink-0 text-right">
           <p className="text-[2rem] font-black tracking-tight text-white">{formatCurrencyBRL(Number(entry.report.price))}</p>
-          <p className="text-[10px] uppercase tracking-[0.16em] text-white/38">{fuelLabels[entry.report.fuelType]}</p>
+          <p className="text-[10px] uppercase tracking-[0.16em] text-white/34">{fuelLabels[entry.report.fuelType]}</p>
         </div>
       </div>
 
-      <p className="mt-3 text-sm text-white/62">{cityNote ?? entry.rationale}</p>
+      <p className="mt-3 text-sm text-white/62">{entry.rationale}</p>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        <Badge variant={highlight === "city" ? "secondary" : "default"} className="text-[10px]">
-          {highlight === "city" ? "Menor preco bruto" : entry.decisionLabel}
-        </Badge>
         <Badge variant={recencyToneToBadgeVariant(entry.recencyTone)} className="text-[10px]">
           {formatRecencyLabel(entry.report.reportedAt)}
         </Badge>
@@ -342,11 +494,17 @@ function DecisionCard({
             {formatDistanceFromYou(entry.distance)}
           </Badge>
         ) : null}
-        {entry.savingsPerLiter >= 0.03 ? (
-          <Badge variant="accent" className="text-[10px]">
-            {formatCurrencyBRL(entry.estimatedSavings)} em 50L
-          </Badge>
-        ) : null}
+        <Badge variant="accent" className="text-[10px]">
+          {formatCurrencyBRL(entry.netSavings40)} líquido em 40L
+        </Badge>
+        <Badge variant="accent" className="text-[10px]">
+          {formatCurrencyBRL(entry.netSavings50)} líquido em 50L
+        </Badge>
+      </div>
+
+      <div className="mt-3 rounded-[18px] border border-white/8 bg-black/18 px-3 py-3 text-sm text-white/58">
+        Economia bruta: {formatCurrencyBRL(entry.grossSavings40)} em 40L e {formatCurrencyBRL(entry.grossSavings50)} em 50L.
+        {entry.distance !== null ? ` O deslocamento pesa cerca de ${formatCurrencyBRL(entry.detourCost)} nessa conta.` : " Sem GPS forte, então a conta líquida fica mais conservadora."}
       </div>
 
       <div className="mt-4 grid gap-2 sm:grid-cols-3">
@@ -356,7 +514,8 @@ function DecisionCard({
           className="min-h-10 justify-center px-4 text-[10px] font-black uppercase tracking-[0.16em]"
           onClick={() => {
             rememberStationVisit({ id: entry.station.id, name: getStationPublicName(entry.station), city: entry.station.city });
-            onTrack?.(`${highlight}-view-${entry.station.id}`);
+            trackHomeQuickAction({ station: entry.station, scopeId: "home-best-for-you-view", fuel, mode: "value", action: "station" });
+            onTrack?.(`value-view-${entry.station.id}`);
           }}
         >
           Ver posto
@@ -366,22 +525,8 @@ function DecisionCard({
           className="min-h-10 justify-center px-4 text-[10px] font-black uppercase tracking-[0.16em]"
           onClick={() => {
             rememberStationVisit({ id: entry.station.id, name: getStationPublicName(entry.station), city: entry.station.city });
-            void trackProductEvent({
-              eventType: "quick_action_clicked",
-              pagePath: sendHref,
-              pageTitle: "Home",
-              stationId: entry.station.id,
-              scopeType: "block",
-              scopeId: `home-${highlight}-update`,
-              payload: {
-                source: "home_simplified",
-                action: "photo",
-                fuelType: fuel,
-                decisionLabel: entry.decisionLabel,
-                mode: highlight
-              }
-            });
-            onTrack?.(`${highlight}-update-${entry.station.id}`);
+            trackHomeQuickAction({ station: entry.station, scopeId: "home-best-for-you-update", fuel, mode: "value", action: "photo" });
+            onTrack?.(`value-update-${entry.station.id}`);
           }}
         >
           Atualizar preço
@@ -397,13 +542,13 @@ function DecisionCard({
             }
 
             rememberStationVisit({ id: entry.station.id, name: getStationPublicName(entry.station), city: entry.station.city });
-            onTrack?.(`${highlight}-route-${entry.station.id}`);
+            onTrack?.(`value-route-${entry.station.id}`);
             openExternalNavigation({
               lat: entry.station.lat,
               lng: entry.station.lng,
               stationId: entry.station.id,
               stationName: getStationPublicName(entry.station),
-              source: highlight === "city" ? "home_city_lowest" : "home_best_for_you"
+              source: "home_best_for_you"
             });
           }}
         >
@@ -475,13 +620,7 @@ export function HomeSimplifiedSections({
     return cityScope.map((candidate) => buildRankedCandidate(candidate, cityStats.average, cityStats.lowest));
   }, [cityScope, cityStats]);
 
-  const cityLowest = useMemo(() => {
-    if (!cityStats) {
-      return null;
-    }
-
-    return [...rankedCandidates].sort(byCityLowestPrice)[0] ?? null;
-  }, [cityStats, rankedCandidates]);
+  const cityTopThree = useMemo(() => [...rankedCandidates].sort(byCityLowestPrice).slice(0, 3), [rankedCandidates]);
 
   const bestForYou = useMemo(() => {
     return [...rankedCandidates].sort((left, right) => {
@@ -491,7 +630,8 @@ export function HomeSimplifiedSections({
     })[0] ?? null;
   }, [rankedCandidates]);
 
-  const cityLabel = selectedCity || cityLowest?.station.city || "sua cidade";
+  const sameLeader = Boolean(bestForYou && cityTopThree[0] && bestForYou.station.id === cityTopThree[0].station.id);
+  const cityLabel = selectedCity || cityTopThree[0]?.station.city || "sua cidade";
   const coverageNote = noRecentStations.length > 0
     ? `${noRecentStations.length} postos ainda pedem atualização para cobrir melhor o recorte.`
     : "Cobertura recente está estável neste recorte.";
@@ -502,8 +642,8 @@ export function HomeSimplifiedSections({
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-white/42">Decisão rápida</p>
-            <h2 className="mt-1 text-xl font-semibold text-white">Preço bruto e escolha real, separados</h2>
-            <p className="mt-1 text-sm text-white/52">A home curta mostra o menor preço da cidade e, ao lado, o posto que mais compensa para você agora.</p>
+            <h2 className="mt-1 text-xl font-semibold text-white">Cidade inteira de um lado, escolha real do outro</h2>
+            <p className="mt-1 text-sm text-white/52">A home responde onde está o menor preço bruto e qual posto realmente vale mais para você agora.</p>
           </div>
           <Badge variant="warning" className="text-[10px]">
             <Sparkles className="h-3.5 w-3.5" />
@@ -511,34 +651,27 @@ export function HomeSimplifiedSections({
           </Badge>
         </div>
 
-        {cityLowest && bestForYou ? (
-          <div className="grid gap-3 xl:grid-cols-2">
-            <DecisionCard
-              eyebrow="Melhor preço da cidade"
-              title={cityLabel}
-              summary="Menor preço bruto recente no combustível filtrado."
-              entry={cityLowest}
+        {cityTopThree.length > 0 && bestForYou ? (
+          <div className="grid gap-3 xl:grid-cols-[1.08fr_0.92fr]">
+            <CityTopThreeCard
+              entries={cityTopThree}
               fuel={primaryFuel}
               contextHref={contextHref}
-              highlight="city"
-              cityNote={`Visão ampla de ${cityLabel}. Pode ser o menor preço bruto sem ser a melhor ida para você.`}
+              bestForYouId={bestForYou.station.id}
               onTrack={onStationTrack}
             />
-            <DecisionCard
-              eyebrow="Vale mais a pena para você"
-              title={bestForYou.decisionLabel}
-              summary="Score combinando preço, distância, recência, confiança e economia estimada."
+            <BestChoiceCard
               entry={bestForYou}
               fuel={primaryFuel}
               contextHref={contextHref}
-              highlight="value"
+              sameAsCityLeader={sameLeader}
               onTrack={onStationTrack}
             />
           </div>
         ) : (
           <EmptyStateCard
-            title="Ainda não existe base suficiente para separar preço bruto de escolha real."
-            description="Assim que aparecer preço recente para este combustível, a home passa a destacar o menor preço da cidade e o posto que mais compensa."
+            title="Ainda não existe base suficiente para separar cidade inteira de escolha pessoal."
+            description="Assim que aparecer preço recente para este combustível, a home passa a mostrar o top 3 bruto da cidade e o posto que mais compensa agora."
             actionHref={railSendHref}
             actionLabel="Atualizar preço"
             className="text-left"
@@ -546,9 +679,9 @@ export function HomeSimplifiedSections({
         )}
 
         <div className="rounded-[20px] border border-white/8 bg-white/[0.04] px-4 py-3">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Leitura do score</p>
+          <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Leitura do custo-benefício</p>
           <p className="mt-1 text-sm text-white/52">
-            O card da direita não escolhe só o posto mais perto. Ele sobe quando o preço realmente compensa o desvio e cai quando o dado está velho ou a distância dilui a economia.
+            O bloco da direita usa economia líquida por tanque como tradutor rápido: se o preço bruto é bom, mas o deslocamento come a vantagem, o rótulo cai para “só compensa se você já for passar” ou “mais barato da cidade, mas longe”.
           </p>
         </div>
 
@@ -569,7 +702,9 @@ export function HomeSimplifiedSections({
           </ButtonLink>
         </div>
 
-        <p className="text-[11px] text-white/42">{coverageNote}</p>
+        <p className="text-[11px] text-white/42">
+          Em {cityLabel}, o top 3 mostra visão ampla. O card pessoal só sobe quando preço, distância, recência e confiança fecham a conta real. {coverageNote}
+        </p>
 
         {showMap ? (
           <div className="pt-1">
