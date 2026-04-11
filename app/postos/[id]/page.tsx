@@ -6,6 +6,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { ProductEvent } from "@/components/telemetry/product-event";
 import { PriceTable } from "@/components/station/price-table";
 import { RememberStationVisit } from "@/components/navigation/remember-station";
+import { StationHeroActions } from "@/components/station/station-hero-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { SectionCard } from "@/components/ui/section-card";
@@ -33,7 +34,6 @@ import { formatCurrencyBRL } from "@/lib/format/currency";
 import type { FuelType, PriceReport } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { slugifyCity } from "@/lib/geo/city-slugs";
-
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -121,10 +121,6 @@ function formatTrend(previous: number, current: number) {
 function hasUsableProofImage(src: string | null | undefined) {
   const value = String(src ?? "").trim();
   return value.startsWith("https://") || value.startsWith("http://") || value.startsWith("/");
-}
-
-function getGoogleMapsHref(lat: number, lng: number) {
-  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${lat},${lng}`)}&travelmode=driving&dir_action=navigate`;
 }
 
 function resolveStationFuel(station: Awaited<ReturnType<typeof getStationDetail>>, requestedFuel: FuelType | null) {
@@ -266,50 +262,16 @@ export default async function StationPage({ params, searchParams }: StationPageP
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          <ButtonLink
-            href={sendPriceHref}
-            className="w-full bg-[color:var(--color-accent)] text-black font-black h-12 text-sm italic tracking-tight"
-            onClick={() => {
-              void trackProductEvent({
-                eventType: "camera_opened_from_station",
-                pagePath: sendPriceHref,
-                pageTitle: publicName,
-                stationId: station.id,
-                city: station.city,
-                fuelType: selectedFuel,
-                payload: { source: "station-page-hero" }
-              });
-            }}
-          >
-            <Camera className="h-5 w-5" />
-            ATUALIZAR PREÇO AGORA
-          </ButtonLink>
-          {hasValidCoordinates ? (
-            <a
-              href={getGoogleMapsHref(station.lat, station.lng)}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => {
-                void trackProductEvent({
-                  eventType: "station_action_click" as any,
-                  pagePath: "/postos/" + id,
-                  stationId: id,
-                  payload: { action: 'route_google_maps' }
-                });
-              }}
-              className="flex items-center justify-center gap-2 w-full h-12 rounded-2xl bg-white/5 border border-white/10 text-white font-bold text-sm hover:bg-white/10 transition-all"
-            >
-              <Navigation className="h-4 w-4 text-blue-400" />
-              COMO CHEGAR
-            </a>
-          ) : (
-            <div className="flex items-center justify-center gap-2 w-full h-12 rounded-2xl bg-white/5 border border-white/10 text-white/46 font-bold text-sm">
-              <Navigation className="h-4 w-4 text-white/28" />
-              LOCALIZAÇÃO EM REVISÃO
-            </div>
-          )}
-        </div>
+        <StationHeroActions
+          sendPriceHref={sendPriceHref}
+          stationId={station.id}
+          stationName={publicName}
+          stationCity={station.city}
+          selectedFuel={selectedFuel}
+          lat={station.lat}
+          lng={station.lng}
+          hasValidCoordinates={hasValidCoordinates}
+        />
       </SectionCard>
 
       {/* [GAPS] Lacuna Útil / Módulo de Engajamento */}

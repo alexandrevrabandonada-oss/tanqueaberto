@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { DatabaseZap, MapPin, Navigation, Search, SignalHigh, SignalLow, SlidersHorizontal, Sparkles, X } from "lucide-react";
+import { DatabaseZap, Droplets, MapPin, Navigation, Search, SignalHigh, SignalLow, SlidersHorizontal, Sparkles, X } from "lucide-react";
 
 import { DensitySelector } from "@/components/ui/density-selector";
+import { publicFuelFilters } from "@/lib/format/labels";
+import type { FuelFilter } from "@/lib/filters/public";
 import { cn } from "@/lib/utils";
 import { trackProductEvent } from "@/lib/telemetry/client";
 
@@ -44,6 +46,8 @@ interface TopOrchestratorProps {
   onCityReset: () => void;
   cityOptions: { priority: string[]; others: string[] };
   onCitySelect: (city: string) => void;
+  fuelFilter: FuelFilter;
+  onFuelChange: (fuel: FuelFilter) => void;
   densityMode: DensityMode;
   onDensityChange: (mode: DensityMode) => void;
   isSticky: boolean;
@@ -166,6 +170,8 @@ export function TopOrchestrator({
   onCityReset,
   cityOptions,
   onCitySelect,
+  fuelFilter,
+  onFuelChange,
   densityMode,
   onDensityChange,
   isSticky,
@@ -181,7 +187,9 @@ export function TopOrchestrator({
   const budget = isMicro ? TOP_BUDGETS.micro : !isWideDesktop ? TOP_BUDGETS.compact : isSticky ? TOP_BUDGETS.sticky : TOP_BUDGETS.expanded;
   const system = getSystemState({ coords, geoLoading, gpsAccuracy, gpsTrustStatus, isWarm, isRefreshing });
   const SystemIcon = system.icon;
+  const selectedFuelLabel = publicFuelFilters.find((item) => item.value === fuelFilter)?.label ?? "Todos";
   const priorityCities = cityOptions.priority.slice(0, stickyMode ? 2 : compactMode ? 3 : 5);
+  const activeFilterCount = Number(Boolean(query)) + Number(Boolean(selectedCity)) + Number(fuelFilter !== "all") + Number(densityMode !== "normal");
 
   useEffect(() => {
     const update = () => setIsWideDesktop(window.innerWidth >= 1280);
@@ -233,13 +241,27 @@ export function TopOrchestrator({
   const showAdvancedPanel = advancedOpen && !stickyMode;
   const showToolbarToggle = !stickyMode;
 
+  function resetTopFilters() {
+    onQueryChange("");
+    onCityReset();
+    onFuelChange("all");
+    onDensityChange("normal");
+    setAdvancedOpen(false);
+
+    void trackProductEvent({
+      eventType: "top_filters_reset" as any,
+      pagePath: window.location.pathname,
+      payload: { sticky: isSticky, micro: isMicro }
+    });
+  }
+
   return (
     <div data-top-orchestrator="root" data-top-budget-mode={isMicro ? "micro" : isWideDesktop ? "compact" : isSticky ? "sticky" : "expanded"} data-top-budget-max-height={budget.maxHeight} data-top-budget-max-height-wide={budget.maxHeightWide} className={topClassName}>
       <div className={cn("space-y-1.5", compactMode && "space-y-1")}>
         <label
           className={cn(
             "group flex min-h-10 items-center gap-2 rounded-2xl border border-white/8 bg-black/30 px-3 py-2 text-sm text-white/52 transition-all focus-within:border-[color:var(--color-accent)]/50 xl:min-h-9 xl:rounded-[20px] xl:bg-black/22 xl:px-3 xl:py-1.5",
-            compactMode && "min-h-9 bg-black/24 px-2.5 py-1.5",
+            compactMode && "min-h-8 bg-black/24 px-2.5 py-1.5",
             stickyMode && "min-h-8 rounded-[18px] bg-black/22 px-2.5 py-[0.375rem] xl:min-h-8"
           )}
         >
@@ -254,7 +276,7 @@ export function TopOrchestrator({
                 payload: { sticky: isSticky, micro: isMicro }
               });
             }}
-            placeholder={isMicro ? "Buscar..." : "Buscar posto, bairro ou cidade..."}
+            placeholder={compactMode ? "Buscar posto ou bairro..." : isMicro ? "Buscar..." : "Buscar posto, bairro ou cidade..."}
             className={cn("w-full bg-transparent text-xs text-white outline-none placeholder:text-white/30 xl:text-[11px]", compactMode && "text-[11px]")}
           />
           {query ? (
@@ -264,8 +286,8 @@ export function TopOrchestrator({
           ) : null}
         </label>
 
-        <div className={cn("grid gap-2 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center", stickyMode && "gap-1")}>
-          <div className={cn("flex min-w-0 flex-wrap items-center gap-1.5", stickyMode && "flex-nowrap overflow-x-auto pr-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden")}>
+        <div className={cn(compactMode ? "flex items-center gap-1.5" : "grid gap-2 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center", stickyMode && "gap-1")}>
+          <div className={cn("flex min-w-0 items-center gap-1.5", compactMode && "flex-1 flex-nowrap overflow-x-auto pr-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden", !compactMode && "flex-wrap")}>
             <CompactChip
               icon={MapPin}
               label={selectedCity || "Brasil"}
@@ -285,6 +307,16 @@ export function TopOrchestrator({
               isCompact={compactMode}
               className="max-w-full"
             />
+
+            <CompactChip
+              icon={Droplets}
+              label={selectedFuelLabel}
+              detail="Combustível"
+              tone={fuelFilter === "all" ? "muted" : "info"}
+              onClick={() => setAdvancedOpen(true)}
+              isCompact={compactMode}
+              className="max-w-full"
+            />
           </div>
           {showToolbarToggle ? (
             <button
@@ -300,17 +332,33 @@ export function TopOrchestrator({
               aria-expanded={advancedOpen}
               className={cn(
                 "inline-flex min-h-8 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.18em] text-white/58 transition hover:border-[color:var(--color-accent)]/28 hover:text-white xl:min-h-7 xl:px-2.5 xl:py-1",
-                compactMode && "gap-1.5 px-2.5 py-1 text-[8.5px] tracking-[0.14em] xl:min-h-7"
+                compactMode && "shrink-0 gap-1.5 px-2.5 py-1 text-[8.5px] tracking-[0.14em] xl:min-h-7"
               )}
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
-              <span>{advancedOpen ? "Menos" : compactMode ? "Filtros" : "Mais"}</span>
+              <span>{advancedOpen ? "Menos" : compactMode ? activeFilterCount > 0 ? `Ajustes ${activeFilterCount}` : "Ajustes" : "Mais"}</span>
             </button>
           ) : null}
         </div>
 
         {showAdvancedPanel ? (
           <div className="grid gap-2 rounded-[18px] border border-white/8 bg-black/18 px-3 py-2.5 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
+            <div className="flex items-center justify-between gap-3 rounded-[14px] border border-white/8 bg-white/[0.04] px-3 py-2 xl:col-span-2">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/38">Ajustes rápidos</p>
+                <p className="text-[11px] text-white/48">Cidade, combustível e densidade sem inflar o topo.</p>
+              </div>
+              {activeFilterCount > 0 ? (
+                <button
+                  type="button"
+                  onClick={resetTopFilters}
+                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/70 transition hover:bg-white/10 hover:text-white"
+                >
+                  Limpar
+                </button>
+              ) : null}
+            </div>
+
             <div className="flex min-w-0 flex-wrap items-center gap-1.5">
               {priorityCities.map((city) => (
                 <button
@@ -333,6 +381,25 @@ export function TopOrchestrator({
               {isLowPerf ? (
                 <CompactChip icon={SignalLow} label={`Eco ${effectiveType ?? "rede"}`} detail="Baixo consumo" tone="danger" isCompact className="xl:px-2" />
               ) : null}
+            </div>
+
+            <div className="flex min-w-0 flex-wrap items-center gap-1.5 xl:col-span-2">
+              {publicFuelFilters.map((option) => {
+                const isActive = option.value === fuelFilter;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => onFuelChange(option.value as FuelFilter)}
+                    className={cn(
+                      "shrink-0 rounded-full border whitespace-nowrap px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] transition-all xl:px-2.5 xl:py-1",
+                      isActive ? "border-[color:var(--color-accent)] bg-[color:var(--color-accent)] text-black" : "border-white/10 bg-white/5 text-white/58 hover:bg-white/10"
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
             </div>
 
             <DensitySelector mode={densityMode} onChange={onDensityChange} className="w-auto justify-self-start xl:justify-self-end" isCompact={compactMode} />

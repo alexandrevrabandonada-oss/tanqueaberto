@@ -4,7 +4,7 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
-import { ArrowRight, Camera, Clock3, Info, Navigation, Search, SlidersHorizontal, Star, X, Zap, Sparkles } from "lucide-react";
+import { Camera, ChevronDown, ChevronUp, Navigation, X, Zap } from "lucide-react";
 import Link from "next/link";
 import type { Route } from "next";
 
@@ -55,10 +55,6 @@ import { orchestrateHomeState } from "@/lib/ui/home-orchestrator";
 const COMPARISON_FUEL_STORAGE_KEY = "bomba-aberta:economy-fuel-filter";
 const COMPARISON_FUEL_OPTIONS = publicFuelFilters.filter((item) => item.value !== "all") as Array<{ value: FuelType; label: string }>;
 
-const HomeMapSurface = dynamic(() => import("@/components/home/home-map-surface").then((mod) => mod.HomeMapSurface), {
-  ssr: false,
-  loading: () => <SectionCard className="space-y-2 overflow-hidden shadow-xl shadow-black/20 xl:p-6"><div className="h-[220px] rounded-[22px] border border-white/8 bg-white/[0.04]" /></SectionCard>
-});
 const OperationalMemoryBar = dynamic(() => import("./operational-memory-bar").then((mod) => mod.OperationalMemoryBar), { ssr: false, loading: () => null });
 
 const FirstVisitGuide = dynamic(() => import("@/components/onboarding/first-visit-guide").then((mod) => mod.FirstVisitGuide), {
@@ -95,7 +91,7 @@ const TopOrchestrator = dynamic(() => import("@/components/layout/top-orchestrat
   loading: () => <div className="rounded-[22px] border border-white/8 bg-black/24 p-3 text-sm text-white/42">Carregando busca e filtros...</div>
 });
 const SurfaceOrchestrator = dynamic(() => import("@/components/layout/surface-orchestrator").then((mod) => mod.SurfaceOrchestrator), { ssr: false, loading: () => null });
-const DeferredHomeSections = dynamic(() => import("@/components/home/home-deferred-sections").then((mod) => mod.HomeDeferredSections), { ssr: false, loading: () => null });
+const HomeSimplifiedSections = dynamic(() => import("@/components/home/home-simplified-sections").then((mod) => mod.HomeSimplifiedSections), { ssr: false, loading: () => null });
 
 interface HomeBrowserProps {
   stations: StationWithReports[];
@@ -214,16 +210,15 @@ export function HomeBrowser({
   const [shareContext, setShareContext] = useState<string | null>(null);
   const [isHeroCollapsed, setIsHeroCollapsed] = useState(false);
   const [isMicroMode, setIsMicroMode] = useState(false);
-  const [showDeferredHomeSections, setShowDeferredHomeSections] = useState(false);
   const { mission, startMission, isLoaded: missionLoaded } = useMissionContext();
   const missionActive = !!mission;
   
   const debriefOverlay = <SessionDebriefModal />;
   const heroRef = useRef<HTMLDivElement>(null);
-  const mapSectionRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState(initialQuery);
   const [selectedCity, setSelectedCity] = useState(initialCity || "");
   const [defaultSelectionReason, setDefaultSelectionReason] = useState<string | null>(null);
+  const [secondaryRailOpen, setSecondaryRailOpen] = useState(false);
   const defaultApplied = useRef(false);
   const [fuelFilter, setFuelFilter] = useState<FuelFilter>(initialFuelFilter);
   const [recencyFilter, setRecencyFilter] = useState<RecencyFilter>(initialRecencyFilter);
@@ -278,35 +273,6 @@ export function HomeBrowser({
   const isAssisted = isStreetMode || role === "iniciante";
   const searchParams = useSearchParams();
   const densityParam = searchParams.get("density");
-
-  useEffect(() => {
-    let cancelled = false;
-    const reveal = () => {
-      if (!cancelled) {
-        setShowDeferredHomeSections(true);
-      }
-    };
-
-    if (typeof window === "undefined") {
-      return undefined;
-    }
-
-    const activeWindow = globalThis as Window & typeof globalThis;
-
-    if ("requestIdleCallback" in activeWindow) {
-      const handle = activeWindow.requestIdleCallback(reveal, { timeout: 1200 });
-      return () => {
-        cancelled = true;
-        activeWindow.cancelIdleCallback(handle);
-      };
-    }
-
-    const handle = globalThis.setTimeout(reveal, 250);
-    return () => {
-      cancelled = true;
-      globalThis.clearTimeout(handle);
-    };
-  }, []);
 
   useEffect(() => {
     const syncOnline = () => setIsOnline(navigator.onLine);
@@ -811,7 +777,6 @@ export function HomeBrowser({
     hasFilters,
   }), [isOnline, geoError, missionActive, role, submissionsCount, recentCount, favoriteIds.length, isStreetMode, isWarm, isRefreshing, selectedCity, hasFilters]);
   const isMobileLeanHome = initialListFirstMode || isLowPerf || isStreetMode;
-  const showMobileLead = isMobileLeanHome && !suppressMobileLead;
 
   useEffect(() => {
     if (lastTrackedHomeStateRef.current === homeState.state) {
@@ -830,16 +795,8 @@ export function HomeBrowser({
   }, [homeState.label, homeState.state]);
 
   const mapStations = visibleStations;
-  const summaryStations = orderedStations.slice(0, 6);
   const priorityStations = noRecentStations.slice(0, 3);
   const railSendHref = `/enviar?returnTo=${encodeURIComponent(contextHref)}` as Route;
-  const priorityLabel = stationsWithoutRecentPrice > 0 ? `${stationsWithoutRecentPrice} sem preço recente` : "Cobertura boa";
-  const priorityHint = stationsWithoutRecentPrice > 0
-    ? "Vale completar o recorte antes de abrir novos pontos."
-    : "O recorte atual já está bem coberto.";
-  const mobileLeadBest = cheapestNow[0] ?? null;
-  const mobileLeadPriority = priorityStations[0] ?? null;
-  const mobileLeadPriorityReport = mobileLeadPriority ? getSelectedStationReport(mobileLeadPriority, fuelFilter) : null;
 
   useEffect(() => {
     const ref = searchParams.get("ref");
@@ -1079,6 +1036,15 @@ export function HomeBrowser({
     });
   }
 
+  const primaryOperationalSurfaces = orchestratedSurfaces.filter(
+    (surface) => SURFACE_PRIORITIES[surface.type] >= SURFACE_PRIORITIES.MISSION_STATUS
+  );
+  const secondarySupportSurfaces = orchestratedSurfaces.filter(
+    (surface) => SURFACE_PRIORITIES[surface.type] < SURFACE_PRIORITIES.MISSION_STATUS
+  );
+  const secondarySupportCount = secondarySupportSurfaces.length + 1 + (isStreetMode && !missionActive ? 1 : 0);
+  const hasSecondaryRail = secondarySupportCount > 0;
+
   return (
     <>
       {debriefOverlay}
@@ -1108,176 +1074,91 @@ export function HomeBrowser({
           setDefaultSelectionReason(null);
           updateTownFocus(city, city);
         }}
+        fuelFilter={fuelFilter}
+        onFuelChange={(nextFuel) => setFuelFilter(nextFuel)}
         densityMode={listMode}
         onDensityChange={(mode) => updateListMode(mode)}
         isSticky={isHeroCollapsed || missionActive}
         isMicro={isMicroMode}
         isMissionActive={missionActive}
       />
-      {showMobileLead ? (
-        <div className="mb-4 min-w-0 space-y-3 overflow-x-clip">
-          <SectionCard className="space-y-4 border-white/10 bg-white/5 shadow-lg shadow-black/12">
-            <div className="space-y-1.5">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Primeiro movimento</p>
-              <h1 className="text-[1.3rem] font-semibold leading-tight text-white">Buscar, comparar e enviar.</h1>
-              <p className="text-sm leading-relaxed text-white/56">Veja o melhor sinal do recorte, descubra onde falta atualização e entre no envio sem desviar para histórico pessoal.</p>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="rounded-[18px] border border-white/8 bg-black/20 px-3 py-2.5">
-                <p className="text-[10px] uppercase tracking-[0.14em] text-white/38">No recorte</p>
-                <p className="mt-1 text-lg font-semibold text-white">{mapStations.length}</p>
-              </div>
-              <div className="rounded-[18px] border border-white/8 bg-black/20 px-3 py-2.5">
-                <p className="text-[10px] uppercase tracking-[0.14em] text-white/38">Com preço</p>
-                <p className="mt-1 text-lg font-semibold text-white">{stationsWithRecentPrice.length}</p>
-              </div>
-              <div className="rounded-[18px] border border-[color:var(--color-accent)]/18 bg-[color:var(--color-accent)]/8 px-3 py-2.5">
-                <p className="text-[10px] uppercase tracking-[0.14em] text-white/38">Pra atualizar</p>
-                <p className="mt-1 text-lg font-semibold text-[color:var(--color-accent)]">{stationsWithoutRecentPrice}</p>
-              </div>
-            </div>
-            <div className="grid gap-3">
-              {mobileLeadBest ? (
-                <a href={getStationHref(mobileLeadBest.station.id, contextHref, mobileLeadBest.report.fuelType)} className="rounded-[22px] border border-emerald-500/20 bg-emerald-500/8 p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.18em] text-emerald-300/72">Comparar agora</p>
-                      <p className="mt-1 text-base font-semibold text-white">{getStationPublicName(mobileLeadBest.station)}</p>
-                      <p className="mt-1 text-[11px] uppercase tracking-[0.16em] text-emerald-100/58">{fuelLabels[mobileLeadBest.report.fuelType]}</p>
-                    </div>
-                    <Badge variant="default" className="shrink-0 text-[10px]">{formatCurrencyBRL(Number(mobileLeadBest.report.price))}</Badge>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Badge variant={recencyToneToBadgeVariant(getRecencyTone(mobileLeadBest.report.reportedAt))} className="text-[10px]">{formatRecencyLabel(mobileLeadBest.report.reportedAt)}</Badge>
-                    {mobileLeadBest.station.distance !== undefined ? <Badge variant="outline" className="text-[10px]">{formatDistanceFromYou(mobileLeadBest.station.distance)}</Badge> : null}
-                  </div>
-                </a>
-              ) : null}
-
-              {mobileLeadPriority ? (
-                <a href={getSendHref(mobileLeadPriority.id, contextHref, fuelFilter)} className="rounded-[22px] border border-[color:var(--color-accent)]/20 bg-[color:var(--color-accent)]/8 p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-accent)]/72">Enviar onde falta</p>
-                      <p className="mt-1 text-base font-semibold text-white">{getStationPublicName(mobileLeadPriority)}</p>
-                    </div>
-                    <Badge variant="warning" className="shrink-0 text-[10px]">{mobileLeadPriorityReport ? formatRecencyLabel(mobileLeadPriorityReport.reportedAt) : "Sem preço"}</Badge>
-                  </div>
-                  <p className="mt-3 text-sm leading-relaxed text-white/58">{priorityHint}</p>
-                </a>
-              ) : null}
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <ButtonLink href={railSendHref} className="h-11 flex-1 justify-center px-4 text-[11px] font-black uppercase tracking-[0.18em]">
-                Enviar preço
-              </ButtonLink>
-              <ButtonLink href={"/#comparar-agora" as Route} variant="secondary" className="h-11 flex-1 justify-center px-4 text-[11px] font-black uppercase tracking-[0.18em]">
-                Comparar agora
-              </ButtonLink>
-              <button
-                type="button"
-                onClick={() => mapSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
-                className="inline-flex h-11 flex-1 items-center justify-center rounded-full border border-white/10 bg-white/5 px-4 text-[11px] font-black uppercase tracking-[0.18em] text-white/82 transition hover:border-white/20 hover:bg-white/8"
-              >
-                Abrir mapa
-              </button>
-            </div>
-          </SectionCard>
-          <div id="mapa-ao-vivo" ref={mapSectionRef}>
-            <HomeMapSurface
-              stations={mapStations}
-              contextHref={contextHref}
-              fuelFilter={fuelFilter}
-              center={coords}
-              userLocation={location}
-              preferListFirst={Boolean(initialListFirstMode || isLowPerf || isStreetMode)}
-            />
-          </div>
+      <HomeSimplifiedSections
+        contextHref={contextHref}
+        fuelFilter={fuelFilter}
+        orderedStations={orderedStations}
+        mapStations={mapStations}
+        noRecentStations={noRecentStations}
+        railSendHref={railSendHref}
+        selectedCity={selectedCity}
+        center={coords}
+        userLocation={location}
+        onStationTrack={(scopeId: string) => {
+          void trackProductEvent({
+            eventType: "home_block_interacted",
+            pagePath: "/",
+            scopeType: "block",
+            scopeId,
+            payload: { role: role || 'unknown' }
+          });
+        }}
+      />
+      {primaryOperationalSurfaces.length > 0 ? (
+        <div className="mt-4">
+          <SurfaceOrchestrator 
+             surfaces={primaryOperationalSurfaces} 
+             onDismiss={(id) => {
+               if (id === "beta-closed") { /* potential local storage toggle */ }
+             }}
+             maxPrimaryItems={2}
+          />
         </div>
       ) : null}
-      <div className={cn("mb-4", showMobileLead && "hidden")}>
-        <ProgressiveIdentityPrompt context="home" source="return" />
-      </div>
-      {!isMobileLeanHome && homeState.state !== "operation-normal" ? (
-      <div className={cn("mb-6 transition-all duration-300", (isHeroCollapsed || missionActive) && "opacity-0 h-0 overflow-hidden mb-0")}>
-        <SurfaceOrchestrator 
-           surfaces={orchestratedSurfaces} 
-           onDismiss={(id) => {
-             if (id === "beta-closed") { /* potential local storage toggle */ }
-           }}
-           maxPrimaryItems={1}
-        />
-      </div>
-      ) : null}
 
-      {!isMobileLeanHome && isStreetMode && !missionActive && (
-        <div className="mb-6">
-          <Button 
-            variant="primary"
-            onClick={toggleStreetMode}
-            className="w-full h-11 rounded-[22px] text-xs font-black uppercase tracking-widest shadow-lg border-2 border-white/10"
+      {hasSecondaryRail ? (
+        <SectionCard className="mt-4 space-y-0 overflow-hidden px-0 py-0">
+          <button
+            type="button"
+            onClick={() => setSecondaryRailOpen((value) => !value)}
+            className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
+            aria-expanded={secondaryRailOpen}
           >
-            MODO RUA ATIVO
-          </Button>
-        </div>
-      )}
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Secundário</p>
+              <h2 className="mt-1 text-lg font-semibold text-white">Apoios e onboarding recolhidos</h2>
+              <p className="mt-1 text-sm text-white/52">Identidade, avisos e fluxos auxiliares fora da pilha principal.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-[10px]">{secondarySupportCount}</Badge>
+              {secondaryRailOpen ? <ChevronUp className="h-4 w-4 text-white/50" /> : <ChevronDown className="h-4 w-4 text-white/50" />}
+            </div>
+          </button>
 
+          {secondaryRailOpen ? (
+            <div className="border-t border-white/8 px-5 py-4 space-y-4">
+              <ProgressiveIdentityPrompt context="home" source="return" />
 
-      {showDeferredHomeSections ? (
-        <DeferredHomeSections
-          homeState={homeState}
-          missionActive={missionActive}
-          isStreetMode={isStreetMode}
-          isAssisted={isAssisted}
-          toggleStreetMode={toggleStreetMode}
-          recentIds={recentIds}
-          favoriteIds={favoriteIds}
-          stations={stations}
-          recentCount={recentCount}
-          selectedCity={selectedCity}
-          selectedReadiness={selectedReadiness}
-          contextHref={contextHref}
-          fuelFilter={fuelFilter}
-          listMode={listMode}
-          isLowPerf={isLowPerf}
-          recordActivity={recordActivity}
-          toggleFavorite={toggleFavorite}
-          isFavorite={isFavorite}
-          startMission={startMission}
-          mapStations={mapStations}
-          summaryStations={summaryStations}
-          priorityStations={priorityStations}
-          priorityLabel={priorityLabel}
-          priorityHint={priorityHint}
-          noRecentStations={noRecentStations}
-          cheapestNow={cheapestNow}
-          filteredFeed={filteredFeed}
-          orderedStations={orderedStations}
-          stationsWithRecentPrice={stationsWithRecentPrice}
-          stationsWithoutRecentPrice={stationsWithoutRecentPrice}
-          railSendHref={railSendHref}
-          isHeroCollapsed={isHeroCollapsed}
-          role={role}
-          suppressPrimaryMapHero={showMobileLead}
-          onQuickAccessTrack={(stationId: string, kind: string) => {
-            void trackProductEvent({
-              eventType: "quick_action_clicked",
-              pagePath: "/",
-              pageTitle: "Home",
-              stationId,
-              payload: { source: "quick_access", type: kind, isAssisted, action: "photo" }
-            });
-          }}
-          onStationTrack={(scopeId: string) => {
-            void trackProductEvent({
-              eventType: "home_block_interacted",
-              pagePath: "/",
-              scopeType: "block",
-              scopeId,
-              payload: { role: role || 'unknown' }
-            });
-          }}
-        />
+              {secondarySupportSurfaces.length > 0 ? (
+                <SurfaceOrchestrator 
+                  surfaces={secondarySupportSurfaces} 
+                  onDismiss={(id) => {
+                    if (id === "beta-closed") { /* potential local storage toggle */ }
+                  }}
+                  maxPrimaryItems={2}
+                />
+              ) : null}
+
+              {isStreetMode && !missionActive ? (
+                <Button 
+                  variant="primary"
+                  onClick={toggleStreetMode}
+                  className="w-full h-11 rounded-[22px] text-xs font-black uppercase tracking-widest shadow-lg border-2 border-white/10"
+                >
+                  MODO RUA ATIVO
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
+        </SectionCard>
       ) : null}
     </>
   );
