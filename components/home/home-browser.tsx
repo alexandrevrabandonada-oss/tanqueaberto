@@ -125,6 +125,40 @@ function buildContextHref(query: string, city: string, fuelFilter: FuelFilter, r
   return suffix ? `/?${suffix}` : "/";
 }
 
+function inferGpsCity(
+  stations: StationWithReports[],
+  userLocation: { lat: number; lng: number; trustStatus: "confiável" | "provável" | "incerto" } | null
+) {
+  if (!userLocation || userLocation.trustStatus === "incerto") {
+    return "";
+  }
+
+  const nearbyStations = stations
+    .filter((station) => station.city && isValidStationCoordinate(station.lat, station.lng))
+    .map((station) => ({
+      city: station.city,
+      distance: calculateDistance(userLocation.lat, userLocation.lng, station.lat, station.lng)
+    }))
+    .filter((entry) => Number.isFinite(entry.distance) && entry.distance <= 12_000)
+    .sort((left, right) => left.distance - right.distance)
+    .slice(0, 8);
+
+  if (nearbyStations.length === 0) {
+    return "";
+  }
+
+  const cityScores = new Map<string, { count: number; bestDistance: number }>();
+  for (const station of nearbyStations) {
+    const current = cityScores.get(station.city) ?? { count: 0, bestDistance: Number.POSITIVE_INFINITY };
+    current.count += 1;
+    current.bestDistance = Math.min(current.bestDistance, station.distance);
+    cityScores.set(station.city, current);
+  }
+
+  return [...cityScores.entries()]
+    .sort((left, right) => right[1].count - left[1].count || left[1].bestDistance - right[1].bestDistance || left[0].localeCompare(right[0], "pt-BR"))[0]?.[0] ?? "";
+}
+
 function getStationHref(stationId: string, returnToHref?: string, fuelFilter?: FuelFilter | FuelType) {
   const params = new URLSearchParams();
   if (fuelFilter && fuelFilter !== "all") {
@@ -678,15 +712,20 @@ export function HomeBrowser({
     });
   }, [noRecentStations, orderedStations, recordActivity]);
   const contextHref = useMemo(() => buildContextHref(query, selectedCity, fuelFilter, recencyFilter, presenceFilter, listMode), [fuelFilter, listMode, presenceFilter, query, recencyFilter, selectedCity]);
-  const selectedFunctionalRegion = useMemo(() => getFunctionalRegion(selectedCity), [selectedCity]);
+  const gpsDecisionCity = useMemo(
+    () => inferGpsCity(displayStations, location ? { lat: location.lat, lng: location.lng, trustStatus: location.trustStatus } : null),
+    [displayStations, location]
+  );
+  const decisionReferenceCity = gpsDecisionCity || selectedCity;
+  const selectedFunctionalRegion = useMemo(() => getFunctionalRegion(decisionReferenceCity), [decisionReferenceCity]);
   const decisionStations = useMemo(() => {
-    if (!selectedCity) {
+    if (!decisionReferenceCity) {
       return orderedStations;
     }
 
     const broadBase = filterStations(stationsWithDistances, "", "", fuelFilter, recencyFilter, presenceFilter);
-    return filterItemsToFunctionalRegion(broadBase, selectedCity);
-  }, [selectedCity, orderedStations, stationsWithDistances, fuelFilter, recencyFilter, presenceFilter]);
+    return filterItemsToFunctionalRegion(broadBase, decisionReferenceCity);
+  }, [decisionReferenceCity, orderedStations, stationsWithDistances, fuelFilter, recencyFilter, presenceFilter]);
 
   const cheapestNow = useMemo(() => {
     const availableFuels = new Set<FuelType>();
@@ -1099,7 +1138,7 @@ export function HomeBrowser({
         mapStations={mapStations}
         noRecentStations={noRecentStations}
         railSendHref={railSendHref}
-        selectedCity={selectedCity}
+        decisionCity={decisionReferenceCity}
         query={query}
         functionalRegion={selectedFunctionalRegion}
         center={coords}

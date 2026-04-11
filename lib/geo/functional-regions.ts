@@ -9,7 +9,7 @@ export interface FunctionalRegion {
 const FUNCTIONAL_REGIONS: FunctionalRegion[] = [
   {
     id: "eixo-sul-fluminense",
-    label: "Volta Redonda + Barra Mansa + Barra do Pirai",
+    label: "Sul Fluminense",
     cities: ["Volta Redonda", "Barra Mansa", "Barra do Piraí"]
   }
 ];

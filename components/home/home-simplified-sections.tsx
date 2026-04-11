@@ -51,7 +51,7 @@ interface HomeSimplifiedSectionsProps {
   mapStations: StationWithReports[];
   noRecentStations: StationWithReports[];
   railSendHref: Route;
-  selectedCity: string;
+  decisionCity: string;
   query: string;
   functionalRegion: FunctionalRegion | null;
   center: { lat: number; lng: number } | null;
@@ -157,7 +157,7 @@ export function HomeSimplifiedSections({
   mapStations,
   noRecentStations,
   railSendHref,
-  selectedCity,
+  decisionCity,
   query,
   functionalRegion,
   center,
@@ -203,9 +203,9 @@ export function HomeSimplifiedSections({
     })[0] ?? null;
   }, [rankedCandidates]);
 
-  const regionLabel = functionalRegion?.label ?? selectedCity ?? regionTopThree[0]?.station.city ?? "sua regiao";
-  const queryIgnored = Boolean((functionalRegion || selectedCity) && query.trim());
-  const regionScopeNote = functionalRegion ? `Regiao funcional ativa: ${functionalRegion.cities.join(", ")}.` : selectedCity ? `Sem conurbacao configurada para ${selectedCity}; leitura segue no municipio selecionado.` : "Sem cidade definida; leitura segue o recorte aberto.";
+  const regionLabel = decisionCity ? `Entorno de ${decisionCity}` : functionalRegion ? "Recorte regional agora" : "Recorte regional agora";
+  const queryIgnored = Boolean((functionalRegion || decisionCity) && query.trim());
+  const regionScopeNote = functionalRegion ? `A leitura territorial abre um raio regional mais largo a partir de ${decisionCity || "sua posicao"}, sem depender da fronteira administrativa de uma cidade so.` : decisionCity ? `O bloco bruto usa ${decisionCity} como ancora territorial a partir do GPS.` : "Sem cidade definida; leitura segue o recorte aberto.";
   const coverageNote = noRecentStations.length > 0 ? `${noRecentStations.length} postos ainda pedem atualizacao para cobrir melhor o recorte.` : "Cobertura recente esta estavel neste recorte.";
 
   if (!bestForYou || regionTopThree.length === 0) {
@@ -262,11 +262,11 @@ export function HomeSimplifiedSections({
                 <div className="min-w-0">
                   <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Melhor preco da regiao</p>
                   <h3 className="mt-1 break-words text-base font-semibold leading-snug text-white sm:text-lg">{regionLabel}</h3>
-                  <p className="mt-1 text-sm text-white/52">Leitura ampla do eixo urbano. O mais barato aqui nao e automaticamente a melhor ida.</p>
+                  <p className="mt-1 text-sm text-white/52">Leitura ampla do entorno regional. O mais barato aqui nao e automaticamente a melhor ida.</p>
                 </div>
                 <Badge variant="warning" className="max-w-full self-start text-[10px]">{fuelLabels[primaryFuel]}</Badge>
               </div>
-              {queryIgnored ? <div className="mt-3 break-words rounded-[16px] border border-white/8 bg-black/18 px-3 py-2 text-xs leading-relaxed text-white/56">A busca digitada nao altera este ranking. Aqui entra a regiao funcional inteira.</div> : null}
+              {queryIgnored ? <div className="mt-3 break-words rounded-[16px] border border-white/8 bg-black/18 px-3 py-2 text-xs leading-relaxed text-white/56">A busca digitada nao altera este ranking. Aqui entra o recorte regional inteiro.</div> : null}
               <div className="mt-4 space-y-3">
                 {regionTopThree.map((entry, index) => (
                   <div key={`region-top-${entry.station.id}`} className="overflow-hidden rounded-[18px] border border-white/8 bg-black/20 px-3 py-3 sm:px-4">
@@ -290,7 +290,7 @@ export function HomeSimplifiedSections({
                       {entry.distance !== null ? <Badge variant="outline" className="text-[10px]">{formatDistanceFromYou(entry.distance)}</Badge> : null}
                     </div>
                     <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <p className="min-w-0 break-words text-xs leading-relaxed text-white/46">{index === 0 ? "Menor preco bruto relevante neste eixo urbano." : "Leitura ampla da regiao funcional, nao da melhor ida."}</p>
+                      <p className="min-w-0 break-words text-xs leading-relaxed text-white/46">{index === 0 ? "Menor preco bruto relevante no recorte regional." : "Leitura ampla da regiao, nao da melhor ida."}</p>
                       <ButtonLink href={getStationHref(entry.station.id, contextHref, primaryFuel)} variant="secondary" className="min-h-8 w-full justify-center px-3 text-[9px] font-black uppercase tracking-[0.14em] sm:w-auto sm:shrink-0" onClick={() => { rememberStationVisit({ id: entry.station.id, name: getStationPublicName(entry.station), city: entry.station.city }); trackAction(entry.station, primaryFuel, "region", "station", `home-region-top-${index + 1}`); onStationTrack?.(`region-top-${index + 1}-${entry.station.id}`); }}>Ver posto</ButtonLink>
                     </div>
                   </div>
@@ -345,7 +345,7 @@ export function HomeSimplifiedSections({
 
         <div className="rounded-[20px] border border-white/8 bg-white/[0.04] px-4 py-3">
           <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Leitura da regiao funcional</p>
-          <p className="mt-1 text-sm text-white/52">{regionScopeNote} O bloco principal deixa de depender so da fronteira administrativa do municipio e passa a olhar o deslocamento real entre cidades conurbadas.</p>
+          <p className="mt-1 text-sm text-white/52">{regionScopeNote} O bloco principal deixa de depender so da fronteira administrativa do municipio e passa a olhar o deslocamento real dentro do eixo regional.</p>
         </div>
 
         <div className="rounded-[20px] border border-white/8 bg-white/[0.04] px-4 py-3">
