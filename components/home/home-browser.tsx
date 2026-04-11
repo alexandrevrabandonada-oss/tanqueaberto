@@ -1085,11 +1085,16 @@ export function HomeBrowser({
       <HomeSimplifiedSections
         contextHref={contextHref}
         fuelFilter={fuelFilter}
-        orderedStations={orderedStations}
+        decisionStations={
+          selectedCity
+            ? filterStations(stationsWithDistances, "", selectedCity, fuelFilter, recencyFilter, presenceFilter)
+            : orderedStations
+        }
         mapStations={mapStations}
         noRecentStations={noRecentStations}
         railSendHref={railSendHref}
         selectedCity={selectedCity}
+        query={query}
         center={coords}
         userLocation={location}
         onStationTrack={(scopeId: string) => {

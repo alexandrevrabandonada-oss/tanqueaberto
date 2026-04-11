@@ -70,11 +70,12 @@ interface RankedCandidate extends CandidateEntry {
 interface HomeSimplifiedSectionsProps {
   contextHref: string;
   fuelFilter: FuelFilter;
-  orderedStations: StationWithReports[];
+  decisionStations: StationWithReports[];
   mapStations: StationWithReports[];
   noRecentStations: StationWithReports[];
   railSendHref: Route;
   selectedCity: string;
+  query: string;
   center: { lat: number; lng: number } | null;
   userLocation: { lat: number; lng: number; accuracy: number; trustStatus: "confiável" | "provável" | "incerto"; speed: number | null } | null;
   onStationTrack?: (scopeId: string) => void;
@@ -326,7 +327,7 @@ function CityRankRow({
 
   return (
     <div className="rounded-[18px] border border-white/8 bg-black/20 px-3 py-3 sm:px-4">
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant={index === 0 ? "warning" : "secondary"} className="px-2 text-[10px]">
@@ -341,8 +342,8 @@ function CityRankRow({
           <p className="mt-2 truncate text-[15px] font-semibold text-white">{getStationPublicName(entry.station)}</p>
           <p className="truncate text-[11px] uppercase tracking-[0.16em] text-white/34">{localityLabel}</p>
         </div>
-        <div className="shrink-0 text-right">
-          <p className="text-xl font-black tracking-tight text-white">{formatCurrencyBRL(Number(entry.report.price))}</p>
+        <div className="shrink-0 text-left sm:text-right">
+          <p className="text-lg font-black tracking-tight text-white sm:text-xl">{formatCurrencyBRL(Number(entry.report.price))}</p>
           <p className="text-[10px] uppercase tracking-[0.16em] text-white/34">{fuelLabels[entry.report.fuelType]}</p>
         </div>
       </div>
@@ -358,14 +359,14 @@ function CityRankRow({
         ) : null}
       </div>
 
-      <div className="mt-3 flex items-center justify-between gap-3">
-        <p className="min-w-0 truncate text-xs text-white/46">
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <p className="min-w-0 text-xs leading-relaxed text-white/46 sm:truncate">
           {index === 0 ? "Lidera o preço bruto recente na cidade." : "Leitura ampla da cidade, não da melhor ida."}
         </p>
         <ButtonLink
           href={stationHref}
           variant="secondary"
-          className="min-h-8 shrink-0 px-3 text-[9px] font-black uppercase tracking-[0.14em]"
+          className="min-h-8 w-full justify-center px-3 text-[9px] font-black uppercase tracking-[0.14em] sm:w-auto sm:shrink-0"
           onClick={() => {
             rememberStationVisit({ id: entry.station.id, name: getStationPublicName(entry.station), city: entry.station.city });
             trackHomeQuickAction({ station: entry.station, scopeId: `home-city-top-${index + 1}`, fuel, mode: "city", action: "station" });
@@ -384,26 +385,36 @@ function CityTopThreeCard({
   fuel,
   contextHref,
   bestForYouId,
+  selectedCity,
+  isCityWideIgnoringQuery,
   onTrack
 }: {
   entries: RankedCandidate[];
   fuel: FuelType;
   contextHref: string;
   bestForYouId?: string | null;
+  selectedCity: string;
+  isCityWideIgnoringQuery: boolean;
   onTrack?: (scopeId: string) => void;
 }) {
   return (
-    <div className="rounded-[24px] border border-[color:var(--color-accent)]/18 bg-[linear-gradient(180deg,rgba(255,199,0,0.12),rgba(255,255,255,0.03))] p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
+    <div className="rounded-[22px] border border-[color:var(--color-accent)]/18 bg-[linear-gradient(180deg,rgba(255,199,0,0.12),rgba(255,255,255,0.03))] p-4 sm:rounded-[24px] sm:p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Melhor preço da cidade</p>
-          <h3 className="mt-1 text-lg font-semibold text-white">Top 3 bruto do recorte</h3>
+          <h3 className="mt-1 text-base font-semibold text-white sm:text-lg">{selectedCity ? `Top 3 bruto de ${selectedCity}` : "Top 3 bruto da cidade"}</h3>
           <p className="mt-1 text-sm text-white/52">Visão ampla da cidade. O mais barato aqui não é automaticamente a melhor ida.</p>
         </div>
-        <Badge variant="warning" className="text-[10px]">
+        <Badge variant="warning" className="max-w-full self-start text-[10px]">
           {fuelLabels[fuel]}
         </Badge>
       </div>
+
+      {isCityWideIgnoringQuery ? (
+        <div className="mt-3 rounded-[16px] border border-white/8 bg-black/18 px-3 py-2 text-xs text-white/56">
+          A busca digitada não altera este ranking. Aqui entra a cidade inteira para mostrar o menor preço bruto real.
+        </div>
+      ) : null}
 
       <div className="mt-4 space-y-3">
         {entries.map((entry, index) => (
@@ -441,11 +452,11 @@ function BestChoiceCard({
   const canNavigate = hasRouteCoordinates(entry.station);
 
   return (
-    <div className="rounded-[24px] border border-emerald-400/18 bg-[linear-gradient(180deg,rgba(16,185,129,0.12),rgba(255,255,255,0.03))] p-5">
-      <div className="flex items-start justify-between gap-3">
+    <div className="rounded-[22px] border border-emerald-400/18 bg-[linear-gradient(180deg,rgba(16,185,129,0.12),rgba(255,255,255,0.03))] p-4 sm:rounded-[24px] sm:p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Vale mais a pena para você</p>
-          <h3 className="mt-1 text-lg font-semibold text-white">
+          <h3 className="mt-1 text-base font-semibold text-white sm:text-lg">
             {sameAsCityLeader ? "Um posto vence os dois lados" : entry.decisionLabel}
           </h3>
           <p className="mt-1 text-sm text-white/52">
@@ -454,12 +465,12 @@ function BestChoiceCard({
               : "Preço, distância, recência, confiança e economia líquida por tanque entram na conta."}
           </p>
         </div>
-        <Badge variant="default" className="text-[10px]">
+        <Badge variant="default" className="max-w-full self-start text-[10px]">
           {fuelLabels[fuel]}
         </Badge>
       </div>
 
-      <div className="mt-4 flex items-start justify-between gap-3">
+      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap gap-2">
             {sameAsCityLeader ? (
@@ -474,8 +485,8 @@ function BestChoiceCard({
           <p className="mt-2 truncate text-lg font-semibold text-white">{getStationPublicName(entry.station)}</p>
           <p className="truncate text-[11px] uppercase tracking-[0.16em] text-white/34">{localityLabel}</p>
         </div>
-        <div className="shrink-0 text-right">
-          <p className="text-[2rem] font-black tracking-tight text-white">{formatCurrencyBRL(Number(entry.report.price))}</p>
+        <div className="shrink-0 text-left sm:text-right">
+          <p className="text-[1.65rem] font-black tracking-tight text-white sm:text-[2rem]">{formatCurrencyBRL(Number(entry.report.price))}</p>
           <p className="text-[10px] uppercase tracking-[0.16em] text-white/34">{fuelLabels[entry.report.fuelType]}</p>
         </div>
       </div>
@@ -502,7 +513,7 @@ function BestChoiceCard({
         </Badge>
       </div>
 
-      <div className="mt-3 rounded-[18px] border border-white/8 bg-black/18 px-3 py-3 text-sm text-white/58">
+      <div className="mt-3 rounded-[18px] border border-white/8 bg-black/18 px-3 py-3 text-sm leading-relaxed text-white/58">
         Economia bruta: {formatCurrencyBRL(entry.grossSavings40)} em 40L e {formatCurrencyBRL(entry.grossSavings50)} em 50L.
         {entry.distance !== null ? ` O deslocamento pesa cerca de ${formatCurrencyBRL(entry.detourCost)} nessa conta.` : " Sem GPS forte, então a conta líquida fica mais conservadora."}
       </div>
@@ -563,21 +574,22 @@ function BestChoiceCard({
 export function HomeSimplifiedSections({
   contextHref,
   fuelFilter,
-  orderedStations,
+  decisionStations,
   mapStations,
   noRecentStations,
   railSendHref,
   selectedCity,
+  query,
   center,
   userLocation,
   onStationTrack
 }: HomeSimplifiedSectionsProps) {
   const [showMap, setShowMap] = useState(false);
 
-  const primaryFuel = useMemo(() => resolvePrimaryFuel(orderedStations, fuelFilter), [fuelFilter, orderedStations]);
+  const primaryFuel = useMemo(() => resolvePrimaryFuel(decisionStations, fuelFilter), [decisionStations, fuelFilter]);
 
   const candidates = useMemo(() => {
-    return orderedStations
+    return decisionStations
       .map((station) => {
         const report = getSelectedStationReport(station, primaryFuel);
         if (!report) {
@@ -593,7 +605,7 @@ export function HomeSimplifiedSections({
         } satisfies CandidateEntry;
       })
       .filter((item): item is CandidateEntry => Boolean(item));
-  }, [orderedStations, primaryFuel]);
+  }, [decisionStations, primaryFuel]);
 
   const recentCandidates = useMemo(() => candidates.filter((item) => item.recencyTone !== "stale"), [candidates]);
   const cityScope = recentCandidates.length > 0 ? recentCandidates : candidates;
@@ -632,6 +644,7 @@ export function HomeSimplifiedSections({
 
   const sameLeader = Boolean(bestForYou && cityTopThree[0] && bestForYou.station.id === cityTopThree[0].station.id);
   const cityLabel = selectedCity || cityTopThree[0]?.station.city || "sua cidade";
+  const isCityWideIgnoringQuery = Boolean(selectedCity && query.trim());
   const coverageNote = noRecentStations.length > 0
     ? `${noRecentStations.length} postos ainda pedem atualização para cobrir melhor o recorte.`
     : "Cobertura recente está estável neste recorte.";
@@ -639,13 +652,13 @@ export function HomeSimplifiedSections({
   return (
     <div className="space-y-4">
       <SectionCard className="space-y-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
             <p className="text-xs uppercase tracking-[0.2em] text-white/42">Decisão rápida</p>
-            <h2 className="mt-1 text-xl font-semibold text-white">Cidade inteira de um lado, escolha real do outro</h2>
+            <h2 className="mt-1 text-lg font-semibold text-white sm:text-xl">Cidade inteira de um lado, escolha real do outro</h2>
             <p className="mt-1 text-sm text-white/52">A home responde onde está o menor preço bruto e qual posto realmente vale mais para você agora.</p>
           </div>
-          <Badge variant="warning" className="text-[10px]">
+          <Badge variant="warning" className="max-w-full self-start text-[10px]">
             <Sparkles className="h-3.5 w-3.5" />
             {fuelLabels[primaryFuel]}
           </Badge>
@@ -658,6 +671,8 @@ export function HomeSimplifiedSections({
               fuel={primaryFuel}
               contextHref={contextHref}
               bestForYouId={bestForYou.station.id}
+              selectedCity={cityLabel}
+              isCityWideIgnoringQuery={isCityWideIgnoringQuery}
               onTrack={onStationTrack}
             />
             <BestChoiceCard
@@ -703,7 +718,7 @@ export function HomeSimplifiedSections({
         </div>
 
         <p className="text-[11px] text-white/42">
-          Em {cityLabel}, o top 3 mostra visão ampla. O card pessoal só sobe quando preço, distância, recência e confiança fecham a conta real. {coverageNote}
+          Em {cityLabel}, o top 3 mostra visão ampla da cidade inteira. O card pessoal só sobe quando preço, distância, recência e confiança fecham a conta real. {coverageNote}
         </p>
 
         {showMap ? (
