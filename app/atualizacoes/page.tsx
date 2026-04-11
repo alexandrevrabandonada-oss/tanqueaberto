@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/layout/app-shell";
 import { FeedBrowser } from "@/components/feed/feed-browser";
+import { ButtonLink } from "@/components/ui/button";
 import { getRecentFeed } from "@/lib/data";
 import type { ReportWithStation } from "@/lib/types";
 
@@ -41,6 +42,22 @@ export default async function UpdatesPage() {
             </p>
           </SectionCard>
 
+          <SectionCard className="space-y-3 border-white/10 bg-white/5">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Superficie secundaria</p>
+            <h2 className="text-lg font-semibold text-white">Panorama regional de precos</h2>
+            <p className="text-sm text-white/54">
+              Menor preco, media, faixa e sinais prudentes por regiao, cidade e bairro. Fica fora da home para nao embolar decisao pessoal com leitura territorial.
+            </p>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <ButtonLink href={"/atualizacoes/panorama" as const} variant="secondary" className="justify-center">
+                Abrir panorama regional
+              </ButtonLink>
+              <ButtonLink href={"/postos/sem-atualizacao" as const} className="justify-center">
+                Fechar lacunas
+              </ButtonLink>
+            </div>
+          </SectionCard>
+
           <FeedBrowser feed={feed} />
         </div>
 
@@ -72,6 +89,17 @@ export default async function UpdatesPage() {
 
             <div className="rounded-[22px] border border-white/8 bg-black/25 p-3.5 text-sm text-white/56 xl:text-[13px]">
               A leitura rápida já está no feed principal. O rail fica só com o contexto que ajuda a decidir o próximo passo.
+            </div>
+
+            <div className="rounded-[22px] border border-white/8 bg-black/25 p-3.5">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Panorama regional</p>
+              <p className="mt-2 text-sm font-semibold text-white">Abrir leitura territorial</p>
+              <p className="mt-1 text-xs text-white/48">Regiao, cidade e bairro com sinais prudentes de concentracao e sincronia.</p>
+              <div className="mt-3">
+                <ButtonLink href={"/atualizacoes/panorama" as const} variant="secondary" className="w-full justify-center">
+                  Abrir panorama regional
+                </ButtonLink>
+              </div>
             </div>
           </SectionCard>
         </aside>

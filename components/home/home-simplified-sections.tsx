@@ -14,6 +14,7 @@ import { formatCurrencyBRL } from "@/lib/format/currency";
 import { fuelLabels } from "@/lib/format/labels";
 import { formatRecencyLabel, getRecencyTone, recencyToneToBadgeVariant } from "@/lib/format/time";
 import { formatDistanceFromYou } from "@/lib/geo/distance";
+import type { FunctionalRegion } from "@/lib/geo/functional-regions";
 import { rememberStationVisit } from "@/lib/navigation/home-context";
 import { openExternalNavigation } from "@/lib/navigation/external-maps";
 import { getStationPublicName } from "@/lib/quality/stations";
@@ -26,36 +27,12 @@ const HomeMapSurface = dynamic(() => import("@/components/home/home-map-surface"
 });
 
 const DETOUR_COST_PER_KM = 0.5;
-
-type DecisionLabel =
-  | "vale no caminho"
-  | "vale pequeno desvio"
-  | "só compensa se você já for passar"
-  | "barato, mas velho"
-  | "mais barato da cidade, mas longe";
-
-type ConfidenceMeta = {
-  label: string;
-  detail: string;
-  variant: "default" | "warning" | "secondary";
-  score: number;
-};
-
+type DecisionLabel = "vale no caminho" | "vale pequeno desvio" | "barato, mas longe" | "barato, mas velho";
+type ConfidenceMeta = { detail: string; variant: "default" | "warning" | "secondary"; score: number };
 type StationReport = NonNullable<ReturnType<typeof getSelectedStationReport>>;
-
-interface CandidateEntry {
-  station: StationWithReports;
-  report: StationReport;
-  distance: number | null;
-  recencyTone: ReturnType<typeof getRecencyTone>;
-  confidence: ConfidenceMeta;
-}
-
-interface RankedCandidate extends CandidateEntry {
-  cityAveragePrice: number;
-  cityLowestPrice: number;
-  priceGapToLowest: number;
-  savingsPerLiter: number;
+type Candidate = { station: StationWithReports; report: StationReport; distance: number | null; recencyTone: ReturnType<typeof getRecencyTone>; confidence: ConfidenceMeta };
+type Ranked = Candidate & {
+  scopeLowestPrice: number;
   grossSavings40: number;
   grossSavings50: number;
   netSavings40: number;
@@ -64,8 +41,8 @@ interface RankedCandidate extends CandidateEntry {
   valueScore: number;
   decisionLabel: DecisionLabel;
   rationale: string;
-  isCityLowest: boolean;
-}
+  isRegionLowest: boolean;
+};
 
 interface HomeSimplifiedSectionsProps {
   contextHref: string;
@@ -76,6 +53,7 @@ interface HomeSimplifiedSectionsProps {
   railSendHref: Route;
   selectedCity: string;
   query: string;
+  functionalRegion: FunctionalRegion | null;
   center: { lat: number; lng: number } | null;
   userLocation: { lat: number; lng: number; accuracy: number; trustStatus: "confiável" | "provável" | "incerto"; speed: number | null } | null;
   onStationTrack?: (scopeId: string) => void;
@@ -83,13 +61,8 @@ interface HomeSimplifiedSectionsProps {
 
 function getStationHref(stationId: string, returnToHref?: string, fuel?: FuelFilter | FuelType) {
   const params = new URLSearchParams();
-  if (fuel && fuel !== "all") {
-    params.set("fuel", fuel);
-  }
-  if (returnToHref) {
-    params.set("returnTo", returnToHref);
-  }
-
+  if (fuel && fuel !== "all") params.set("fuel", fuel);
+  if (returnToHref) params.set("returnTo", returnToHref);
   const suffix = params.toString();
   return suffix ? (`/postos/${stationId}?${suffix}` as Route) : (`/postos/${stationId}` as Route);
 }
@@ -97,13 +70,8 @@ function getStationHref(stationId: string, returnToHref?: string, fuel?: FuelFil
 function getSendHref(stationId: string, returnToHref?: string, fuel?: FuelFilter | FuelType) {
   const params = new URLSearchParams();
   params.set("stationId", stationId);
-  if (fuel && fuel !== "all") {
-    params.set("fuel", fuel);
-  }
-  if (returnToHref) {
-    params.set("returnTo", returnToHref);
-  }
-
+  if (fuel && fuel !== "all") params.set("fuel", fuel);
+  if (returnToHref) params.set("returnTo", returnToHref);
   return (`/enviar?${params.toString()}#photo` as Route);
 }
 
@@ -112,185 +80,65 @@ function getDistanceValue(station: StationWithReports) {
   return Number.isFinite(distance) && distance >= 0 ? distance : null;
 }
 
-function resolvePrimaryFuel(orderedStations: StationWithReports[], requestedFuel: FuelFilter): FuelType {
-  if (requestedFuel !== "all") {
-    return requestedFuel;
-  }
-
+function resolvePrimaryFuel(stations: StationWithReports[], requestedFuel: FuelFilter): FuelType {
+  if (requestedFuel !== "all") return requestedFuel;
   const counts = new Map<FuelType, number>();
-  for (const station of orderedStations) {
-    for (const report of [...station.recentReports, ...station.latestReports]) {
-      counts.set(report.fuelType, (counts.get(report.fuelType) ?? 0) + 1);
-    }
-  }
-
-  if (counts.has("gasolina_comum")) {
-    return "gasolina_comum";
-  }
-
+  for (const station of stations) for (const report of [...station.recentReports, ...station.latestReports]) counts.set(report.fuelType, (counts.get(report.fuelType) ?? 0) + 1);
+  if (counts.has("gasolina_comum")) return "gasolina_comum";
   return Array.from(counts.entries()).sort((left, right) => right[1] - left[1])[0]?.[0] ?? "gasolina_comum";
 }
 
-function getReportConfidenceMeta(report: CandidateEntry["report"]): ConfidenceMeta {
+function getReportConfidenceMeta(report: StationReport): ConfidenceMeta {
   const evidenceMode = String(report?.metadata?.evidence_mode ?? "");
-  if (evidenceMode === "sem_placa_faixa") {
-    return { label: "Confianca moderada", detail: "Sem placa", variant: "warning", score: 0.42 };
-  }
-  if (report.locationConfidence === "high") {
-    return { label: "Confianca alta", detail: "GPS forte", variant: "default", score: 1 };
-  }
-  if (report.locationConfidence === "low") {
-    return { label: "Confianca media", detail: "GPS razoavel", variant: "warning", score: 0.74 };
-  }
-  return { label: "Confianca basica", detail: "Vale checar", variant: "secondary", score: 0.58 };
+  if (evidenceMode === "sem_placa_faixa") return { detail: "Sem placa", variant: "warning", score: 0.42 };
+  if (report.locationConfidence === "high") return { detail: "GPS forte", variant: "default", score: 1 };
+  if (report.locationConfidence === "low") return { detail: "GPS razoavel", variant: "warning", score: 0.74 };
+  return { detail: "Vale checar", variant: "secondary", score: 0.58 };
 }
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
-function getRecencyScore(reportedAt: string) {
-  const tone = getRecencyTone(reportedAt);
-  if (tone === "fresh") return 1;
-  if (tone === "warning") return 0.7;
-  return 0.26;
-}
-
-function getDistanceScore(distance: number | null) {
-  if (distance === null) return 0.36;
-  if (distance <= 1_200) return 1;
-  if (distance <= 2_500) return 0.84;
+function scoreDistance(distance: number | null) {
+  if (distance === null) return 0.34;
+  if (distance <= 1_000) return 1;
+  if (distance <= 2_000) return 0.86;
   if (distance <= 4_000) return 0.68;
-  if (distance <= 6_000) return 0.44;
-  if (distance <= 9_000) return 0.24;
-  return 0.1;
+  if (distance <= 6_500) return 0.42;
+  if (distance <= 10_000) return 0.22;
+  return 0.08;
 }
 
-function hasRouteCoordinates(station: StationWithReports) {
+function canNavigate(station: StationWithReports) {
   return Number.isFinite(Number(station.lat)) && Number.isFinite(Number(station.lng));
 }
 
-function byCityLowestPrice(left: CandidateEntry | RankedCandidate, right: CandidateEntry | RankedCandidate) {
+function rankByPrice(left: Candidate | Ranked, right: Candidate | Ranked) {
   const priceDiff = Number(left.report.price) - Number(right.report.price);
   if (priceDiff !== 0) return priceDiff;
-
   const toneRank = { fresh: 0, warning: 1, stale: 2 } as const;
   const toneDiff = toneRank[left.recencyTone] - toneRank[right.recencyTone];
   if (toneDiff !== 0) return toneDiff;
-
-  const confidenceDiff = right.confidence.score - left.confidence.score;
-  if (confidenceDiff !== 0) return confidenceDiff;
-
-  const leftDistance = left.distance ?? Number.MAX_SAFE_INTEGER;
-  const rightDistance = right.distance ?? Number.MAX_SAFE_INTEGER;
-  if (leftDistance !== rightDistance) return leftDistance - rightDistance;
-
-  return new Date(right.report.reportedAt).getTime() - new Date(left.report.reportedAt).getTime();
+  return (left.distance ?? Number.MAX_SAFE_INTEGER) - (right.distance ?? Number.MAX_SAFE_INTEGER);
 }
 
-function buildDecisionLabel(candidate: {
-  distance: number | null;
-  recencyTone: ReturnType<typeof getRecencyTone>;
-  confidence: ConfidenceMeta;
-  netSavings40: number;
-  netSavings50: number;
-  isCityLowest: boolean;
-}): DecisionLabel {
-  if (candidate.recencyTone === "stale" || candidate.confidence.score < 0.65) {
-    return "barato, mas velho";
-  }
-
-  if (candidate.isCityLowest && candidate.distance !== null && candidate.distance > 4_500) {
-    return "mais barato da cidade, mas longe";
-  }
-
-  if (candidate.distance !== null && candidate.distance <= 1_800 && candidate.netSavings40 >= 1.2) {
-    return "vale no caminho";
-  }
-
-  if (candidate.netSavings50 >= 6 || (candidate.distance !== null && candidate.distance <= 4_000 && candidate.netSavings40 >= 2.5)) {
-    return "vale pequeno desvio";
-  }
-
-  return "só compensa se você já for passar";
-}
-
-function buildRationale(candidate: RankedCandidate) {
-  if (candidate.decisionLabel === "barato, mas velho") {
-    return "Preço interessante, mas a leitura já ficou velha ou fraca para te empurrar até lá.";
-  }
-  if (candidate.decisionLabel === "mais barato da cidade, mas longe") {
-    return "É o menor preço bruto do recorte, mas a distância reduz o ganho real da ida.";
-  }
-  if (candidate.decisionLabel === "vale no caminho") {
-    return `A economia líquida estimada segura bem: ${formatCurrencyBRL(candidate.netSavings40)} em 40L sem te tirar do trajeto.`;
-  }
-  if (candidate.decisionLabel === "vale pequeno desvio") {
-    return `O preço aguenta um desvio curto: sobra cerca de ${formatCurrencyBRL(candidate.netSavings50)} em 50L depois do deslocamento.`;
-  }
-  return "Preço bom, mas o ganho líquido fica curto se você precisar sair do caminho só por ele.";
-}
-
-function buildRankedCandidate(candidate: CandidateEntry, cityAveragePrice: number, cityLowestPrice: number): RankedCandidate {
-  const priceGapToLowest = Math.max(0, Number(candidate.report.price) - cityLowestPrice);
-  const savingsPerLiter = Math.max(0, cityAveragePrice - Number(candidate.report.price));
+function buildRankedCandidate(candidate: Candidate, scopeAveragePrice: number, scopeLowestPrice: number): Ranked {
+  const priceGapToLowest = Math.max(0, Number(candidate.report.price) - scopeLowestPrice);
+  const savingsPerLiter = Math.max(0, scopeAveragePrice - Number(candidate.report.price));
   const grossSavings40 = savingsPerLiter * 40;
   const grossSavings50 = savingsPerLiter * 50;
   const detourCost = candidate.distance === null ? 0 : (candidate.distance / 1000) * DETOUR_COST_PER_KM;
   const netSavings40 = Math.max(0, grossSavings40 - detourCost);
   const netSavings50 = Math.max(0, grossSavings50 - detourCost);
-  const isCityLowest = priceGapToLowest <= 0.001;
-  const priceScore = clamp(1 - priceGapToLowest / 0.65, 0, 1);
-  const distanceScore = getDistanceScore(candidate.distance);
-  const recencyScore = getRecencyScore(candidate.report.reportedAt);
-  const netSavingsScore = clamp(netSavings50 / 12, 0, 1);
-  const compensationBoost = candidate.distance !== null && candidate.distance > 2_500 && netSavings50 >= 6 ? 0.06 : 0;
-  const proximityPenalty = candidate.distance !== null && candidate.distance <= 1_200 && netSavings40 < 1 ? 0.08 : 0;
-  const valueScore =
-    priceScore * 0.24
-    + netSavingsScore * 0.26
-    + distanceScore * 0.17
-    + recencyScore * 0.17
-    + candidate.confidence.score * 0.11
-    + (isCityLowest ? 0.05 : 0)
-    + compensationBoost
-    - proximityPenalty;
-
-  const ranked: RankedCandidate = {
-    ...candidate,
-    cityAveragePrice,
-    cityLowestPrice,
-    priceGapToLowest,
-    savingsPerLiter,
-    grossSavings40,
-    grossSavings50,
-    netSavings40,
-    netSavings50,
-    detourCost,
-    valueScore,
-    decisionLabel: "só compensa se você já for passar",
-    rationale: "",
-    isCityLowest
-  };
-
-  ranked.decisionLabel = buildDecisionLabel(ranked);
-  ranked.rationale = buildRationale(ranked);
-  return ranked;
+  const recencyScore = candidate.recencyTone === "fresh" ? 1 : candidate.recencyTone === "warning" ? 0.7 : 0.26;
+  const valueScore = clamp(1 - priceGapToLowest / 0.65, 0, 1) * 0.22 + clamp(netSavings50 / 12, 0, 1) * 0.29 + scoreDistance(candidate.distance) * 0.18 + recencyScore * 0.17 + candidate.confidence.score * 0.14 - (candidate.distance !== null && candidate.distance > 4_000 && netSavings50 < 4 ? 0.08 : 0);
+  const decisionLabel: DecisionLabel = candidate.recencyTone === "stale" || candidate.confidence.score < 0.65 ? "barato, mas velho" : candidate.distance !== null && candidate.distance <= 1_800 && netSavings40 >= 1.2 ? "vale no caminho" : netSavings50 >= 5 || (candidate.distance !== null && candidate.distance <= 4_000 && netSavings40 >= 2.2) ? "vale pequeno desvio" : "barato, mas longe";
+  const rationale = decisionLabel === "barato, mas velho" ? "Preco interessante, mas a leitura ja ficou velha ou fraca para sustentar o desvio." : decisionLabel === "vale no caminho" ? `Economia liquida segura: ${formatCurrencyBRL(netSavings40)} em 40L sem tirar voce do trajeto.` : decisionLabel === "vale pequeno desvio" ? `A conta fecha para um desvio curto: sobra cerca de ${formatCurrencyBRL(netSavings50)} em 50L depois do deslocamento.` : "Preco bom, mas a distancia come parte demais da vantagem real.";
+  return { ...candidate, scopeLowestPrice, grossSavings40, grossSavings50, netSavings40, netSavings50, detourCost, valueScore, decisionLabel, rationale, isRegionLowest: priceGapToLowest <= 0.001 };
 }
 
-function trackHomeQuickAction({
-  station,
-  scopeId,
-  fuel,
-  mode,
-  action
-}: {
-  station: StationWithReports;
-  scopeId: string;
-  fuel: FuelType;
-  mode: "city" | "value";
-  action: "photo" | "station";
-}) {
+function trackAction(station: StationWithReports, fuel: FuelType, mode: "near" | "region" | "value", action: "photo" | "station", scopeId: string) {
   void trackProductEvent({
     eventType: "quick_action_clicked",
     pagePath: "/",
@@ -298,277 +146,8 @@ function trackHomeQuickAction({
     stationId: station.id,
     scopeType: "block",
     scopeId,
-    payload: {
-      source: "home_simplified",
-      action,
-      fuelType: fuel,
-      mode
-    }
+    payload: { source: "home_simplified", action, fuelType: fuel, mode }
   });
-}
-
-function CityRankRow({
-  entry,
-  index,
-  fuel,
-  contextHref,
-  bestForYouId,
-  onTrack
-}: {
-  entry: RankedCandidate;
-  index: number;
-  fuel: FuelType;
-  contextHref: string;
-  bestForYouId?: string | null;
-  onTrack?: (scopeId: string) => void;
-}) {
-  const stationHref = getStationHref(entry.station.id, contextHref, fuel);
-  const localityLabel = entry.station.neighborhood || entry.station.city || "Sem bairro";
-
-  return (
-    <div className="rounded-[18px] border border-white/8 bg-black/20 px-3 py-3 sm:px-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant={index === 0 ? "warning" : "secondary"} className="px-2 text-[10px]">
-              #{index + 1}
-            </Badge>
-            {bestForYouId === entry.station.id ? (
-              <Badge variant="default" className="text-[10px]">
-                Melhor para você
-              </Badge>
-            ) : null}
-          </div>
-          <p className="mt-2 truncate text-[15px] font-semibold text-white">{getStationPublicName(entry.station)}</p>
-          <p className="truncate text-[11px] uppercase tracking-[0.16em] text-white/34">{localityLabel}</p>
-        </div>
-        <div className="shrink-0 text-left sm:text-right">
-          <p className="text-lg font-black tracking-tight text-white sm:text-xl">{formatCurrencyBRL(Number(entry.report.price))}</p>
-          <p className="text-[10px] uppercase tracking-[0.16em] text-white/34">{fuelLabels[entry.report.fuelType]}</p>
-        </div>
-      </div>
-
-      <div className="mt-3 flex flex-wrap gap-2">
-        <Badge variant={recencyToneToBadgeVariant(entry.recencyTone)} className="text-[10px]">
-          {formatRecencyLabel(entry.report.reportedAt)}
-        </Badge>
-        {entry.distance !== null ? (
-          <Badge variant="outline" className="text-[10px]">
-            {formatDistanceFromYou(entry.distance)}
-          </Badge>
-        ) : null}
-      </div>
-
-      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <p className="min-w-0 text-xs leading-relaxed text-white/46 sm:truncate">
-          {index === 0 ? "Lidera o preço bruto recente na cidade." : "Leitura ampla da cidade, não da melhor ida."}
-        </p>
-        <ButtonLink
-          href={stationHref}
-          variant="secondary"
-          className="min-h-8 w-full justify-center px-3 text-[9px] font-black uppercase tracking-[0.14em] sm:w-auto sm:shrink-0"
-          onClick={() => {
-            rememberStationVisit({ id: entry.station.id, name: getStationPublicName(entry.station), city: entry.station.city });
-            trackHomeQuickAction({ station: entry.station, scopeId: `home-city-top-${index + 1}`, fuel, mode: "city", action: "station" });
-            onTrack?.(`city-top-${index + 1}-${entry.station.id}`);
-          }}
-        >
-          Ver posto
-        </ButtonLink>
-      </div>
-    </div>
-  );
-}
-
-function CityTopThreeCard({
-  entries,
-  fuel,
-  contextHref,
-  bestForYouId,
-  selectedCity,
-  isCityWideIgnoringQuery,
-  onTrack
-}: {
-  entries: RankedCandidate[];
-  fuel: FuelType;
-  contextHref: string;
-  bestForYouId?: string | null;
-  selectedCity: string;
-  isCityWideIgnoringQuery: boolean;
-  onTrack?: (scopeId: string) => void;
-}) {
-  return (
-    <div className="rounded-[22px] border border-[color:var(--color-accent)]/18 bg-[linear-gradient(180deg,rgba(255,199,0,0.12),rgba(255,255,255,0.03))] p-4 sm:rounded-[24px] sm:p-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Melhor preço da cidade</p>
-          <h3 className="mt-1 text-base font-semibold text-white sm:text-lg">{selectedCity ? `Top 3 bruto de ${selectedCity}` : "Top 3 bruto da cidade"}</h3>
-          <p className="mt-1 text-sm text-white/52">Visão ampla da cidade. O mais barato aqui não é automaticamente a melhor ida.</p>
-        </div>
-        <Badge variant="warning" className="max-w-full self-start text-[10px]">
-          {fuelLabels[fuel]}
-        </Badge>
-      </div>
-
-      {isCityWideIgnoringQuery ? (
-        <div className="mt-3 rounded-[16px] border border-white/8 bg-black/18 px-3 py-2 text-xs text-white/56">
-          A busca digitada não altera este ranking. Aqui entra a cidade inteira para mostrar o menor preço bruto real.
-        </div>
-      ) : null}
-
-      <div className="mt-4 space-y-3">
-        {entries.map((entry, index) => (
-          <CityRankRow
-            key={`city-top-${entry.station.id}`}
-            entry={entry}
-            index={index}
-            fuel={fuel}
-            contextHref={contextHref}
-            bestForYouId={bestForYouId}
-            onTrack={onTrack}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function BestChoiceCard({
-  entry,
-  fuel,
-  contextHref,
-  sameAsCityLeader,
-  onTrack
-}: {
-  entry: RankedCandidate;
-  fuel: FuelType;
-  contextHref: string;
-  sameAsCityLeader: boolean;
-  onTrack?: (scopeId: string) => void;
-}) {
-  const stationHref = getStationHref(entry.station.id, contextHref, fuel);
-  const sendHref = getSendHref(entry.station.id, contextHref, fuel);
-  const localityLabel = [entry.station.neighborhood, entry.station.city].filter(Boolean).join(" · ") || "Recorte aberto";
-  const canNavigate = hasRouteCoordinates(entry.station);
-
-  return (
-    <div className="rounded-[22px] border border-emerald-400/18 bg-[linear-gradient(180deg,rgba(16,185,129,0.12),rgba(255,255,255,0.03))] p-4 sm:rounded-[24px] sm:p-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Vale mais a pena para você</p>
-          <h3 className="mt-1 text-base font-semibold text-white sm:text-lg">
-            {sameAsCityLeader ? "Um posto vence os dois lados" : entry.decisionLabel}
-          </h3>
-          <p className="mt-1 text-sm text-white/52">
-            {sameAsCityLeader
-              ? "O mesmo posto é o menor preço bruto da cidade e também o que mais compensa agora."
-              : "Preço, distância, recência, confiança e economia líquida por tanque entram na conta."}
-          </p>
-        </div>
-        <Badge variant="default" className="max-w-full self-start text-[10px]">
-          {fuelLabels[fuel]}
-        </Badge>
-      </div>
-
-      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap gap-2">
-            {sameAsCityLeader ? (
-              <>
-                <Badge variant="warning" className="text-[10px]">Menor preço da cidade</Badge>
-                <Badge variant="default" className="text-[10px]">Melhor para você agora</Badge>
-              </>
-            ) : (
-              <Badge variant="default" className="text-[10px]">{entry.decisionLabel}</Badge>
-            )}
-          </div>
-          <p className="mt-2 truncate text-lg font-semibold text-white">{getStationPublicName(entry.station)}</p>
-          <p className="truncate text-[11px] uppercase tracking-[0.16em] text-white/34">{localityLabel}</p>
-        </div>
-        <div className="shrink-0 text-left sm:text-right">
-          <p className="text-[1.65rem] font-black tracking-tight text-white sm:text-[2rem]">{formatCurrencyBRL(Number(entry.report.price))}</p>
-          <p className="text-[10px] uppercase tracking-[0.16em] text-white/34">{fuelLabels[entry.report.fuelType]}</p>
-        </div>
-      </div>
-
-      <p className="mt-3 text-sm text-white/62">{entry.rationale}</p>
-
-      <div className="mt-3 flex flex-wrap gap-2">
-        <Badge variant={recencyToneToBadgeVariant(entry.recencyTone)} className="text-[10px]">
-          {formatRecencyLabel(entry.report.reportedAt)}
-        </Badge>
-        <Badge variant={entry.confidence.variant} className="text-[10px]">
-          {entry.confidence.detail}
-        </Badge>
-        {entry.distance !== null ? (
-          <Badge variant="outline" className="text-[10px]">
-            {formatDistanceFromYou(entry.distance)}
-          </Badge>
-        ) : null}
-        <Badge variant="accent" className="text-[10px]">
-          {formatCurrencyBRL(entry.netSavings40)} líquido em 40L
-        </Badge>
-        <Badge variant="accent" className="text-[10px]">
-          {formatCurrencyBRL(entry.netSavings50)} líquido em 50L
-        </Badge>
-      </div>
-
-      <div className="mt-3 rounded-[18px] border border-white/8 bg-black/18 px-3 py-3 text-sm leading-relaxed text-white/58">
-        Economia bruta: {formatCurrencyBRL(entry.grossSavings40)} em 40L e {formatCurrencyBRL(entry.grossSavings50)} em 50L.
-        {entry.distance !== null ? ` O deslocamento pesa cerca de ${formatCurrencyBRL(entry.detourCost)} nessa conta.` : " Sem GPS forte, então a conta líquida fica mais conservadora."}
-      </div>
-
-      <div className="mt-4 grid gap-2 sm:grid-cols-3">
-        <ButtonLink
-          href={stationHref}
-          variant="secondary"
-          className="min-h-10 justify-center px-4 text-[10px] font-black uppercase tracking-[0.16em]"
-          onClick={() => {
-            rememberStationVisit({ id: entry.station.id, name: getStationPublicName(entry.station), city: entry.station.city });
-            trackHomeQuickAction({ station: entry.station, scopeId: "home-best-for-you-view", fuel, mode: "value", action: "station" });
-            onTrack?.(`value-view-${entry.station.id}`);
-          }}
-        >
-          Ver posto
-        </ButtonLink>
-        <ButtonLink
-          href={sendHref}
-          className="min-h-10 justify-center px-4 text-[10px] font-black uppercase tracking-[0.16em]"
-          onClick={() => {
-            rememberStationVisit({ id: entry.station.id, name: getStationPublicName(entry.station), city: entry.station.city });
-            trackHomeQuickAction({ station: entry.station, scopeId: "home-best-for-you-update", fuel, mode: "value", action: "photo" });
-            onTrack?.(`value-update-${entry.station.id}`);
-          }}
-        >
-          Atualizar preço
-        </ButtonLink>
-        <Button
-          type="button"
-          variant="ghost"
-          disabled={!canNavigate}
-          className="min-h-10 justify-center px-4 text-[10px] font-black uppercase tracking-[0.16em] text-white/78 disabled:text-white/28"
-          onClick={() => {
-            if (!canNavigate) {
-              return;
-            }
-
-            rememberStationVisit({ id: entry.station.id, name: getStationPublicName(entry.station), city: entry.station.city });
-            onTrack?.(`value-route-${entry.station.id}`);
-            openExternalNavigation({
-              lat: entry.station.lat,
-              lng: entry.station.lng,
-              stationId: entry.station.id,
-              stationName: getStationPublicName(entry.station),
-              source: "home_best_for_you"
-            });
-          }}
-        >
-          <Navigation className="h-4 w-4" />
-          Traçar rota
-        </Button>
-      </div>
-    </div>
-  );
 }
 
 export function HomeSimplifiedSections({
@@ -580,157 +159,218 @@ export function HomeSimplifiedSections({
   railSendHref,
   selectedCity,
   query,
+  functionalRegion,
   center,
   userLocation,
   onStationTrack
 }: HomeSimplifiedSectionsProps) {
   const [showMap, setShowMap] = useState(false);
-
   const primaryFuel = useMemo(() => resolvePrimaryFuel(decisionStations, fuelFilter), [decisionStations, fuelFilter]);
 
   const candidates = useMemo(() => {
     return decisionStations
       .map((station) => {
         const report = getSelectedStationReport(station, primaryFuel);
-        if (!report) {
-          return null;
-        }
-
-        return {
-          station,
-          report,
-          distance: getDistanceValue(station),
-          recencyTone: getRecencyTone(report.reportedAt),
-          confidence: getReportConfidenceMeta(report)
-        } satisfies CandidateEntry;
+        if (!report) return null;
+        return { station, report, distance: getDistanceValue(station), recencyTone: getRecencyTone(report.reportedAt), confidence: getReportConfidenceMeta(report) } satisfies Candidate;
       })
-      .filter((item): item is CandidateEntry => Boolean(item));
+      .filter((item): item is Candidate => Boolean(item));
   }, [decisionStations, primaryFuel]);
 
-  const recentCandidates = useMemo(() => candidates.filter((item) => item.recencyTone !== "stale"), [candidates]);
-  const cityScope = recentCandidates.length > 0 ? recentCandidates : candidates;
-
-  const cityStats = useMemo(() => {
-    if (cityScope.length === 0) {
-      return null;
-    }
-
-    const prices = cityScope.map((item) => Number(item.report.price));
-    const total = prices.reduce((sum, price) => sum + price, 0);
-
-    return {
-      lowest: Math.min(...prices),
-      average: total / prices.length
-    };
-  }, [cityScope]);
+  const scopeCandidates = useMemo(() => {
+    const fresh = candidates.filter((item) => item.recencyTone !== "stale");
+    return fresh.length > 0 ? fresh : candidates;
+  }, [candidates]);
 
   const rankedCandidates = useMemo(() => {
-    if (!cityStats) {
-      return [];
-    }
+    if (scopeCandidates.length === 0) return [];
+    const prices = scopeCandidates.map((item) => Number(item.report.price));
+    const average = prices.reduce((sum, value) => sum + value, 0) / prices.length;
+    const lowest = Math.min(...prices);
+    return scopeCandidates.map((item) => buildRankedCandidate(item, average, lowest));
+  }, [scopeCandidates]);
 
-    return cityScope.map((candidate) => buildRankedCandidate(candidate, cityStats.average, cityStats.lowest));
-  }, [cityScope, cityStats]);
-
-  const cityTopThree = useMemo(() => [...rankedCandidates].sort(byCityLowestPrice).slice(0, 3), [rankedCandidates]);
-
-  const bestForYou = useMemo(() => {
-    return [...rankedCandidates].sort((left, right) => {
-      const scoreDiff = right.valueScore - left.valueScore;
-      if (scoreDiff !== 0) return scoreDiff;
-      return byCityLowestPrice(left, right);
+  const regionTopThree = useMemo(() => [...rankedCandidates].sort(rankByPrice).slice(0, 3), [rankedCandidates]);
+  const bestForYou = useMemo(() => [...rankedCandidates].sort((left, right) => right.valueScore - left.valueScore || rankByPrice(left, right))[0] ?? null, [rankedCandidates]);
+  const nearYou = useMemo(() => {
+    const pool = rankedCandidates.filter((item) => item.distance !== null);
+    if (pool.length === 0) return null;
+    const preferred = pool.filter((item) => item.recencyTone !== "stale" && item.confidence.score >= 0.58);
+    return [...(preferred.length > 0 ? preferred : pool)].sort((left, right) => {
+      const distanceDiff = (left.distance ?? Infinity) - (right.distance ?? Infinity);
+      if (Math.abs(distanceDiff) > 80) return distanceDiff;
+      return rankByPrice(left, right);
     })[0] ?? null;
   }, [rankedCandidates]);
 
-  const sameLeader = Boolean(bestForYou && cityTopThree[0] && bestForYou.station.id === cityTopThree[0].station.id);
-  const cityLabel = selectedCity || cityTopThree[0]?.station.city || "sua cidade";
-  const isCityWideIgnoringQuery = Boolean(selectedCity && query.trim());
-  const coverageNote = noRecentStations.length > 0
-    ? `${noRecentStations.length} postos ainda pedem atualização para cobrir melhor o recorte.`
-    : "Cobertura recente está estável neste recorte.";
+  const regionLabel = functionalRegion?.label ?? selectedCity ?? regionTopThree[0]?.station.city ?? "sua regiao";
+  const queryIgnored = Boolean((functionalRegion || selectedCity) && query.trim());
+  const regionScopeNote = functionalRegion ? `Regiao funcional ativa: ${functionalRegion.cities.join(", ")}.` : selectedCity ? `Sem conurbacao configurada para ${selectedCity}; leitura segue no municipio selecionado.` : "Sem cidade definida; leitura segue o recorte aberto.";
+  const coverageNote = noRecentStations.length > 0 ? `${noRecentStations.length} postos ainda pedem atualizacao para cobrir melhor o recorte.` : "Cobertura recente esta estavel neste recorte.";
+
+  if (!bestForYou || regionTopThree.length === 0) {
+    return (
+      <SectionCard className="space-y-4 overflow-hidden">
+        <EmptyStateCard title="Ainda nao existe base suficiente para separar proximidade, melhor escolha e preco regional." description="Assim que aparecer preco recente para este combustivel, a home passa a comparar o eixo urbano funcional e o custo-beneficio real." actionHref={railSendHref} actionLabel="Atualizar preco" className="text-left" />
+      </SectionCard>
+    );
+  }
 
   return (
     <div className="space-y-4">
-      <SectionCard className="space-y-4">
+      <SectionCard className="space-y-4 overflow-hidden">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Decisão rápida</p>
-            <h2 className="mt-1 text-lg font-semibold text-white sm:text-xl">Cidade inteira de um lado, escolha real do outro</h2>
-            <p className="mt-1 text-sm text-white/52">A home responde onde está o menor preço bruto e qual posto realmente vale mais para você agora.</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Decisao rapida</p>
+            <h2 className="mt-1 text-lg font-semibold text-white sm:text-xl">Perto, melhor escolha e melhor preco regional</h2>
+            <p className="mt-1 text-sm text-white/52">A home responde o que esta perto, o que mais compensa e o menor preco relevante no eixo urbano que voce realmente percorre.</p>
           </div>
-          <Badge variant="warning" className="max-w-full self-start text-[10px]">
-            <Sparkles className="h-3.5 w-3.5" />
-            {fuelLabels[primaryFuel]}
-          </Badge>
+          <Badge variant="warning" className="max-w-full self-start text-[10px]"><Sparkles className="h-3.5 w-3.5" />{fuelLabels[primaryFuel]}</Badge>
         </div>
 
-        {cityTopThree.length > 0 && bestForYou ? (
-          <div className="grid gap-3 xl:grid-cols-[1.08fr_0.92fr]">
-            <CityTopThreeCard
-              entries={cityTopThree}
-              fuel={primaryFuel}
-              contextHref={contextHref}
-              bestForYouId={bestForYou.station.id}
-              selectedCity={cityLabel}
-              isCityWideIgnoringQuery={isCityWideIgnoringQuery}
-              onTrack={onStationTrack}
-            />
-            <BestChoiceCard
-              entry={bestForYou}
-              fuel={primaryFuel}
-              contextHref={contextHref}
-              sameAsCityLeader={sameLeader}
-              onTrack={onStationTrack}
-            />
+        <div className="grid min-w-0 gap-3 xl:grid-cols-[0.92fr_1.08fr]">
+          <div className="min-w-0 space-y-3">
+            {nearYou ? (
+              <div className="overflow-hidden rounded-[22px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Perto de voce</p>
+                    <h3 className="mt-1 break-words text-base font-semibold leading-snug text-white">{getStationPublicName(nearYou.station)}</h3>
+                    <p className="mt-1 break-words text-[11px] uppercase tracking-[0.16em] text-white/34">{[nearYou.station.neighborhood, nearYou.station.city].filter(Boolean).join(" · ") || "Recorte aberto"}</p>
+                  </div>
+                  <div className="w-full max-w-full text-left sm:w-auto sm:shrink-0 sm:text-right">
+                    <p className="text-lg font-black tracking-tight text-white">{formatCurrencyBRL(Number(nearYou.report.price))}</p>
+                    <p className="text-[10px] uppercase tracking-[0.16em] text-white/34">{fuelLabels[nearYou.report.fuelType]}</p>
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {bestForYou.station.id === nearYou.station.id ? <Badge variant="default" className="text-[10px]">Melhor para voce</Badge> : null}
+                  {regionTopThree[0]?.station.id === nearYou.station.id ? <Badge variant="warning" className="text-[10px]">Menor preco da regiao</Badge> : null}
+                  <Badge variant={recencyToneToBadgeVariant(nearYou.recencyTone)} className="text-[10px]">{formatRecencyLabel(nearYou.report.reportedAt)}</Badge>
+                  {nearYou.distance !== null ? <Badge variant="outline" className="text-[10px]">{formatDistanceFromYou(nearYou.distance)}</Badge> : null}
+                </div>
+                <p className="mt-3 text-sm text-white/56">{nearYou.distance !== null ? `Leitura mais proxima agora. Se voce so quer algo no trajeto, este e o primeiro filtro util em ${formatDistanceFromYou(nearYou.distance)}.` : "Sem GPS forte agora, entao a leitura de proximidade fica conservadora."}</p>
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  <ButtonLink href={getStationHref(nearYou.station.id, contextHref, primaryFuel)} variant="secondary" className="min-h-10 justify-center px-4 text-[10px] font-black uppercase tracking-[0.16em]" onClick={() => { rememberStationVisit({ id: nearYou.station.id, name: getStationPublicName(nearYou.station), city: nearYou.station.city }); trackAction(nearYou.station, primaryFuel, "near", "station", "home-nearby-view"); onStationTrack?.(`near-view-${nearYou.station.id}`); }}>Ver posto</ButtonLink>
+                  <Button type="button" variant="ghost" disabled={!canNavigate(nearYou.station)} className="min-h-10 justify-center px-4 text-[10px] font-black uppercase tracking-[0.16em] text-white/78 disabled:text-white/28" onClick={() => { if (!canNavigate(nearYou.station)) return; rememberStationVisit({ id: nearYou.station.id, name: getStationPublicName(nearYou.station), city: nearYou.station.city }); onStationTrack?.(`near-route-${nearYou.station.id}`); openExternalNavigation({ lat: nearYou.station.lat, lng: nearYou.station.lng, stationId: nearYou.station.id, stationName: getStationPublicName(nearYou.station), source: "home_near_you" }); }}><Navigation className="h-4 w-4" />Tracar rota</Button>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="overflow-hidden rounded-[22px] border border-[color:var(--color-accent)]/18 bg-[linear-gradient(180deg,rgba(255,199,0,0.12),rgba(255,255,255,0.03))] p-4 sm:rounded-[24px] sm:p-5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Melhor preco da regiao</p>
+                  <h3 className="mt-1 break-words text-base font-semibold leading-snug text-white sm:text-lg">{regionLabel}</h3>
+                  <p className="mt-1 text-sm text-white/52">Leitura ampla do eixo urbano. O mais barato aqui nao e automaticamente a melhor ida.</p>
+                </div>
+                <Badge variant="warning" className="max-w-full self-start text-[10px]">{fuelLabels[primaryFuel]}</Badge>
+              </div>
+              {queryIgnored ? <div className="mt-3 break-words rounded-[16px] border border-white/8 bg-black/18 px-3 py-2 text-xs leading-relaxed text-white/56">A busca digitada nao altera este ranking. Aqui entra a regiao funcional inteira.</div> : null}
+              <div className="mt-4 space-y-3">
+                {regionTopThree.map((entry, index) => (
+                  <div key={`region-top-${entry.station.id}`} className="overflow-hidden rounded-[18px] border border-white/8 bg-black/20 px-3 py-3 sm:px-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant={index === 0 ? "warning" : "secondary"} className="px-2 text-[10px]">#{index + 1}</Badge>
+                          {bestForYou.station.id === entry.station.id ? <Badge variant="default" className="text-[10px]">Melhor para voce</Badge> : null}
+                          {nearYou?.station.id === entry.station.id ? <Badge variant="outline" className="text-[10px]">Perto</Badge> : null}
+                        </div>
+                        <p className="mt-2 break-words text-[15px] font-semibold leading-snug text-white">{getStationPublicName(entry.station)}</p>
+                        <p className="break-words text-[11px] uppercase tracking-[0.16em] text-white/34">{[entry.station.neighborhood, entry.station.city].filter(Boolean).join(" · ") || "Sem bairro"}</p>
+                      </div>
+                      <div className="w-full max-w-full text-left sm:w-auto sm:shrink-0 sm:text-right">
+                        <p className="text-lg font-black tracking-tight text-white sm:text-xl">{formatCurrencyBRL(Number(entry.report.price))}</p>
+                        <p className="text-[10px] uppercase tracking-[0.16em] text-white/34">{fuelLabels[entry.report.fuelType]}</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Badge variant={recencyToneToBadgeVariant(entry.recencyTone)} className="text-[10px]">{formatRecencyLabel(entry.report.reportedAt)}</Badge>
+                      {entry.distance !== null ? <Badge variant="outline" className="text-[10px]">{formatDistanceFromYou(entry.distance)}</Badge> : null}
+                    </div>
+                    <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="min-w-0 break-words text-xs leading-relaxed text-white/46">{index === 0 ? "Menor preco bruto relevante neste eixo urbano." : "Leitura ampla da regiao funcional, nao da melhor ida."}</p>
+                      <ButtonLink href={getStationHref(entry.station.id, contextHref, primaryFuel)} variant="secondary" className="min-h-8 w-full justify-center px-3 text-[9px] font-black uppercase tracking-[0.14em] sm:w-auto sm:shrink-0" onClick={() => { rememberStationVisit({ id: entry.station.id, name: getStationPublicName(entry.station), city: entry.station.city }); trackAction(entry.station, primaryFuel, "region", "station", `home-region-top-${index + 1}`); onStationTrack?.(`region-top-${index + 1}-${entry.station.id}`); }}>Ver posto</ButtonLink>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
-        ) : (
-          <EmptyStateCard
-            title="Ainda não existe base suficiente para separar cidade inteira de escolha pessoal."
-            description="Assim que aparecer preço recente para este combustível, a home passa a mostrar o top 3 bruto da cidade e o posto que mais compensa agora."
-            actionHref={railSendHref}
-            actionLabel="Atualizar preço"
-            className="text-left"
-          />
-        )}
+
+          <div className="overflow-hidden rounded-[22px] border border-emerald-400/18 bg-[linear-gradient(180deg,rgba(16,185,129,0.12),rgba(255,255,255,0.03))] p-4 sm:rounded-[24px] sm:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Vale mais a pena para voce</p>
+                <h3 className="mt-1 text-base font-semibold text-white sm:text-lg">{bestForYou.decisionLabel}</h3>
+                <p className="mt-1 text-sm text-white/52">Preco, distancia, recencia, confianca, economia estimada e penalidade por desvio entram na conta.</p>
+              </div>
+              <Badge variant="default" className="max-w-full self-start text-[10px]">{fuelLabels[primaryFuel]}</Badge>
+            </div>
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="default" className="text-[10px]">{bestForYou.decisionLabel}</Badge>
+                  {regionTopThree[0]?.station.id === bestForYou.station.id ? <Badge variant="warning" className="text-[10px]">Menor preco da regiao</Badge> : null}
+                  {nearYou?.station.id === bestForYou.station.id ? <Badge variant="outline" className="text-[10px]">Perto de voce</Badge> : null}
+                </div>
+                <p className="mt-2 break-words text-lg font-semibold leading-snug text-white">{getStationPublicName(bestForYou.station)}</p>
+                <p className="break-words text-[11px] uppercase tracking-[0.16em] text-white/34">{[bestForYou.station.neighborhood, bestForYou.station.city].filter(Boolean).join(" · ") || "Recorte aberto"}</p>
+              </div>
+              <div className="w-full max-w-full text-left sm:w-auto sm:shrink-0 sm:text-right">
+                <p className="break-words text-[1.5rem] font-black tracking-tight text-white sm:text-[2rem]">{formatCurrencyBRL(Number(bestForYou.report.price))}</p>
+                <p className="text-[10px] uppercase tracking-[0.16em] text-white/34">{fuelLabels[bestForYou.report.fuelType]}</p>
+              </div>
+            </div>
+            <p className="mt-3 text-sm text-white/62">{bestForYou.rationale}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Badge variant={recencyToneToBadgeVariant(bestForYou.recencyTone)} className="text-[10px]">{formatRecencyLabel(bestForYou.report.reportedAt)}</Badge>
+              <Badge variant={bestForYou.confidence.variant} className="text-[10px]">{bestForYou.confidence.detail}</Badge>
+              {bestForYou.distance !== null ? <Badge variant="outline" className="text-[10px]">{formatDistanceFromYou(bestForYou.distance)}</Badge> : null}
+              <Badge variant="accent" className="text-[10px]">{formatCurrencyBRL(bestForYou.netSavings40)} liquido em 40L</Badge>
+              <Badge variant="accent" className="text-[10px]">{formatCurrencyBRL(bestForYou.netSavings50)} liquido em 50L</Badge>
+            </div>
+            <div className="mt-3 rounded-[18px] border border-white/8 bg-black/18 px-3 py-3 text-sm leading-relaxed text-white/58">
+              Economia bruta: {formatCurrencyBRL(bestForYou.grossSavings40)} em 40L e {formatCurrencyBRL(bestForYou.grossSavings50)} em 50L.
+              {bestForYou.distance !== null ? ` O desvio pesa cerca de ${formatCurrencyBRL(bestForYou.detourCost)} nessa conta.` : " Sem GPS forte, entao a conta liquida fica mais conservadora."}
+            </div>
+            <div className="mt-4 grid gap-2 sm:grid-cols-3">
+              <ButtonLink href={getStationHref(bestForYou.station.id, contextHref, primaryFuel)} variant="secondary" className="min-h-10 justify-center px-4 text-[10px] font-black uppercase tracking-[0.16em]" onClick={() => { rememberStationVisit({ id: bestForYou.station.id, name: getStationPublicName(bestForYou.station), city: bestForYou.station.city }); trackAction(bestForYou.station, primaryFuel, "value", "station", "home-best-for-you-view"); onStationTrack?.(`value-view-${bestForYou.station.id}`); }}>Ver posto</ButtonLink>
+              <ButtonLink href={getSendHref(bestForYou.station.id, contextHref, primaryFuel)} className="min-h-10 justify-center px-4 text-[10px] font-black uppercase tracking-[0.16em]" onClick={() => { rememberStationVisit({ id: bestForYou.station.id, name: getStationPublicName(bestForYou.station), city: bestForYou.station.city }); trackAction(bestForYou.station, primaryFuel, "value", "photo", "home-best-for-you-update"); onStationTrack?.(`value-update-${bestForYou.station.id}`); }}>Atualizar preco</ButtonLink>
+              <Button type="button" variant="ghost" disabled={!canNavigate(bestForYou.station)} className="min-h-10 justify-center px-4 text-[10px] font-black uppercase tracking-[0.16em] text-white/78 disabled:text-white/28" onClick={() => { if (!canNavigate(bestForYou.station)) return; rememberStationVisit({ id: bestForYou.station.id, name: getStationPublicName(bestForYou.station), city: bestForYou.station.city }); onStationTrack?.(`value-route-${bestForYou.station.id}`); openExternalNavigation({ lat: bestForYou.station.lat, lng: bestForYou.station.lng, stationId: bestForYou.station.id, stationName: getStationPublicName(bestForYou.station), source: "home_best_for_you" }); }}><Navigation className="h-4 w-4" />Tracar rota</Button>
+            </div>
+          </div>
+        </div>
 
         <div className="rounded-[20px] border border-white/8 bg-white/[0.04] px-4 py-3">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Leitura do custo-benefício</p>
-          <p className="mt-1 text-sm text-white/52">
-            O bloco da direita usa economia líquida por tanque como tradutor rápido: se o preço bruto é bom, mas o deslocamento come a vantagem, o rótulo cai para “só compensa se você já for passar” ou “mais barato da cidade, mas longe”.
-          </p>
+          <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Leitura da regiao funcional</p>
+          <p className="mt-1 text-sm text-white/52">{regionScopeNote} O bloco principal deixa de depender so da fronteira administrativa do municipio e passa a olhar o deslocamento real entre cidades conurbadas.</p>
+        </div>
+
+        <div className="rounded-[20px] border border-white/8 bg-white/[0.04] px-4 py-3">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Leitura do custo-beneficio</p>
+          <p className="mt-1 text-sm text-white/52">O card da direita usa economia liquida por tanque como tradutor rapido: se o preco bruto e bom, mas o desvio come a vantagem, ele cai para “barato, mas longe” ou “barato, mas velho”.</p>
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row">
-          {mapStations.length > 0 ? (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setShowMap((value) => !value)}
-              className="h-11 flex-1 justify-center px-4 text-[11px] font-black uppercase tracking-[0.18em]"
-            >
-              <MapPinned className="h-4 w-4" />
-              {showMap ? "Fechar mapa" : "Abrir mapa"}
-            </Button>
-          ) : null}
-          <ButtonLink href={railSendHref} className="h-11 flex-1 justify-center px-4 text-[11px] font-black uppercase tracking-[0.18em]">
-            Atualizar preço
-          </ButtonLink>
+          {mapStations.length > 0 ? <Button type="button" variant="secondary" onClick={() => setShowMap((value) => !value)} className="h-11 flex-1 justify-center px-4 text-[11px] font-black uppercase tracking-[0.18em]"><MapPinned className="h-4 w-4" />{showMap ? "Fechar mapa" : "Abrir mapa"}</Button> : null}
+          <ButtonLink href={railSendHref} className="h-11 flex-1 justify-center px-4 text-[11px] font-black uppercase tracking-[0.18em]">Atualizar preco</ButtonLink>
         </div>
 
         <p className="text-[11px] text-white/42">
-          Em {cityLabel}, o top 3 mostra visão ampla da cidade inteira. O card pessoal só sobe quando preço, distância, recência e confiança fecham a conta real. {coverageNote}
+          Se voce quiser abrir a camada territorial sem carregar a home, use{" "}
+          <a href={"/atualizacoes/panorama" as Route} className="text-[color:var(--color-accent)] underline-offset-4 hover:underline">
+            Panorama regional
+          </a>
+          .
         </p>
+
+        <p className="text-[11px] text-white/42">O topo olha {functionalRegion ? "a regiao funcional" : "o recorte selecionado"} para achar o menor preco relevante. O card pessoal so sobe quando preco, distancia, recencia, confianca e penalidade por desvio fecham a conta real. {coverageNote}</p>
 
         {showMap ? (
           <div className="pt-1">
-            <HomeMapSurface
-              stations={mapStations}
-              contextHref={contextHref}
-              fuelFilter={fuelFilter}
-              center={center}
-              userLocation={userLocation}
-              preferListFirst={false}
-            />
+            <HomeMapSurface stations={mapStations} contextHref={contextHref} fuelFilter={fuelFilter} center={center} userLocation={userLocation} preferListFirst={false} />
           </div>
         ) : null}
       </SectionCard>

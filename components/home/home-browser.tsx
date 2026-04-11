@@ -17,6 +17,7 @@ import { ReadinessBadge } from "./readiness-badge";
 import { EmptyStateCard } from "@/components/state/empty-state-card";
 import { useLocationHardening } from "@/hooks/use-location-hardening";
 import { calculateDistance, formatDistanceFromYou } from "@/lib/geo/distance";
+import { filterItemsToFunctionalRegion, getFunctionalRegion } from "@/lib/geo/functional-regions";
 import { cn } from "@/lib/utils";
 import { trackProductEvent } from "@/lib/telemetry/client";
 import { formatCurrencyBRL } from "@/lib/format/currency";
@@ -677,6 +678,15 @@ export function HomeBrowser({
     });
   }, [noRecentStations, orderedStations, recordActivity]);
   const contextHref = useMemo(() => buildContextHref(query, selectedCity, fuelFilter, recencyFilter, presenceFilter, listMode), [fuelFilter, listMode, presenceFilter, query, recencyFilter, selectedCity]);
+  const selectedFunctionalRegion = useMemo(() => getFunctionalRegion(selectedCity), [selectedCity]);
+  const decisionStations = useMemo(() => {
+    if (!selectedCity) {
+      return orderedStations;
+    }
+
+    const broadBase = filterStations(stationsWithDistances, "", "", fuelFilter, recencyFilter, presenceFilter);
+    return filterItemsToFunctionalRegion(broadBase, selectedCity);
+  }, [selectedCity, orderedStations, stationsWithDistances, fuelFilter, recencyFilter, presenceFilter]);
 
   const cheapestNow = useMemo(() => {
     const availableFuels = new Set<FuelType>();
@@ -1085,16 +1095,13 @@ export function HomeBrowser({
       <HomeSimplifiedSections
         contextHref={contextHref}
         fuelFilter={fuelFilter}
-        decisionStations={
-          selectedCity
-            ? filterStations(stationsWithDistances, "", selectedCity, fuelFilter, recencyFilter, presenceFilter)
-            : orderedStations
-        }
+        decisionStations={decisionStations}
         mapStations={mapStations}
         noRecentStations={noRecentStations}
         railSendHref={railSendHref}
         selectedCity={selectedCity}
         query={query}
+        functionalRegion={selectedFunctionalRegion}
         center={coords}
         userLocation={location}
         onStationTrack={(scopeId: string) => {
