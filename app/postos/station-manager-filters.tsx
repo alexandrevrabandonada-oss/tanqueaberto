@@ -152,12 +152,12 @@ export function StationManagerFilters({ initialFilters }: StationManagerFiltersP
           className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none"
         >
           <option value="all">Todos</option>
-          <option value="recent">Com preco recente</option>
-          <option value="without_recent">Sem preco recente</option>
+          <option value="recent">Com preço recente</option>
+          <option value="without_recent">Sem preço recente</option>
         </select>
       </label>
       <label className="space-y-2">
-        <span className="text-xs uppercase tracking-[0.18em] text-white/42">Revisao</span>
+        <span className="text-xs uppercase tracking-[0.18em] text-white/42">Revisão</span>
         <select
           name="review"
           value={filters.review}
@@ -165,7 +165,7 @@ export function StationManagerFilters({ initialFilters }: StationManagerFiltersP
           className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none"
         >
           <option value="all">Todos</option>
-          <option value="review">So em revisao</option>
+          <option value="review">Só em revisão</option>
         </select>
       </label>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end xl:col-span-3">

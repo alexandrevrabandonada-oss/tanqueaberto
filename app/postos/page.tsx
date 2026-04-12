@@ -69,7 +69,7 @@ function readPage(searchParams: Record<string, string | string[] | undefined>) {
 }
 
 function formatMoney(value: number | null) {
-  if (value === null || !Number.isFinite(value)) return "Sem preco";
+  if (value === null || !Number.isFinite(value)) return "Sem preço";
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 }
 
@@ -94,12 +94,12 @@ function resolveBanner(searchParams: Record<string, string | string[] | undefine
   const notice = readString(searchParams, "notice");
   const error = readString(searchParams, "error");
 
-  if (notice === "invite_accepted") return "Sessao leve ativa neste aparelho. Agora voce pode navegar na base existente, corrigir e semear novos postos.";
-  if (notice === "station_promoted") return "Posto promovido para publico. Ele ja pode entrar no sistema com visibilidade operacional.";
-  if (error === "session_expired") return "Sua sessao expirou. Entre novamente para continuar.";
-  if (error === "requires_location_review") return "Esse posto ainda precisa de coordenada valida antes de entrar no sistema. Ajuste o local na edicao leve.";
-  if (error === "duplicate_linked") return "Esse posto ja foi marcado como duplicado e nao pode entrar no sistema como item proprio.";
-  if (error === "publish_failed") return "Nao foi possivel colocar o posto no sistema agora.";
+  if (notice === "invite_accepted") return "Sessão leve ativa neste aparelho. Agora você pode navegar na base existente, corrigir e semear novos postos.";
+  if (notice === "station_promoted") return "Posto promovido para público. Ele já pode entrar no sistema com visibilidade operacional.";
+  if (error === "session_expired") return "Sua sessão expirou. Entre novamente para continuar.";
+  if (error === "requires_location_review") return "Esse posto ainda precisa de coordenada válida antes de entrar no sistema. Ajuste o local na edição leve.";
+  if (error === "duplicate_linked") return "Esse posto já foi marcado como duplicado e não pode entrar no sistema como item próprio.";
+  if (error === "publish_failed") return "Não foi possível colocar o posto no sistema agora.";
   return null;
 }
 
@@ -145,7 +145,7 @@ export default async function StationManagerPage({ searchParams }: StationManage
     readout = await getStationEditorStationList({ q, city, neighborhood, brand, price, review, page, pageSize: 24 });
   } catch (error) {
     console.error("Failed to load /postos station editor list", error);
-    loadErrorNotice = "A lista operacional nao carregou agora. Tente novamente em instantes.";
+    loadErrorNotice = "A lista operacional não carregou agora. Tente novamente em instantes.";
   }
 
   const banner = loadErrorNotice ?? resolveBanner(resolvedSearchParams);
@@ -166,9 +166,9 @@ export default async function StationManagerPage({ searchParams }: StationManage
       <SectionCard className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-2">
-            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Operacao restrita</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Operação restrita</p>
             <h1 className="text-[2rem] font-semibold leading-none text-white">Base de postos</h1>
-            <p className="max-w-2xl text-sm text-white/58">Veja, busque e corrija postos ja cadastrados no Bomba Aberta sem abrir o admin total. O papel continua estreito e operacional.</p>
+            <p className="max-w-2xl text-sm text-white/58">Veja, busque e corrija postos já cadastrados no Bomba Aberta sem abrir o admin total. O papel continua estreito e operacional.</p>
           </div>
           <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60">
             <ShieldCheck className="h-4 w-4 text-[color:var(--color-accent)]" />
@@ -201,15 +201,15 @@ export default async function StationManagerPage({ searchParams }: StationManage
             <p className="mt-2 text-2xl font-semibold text-white">{readout.summary.total}</p>
           </div>
           <div className="rounded-[18px] border border-white/8 bg-black/25 p-4">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Com preco recente</p>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Com preço recente</p>
             <p className="mt-2 text-2xl font-semibold text-emerald-300">{readout.summary.recent}</p>
           </div>
           <div className="rounded-[18px] border border-white/8 bg-black/25 p-4">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Sem preco recente</p>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Sem preço recente</p>
             <p className="mt-2 text-2xl font-semibold text-white">{readout.summary.withoutRecent}</p>
           </div>
           <div className="rounded-[18px] border border-white/8 bg-black/25 p-4">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Em revisao</p>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Em revisão</p>
             <p className="mt-2 text-2xl font-semibold text-amber-300">{readout.summary.review}</p>
           </div>
         </div>
@@ -221,7 +221,7 @@ export default async function StationManagerPage({ searchParams }: StationManage
           </Link>
           <Link href="/postos/sem-atualizacao" className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/78 hover:bg-white/10">
             <TriangleAlert className="h-4 w-4" />
-            Ver sem preco recente
+            Ver sem preço recente
           </Link>
         </div>
       </SectionCard>
@@ -248,9 +248,9 @@ export default async function StationManagerPage({ searchParams }: StationManage
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-white/42">Lista operacional</p>
-            <h2 className="mt-1 text-xl font-semibold text-white">Postos ja cadastrados</h2>
+            <h2 className="mt-1 text-xl font-semibold text-white">Postos já cadastrados</h2>
           </div>
-          <Badge variant="outline">Pagina {readout.pagination.page}/{readout.pagination.totalPages}</Badge>
+          <Badge variant="outline">Página {readout.pagination.page}/{readout.pagination.totalPages}</Badge>
         </div>
 
         {readout.items.length === 0 ? (
@@ -285,10 +285,10 @@ export default async function StationManagerPage({ searchParams }: StationManage
                       </div>
                     </div>
                     <div className="min-w-[180px] rounded-[16px] border border-white/8 bg-black/25 px-3 py-3 text-sm">
-                      <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Ultimo preco</p>
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Último preço</p>
                       <p className="mt-2 text-base font-semibold text-white">{formatMoney(item.latestPrice)}</p>
                       <p className="mt-1 text-xs text-white/52">{item.latestFuelType ? item.latestFuelType.replaceAll("_", " ") : "Sem envio aprovado"}</p>
-                      <p className="mt-1 text-xs text-white/52">{item.latestPriceReportedAt ? `${formatRecencyLabel(item.latestPriceReportedAt)} · ${formatDateTimeBR(item.latestPriceReportedAt)}` : "Sem preco"}</p>
+                      <p className="mt-1 text-xs text-white/52">{item.latestPriceReportedAt ? `${formatRecencyLabel(item.latestPriceReportedAt)} · ${formatDateTimeBR(item.latestPriceReportedAt)}` : "Sem preço"}</p>
                     </div>
                   </div>
 
@@ -331,11 +331,11 @@ export default async function StationManagerPage({ searchParams }: StationManage
         {readout.pagination.totalPages > 1 ? (
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/8 pt-3">
             <Link href={buildHref(baseParams, Math.max(1, readout.pagination.page - 1))} className={`inline-flex items-center justify-center rounded-full border px-4 py-2 text-sm font-semibold transition ${readout.pagination.hasPreviousPage ? "border-white/10 bg-white/5 text-white/74 hover:bg-white/10" : "pointer-events-none border-white/5 bg-white/5 text-white/24"}`}>
-              Pagina anterior
+              Página anterior
             </Link>
             <p className="text-xs text-white/46">Mostrando {readout.items.length} de {readout.summary.total} postos filtrados.</p>
             <Link href={buildHref(baseParams, Math.min(readout.pagination.totalPages, readout.pagination.page + 1))} className={`inline-flex items-center justify-center rounded-full border px-4 py-2 text-sm font-semibold transition ${readout.pagination.hasNextPage ? "border-white/10 bg-white/5 text-white/74 hover:bg-white/10" : "pointer-events-none border-white/5 bg-white/5 text-white/24"}`}>
-              Proxima pagina
+              Próxima página
             </Link>
           </div>
         ) : null}

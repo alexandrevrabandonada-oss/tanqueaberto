@@ -103,7 +103,7 @@ export default async function StationEditPage({ params, searchParams }: StationE
 
         {duplicateMode ? (
           <div className="rounded-[18px] border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-50">
-            Abrindo em modo duplicidade. A selecao de parecidos ja vem priorizada.
+            Abrindo em modo duplicidade. A seleção de parecidos já vem priorizada.
           </div>
         ) : null}
 

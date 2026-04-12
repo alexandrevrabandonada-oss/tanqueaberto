@@ -1068,7 +1068,7 @@ function PriceSubmitFormBody({
       const publicName = getStationPublicName(station);
       const addressShort = shortAddress(station.address);
       const fullAddress = station.address?.trim() || "";
-      const neighborhoodLabel = station.neighborhood?.trim() || "Bairro nao informado";
+      const neighborhoodLabel = station.neighborhood?.trim() || "Bairro não informado";
       const brandLabel = station.distributorName?.trim() || station.brand?.trim() || null;
       const hasReliableCoordinate = isValidStationCoordinate(station.lat, station.lng);
       const distance = coords && canTrustProximity && hasReliableCoordinate ? calculateDistance(coords.lat, coords.lng, station.lat, station.lng) : null;
@@ -1730,7 +1730,7 @@ function PriceSubmitFormBody({
       const processed = await processImageForUpload(nextFile);
       const inputSynced = syncProcessedFileToInput(fileInputRef.current, processed);
       if (!inputSynced) {
-        throw new Error("Nao foi possivel sincronizar a foto processada para envio.");
+        throw new Error("Não foi possível sincronizar a foto processada para envio.");
       }
 
       selectedFileRef.current = processed;
@@ -1785,14 +1785,14 @@ function PriceSubmitFormBody({
       setValidationErrors((prev) => ({
         ...prev,
         photo: /sincronizar/i.test(message)
-          ? "Nao foi possivel preparar a foto para envio. Tire outra e tente novamente."
-          : "Nao foi possivel processar a foto. Tente outra imagem ou abra a camera novamente."
+          ? "Não foi possível preparar a foto para envio. Tire outra e tente novamente."
+          : "Não foi possível processar a foto. Tente outra imagem ou abra a câmera novamente."
       }));
 
       void trackProductEvent({
         eventType: "submission_validation_error" as any,
         pagePath: "/enviar",
-        pageTitle: "Enviar preco",
+        pageTitle: "Enviar preço",
         stationId: stationId || null,
         fuelType,
         payload: {
@@ -1871,21 +1871,21 @@ function PriceSubmitFormBody({
 
     filledEntries.forEach((entry) => {
       if (!entry.price || entry.price.length < 5) {
-        priceByFuel[entry.fuelType] = "Use um preco valido, como 5,699.";
+        priceByFuel[entry.fuelType] = "Use um preço válido, como 5,699.";
       }
     });
 
     if (Object.keys(priceByFuel).length > 0) {
       errors.priceByFuel = priceByFuel;
-      errors.fuelPrices = errors.fuelPrices ?? "Revise os precos destacados antes de enviar.";
+      errors.fuelPrices = errors.fuelPrices ?? "Revise os preços destacados antes de enviar.";
     }
 
     if (evidenceMode === "placa_faixa") {
       if (!selectedFileRef.current) {
-        errors.photo = "A foto e obrigatoria para o envio de rua.";
+        errors.photo = "A foto é obrigatória para o envio de rua.";
       }
     } else if (!priceSource) {
-      errors.priceSource = "Escolha a origem do preco.";
+      errors.priceSource = "Escolha a origem do preço.";
     }
 
     setValidationErrors(errors);
@@ -1923,8 +1923,8 @@ function PriceSubmitFormBody({
       : guidedStage === "station"
         ? "Confirmar posto"
         : guidedStage === "price"
-          ? (filledFuelEntries.length > 0 ? "Ver revisao" : "Preencher precos")
-          : `Enviar ${filledFuelEntries.length > 1 ? `${filledFuelEntries.length} precos` : "preco"}`;
+          ? (filledFuelEntries.length > 0 ? "Ver revisão" : "Preencher preços")
+          : `Enviar ${filledFuelEntries.length > 1 ? `${filledFuelEntries.length} preços` : "preço"}`;
   async function refreshQueueItems() {
     const items = await loadSubmissionQueue().catch(() => [] as SubmissionQueueEntry[]);
     setQueueItems(items);
@@ -2821,7 +2821,7 @@ function PriceSubmitFormBody({
                     setStationSearch(event.target.value);
                     setValidationErrors((prev) => ({ ...prev, stationId: undefined }));
                   }}
-                  placeholder="Buscar por nome, bairro, endereco, cidade ou bandeira"
+                  placeholder="Buscar por nome, bairro, endereço, cidade ou bandeira"
                   className={cn(
                     "h-12 w-full rounded-[18px] border bg-black/30 pl-11 pr-4 text-sm text-white outline-none transition focus:border-[color:var(--color-accent)]/60 focus:ring-2 focus:ring-[color:var(--color-accent)]/20",
                     validationErrors.stationId ? "border-red-500/50 ring-1 ring-red-500/20" : "border-white/10"
@@ -2830,7 +2830,7 @@ function PriceSubmitFormBody({
               </div>
               {!canTrustProximity ? (
                 <Button type="button" variant="secondary" className="h-12 px-4 text-xs uppercase tracking-[0.18em]" onClick={() => refresh()}>
-                  {coords ? "Reforçar GPS" : "Ver mais proximos"}
+                  {coords ? "Reforçar GPS" : "Ver mais próximos"}
                 </Button>
               ) : null}
             </div>
@@ -2875,12 +2875,12 @@ function PriceSubmitFormBody({
                     />
                   </label>
                   <label className="space-y-1 sm:col-span-2">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/42">Endereco ou referencia</span>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/42">Endereço ou referência</span>
                     <input
                       ref={stationProposalStreetInputRef}
                       value={stationProposalStreet}
                       onChange={(event) => { setStationProposalStreet(event.target.value); setStationProposalConfirmed(false); }}
-                      placeholder="Rua, numero, esquina ou referencia. Se o GPS estiver ligado, pode deixar em branco."
+                      placeholder="Rua, número, esquina ou referência. Se o GPS estiver ligado, pode deixar em branco."
                       className="w-full rounded-[16px] border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none transition focus:border-[color:var(--color-accent)]/60 focus:ring-2 focus:ring-[color:var(--color-accent)]/20"
                     />
                   </label>
@@ -2962,7 +2962,7 @@ function PriceSubmitFormBody({
                 {canTrustProximity ? (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/42">Mais proximos de voce</p>
+                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/42">Mais próximos de você</p>
                       <span className="text-[11px] text-white/38">Raio inicial {nearbyRadiusMeters >= 5000 ? "5 km" : "2 km"}</span>
                     </div>
                     <div className="space-y-2">{(showMoreNearby ? nearbyPickerItems : nearbyPickerItems.slice(0, 3)).map((candidate) => renderStationOption(candidate, "nearby"))}</div>
@@ -2977,7 +2977,7 @@ function PriceSubmitFormBody({
                 {recentPickerItems.length > 0 ? (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/42">Recentes e por onde voce passou</p>
+                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/42">Recentes e por onde você passou</p>
                       <span className="text-[11px] text-white/38">Memoria curta do aparelho</span>
                     </div>
                     <div className="space-y-2">{(showMoreRecent ? recentPickerItems : recentPickerItems.slice(0, 2)).map((candidate) => renderStationOption(candidate, "recent"))}</div>
@@ -3019,7 +3019,7 @@ function PriceSubmitFormBody({
                   </>
                 ) : (
                   <div className="rounded-[18px] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white/58">
-                    Nenhum posto bateu com a busca. Tente nome, bairro, endereco, cidade ou bandeira.
+                    Nenhum posto bateu com a busca. Tente nome, bairro, endereço, cidade ou bandeira.
                   </div>
                 )}
               </div>
@@ -3038,11 +3038,11 @@ function PriceSubmitFormBody({
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/42">Precos por combustivel</p>
-              <p className="mt-1 text-sm font-semibold text-white">Preencha so os precos que aparecem na foto.</p>
+              <p className="mt-1 text-sm font-semibold text-white">Preencha só os preços que aparecem na foto.</p>
             </div>
-            <Badge variant="outline">Pode enviar 1 ou varios</Badge>
+            <Badge variant="outline">Pode enviar 1 ou vários</Badge>
           </div>
-          <p className="text-xs text-white/56">Cada linha e opcional. Se um preco nao aparece, deixe em branco.</p>
+          <p className="text-xs text-white/56">Cada linha é opcional. Se um preço não aparece, deixe em branco.</p>
         </div>
 
         <div className="space-y-2">
@@ -3063,7 +3063,7 @@ function PriceSubmitFormBody({
                     {value ? <Badge variant="accent">Preenchido</Badge> : <Badge variant="outline">Opcional</Badge>}
                   </div>
                   <p className="mt-1 text-[11px] text-white/52">
-                    {stationReport ? `Ultimo no posto: ${formatCurrencyBRL(stationReport.price)} · ${formatRecencyLabel(stationReport.reportedAt)}` : "Sem preco recente neste posto."}
+                    {stationReport ? `Último no posto: ${formatCurrencyBRL(stationReport.price)} · ${formatRecencyLabel(stationReport.reportedAt)}` : "Sem preço recente neste posto."}
                   </p>
                   {fieldError ? <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-red-400">{fieldError}</p> : null}
                 </div>
@@ -3150,7 +3150,7 @@ function PriceSubmitFormBody({
         <div className="mx-auto flex w-full max-w-3xl items-center gap-3 rounded-[24px] border border-white/10 bg-black/92 px-4 py-3 backdrop-blur-md md:backdrop-blur-xl">
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/36">Etapa {stageLabel}</p>
-            <p className="truncate text-sm text-white/66">{state.error ? state.error : guidedStage === "submit" ? "Confira o pacote e envie." : guidedStage === "price" ? "Preencha um ou varios precos." : "Uma acao por vez."}</p>
+            <p className="truncate text-sm text-white/66">{state.error ? state.error : guidedStage === "submit" ? "Confira o pacote e envie." : guidedStage === "price" ? "Preencha um ou vários preços." : "Uma ação por vez."}</p>
           </div>
           <Button type={guidedStage === "submit" ? "submit" : "button"} className="h-14 min-w-[11rem] rounded-full text-sm font-bold" disabled={pending || (guidedStage === "submit" && !canSubmit)} onClick={guidedStage === "submit" ? undefined : handlePrimaryAction}>
             {pending ? "Enviando..." : submitButtonLabel}

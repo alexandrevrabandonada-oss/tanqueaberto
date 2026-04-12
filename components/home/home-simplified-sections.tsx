@@ -92,7 +92,7 @@ function getReportConfidenceMeta(report: StationReport): ConfidenceMeta {
   const evidenceMode = String(report?.metadata?.evidence_mode ?? "");
   if (evidenceMode === "sem_placa_faixa") return { detail: "Sem placa", variant: "warning", score: 0.42 };
   if (report.locationConfidence === "high") return { detail: "GPS forte", variant: "default", score: 1 };
-  if (report.locationConfidence === "low") return { detail: "GPS razoavel", variant: "warning", score: 0.74 };
+  if (report.locationConfidence === "low") return { detail: "GPS razoável", variant: "warning", score: 0.74 };
   return { detail: "Vale checar", variant: "secondary", score: 0.58 };
 }
 
@@ -134,7 +134,7 @@ function buildRankedCandidate(candidate: Candidate, scopeAveragePrice: number, s
   const recencyScore = candidate.recencyTone === "fresh" ? 1 : candidate.recencyTone === "warning" ? 0.7 : 0.26;
   const valueScore = clamp(1 - priceGapToLowest / 0.65, 0, 1) * 0.22 + clamp(netSavings50 / 12, 0, 1) * 0.29 + scoreDistance(candidate.distance) * 0.18 + recencyScore * 0.17 + candidate.confidence.score * 0.14 - (candidate.distance !== null && candidate.distance > 4_000 && netSavings50 < 4 ? 0.08 : 0);
   const decisionLabel: DecisionLabel = candidate.recencyTone === "stale" || candidate.confidence.score < 0.65 ? "barato, mas velho" : candidate.distance !== null && candidate.distance <= 1_800 && netSavings40 >= 1.2 ? "vale no caminho" : netSavings50 >= 5 || (candidate.distance !== null && candidate.distance <= 4_000 && netSavings40 >= 2.2) ? "vale pequeno desvio" : "barato, mas longe";
-  const rationale = decisionLabel === "barato, mas velho" ? "Preco interessante, mas a leitura ja ficou velha ou fraca para sustentar o desvio." : decisionLabel === "vale no caminho" ? `Economia liquida segura: ${formatCurrencyBRL(netSavings40)} em 40L sem tirar voce do trajeto.` : decisionLabel === "vale pequeno desvio" ? `A conta fecha para um desvio curto: sobra cerca de ${formatCurrencyBRL(netSavings50)} em 50L depois do deslocamento.` : "Preco bom, mas a distancia come parte demais da vantagem real.";
+  const rationale = decisionLabel === "barato, mas velho" ? "Preço interessante, mas a leitura já ficou velha ou fraca para sustentar o desvio." : decisionLabel === "vale no caminho" ? `Economia líquida segura: ${formatCurrencyBRL(netSavings40)} em 40L sem tirar você do trajeto.` : decisionLabel === "vale pequeno desvio" ? `A conta fecha para um desvio curto: sobra cerca de ${formatCurrencyBRL(netSavings50)} em 50L depois do deslocamento.` : "Preço bom, mas a distância come parte demais da vantagem real.";
   return { ...candidate, scopeLowestPrice, grossSavings40, grossSavings50, netSavings40, netSavings50, detourCost, valueScore, decisionLabel, rationale, isRegionLowest: priceGapToLowest <= 0.001 };
 }
 
@@ -205,13 +205,13 @@ export function HomeSimplifiedSections({
 
   const regionLabel = decisionCity ? `Entorno de ${decisionCity}` : functionalRegion ? "Recorte regional agora" : "Recorte regional agora";
   const queryIgnored = Boolean((functionalRegion || decisionCity) && query.trim());
-  const regionScopeNote = functionalRegion ? `A leitura territorial abre um raio regional mais largo a partir de ${decisionCity || "sua posicao"}, sem depender da fronteira administrativa de uma cidade so.` : decisionCity ? `O bloco bruto usa ${decisionCity} como ancora territorial a partir do GPS.` : "Sem cidade definida; leitura segue o recorte aberto.";
-  const coverageNote = noRecentStations.length > 0 ? `${noRecentStations.length} postos ainda pedem atualizacao para cobrir melhor o recorte.` : "Cobertura recente esta estavel neste recorte.";
+  const regionScopeNote = functionalRegion ? `A leitura territorial abre um raio regional mais largo a partir de ${decisionCity || "sua posição"}, sem depender da fronteira administrativa de uma cidade só.` : decisionCity ? `O bloco bruto usa ${decisionCity} como âncora territorial a partir do GPS.` : "Sem cidade definida; a leitura segue o recorte aberto.";
+  const coverageNote = noRecentStations.length > 0 ? `${noRecentStations.length} postos ainda pedem atualização para cobrir melhor o recorte.` : "A cobertura recente está estável neste recorte.";
 
   if (!bestForYou || regionTopThree.length === 0) {
     return (
       <SectionCard className="space-y-4 overflow-hidden">
-        <EmptyStateCard title="Ainda nao existe base suficiente para separar proximidade, melhor escolha e preco regional." description="Assim que aparecer preco recente para este combustivel, a home passa a comparar o eixo urbano funcional e o custo-beneficio real." actionHref={railSendHref} actionLabel="Atualizar preco" className="text-left" />
+        <EmptyStateCard title="Ainda não existe base suficiente para separar proximidade, melhor escolha e preço regional." description="Assim que aparecer preço recente para este combustível, a home passa a comparar o eixo urbano funcional e o custo-benefício real." actionHref={railSendHref} actionLabel="Atualizar preço" className="text-left" />
       </SectionCard>
     );
   }
@@ -221,9 +221,9 @@ export function HomeSimplifiedSections({
       <SectionCard className="space-y-4 overflow-hidden">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Decisao rapida</p>
-            <h2 className="mt-1 text-lg font-semibold text-white sm:text-xl">Perto, melhor escolha e melhor preco regional</h2>
-            <p className="mt-1 text-sm text-white/52">A home responde o que esta perto, o que mais compensa e o menor preco relevante no eixo urbano que voce realmente percorre.</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Decisão rápida</p>
+            <h2 className="mt-1 text-lg font-semibold text-white sm:text-xl">Perto, melhor escolha e melhor preço regional</h2>
+            <p className="mt-1 text-sm text-white/52">A home responde o que está perto, o que mais compensa e o menor preço relevante no eixo urbano que você realmente percorre.</p>
           </div>
           <Badge variant="warning" className="max-w-full self-start text-[10px]"><Sparkles className="h-3.5 w-3.5" />{fuelLabels[primaryFuel]}</Badge>
         </div>
@@ -234,7 +234,7 @@ export function HomeSimplifiedSections({
               <div className="overflow-hidden rounded-[22px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Perto de voce</p>
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Perto de você</p>
                     <h3 className="mt-1 break-words text-base font-semibold leading-snug text-white">{getStationPublicName(nearYou.station)}</h3>
                     <p className="mt-1 break-words text-[11px] uppercase tracking-[0.16em] text-white/34">{[nearYou.station.neighborhood, nearYou.station.city].filter(Boolean).join(" · ") || "Recorte aberto"}</p>
                   </div>
@@ -244,15 +244,15 @@ export function HomeSimplifiedSections({
                   </div>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {bestForYou.station.id === nearYou.station.id ? <Badge variant="default" className="text-[10px]">Melhor para voce</Badge> : null}
-                  {regionTopThree[0]?.station.id === nearYou.station.id ? <Badge variant="warning" className="text-[10px]">Menor preco da regiao</Badge> : null}
+                  {bestForYou.station.id === nearYou.station.id ? <Badge variant="default" className="text-[10px]">Melhor para você</Badge> : null}
+                  {regionTopThree[0]?.station.id === nearYou.station.id ? <Badge variant="warning" className="text-[10px]">Menor preço da região</Badge> : null}
                   <Badge variant={recencyToneToBadgeVariant(nearYou.recencyTone)} className="text-[10px]">{formatRecencyLabel(nearYou.report.reportedAt)}</Badge>
                   {nearYou.distance !== null ? <Badge variant="outline" className="text-[10px]">{formatDistanceFromYou(nearYou.distance)}</Badge> : null}
                 </div>
-                <p className="mt-3 text-sm text-white/56">{nearYou.distance !== null ? `Leitura mais proxima agora. Se voce so quer algo no trajeto, este e o primeiro filtro util em ${formatDistanceFromYou(nearYou.distance)}.` : "Sem GPS forte agora, entao a leitura de proximidade fica conservadora."}</p>
+                <p className="mt-3 text-sm text-white/56">{nearYou.distance !== null ? `Leitura mais próxima agora. Se você só quer algo no trajeto, este é o primeiro filtro útil em ${formatDistanceFromYou(nearYou.distance)}.` : "Sem GPS forte agora, então a leitura de proximidade fica conservadora."}</p>
                 <div className="mt-4 grid gap-2 sm:grid-cols-2">
                   <ButtonLink href={getStationHref(nearYou.station.id, contextHref, primaryFuel)} variant="secondary" className="min-h-10 justify-center px-4 text-[10px] font-black uppercase tracking-[0.16em]" onClick={() => { rememberStationVisit({ id: nearYou.station.id, name: getStationPublicName(nearYou.station), city: nearYou.station.city }); trackAction(nearYou.station, primaryFuel, "near", "station", "home-nearby-view"); onStationTrack?.(`near-view-${nearYou.station.id}`); }}>Ver posto</ButtonLink>
-                  <Button type="button" variant="ghost" disabled={!canNavigate(nearYou.station)} className="min-h-10 justify-center px-4 text-[10px] font-black uppercase tracking-[0.16em] text-white/78 disabled:text-white/28" onClick={() => { if (!canNavigate(nearYou.station)) return; rememberStationVisit({ id: nearYou.station.id, name: getStationPublicName(nearYou.station), city: nearYou.station.city }); onStationTrack?.(`near-route-${nearYou.station.id}`); openExternalNavigation({ lat: nearYou.station.lat, lng: nearYou.station.lng, stationId: nearYou.station.id, stationName: getStationPublicName(nearYou.station), source: "home_near_you" }); }}><Navigation className="h-4 w-4" />Tracar rota</Button>
+                  <Button type="button" variant="ghost" disabled={!canNavigate(nearYou.station)} className="min-h-10 justify-center px-4 text-[10px] font-black uppercase tracking-[0.16em] text-white/78 disabled:text-white/28" onClick={() => { if (!canNavigate(nearYou.station)) return; rememberStationVisit({ id: nearYou.station.id, name: getStationPublicName(nearYou.station), city: nearYou.station.city }); onStationTrack?.(`near-route-${nearYou.station.id}`); openExternalNavigation({ lat: nearYou.station.lat, lng: nearYou.station.lng, stationId: nearYou.station.id, stationName: getStationPublicName(nearYou.station), source: "home_near_you" }); }}><Navigation className="h-4 w-4" />Traçar rota</Button>
                 </div>
               </div>
             ) : null}
@@ -260,13 +260,13 @@ export function HomeSimplifiedSections({
             <div className="overflow-hidden rounded-[22px] border border-[color:var(--color-accent)]/18 bg-[linear-gradient(180deg,rgba(255,199,0,0.12),rgba(255,255,255,0.03))] p-4 sm:rounded-[24px] sm:p-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Melhor preco da regiao</p>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Melhor preço da região</p>
                   <h3 className="mt-1 break-words text-base font-semibold leading-snug text-white sm:text-lg">{regionLabel}</h3>
-                  <p className="mt-1 text-sm text-white/52">Leitura ampla do entorno regional. O mais barato aqui nao e automaticamente a melhor ida.</p>
+                  <p className="mt-1 text-sm text-white/52">Leitura ampla do entorno regional. O mais barato aqui não é automaticamente a melhor ida.</p>
                 </div>
                 <Badge variant="warning" className="max-w-full self-start text-[10px]">{fuelLabels[primaryFuel]}</Badge>
               </div>
-              {queryIgnored ? <div className="mt-3 break-words rounded-[16px] border border-white/8 bg-black/18 px-3 py-2 text-xs leading-relaxed text-white/56">A busca digitada nao altera este ranking. Aqui entra o recorte regional inteiro.</div> : null}
+              {queryIgnored ? <div className="mt-3 break-words rounded-[16px] border border-white/8 bg-black/18 px-3 py-2 text-xs leading-relaxed text-white/56">A busca digitada não altera este ranking. Aqui entra o recorte regional inteiro.</div> : null}
               <div className="mt-4 space-y-3">
                 {regionTopThree.map((entry, index) => (
                   <div key={`region-top-${entry.station.id}`} className="overflow-hidden rounded-[18px] border border-white/8 bg-black/20 px-3 py-3 sm:px-4">
@@ -274,7 +274,7 @@ export function HomeSimplifiedSections({
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge variant={index === 0 ? "warning" : "secondary"} className="px-2 text-[10px]">#{index + 1}</Badge>
-                          {bestForYou.station.id === entry.station.id ? <Badge variant="default" className="text-[10px]">Melhor para voce</Badge> : null}
+                          {bestForYou.station.id === entry.station.id ? <Badge variant="default" className="text-[10px]">Melhor para você</Badge> : null}
                           {nearYou?.station.id === entry.station.id ? <Badge variant="outline" className="text-[10px]">Perto</Badge> : null}
                         </div>
                         <p className="mt-2 break-words text-[15px] font-semibold leading-snug text-white">{getStationPublicName(entry.station)}</p>
@@ -290,7 +290,7 @@ export function HomeSimplifiedSections({
                       {entry.distance !== null ? <Badge variant="outline" className="text-[10px]">{formatDistanceFromYou(entry.distance)}</Badge> : null}
                     </div>
                     <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <p className="min-w-0 break-words text-xs leading-relaxed text-white/46">{index === 0 ? "Menor preco bruto relevante no recorte regional." : "Leitura ampla da regiao, nao da melhor ida."}</p>
+                      <p className="min-w-0 break-words text-xs leading-relaxed text-white/46">{index === 0 ? "Menor preço bruto relevante no recorte regional." : "Leitura ampla da região, não da melhor ida."}</p>
                       <ButtonLink href={getStationHref(entry.station.id, contextHref, primaryFuel)} variant="secondary" className="min-h-8 w-full justify-center px-3 text-[9px] font-black uppercase tracking-[0.14em] sm:w-auto sm:shrink-0" onClick={() => { rememberStationVisit({ id: entry.station.id, name: getStationPublicName(entry.station), city: entry.station.city }); trackAction(entry.station, primaryFuel, "region", "station", `home-region-top-${index + 1}`); onStationTrack?.(`region-top-${index + 1}-${entry.station.id}`); }}>Ver posto</ButtonLink>
                     </div>
                   </div>
@@ -302,9 +302,9 @@ export function HomeSimplifiedSections({
           <div className="overflow-hidden rounded-[22px] border border-emerald-400/18 bg-[linear-gradient(180deg,rgba(16,185,129,0.12),rgba(255,255,255,0.03))] p-4 sm:rounded-[24px] sm:p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Vale mais a pena para voce</p>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Vale mais a pena para você</p>
                 <h3 className="mt-1 text-base font-semibold text-white sm:text-lg">{bestForYou.decisionLabel}</h3>
-                <p className="mt-1 text-sm text-white/52">Preco, distancia, recencia, confianca, economia estimada e penalidade por desvio entram na conta.</p>
+                <p className="mt-1 text-sm text-white/52">Preço, distância, recência, confiança, economia estimada e penalidade por desvio entram na conta.</p>
               </div>
               <Badge variant="default" className="max-w-full self-start text-[10px]">{fuelLabels[primaryFuel]}</Badge>
             </div>
@@ -312,8 +312,8 @@ export function HomeSimplifiedSections({
               <div className="min-w-0">
                 <div className="flex flex-wrap gap-2">
                   <Badge variant="default" className="text-[10px]">{bestForYou.decisionLabel}</Badge>
-                  {regionTopThree[0]?.station.id === bestForYou.station.id ? <Badge variant="warning" className="text-[10px]">Menor preco da regiao</Badge> : null}
-                  {nearYou?.station.id === bestForYou.station.id ? <Badge variant="outline" className="text-[10px]">Perto de voce</Badge> : null}
+                  {regionTopThree[0]?.station.id === bestForYou.station.id ? <Badge variant="warning" className="text-[10px]">Menor preço da região</Badge> : null}
+                  {nearYou?.station.id === bestForYou.station.id ? <Badge variant="outline" className="text-[10px]">Perto de você</Badge> : null}
                 </div>
                 <p className="mt-2 break-words text-lg font-semibold leading-snug text-white">{getStationPublicName(bestForYou.station)}</p>
                 <p className="break-words text-[11px] uppercase tracking-[0.16em] text-white/34">{[bestForYou.station.neighborhood, bestForYou.station.city].filter(Boolean).join(" · ") || "Recorte aberto"}</p>
@@ -328,45 +328,45 @@ export function HomeSimplifiedSections({
               <Badge variant={recencyToneToBadgeVariant(bestForYou.recencyTone)} className="text-[10px]">{formatRecencyLabel(bestForYou.report.reportedAt)}</Badge>
               <Badge variant={bestForYou.confidence.variant} className="text-[10px]">{bestForYou.confidence.detail}</Badge>
               {bestForYou.distance !== null ? <Badge variant="outline" className="text-[10px]">{formatDistanceFromYou(bestForYou.distance)}</Badge> : null}
-              <Badge variant="accent" className="text-[10px]">{formatCurrencyBRL(bestForYou.netSavings40)} liquido em 40L</Badge>
-              <Badge variant="accent" className="text-[10px]">{formatCurrencyBRL(bestForYou.netSavings50)} liquido em 50L</Badge>
+              <Badge variant="accent" className="text-[10px]">{formatCurrencyBRL(bestForYou.netSavings40)} líquido em 40L</Badge>
+              <Badge variant="accent" className="text-[10px]">{formatCurrencyBRL(bestForYou.netSavings50)} líquido em 50L</Badge>
             </div>
             <div className="mt-3 rounded-[18px] border border-white/8 bg-black/18 px-3 py-3 text-sm leading-relaxed text-white/58">
               Economia bruta: {formatCurrencyBRL(bestForYou.grossSavings40)} em 40L e {formatCurrencyBRL(bestForYou.grossSavings50)} em 50L.
-              {bestForYou.distance !== null ? ` O desvio pesa cerca de ${formatCurrencyBRL(bestForYou.detourCost)} nessa conta.` : " Sem GPS forte, entao a conta liquida fica mais conservadora."}
+              {bestForYou.distance !== null ? ` O desvio pesa cerca de ${formatCurrencyBRL(bestForYou.detourCost)} nessa conta.` : " Sem GPS forte, então a conta líquida fica mais conservadora."}
             </div>
             <div className="mt-4 grid gap-2 sm:grid-cols-3">
               <ButtonLink href={getStationHref(bestForYou.station.id, contextHref, primaryFuel)} variant="secondary" className="min-h-10 justify-center px-4 text-[10px] font-black uppercase tracking-[0.16em]" onClick={() => { rememberStationVisit({ id: bestForYou.station.id, name: getStationPublicName(bestForYou.station), city: bestForYou.station.city }); trackAction(bestForYou.station, primaryFuel, "value", "station", "home-best-for-you-view"); onStationTrack?.(`value-view-${bestForYou.station.id}`); }}>Ver posto</ButtonLink>
-              <ButtonLink href={getSendHref(bestForYou.station.id, contextHref, primaryFuel)} className="min-h-10 justify-center px-4 text-[10px] font-black uppercase tracking-[0.16em]" onClick={() => { rememberStationVisit({ id: bestForYou.station.id, name: getStationPublicName(bestForYou.station), city: bestForYou.station.city }); trackAction(bestForYou.station, primaryFuel, "value", "photo", "home-best-for-you-update"); onStationTrack?.(`value-update-${bestForYou.station.id}`); }}>Atualizar preco</ButtonLink>
-              <Button type="button" variant="ghost" disabled={!canNavigate(bestForYou.station)} className="min-h-10 justify-center px-4 text-[10px] font-black uppercase tracking-[0.16em] text-white/78 disabled:text-white/28" onClick={() => { if (!canNavigate(bestForYou.station)) return; rememberStationVisit({ id: bestForYou.station.id, name: getStationPublicName(bestForYou.station), city: bestForYou.station.city }); onStationTrack?.(`value-route-${bestForYou.station.id}`); openExternalNavigation({ lat: bestForYou.station.lat, lng: bestForYou.station.lng, stationId: bestForYou.station.id, stationName: getStationPublicName(bestForYou.station), source: "home_best_for_you" }); }}><Navigation className="h-4 w-4" />Tracar rota</Button>
+              <ButtonLink href={getSendHref(bestForYou.station.id, contextHref, primaryFuel)} className="min-h-10 justify-center px-4 text-[10px] font-black uppercase tracking-[0.16em]" onClick={() => { rememberStationVisit({ id: bestForYou.station.id, name: getStationPublicName(bestForYou.station), city: bestForYou.station.city }); trackAction(bestForYou.station, primaryFuel, "value", "photo", "home-best-for-you-update"); onStationTrack?.(`value-update-${bestForYou.station.id}`); }}>Atualizar preço</ButtonLink>
+              <Button type="button" variant="ghost" disabled={!canNavigate(bestForYou.station)} className="min-h-10 justify-center px-4 text-[10px] font-black uppercase tracking-[0.16em] text-white/78 disabled:text-white/28" onClick={() => { if (!canNavigate(bestForYou.station)) return; rememberStationVisit({ id: bestForYou.station.id, name: getStationPublicName(bestForYou.station), city: bestForYou.station.city }); onStationTrack?.(`value-route-${bestForYou.station.id}`); openExternalNavigation({ lat: bestForYou.station.lat, lng: bestForYou.station.lng, stationId: bestForYou.station.id, stationName: getStationPublicName(bestForYou.station), source: "home_best_for_you" }); }}><Navigation className="h-4 w-4" />Traçar rota</Button>
             </div>
           </div>
         </div>
 
         <div className="rounded-[20px] border border-white/8 bg-white/[0.04] px-4 py-3">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Leitura da regiao funcional</p>
-          <p className="mt-1 text-sm text-white/52">{regionScopeNote} O bloco principal deixa de depender so da fronteira administrativa do municipio e passa a olhar o deslocamento real dentro do eixo regional.</p>
+          <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Leitura da região funcional</p>
+          <p className="mt-1 text-sm text-white/52">{regionScopeNote} O bloco principal deixa de depender só da fronteira administrativa do município e passa a olhar o deslocamento real dentro do eixo regional.</p>
         </div>
 
         <div className="rounded-[20px] border border-white/8 bg-white/[0.04] px-4 py-3">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Leitura do custo-beneficio</p>
-          <p className="mt-1 text-sm text-white/52">O card da direita usa economia liquida por tanque como tradutor rapido: se o preco bruto e bom, mas o desvio come a vantagem, ele cai para “barato, mas longe” ou “barato, mas velho”.</p>
+          <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Leitura do custo-benefício</p>
+          <p className="mt-1 text-sm text-white/52">O card da direita usa economia líquida por tanque como tradutor rápido: se o preço bruto é bom, mas o desvio come a vantagem, ele cai para “barato, mas longe” ou “barato, mas velho”.</p>
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row">
           {mapStations.length > 0 ? <Button type="button" variant="secondary" onClick={() => setShowMap((value) => !value)} className="h-11 flex-1 justify-center px-4 text-[11px] font-black uppercase tracking-[0.18em]"><MapPinned className="h-4 w-4" />{showMap ? "Fechar mapa" : "Abrir mapa"}</Button> : null}
-          <ButtonLink href={railSendHref} className="h-11 flex-1 justify-center px-4 text-[11px] font-black uppercase tracking-[0.18em]">Atualizar preco</ButtonLink>
+          <ButtonLink href={railSendHref} className="h-11 flex-1 justify-center px-4 text-[11px] font-black uppercase tracking-[0.18em]">Atualizar preço</ButtonLink>
         </div>
 
         <p className="text-[11px] text-white/42">
-          Se voce quiser abrir a camada territorial sem carregar a home, use{" "}
+          Se você quiser abrir a camada territorial sem carregar a home, use{" "}
           <a href={"/atualizacoes/panorama" as Route} className="text-[color:var(--color-accent)] underline-offset-4 hover:underline">
             Panorama regional
           </a>
           .
         </p>
 
-        <p className="text-[11px] text-white/42">O topo olha {functionalRegion ? "a regiao funcional" : "o recorte selecionado"} para achar o menor preco relevante. O card pessoal so sobe quando preco, distancia, recencia, confianca e penalidade por desvio fecham a conta real. {coverageNote}</p>
+        <p className="text-[11px] text-white/42">O topo olha {functionalRegion ? "a região funcional" : "o recorte selecionado"} para achar o menor preço relevante. O card pessoal só sobe quando preço, distância, recência, confiança e penalidade por desvio fecham a conta real. {coverageNote}</p>
 
         {showMap ? (
           <div className="pt-1">

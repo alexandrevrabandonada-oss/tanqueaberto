@@ -23,7 +23,7 @@ function readScopeLabel(row: PanoramaRow) {
 function readScopeSupport(row: PanoramaRow) {
   if (row.scope === "region") return "Leitura ampla do eixo funcional.";
   if (row.scope === "city") return "Cidade dentro do recorte regional atual.";
-  return "Bairro comparado contra sua regiao funcional.";
+  return "Bairro comparado contra sua região funcional.";
 }
 
 function buildFuelHref(fuelType: FuelType) {
@@ -45,7 +45,7 @@ function PanoramaRowCard({ row, fuelType }: { row: PanoramaRow; fuelType: FuelTy
         </div>
         <div className="shrink-0 text-left sm:text-right">
           <p className="text-2xl font-black tracking-tight text-white">{formatCurrencyBRL(row.minPrice)}</p>
-          <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">menor preco</p>
+          <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">menor preço</p>
         </div>
       </div>
 
@@ -83,7 +83,7 @@ function PanoramaRowCard({ row, fuelType }: { row: PanoramaRow; fuelType: FuelTy
       <div className="mt-3 rounded-[18px] border border-white/8 bg-white/[0.04] px-3 py-3">
         <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Leitura prudente</p>
         <p className="mt-1 text-sm text-white/56">
-          {row.signals[0]?.detail ?? "Nao ha padrao territorial forte o suficiente para chamar atencao neste recorte agora."}
+          {row.signals[0]?.detail ?? "Não há padrão territorial forte o suficiente para chamar atenção neste recorte agora."}
         </p>
       </div>
 
@@ -114,7 +114,7 @@ function ScopeSection({ title, eyebrow, description, rows, fuelType }: { title: 
 
       {rows.length === 0 ? (
         <div className="rounded-[22px] border border-white/8 bg-black/25 px-4 py-5 text-sm text-white/56">
-          Ainda nao existe base recente suficiente para abrir este recorte com prudencia.
+          Ainda não existe base recente suficiente para abrir este recorte com prudência.
         </div>
       ) : (
         <div className="space-y-3">
@@ -133,10 +133,10 @@ export function RegionalPricePanoramaView({ panorama }: RegionalPricePanoramaPro
       <SectionCard className="space-y-4 xl:p-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-2">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-white/34">Atualizacoes &gt; panorama regional</p>
-            <h1 className="text-[1.9rem] font-semibold leading-none text-white xl:text-[1.6rem]">Menores precos por regiao, cidade e bairro</h1>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-white/34">Atualizações &gt; panorama regional</p>
+            <h1 className="text-[1.9rem] font-semibold leading-none text-white xl:text-[1.6rem]">Menores preços por região, cidade e bairro</h1>
             <p className="max-w-3xl text-sm leading-relaxed text-white/56 xl:text-[13px]">
-              A home continua resolvendo decisao rapida pessoal. Aqui a leitura e territorial: menor preco, media, faixa, volume de leituras e sinais prudentes de concentracao ou sincronia.
+              A home continua resolvendo decisão rápida pessoal. Aqui a leitura é territorial: menor preço, média, faixa, volume de leituras e sinais prudentes de concentração ou sincronia.
             </p>
           </div>
           <Badge variant="accent" className="self-start text-[10px]">{fuelLabels[panorama.fuelType]}</Badge>
@@ -162,7 +162,7 @@ export function RegionalPricePanoramaView({ panorama }: RegionalPricePanoramaPro
           <div className="rounded-[22px] border border-white/8 bg-black/25 p-4">
             <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-white/34">
               <Layers3 className="h-4 w-4 text-[color:var(--color-accent)]" />
-              Regioes
+              Regiões
             </div>
             <p className="mt-3 text-2xl font-semibold text-white">{panorama.regionalRows.length}</p>
             <p className="mt-1 text-sm text-white/48">Recortes regionais com base recente.</p>
@@ -173,7 +173,7 @@ export function RegionalPricePanoramaView({ panorama }: RegionalPricePanoramaPro
               Leituras
             </div>
             <p className="mt-3 text-2xl font-semibold text-white">{panorama.totalReadings}</p>
-            <p className="mt-1 text-sm text-white/48">Base recente ativa neste combustivel.</p>
+            <p className="mt-1 text-sm text-white/48">Base recente ativa neste combustível.</p>
           </div>
           <div className="rounded-[22px] border border-white/8 bg-black/25 p-4">
             <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-white/34">
@@ -181,7 +181,7 @@ export function RegionalPricePanoramaView({ panorama }: RegionalPricePanoramaPro
               Sinais
             </div>
             <p className="mt-3 text-2xl font-semibold text-white">{panorama.suspiciousSignals}</p>
-            <p className="mt-1 text-sm text-white/48">Padroes publicos que merecem acompanhamento.</p>
+            <p className="mt-1 text-sm text-white/48">Padrões públicos que merecem acompanhamento.</p>
           </div>
           <div className="rounded-[22px] border border-white/8 bg-black/25 p-4">
             <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-white/34">
@@ -189,19 +189,19 @@ export function RegionalPricePanoramaView({ panorama }: RegionalPricePanoramaPro
               Base
             </div>
             <p className="mt-3 text-sm font-semibold text-white">{formatDateTimeBR(panorama.generatedAt)}</p>
-            <p className="mt-1 text-sm text-white/48">Gerado com a fotografia publica mais recente.</p>
+            <p className="mt-1 text-sm text-white/48">Gerado com a fotografia pública mais recente.</p>
           </div>
         </div>
 
         <div className="rounded-[22px] border border-white/8 bg-white/[0.04] px-4 py-3 text-sm text-white/56">
-          A linguagem aqui e prudente por desenho. O produto aponta suspeita, concentracao e sincronia quando ha padrao estatistico simples, mas nao afirma cartel automaticamente.
+          A linguagem aqui é prudente por desenho. O produto aponta suspeita, concentração e sincronia quando há padrão estatístico simples, mas não afirma cartel automaticamente.
         </div>
       </SectionCard>
 
       <ScopeSection
-        eyebrow="Regiao"
-        title="Melhor preco da regiao"
-        description="Visao ampla do eixo funcional ou do agrupamento territorial equivalente. Boa para entender o piso regional sem confundir isso com a melhor ida pessoal."
+        eyebrow="Região"
+        title="Melhor preço da região"
+        description="Visão ampla do eixo funcional ou do agrupamento territorial equivalente. Boa para entender o piso regional sem confundir isso com a melhor ida pessoal."
         rows={panorama.regionalRows.slice(0, 6)}
         fuelType={panorama.fuelType}
       />
@@ -209,7 +209,7 @@ export function RegionalPricePanoramaView({ panorama }: RegionalPricePanoramaPro
       <ScopeSection
         eyebrow="Cidade"
         title="Cidades dentro do panorama"
-        description="Comparacao por municipio para enxergar quem esta segurando preco melhor e quem esta cobrando acima da media do eixo regional."
+        description="Comparação por município para enxergar quem está segurando preço melhor e quem está cobrando acima da média do eixo regional."
         rows={panorama.cityRows.slice(0, 8)}
         fuelType={panorama.fuelType}
       />
@@ -217,7 +217,7 @@ export function RegionalPricePanoramaView({ panorama }: RegionalPricePanoramaPro
       <ScopeSection
         eyebrow="Bairro"
         title="Bairros com base suficiente"
-        description="Leitura territorial fina para ver onde o preco abre, fecha ou fica concentrado demais dentro da malha urbana."
+        description="Leitura territorial fina para ver onde o preço abre, fecha ou fica concentrado demais dentro da malha urbana."
         rows={panorama.neighborhoodRows.slice(0, 10)}
         fuelType={panorama.fuelType}
       />

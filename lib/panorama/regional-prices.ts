@@ -216,7 +216,7 @@ function buildSignals(draft: GroupDraft, averageByRegion: Map<string, number>): 
     signals.push({
       kind: "low_variation",
       label: "Baixa variacao de precos",
-      detail: "As leituras ficaram muito proximas entre si neste recorte.",
+      detail: "As leituras ficaram muito próximas entre si neste recorte.",
       variant: "secondary"
     });
   }

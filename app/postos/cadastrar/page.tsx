@@ -128,7 +128,7 @@ export default async function StationSeedPage({ searchParams }: StationSeedPageP
         {notice === "invite_accepted" ? (
           <div className="rounded-[18px] border border-[color:var(--color-accent)]/22 bg-[color:var(--color-accent)]/10 px-4 py-3 text-sm text-white/78">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <span>Convite confirmado. Sessao leve ativa neste aparelho para semeadura e edicao de postos.</span>
+              <span>Convite confirmado. Sessão leve ativa neste aparelho para semeadura e edição de postos.</span>
               <Link href="/postos" className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-white hover:bg-white/15">
                 Abrir base existente
               </Link>
@@ -155,7 +155,7 @@ export default async function StationSeedPage({ searchParams }: StationSeedPageP
             <MapPinPlus className="h-5 w-5 text-[color:var(--color-accent)]" />
             <h2 className="text-xl font-semibold text-white">Novo posto</h2>
           </div>
-          <p className="text-sm text-white/56">Use GPS atual ou informe endereco curto para geocodificar, ajustar o pin e confirmar o local antes de salvar.</p>
+          <p className="text-sm text-white/56">Use GPS atual ou informe endereço curto para geocodificar, ajustar o pin e confirmar o local antes de salvar.</p>
           <StationSeedForm stations={stations} notice={notice} initialCity={city} initialNeighborhood={neighborhood} seedOrigin={seedOrigin} />
         </SectionCard>
       ) : null}

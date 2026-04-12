@@ -37,7 +37,7 @@ export function StationEditorInviteAcceptForm({
       <input type="hidden" name="inviteToken" value={inviteToken} />
 
       <label className="space-y-2">
-        <span className="text-xs uppercase tracking-[0.18em] text-white/42">Codigo do convite</span>
+        <span className="text-xs uppercase tracking-[0.18em] text-white/42">Código do convite</span>
         <input
           name="inviteCode"
           type="text"
@@ -72,7 +72,7 @@ export function StationEditorInviteAcceptForm({
           className="mt-0.5 h-4 w-4 rounded border-white/20 bg-black/40 text-[color:var(--color-accent)]"
         />
         <span className="text-xs text-white/72">
-          Manter neste aparelho confiavel para entrar sem codigo por mais tempo.
+          Manter neste aparelho confiável para entrar sem código por mais tempo.
         </span>
       </label>
 
@@ -82,7 +82,7 @@ export function StationEditorInviteAcceptForm({
         {pending ? "Entrando..." : "Entrar como station_editor"}
       </Button>
 
-      <p className="text-[11px] text-white/44">Se o admin revogar o convite ou encerrar seu acesso, esta sessao deixa de funcionar neste aparelho.</p>
+      <p className="text-[11px] text-white/44">Se o admin revogar o convite ou encerrar seu acesso, esta sessão deixa de funcionar neste aparelho.</p>
     </form>
   );
 }

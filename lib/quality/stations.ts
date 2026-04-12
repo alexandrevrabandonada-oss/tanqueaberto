@@ -107,7 +107,7 @@ export function getStationProposalReviewSignal(station: StationPublicIdentity, d
   if (hasGeo && (geoReviewStatus === "ok" || geoReviewStatus === "pending") && (geoConfidence === "high" || geoConfidence === "medium") && !isGenericName && hasLocationHint) {
     return {
       state: "boa_rapida" as const,
-      label: "Boa para aprovar rapido",
+      label: "Boa para aprovar rápido",
       reason: hasDuplicateRisk ? "Tem geo e texto bons, mas vale checar repeticao." : "Tem geo confiavel e dados suficientes."
     };
   }
@@ -133,7 +133,7 @@ export function getStationProposalReviewSignal(station: StationPublicIdentity, d
       ? "Sem geo confiavel. Revisar com cuidado."
       : hasDuplicateRisk
         ? "Pode repetir um posto existente."
-        : "Precisa de revisao antes de aprovar.";
+        : "Precisa de revisão antes de aprovar.";
 
     return {
       state: "precisa_revisar" as const,
@@ -145,7 +145,7 @@ export function getStationProposalReviewSignal(station: StationPublicIdentity, d
   return {
     state: "precisa_revisar" as const,
     label: "Precisa revisar",
-    reason: "Ainda vale uma checagem rapida."
+    reason: "Ainda vale uma checagem rápida."
   };
 }
 

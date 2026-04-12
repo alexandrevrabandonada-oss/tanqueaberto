@@ -131,18 +131,18 @@ function buildPracticalReason(
   }
 
   if (preferDistance && distanceValue !== null && distanceValue <= 1500 && priceGap <= 0.12) {
-    return "Eh barato mesmo e nao sai do caminho.";
+    return "É barato mesmo e não sai do caminho.";
   }
 
   if (priceGap <= 0.03 && recencyTone === "fresh" && confidenceScore >= 0.7) {
-    return "Menor preco e o dado ainda ta quentinho.";
+    return "Menor preço e o dado ainda está quentinho.";
   }
 
   if (priceGap <= 0.12) {
-    return "Melhor que o resto: preco, distancia e recencia combinam bem.";
+    return "Melhor que o resto: preço, distância e recência combinam bem.";
   }
 
-  return "Eh barato. Mas compara bem ligeirinho antes de ir.";
+  return "É barato. Mas compare bem, rapidinho, antes de ir.";
 }
 
 function buildPracticalCandidate(item: any, scopeMinPrice: number, options?: { preferDistance?: boolean }) {
@@ -425,8 +425,8 @@ export function HomeDeferredSections(props: Record<string, any>) {
     return [
       {
         id: "nearby",
-        title: "Melhor opcao perto de voce",
-        hint: "Preco que ainda fecha melhor no caminho.",
+        title: "Melhor opção perto de você",
+        hint: "Preço que ainda fecha melhor no caminho.",
         entry: nearbyBestOption,
         context: nearbyBestOption?.distanceValue !== null && nearbyBestOption?.distanceValue !== undefined ? formatDistanceFromYou(nearbyBestOption.distanceValue) : "Sem GPS forte"
       },
@@ -507,7 +507,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
       contextLabel: getEconomyLocalityLabel(bestPair.station),
       headline: bestPair.strong ? `${winner === "etanol" ? "Etanol" : "Gasolina"} compensa` : "Comparacao ainda pede cautela",
       description: bestPair.strong
-        ? `Neste posto, o etanol ficou em ${ratioLabel} do preco da gasolina. Pela regra simples dos 70%, ${winner === "etanol" ? "etanol" : "gasolina"} fecha melhor hoje.`
+        ? `Neste posto, o etanol ficou em ${ratioLabel} do preço da gasolina. Pela regra simples dos 70%, ${winner === "etanol" ? "etanol" : "gasolina"} fecha melhor hoje.`
         : `Os dois combustiveis aparecem, mas a comparacao ainda esta velha ou fraca demais para uma recomendacao forte.`
     };
   }, [orderedStations]);
@@ -572,16 +572,16 @@ export function HomeDeferredSections(props: Record<string, any>) {
       if (deltaPerLiter >= OPPORTUNITY_MIN_DELTA) {
         cards.push({
           id: "nearby-price-window",
-          eyebrow: "Perto de voce",
-          title: `${fuelLabels[economyFuelFilter]} bom perto de voce`,
+          eyebrow: "Perto de você",
+          title: `${fuelLabels[economyFuelFilter]} bom perto de você`,
           station: nearbyBestOption.station,
           report: nearbyBestOption.report,
           fuelType: economyFuelFilter,
           contextLabel: nearbyBestOption.distanceValue !== null ? `${formatDistanceFromYou(nearbyBestOption.distanceValue)} · ${getEconomyLocalityLabel(nearbyBestOption.station)}` : getEconomyLocalityLabel(nearbyBestOption.station),
-          summary: `${formatCurrencyBRL(deltaPerLiter)} mais barato que a media deste recorte.`,
+          summary: `${formatCurrencyBRL(deltaPerLiter)} mais barato que a média deste recorte.`,
           detail: nearbyBestOption.reliable
-            ? `Paga ${formatCurrencyBRL(nearbyBestOption.report.price)} e nao sai do caminho.`
-            : `Preco abriu mesmo, mas confere rapido antes de sair.`,
+            ? `Paga ${formatCurrencyBRL(nearbyBestOption.report.price)} e não sai do caminho.`
+            : `Preço abriu mesmo, mas confira rápido antes de sair.`,
           badgeLabel: nearbyBestOption.reliable ? "To indo" : "Vale a pena",
           badgeVariant: nearbyBestOption.reliable ? "default" as const : "warning" as const,
           recencyTone: nearbyBestOption.recencyTone,
@@ -653,16 +653,16 @@ export function HomeDeferredSections(props: Record<string, any>) {
           return {
             id: "followed-price-drop",
             eyebrow: "Posto acompanhado",
-            title: "Preco caiu no posto que voce acompanha",
+            title: "Preço caiu no posto que você acompanha",
             station,
             report: currentReport,
             fuelType: economyFuelFilter,
             contextLabel: getEconomyLocalityLabel(station),
-            summary: `Caiu ${formatCurrencyBRL(dropAmount)} desde a leitura anterior deste combustivel.`,
+            summary: `Caiu ${formatCurrencyBRL(dropAmount)} desde a leitura anterior deste combustível.`,
             detail: referenceDelta !== null && referenceDelta >= 0.02
-              ? `Agora ele tambem aparece ${formatCurrencyBRL(referenceDelta)} abaixo da media recente do recorte.`
-              : `A queda apareceu no proprio posto. Vale ver se ainda esta valendo agora.`,
-            badgeLabel: reliable ? "Mudanca util" : "Mudanca com cautela",
+              ? `Agora ele também aparece ${formatCurrencyBRL(referenceDelta)} abaixo da média recente do recorte.`
+              : `A queda apareceu no próprio posto. Vale ver se ainda está valendo agora.`,
+            badgeLabel: reliable ? "Mudança útil" : "Mudança com cautela",
             badgeVariant: reliable ? "default" as const : "warning" as const,
             recencyTone,
             confidence,
@@ -689,25 +689,25 @@ export function HomeDeferredSections(props: Record<string, any>) {
         id: "recent",
         eyebrow: "Decida agora",
         title: "Mais barato recente",
-        hint: "Bom preco com atualização fresca para decidir sem rodeio.",
+        hint: "Bom preço com atualização fresca para decidir sem rodeio.",
         items: cheapestRecent,
-        empty: "Ainda nao apareceu um preco bom e recente neste recorte."
+        empty: "Ainda não apareceu um preço bom e recente neste recorte."
       },
       {
         id: "near",
         eyebrow: "No seu caminho",
         title: "Mais barato perto",
-        hint: "Aqui o preco baixo ja vem junto com a distancia.",
+        hint: "Aqui o preço baixo já vem junto com a distância.",
         items: cheapestNearYou,
-        empty: "Ative o GPS ou refine o recorte para comparar o que compensa perto de voce."
+        empty: "Ative o GPS ou refine o recorte para comparar o que compensa perto de você."
       },
       {
         id: "stale",
         eyebrow: "Vale conferir",
         title: "Barato, mas desatualizado",
-        hint: "Pode compensar, mas ja pede uma checagem antes de sair.",
+        hint: "Pode compensar, mas já pede uma checagem antes de sair.",
         items: cheapestStale,
-        empty: "Nao ha preco barato envelhecido chamando atencao agora."
+        empty: "Não há preço barato envelhecido chamando atenção agora."
       }
     ];
   }, [cheapestNearYou, cheapestRecent, cheapestStale]);
@@ -1055,7 +1055,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
           <div className="max-w-2xl">
             <p className="text-xs uppercase tracking-[0.2em] text-white/42">Vale a pena para mim</p>
             <h2 className="mt-1 text-xl font-semibold text-white">Decida melhor antes de abastecer</h2>
-            <p className="mt-2 text-sm leading-relaxed text-white/50">O menor preco bruto continua aqui, mas agora junto com distancia, recencia, confianca e uma leitura simples de gasolina x etanol quando o recorte ajudar.</p>
+            <p className="mt-2 text-sm leading-relaxed text-white/50">O menor preço bruto continua aqui, mas agora junto com distância, recência, confiança e uma leitura simples de gasolina x etanol quando o recorte ajudar.</p>
           </div>
           <Badge variant="warning">{fuelLabels[economyFuelFilter]}</Badge>
         </div>
@@ -1064,7 +1064,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-[10px] uppercase tracking-[0.18em] text-white/38">Filtro principal</p>
-              <p className="mt-1 text-sm text-white/58">Compare so o combustivel que voce realmente quer abastecer.</p>
+              <p className="mt-1 text-sm text-white/58">Compare só o combustível que você realmente quer abastecer.</p>
             </div>
             <Badge variant="secondary">Lembra neste aparelho</Badge>
           </div>
@@ -1115,14 +1115,14 @@ export function HomeDeferredSections(props: Record<string, any>) {
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
               <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Leitura de oportunidade</p>
-              <h3 className="mt-1 text-lg font-semibold text-white">Quando vale acelerar a decisao</h3>
-              <p className="mt-1 text-sm leading-relaxed text-white/52">A superficie so chama atencao quando aparece vantagem real contra a media recente, no bairro ou em posto que voce ja acompanha.</p>
+              <h3 className="mt-1 text-lg font-semibold text-white">Quando vale acelerar a decisão</h3>
+              <p className="mt-1 text-sm leading-relaxed text-white/52">A superfície só chama atenção quando aparece vantagem real contra a média recente, no bairro ou em posto que você já acompanha.</p>
             </div>
             <Badge variant={economyOpportunities.length > 0 ? "default" : "secondary"}>{economyOpportunities.length > 0 ? `${economyOpportunities.length} sinais agora` : "Sem barulho"}</Badge>
           </div>
 
           {economyOpportunities.length === 0 ? (
-            <p className="text-sm leading-relaxed text-white/42">Sem oportunidade clara de {fuelLabels[economyFuelFilter].toLowerCase()} neste momento. O app continua mostrando comparacao e preco bruto, mas sem forcar alerta fraco.</p>
+            <p className="text-sm leading-relaxed text-white/42">Sem oportunidade clara de {fuelLabels[economyFuelFilter].toLowerCase()} neste momento. O app continua mostrando comparação e preço bruto, mas sem forçar alerta fraco.</p>
           ) : (
             <div className="grid gap-3 xl:grid-cols-3">
               {economyOpportunities.map((opportunity: any) => {
@@ -1196,7 +1196,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
                           });
                         }}
                       >
-                        Atualizar preco
+                        Atualizar preço
                       </ButtonLink>
                       {canRoute ? (
                         <Button
@@ -1222,7 +1222,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
             <div>
               <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Melhor opcao agora</p>
               <h3 className="mt-1 text-lg font-semibold text-white">O app resume o que fecha melhor no momento</h3>
-              <p className="mt-1 text-sm leading-relaxed text-white/52">O preco continua visivel. A diferenca e que agora entra junto o peso de distancia, recencia e confianca.</p>
+              <p className="mt-1 text-sm leading-relaxed text-white/52">O preço continua visível. A diferença é que agora entra junto o peso de distância, recência e confiança.</p>
             </div>
             <div className="grid gap-3 md:grid-cols-3">
               {economyReadouts.map((readout) => {
@@ -1261,7 +1261,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
                         </div>
                       </>
                     ) : (
-                      <p className="mt-4 text-sm leading-relaxed text-white/42">Ainda nao apareceu leitura util de {fuelLabels[economyFuelFilter].toLowerCase()} para esta lente do recorte.</p>
+                      <p className="mt-4 text-sm leading-relaxed text-white/42">Ainda não apareceu leitura útil de {fuelLabels[economyFuelFilter].toLowerCase()} para esta lente do recorte.</p>
                     )}
                   </div>
                 );
@@ -1339,7 +1339,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
                 <div className="min-w-0">
                   <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Economia estimada</p>
                   <h3 className="mt-1 text-base font-semibold text-white">Quanto isso pode representar no tanque</h3>
-                  <p className="mt-1 text-sm leading-relaxed text-white/52">Leitura curta contra a referencia recente do proprio recorte.</p>
+                  <p className="mt-1 text-sm leading-relaxed text-white/52">Leitura curta contra a referência recente do próprio recorte.</p>
                 </div>
                 <Badge variant={economySavings ? economySavings.kind === "positive" ? "default" : economySavings.kind === "insufficient" ? "secondary" : "warning" : "secondary"} className="self-start">
                   {economySavings ? economySavings.kind === "positive" ? "Abrindo economia" : economySavings.kind === "insufficient" ? "Base curta" : "Sem folga clara" : "Sem base"}
@@ -1347,13 +1347,13 @@ export function HomeDeferredSections(props: Record<string, any>) {
               </div>
 
               {!economySavings ? (
-                <p className="mt-4 text-sm leading-relaxed text-white/42">Ainda nao apareceu base suficiente de {fuelLabels[economyFuelFilter].toLowerCase()} para estimar economia com honestidade.</p>
+                <p className="mt-4 text-sm leading-relaxed text-white/42">Ainda não apareceu base suficiente de {fuelLabels[economyFuelFilter].toLowerCase()} para estimar economia com honestidade.</p>
               ) : economySavings.kind === "insufficient" ? (
                 <p className="mt-4 text-sm leading-relaxed text-white/42">Ainda faltam pelo menos {ECONOMY_REFERENCE_MIN_ITEMS} leituras recentes de {fuelLabels[economyFuelFilter].toLowerCase()} para prometer economia estimada sem forcar a barra.</p>
               ) : economySavings.kind === "positive" ? (
                 <>
                   <p className="mt-4 text-sm leading-relaxed text-white/58">
-                    Se voce escolher <span className="font-semibold text-white">{getStationPublicName(economySavings.candidate.station)}</span> agora, o litro sai a <span className="font-semibold text-white">{formatCurrencyBRL(economySavings.candidate.report.price)}</span>. Contra a media recente do recorte ({economySavings.referenceCount} leituras), isso abre economia real.
+                    Se você escolher <span className="font-semibold text-white">{getStationPublicName(economySavings.candidate.station)}</span> agora, o litro sai a <span className="font-semibold text-white">{formatCurrencyBRL(economySavings.candidate.report.price)}</span>. Contra a média recente do recorte ({economySavings.referenceCount} leituras), isso abre economia real.
                   </p>
                   <div className="mt-4 grid gap-2 sm:grid-cols-2">
                     {economySavings.liters.map((entry) => (
@@ -1370,9 +1370,9 @@ export function HomeDeferredSections(props: Record<string, any>) {
                   </p>
                 </>
               ) : economySavings.kind === "flat" ? (
-                <p className="mt-4 text-sm leading-relaxed text-white/42">O melhor preco ficou praticamente colado a media recente do recorte. Hoje a diferenca esta pequena demais para prometer economia real no tanque.</p>
+                <p className="mt-4 text-sm leading-relaxed text-white/42">O melhor preço ficou praticamente colado à média recente do recorte. Hoje a diferença está pequena demais para prometer economia real no tanque.</p>
               ) : (
-                <p className="mt-4 text-sm leading-relaxed text-white/42">O recorte nao abriu uma economia clara contra a referencia recente. Vale olhar rota, recencia e confianca, mas sem promessa forte de poupanca agora.</p>
+                <p className="mt-4 text-sm leading-relaxed text-white/42">O recorte não abriu uma economia clara contra a referência recente. Vale olhar rota, recência e confiança, mas sem promessa forte de poupança agora.</p>
               )}
             </div>
           </div>
@@ -1382,7 +1382,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
           {[
             { label: "Preco bruto", note: "Nao some da tela. Continua na frente para a conta fechar rapido." },
             { label: "Recencia", note: "Preco velho perde peso, mesmo quando parece o melhor da lista." },
-            { label: "Confianca", note: "Recomendacao forte so aparece quando o dado ainda se sustenta." },
+            { label: "Confiança", note: "Recomendação forte só aparece quando o dado ainda se sustenta." },
             { label: "Distancia", note: "Ajuda a separar o barato distante do que vale no caminho." }
           ].map((signal) => (
             <div key={signal.label} className="rounded-[18px] border border-white/8 bg-white/[0.04] px-4 py-3">
@@ -1394,10 +1394,10 @@ export function HomeDeferredSections(props: Record<string, any>) {
 
         {!hasEconomyItems ? (
           <EmptyStateCard
-            title={mapStations.length > 0 ? `Ha postos cadastrados, mas ainda sem ${fuelLabels[economyFuelFilter].toLowerCase()} recente neste recorte.` : `Nenhum preco de ${fuelLabels[economyFuelFilter].toLowerCase()} disponivel neste recorte.`}
-            description={mapStations.length > 0 ? "Abra a lista dos postos sem atualizacao e envie a primeira foto desse combustivel onde puder." : "Tente outro bairro, cidade ou mude o combustivel da comparacao para voltar a um recorte util."}
+            title={mapStations.length > 0 ? `Há postos cadastrados, mas ainda sem ${fuelLabels[economyFuelFilter].toLowerCase()} recente neste recorte.` : `Nenhum preço de ${fuelLabels[economyFuelFilter].toLowerCase()} disponível neste recorte.`}
+            description={mapStations.length > 0 ? "Abra a lista dos postos sem atualização e envie a primeira foto desse combustível onde puder." : "Tente outro bairro, cidade ou mude o combustível da comparação para voltar a um recorte útil."}
             actionHref="/postos/sem-atualizacao"
-            actionLabel="Ver postos sem atualizacao"
+            actionLabel="Ver postos sem atualização"
             className="text-left"
           />
         ) : (
@@ -1490,7 +1490,7 @@ export function HomeDeferredSections(props: Record<string, any>) {
                                 });
                               }}
                             >
-                              Atualizar preco
+                              Atualizar preço
                             </ButtonLink>
                             {canRoute ? (
                               <Button

@@ -67,15 +67,15 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
       <AppShell activeNavPath="/enviar">
         <MissionProvider>
           <RouteRuntimeSignals />
-          <ProductEvent eventType="submit_opened" pagePath="/enviar" pageTitle="Enviar preco" />
+          <ProductEvent eventType="submit_opened" pagePath="/enviar" pageTitle="Enviar preço" />
 
           <div data-layout-scope="submit-wide" data-hero-primary="submit-form" className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(330px,360px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(360px,400px)] xl:items-start">
             <div data-layout-role="main" className="min-w-0 space-y-6">
               <SectionCard className="hidden space-y-2 border-white/10 bg-white/5 md:block xl:hidden">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Ajuda rapida</p>
-                <h2 className="text-sm font-semibold text-white">O formulario continua sendo a parte principal</h2>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Ajuda rápida</p>
+                <h2 className="text-sm font-semibold text-white">O formulário continua sendo a parte principal</h2>
                 <p className="text-sm text-white/54">
-                  No celular e no tablet, a lateral some para nao disputar com a foto, o posto e os precos.
+                  No celular e no tablet, a lateral some para não disputar com a foto, o posto e os preços.
                 </p>
               </SectionCard>
 
@@ -83,16 +83,16 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-xs uppercase tracking-[0.2em] text-white/42">Envio</p>
-                    <h2 className="mt-1 text-[1.8rem] font-semibold leading-none text-white xl:text-[1.45rem]">Enviar preco</h2>
+                    <h2 className="mt-1 text-[1.8rem] font-semibold leading-none text-white xl:text-[1.45rem]">Enviar preço</h2>
                   </div>
-                  <Badge variant="warning">1 foto + 1 posto + 1 ou varios precos</Badge>
+                  <Badge variant="warning">1 foto + 1 posto + 1 ou vários preços</Badge>
                 </div>
                 <p className="text-sm text-white/62 xl:text-[13px]">
-                  Foto primeiro. Depois posto, precos por combustivel e envio. Pode mandar um ou varios sem virar formulario pesado.
+                  Foto primeiro. Depois posto, preços por combustível e envio. Pode mandar um ou vários sem virar formulário pesado.
                 </p>
                 {initialStation ? (
                   <div className="rounded-[18px] border border-[color:var(--color-accent)]/18 bg-[color:var(--color-accent)]/8 px-4 py-3 text-sm text-white/72">
-                    <span className="font-medium text-white/88">Posto pre-selecionado:</span> {initialStation.name} · {initialStation.neighborhood}, {initialStation.city}
+                    <span className="font-medium text-white/88">Posto pré-selecionado:</span> {initialStation.name} · {initialStation.neighborhood}, {initialStation.city}
                   </div>
                 ) : null}
               </SectionCard>
@@ -103,7 +103,7 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
                     <Camera className="h-5 w-5 text-[color:var(--color-accent)]" />
                     <div>
                       <p className="text-sm font-semibold text-white xl:text-[13px]">Comece pela foto</p>
-                      <p className="text-sm text-white/56 xl:text-[13px]">Na rua, e mais rapido tirar a foto primeiro e preencher so os precos que aparecem nela.</p>
+                      <p className="text-sm text-white/56 xl:text-[13px]">Na rua, é mais rápido tirar a foto primeiro e preencher só os preços que aparecem nela.</p>
                     </div>
                   </div>
                   <a
@@ -125,9 +125,9 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
                 <div className="rounded-[22px] border border-white/8 bg-black/20 p-4 text-sm text-white/58 xl:p-3.5">
                   <div className="flex items-center gap-2 text-white/80">
                     <ShieldCheck className="h-4 w-4 text-[color:var(--color-accent)]" />
-                    Vai para revisao
+                    Vai para revisão
                   </div>
-                  <p className="mt-2">Depois do envio, cada preco entra em revisao, mas a foto e o contexto seguem juntos.</p>
+                  <p className="mt-2">Depois do envio, cada preço entra em revisão, mas a foto e o contexto seguem juntos.</p>
                   {returnToHref ? (
                     <div className="mt-3 flex gap-2">
                       <ButtonLink href={returnToHref as Route} variant="secondary">
@@ -142,7 +142,7 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
             <aside data-layout-role="rail" data-rail-useful="submit" className="hidden space-y-4 xl:block xl:sticky xl:top-24">
               <SectionCard className="space-y-3 border-white/10 bg-white/5 xl:p-4">
                 <div className="space-y-1.5">
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Rail util</p>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Rail útil</p>
                   <h3 className="text-lg font-semibold text-white xl:text-base">Ordem, fila e atalho</h3>
                   <p className="text-sm leading-relaxed text-white/54 xl:text-[13px]">A lateral mostra a ordem do envio, o estado da fila e o melhor retorno para o mapa.</p>
                 </div>
@@ -157,13 +157,13 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
                         </Badge>
                       ))}
                     </div>
-                    <p className="mt-2 text-xs text-white/48">Foto primeiro. Depois posto e bloco unico de precos.</p>
+                    <p className="mt-2 text-xs text-white/48">Foto primeiro. Depois posto e bloco único de preços.</p>
                   </div>
 
                   <div className="rounded-[20px] border border-white/8 bg-black/25 p-3.5">
-                    <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Fila e revisao</p>
-                    <p className="mt-2 text-sm font-semibold text-white">Todo envio passa por revisao antes de aparecer no mapa.</p>
-                    <p className="mt-1 text-xs text-white/48">A fila segura o pacote local sem travar quem esta na rua.</p>
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-white/36">Fila e revisão</p>
+                    <p className="mt-2 text-sm font-semibold text-white">Todo envio passa por revisão antes de aparecer no mapa.</p>
+                    <p className="mt-1 text-xs text-white/48">A fila segura o pacote local sem travar quem está na rua.</p>
                   </div>
                 </div>
 
@@ -175,7 +175,7 @@ export default async function SubmitPage({ searchParams }: SubmitPageProps) {
                   </div>
                 ) : (
                   <div className="rounded-[22px] border border-white/8 bg-black/25 p-3.5 text-sm text-white/56 xl:text-[13px]">
-                    Abra o mapa primeiro se quiser enviar ja com o posto certo.
+                    Abra o mapa primeiro se quiser enviar já com o posto certo.
                   </div>
                 )}
               </SectionCard>

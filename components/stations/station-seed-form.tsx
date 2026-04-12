@@ -153,7 +153,7 @@ function SeedNearbyCard({ candidate, onUseExisting }: { candidate: NearbyStation
         <div className="min-w-0 space-y-1">
           <p className="truncate text-sm font-semibold text-white">{getStationPublicName(candidate.station)}</p>
           <p className="text-xs text-white/58">{candidate.station.brand || "Sem bandeira"} · {candidate.station.neighborhood || "Sem bairro"} · {candidate.station.city || "Sem cidade"}</p>
-          <p className="text-[11px] text-white/42">{candidate.station.address || "Endereco nao informado"}</p>
+          <p className="text-[11px] text-white/42">{candidate.station.address || "Endereço não informado"}</p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-2 text-[11px] text-white/42">
           <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 font-semibold text-white/78">{formatDistanceFromYou(candidate.distance)}</span>
@@ -311,7 +311,7 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
     }
 
     if (coords && accuracy !== null && accuracy <= 100) {
-      return "GPS confiavel";
+      return "GPS confiável";
     }
 
     if (coords) {
@@ -414,7 +414,7 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
 
       const result = await geocodeStationSeedAddressAction(payload);
       if (!result.ok || result.lat === null || result.lng === null) {
-        setGeocodeMessage(result.error ?? "Nao foi possivel localizar esse endereco.");
+        setGeocodeMessage(result.error ?? "Não foi possível localizar esse endereço.");
         setLocationConfirmed(false);
         return;
       }
@@ -424,8 +424,8 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
       setGeocodeConfidence(result.confidence ?? "");
       setGeocodeDisplayName(result.displayName ?? "");
       setGeocodeMessage(result.confidence === "low"
-        ? "Endereco encontrado com confianca baixa. Ajuste o pin e siga para revisao."
-        : "Endereco localizado. Ajuste o pin se necessario e confirme o ponto.");
+        ? "Endereço encontrado com confiança baixa. Ajuste o pin e siga para revisão."
+        : "Endereço localizado. Ajuste o pin, se necessário, e confirme o ponto.");
       setLocationConfirmed(false);
       setConfirmCreate(false);
     });
@@ -492,8 +492,8 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.2em] text-white/42">Cadastro restrito</p>
-            <h1 className="text-2xl font-semibold text-white">Semeadura rapida de postos</h1>
-            <p className="max-w-xl text-sm text-white/58">Fluxo curto para pessoas de confianca que precisam abrir um posto que ainda nao existe na lista.</p>
+            <h1 className="text-2xl font-semibold text-white">Semeadura rápida de postos</h1>
+            <p className="max-w-xl text-sm text-white/58">Fluxo curto para pessoas de confiança que precisam abrir um posto que ainda não existe na lista.</p>
             
           </div>
           <Badge variant="outline">Papel estreito</Badge>
@@ -517,9 +517,9 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
           </div>
           <div className="grid gap-2">
             <button type="button" onClick={() => handleLocationModeChange("gps")} className={cn("rounded-[16px] border px-3 py-2 text-left text-sm", locationMode === "gps" ? "border-[color:var(--color-accent)]/45 bg-[color:var(--color-accent)]/12 text-white" : "border-white/10 bg-black/20 text-white/74")}>Usar GPS atual</button>
-            <button type="button" onClick={() => handleLocationModeChange("address")} className={cn("rounded-[16px] border px-3 py-2 text-left text-sm", locationMode === "address" ? "border-[color:var(--color-accent)]/45 bg-[color:var(--color-accent)]/12 text-white" : "border-white/10 bg-black/20 text-white/74")}>Informar endereco</button>
+            <button type="button" onClick={() => handleLocationModeChange("address")} className={cn("rounded-[16px] border px-3 py-2 text-left text-sm", locationMode === "address" ? "border-[color:var(--color-accent)]/45 bg-[color:var(--color-accent)]/12 text-white" : "border-white/10 bg-black/20 text-white/74")}>Informar endereço</button>
           </div>
-          <p className="text-sm text-white/58">{locationMode === "gps" ? locationStatus : "Digite endereco curto, geocodifique e confirme o pin no mapa."}</p>
+          <p className="text-sm text-white/58">{locationMode === "gps" ? locationStatus : "Digite endereço curto, geocodifique e confirme o pin no mapa."}</p>
           {locationMode === "address" ? (
             <div className="space-y-2 rounded-[16px] border border-[color:var(--color-accent)]/25 bg-[color:var(--color-accent)]/10 p-3">
               <label className="space-y-1">
@@ -528,7 +528,7 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
               </label>
               <div className="grid gap-2 sm:grid-cols-2">
                 <label className="space-y-1">
-                  <span className="text-[10px] uppercase tracking-[0.18em] text-white/60">Numero</span>
+                  <span className="text-[10px] uppercase tracking-[0.18em] text-white/60">Número</span>
                   <input value={streetNumber} onChange={(event) => { setStreetNumber(event.target.value); setConfirmCreate(false); }} placeholder="Ex.: 245" className="w-full rounded-[14px] border border-white/12 bg-black/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/34" />
                 </label>
                 <label className="space-y-1">
@@ -541,12 +541,12 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
                 <input ref={cityInputRef} value={city} onChange={(event) => { setCity(event.target.value); setConfirmCreate(false); }} placeholder={homeContextCity || lastStationCity || "Ex.: Volta Redonda"} className="w-full rounded-[14px] border border-white/12 bg-black/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/34" required />
               </label>
               <label className="space-y-1">
-                <span className="text-[10px] uppercase tracking-[0.18em] text-white/60">Referencia (opcional)</span>
+                <span className="text-[10px] uppercase tracking-[0.18em] text-white/60">Referência (opcional)</span>
                 <input value={reference} onChange={(event) => setReference(event.target.value)} placeholder="Ex.: em frente ao mercado" className="w-full rounded-[14px] border border-white/12 bg-black/30 px-3 py-2.5 text-sm text-white outline-none placeholder:text-white/34" />
               </label>
 
               <Button type="button" variant="secondary" className="w-full" disabled={isGeocoding || !street.trim() || !(city.trim() || homeContextCity || lastStationCity)} onClick={handleGeocodeAddress}>
-                {isGeocoding ? "Buscando endereco..." : "Geocodificar endereco"}
+                {isGeocoding ? "Buscando endereço..." : "Geocodificar endereço"}
               </Button>
               {geocodeMessage ? <p className="text-xs text-white/72">{geocodeMessage}</p> : null}
               {geocodeDisplayName ? <p className="text-[11px] text-white/52">Resultado: {geocodeDisplayName}</p> : null}
@@ -568,7 +568,7 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
             <MapPinned className="h-4 w-4 text-[color:var(--color-accent)]" />
             <h2 className="text-base font-semibold text-white">Ajuste do ponto</h2>
           </div>
-          <p className="text-sm text-white/58">Coordenadas finais usadas no cadastro. No modo endereco, confirme o pin antes de salvar.</p>
+          <p className="text-sm text-white/58">Coordenadas finais usadas no cadastro. No modo endereço, confirme o pin antes de salvar.</p>
           <div className="grid gap-2 sm:grid-cols-2">
             <label className="space-y-1">
               <span className="text-[10px] uppercase tracking-[0.18em] text-white/42">Latitude</span>
@@ -591,7 +591,7 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
           ) : null}
 
           {locationMode === "address" && !currentCoords ? (
-            <div className="rounded-[18px] border border-yellow-400/20 bg-yellow-400/10 px-3 py-2 text-xs text-yellow-50">Busque um endereco para visualizar e confirmar o pin.</div>
+            <div className="rounded-[18px] border border-yellow-400/20 bg-yellow-400/10 px-3 py-2 text-xs text-yellow-50">Busque um endereço para visualizar e confirmar o pin.</div>
           ) : null}
         </section>
       </div>
@@ -641,7 +641,7 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
           </div>
         ) : (
           <div className="rounded-[18px] border border-white/8 bg-black/20 px-4 py-3 text-sm text-white/58">
-            Nenhum posto com coordenada valida apareceu perto desse ponto. Ainda assim, confira os parecidos abaixo antes de salvar.
+            Nenhum posto com coordenada válida apareceu perto desse ponto. Ainda assim, confira os parecidos abaixo antes de salvar.
           </div>
         )}
       </section>
@@ -701,7 +701,7 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
       <section className="space-y-3 rounded-[24px] border border-white/8 bg-black/25 p-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Saida</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-white/42">Saída</p>
             <h2 className="mt-1 text-base font-semibold text-white">Salvar agora ou revisar</h2>
           </div>
           <Badge variant={currentCoords ? "accent" : "warning"}>{currentCoords ? "Com geo" : "Sem geo"}</Badge>
@@ -711,8 +711,8 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
           {currentCoords && !hasLowGeocodeConfidence
             ? "Com sinal bom, o posto pode entrar ativo."
             : hasLowGeocodeConfidence
-              ? "Geocoding com confianca baixa: o posto vai para revisao manual."
-              : "Sem geo forte, o posto vai para revisao antes de aparecer para todo mundo."}
+              ? "Geocoding com confiança baixa: o posto vai para revisão manual."
+              : "Sem geo forte, o posto vai para revisão antes de aparecer para todo mundo."}
         </div>
 
         {blockReason ? (
@@ -728,7 +728,7 @@ export function StationSeedForm({ stations, notice, initialCity, initialNeighbor
         <div className="flex flex-col gap-2 sm:flex-row">
           {duplicateCandidates.length > 0 && !confirmCreate ? (
             <Button type="button" disabled={!canCreateNew} className="w-full justify-center sm:flex-1" onClick={() => setConfirmCreate(true)}>
-              Confirmar criacao mesmo assim
+              Confirmar criação mesmo assim
             </Button>
           ) : (
             <Button type="submit" disabled={pending || !canCreateNew} className="w-full justify-center sm:flex-1">

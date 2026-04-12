@@ -1,5 +1,9 @@
 export type RecencyTone = "fresh" | "warning" | "stale";
 
+const FRESH_RECENCY_HOURS = 24;
+const STALE_RECENCY_DAYS = 21;
+const STALE_RECENCY_HOURS = STALE_RECENCY_DAYS * 24;
+
 function parseDate(value: string) {
   const date = new Date(value);
   return Number.isFinite(date.getTime()) ? date : null;
@@ -36,11 +40,11 @@ export function getRecencyTone(value: string, referenceDate = new Date()): Recen
   const diffMinutes = Math.round((referenceDate.getTime() - date.getTime()) / 60000);
   const diffHours = Math.round(diffMinutes / 60);
 
-  if (diffHours <= 24) {
+  if (diffHours <= FRESH_RECENCY_HOURS) {
     return "fresh";
   }
 
-  if (diffHours <= 48 || isYesterday(date, referenceDate)) {
+  if (diffHours <= STALE_RECENCY_HOURS || isYesterday(date, referenceDate)) {
     return "warning";
   }
 

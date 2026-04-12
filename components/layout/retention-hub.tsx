@@ -236,7 +236,7 @@ if (lastSub) {
              </div>
              <div>
                <p className="text-sm font-bold text-white">Envios Pendentes</p>
-               <p className="text-xs text-white/60">{pendingSubmissionsCount} preco(s) aguardando.</p>
+               <p className="text-xs text-white/60">{pendingSubmissionsCount} preço(s) aguardando.</p>
              </div>
           </div>
           <button 

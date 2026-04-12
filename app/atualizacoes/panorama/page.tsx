@@ -49,12 +49,12 @@ export default async function PanoramaRegionalPage({ searchParams }: PanoramaReg
                 <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Dentro de atualizacoes</p>
                 <h2 className="text-lg font-semibold text-white xl:text-base">Panorama territorial sem poluir a home</h2>
                 <p className="text-sm leading-relaxed text-white/54 xl:text-[13px]">
-                  A home fica pessoal e rapida. Esta superficie abre a leitura regional, municipal e de bairro com linguagem prudente.
+                  A home fica pessoal e rápida. Esta superfície abre a leitura regional, municipal e de bairro com linguagem prudente.
                 </p>
               </div>
 
               <div className="rounded-[22px] border border-white/8 bg-black/25 p-3.5 text-sm text-white/56 xl:text-[13px]">
-                Use esta pagina para pressionar o debate publico com dado visivel, sem transformar coincidencia de preco em acusacao automatica.
+                Use esta página para pressionar o debate público com dado visível, sem transformar coincidência de preço em acusação automática.
               </div>
 
               <div className="grid gap-2">
@@ -79,13 +79,13 @@ export default async function PanoramaRegionalPage({ searchParams }: PanoramaReg
         globalSubmitCta={{
           href: "/atualizacoes",
           label: "Voltar ao feed",
-          note: "Falha temporaria ao montar o panorama territorial."
+          note: "Falha temporária ao montar o panorama territorial."
         }}
       >
         <SectionCard className="space-y-3">
           <p className="text-[10px] uppercase tracking-[0.2em] text-white/34">Panorama regional</p>
-          <h1 className="text-2xl font-semibold text-white">Nao foi possivel abrir o panorama agora.</h1>
-          <p className="text-sm text-white/56">Tente novamente em instantes ou volte ao feed de atualizacoes enquanto a base publica recarrega.</p>
+          <h1 className="text-2xl font-semibold text-white">Não foi possível abrir o panorama agora.</h1>
+          <p className="text-sm text-white/56">Tente novamente em instantes ou volte ao feed de atualizações enquanto a base pública recarrega.</p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <ButtonLink href={"/atualizacoes" as const} variant="secondary">Voltar ao feed</ButtonLink>
             <ButtonLink href={"/postos/sem-atualizacao" as const}>Fechar lacunas</ButtonLink>

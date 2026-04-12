@@ -133,7 +133,7 @@ function StationOption({
   const selectedReport = getSelectedStationReport(candidate.station, fuelType);
   const recentPriceLabel = selectedReport ? formatCurrencyBRL(selectedReport.price) : null;
   const recentTimeLabel = selectedReport ? formatRecencyLabel(selectedReport.reportedAt) : null;
-  const streetLabel = candidate.addressShort || candidate.neighborhoodLabel || "Endereco curto indisponivel";
+  const streetLabel = candidate.addressShort || candidate.neighborhoodLabel || "Endereço curto indisponível";
   const brandLabel = candidate.brandLabel ?? "Sem bandeira";
 
   return (
@@ -261,13 +261,13 @@ export function PriceSubmitStationPicker({
                 ref={stationSearchInputRef}
                 value={stationSearch}
                 onChange={(event) => onStationSearchChange(event.target.value)}
-                placeholder="Buscar por nome, bairro, endereco, cidade ou bandeira"
+                placeholder="Buscar por nome, bairro, endereço, cidade ou bandeira"
                 className={cn("h-12 w-full rounded-[18px] border bg-black/30 pl-11 pr-4 text-sm text-white outline-none transition", stationError ? "border-red-500/50 ring-1 ring-red-500/20" : "border-white/10")}
               />
             </div>
             {!coords ? (
               <Button type="button" variant="secondary" className="h-12 px-4 text-xs uppercase tracking-[0.18em]" onClick={onGetLocation}>
-                Ver mais proximos
+                Ver mais próximos
               </Button>
             ) : null}
           </div>
@@ -299,7 +299,7 @@ export function PriceSubmitStationPicker({
             <div className="space-y-3 rounded-[20px] border border-[color:var(--color-accent)]/16 bg-[color:var(--color-accent)]/8 p-3.5">
               <div className="space-y-1">
                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[color:var(--color-accent)]/72">Posto novo</p>
-                <p className="text-sm font-semibold text-white">Se nao achou, crie so o basico.</p>
+                <p className="text-sm font-semibold text-white">Se não achou, crie só o básico.</p>
                 <p className="text-xs leading-relaxed text-white/56">Nome, rua e bairro bastam. Se houver um parecido, escolha ele antes de criar outro.</p>
               </div>
               <div className="grid gap-2 sm:grid-cols-2">
@@ -343,7 +343,7 @@ export function PriceSubmitStationPicker({
                 </label>
               </div>
               <div className={cn("rounded-[16px] border px-3 py-2.5 text-xs", coords ? "border-emerald-400/20 bg-emerald-400/10 text-emerald-50" : "border-orange-400/20 bg-orange-400/10 text-orange-50")}>
-                {coords ? "Sua localizacao ajuda a posicionar esse posto novo." : "Sem localizacao agora. Ainda da para seguir com nome, rua e cidade."}
+                {coords ? "Sua localização ajuda a posicionar esse posto novo." : "Sem localização agora. Ainda dá para seguir com nome, rua e cidade."}
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
@@ -371,7 +371,7 @@ export function PriceSubmitStationPicker({
             <div className="mt-3 flex flex-wrap gap-2">
               {!lockedStation ? (
                 <Button type="button" variant="secondary" className="h-9 px-3 text-[10px] uppercase tracking-[0.18em]" onClick={() => onShowStationProposalFlowChange(true)}>
-                  Meu posto nao esta aqui
+                  Meu posto não está aqui
                 </Button>
               ) : null}
             </div>
@@ -397,7 +397,7 @@ export function PriceSubmitStationPicker({
               {coords ? (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/42">Mais proximos de voce</p>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/42">Mais próximos de você</p>
                     <span className="text-[11px] text-white/38">Raio inicial {nearbyRadiusMeters >= 5000 ? "5 km" : "2 km"}</span>
                   </div>
                   <div className="space-y-2">
@@ -416,8 +416,8 @@ export function PriceSubmitStationPicker({
               {recentPickerItems.length > 0 ? (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/42">Recentes e por onde voce passou</p>
-                    <span className="text-[11px] text-white/38">Memoria curta do aparelho</span>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/42">Recentes e por onde você passou</p>
+                    <span className="text-[11px] text-white/38">Memória curta do aparelho</span>
                   </div>
                   <div className="space-y-2">
                     {(showMoreRecent ? recentPickerItems : recentPickerItems.slice(0, 2)).map((candidate) => (
@@ -470,7 +470,7 @@ export function PriceSubmitStationPicker({
                 </>
               ) : (
                 <div className="rounded-[18px] border border-white/10 bg-black/20 px-4 py-3 text-sm text-white/58">
-                  Nenhum posto bateu com a busca. Tente nome, bairro, endereco, cidade ou bandeira.
+                  Nenhum posto bateu com a busca. Tente nome, bairro, endereço, cidade ou bandeira.
                 </div>
               )}
             </div>

@@ -11,7 +11,7 @@ export interface StationEditorInviteAcceptState {
   error: string | null;
 }
 
-const INITIAL_ERROR = "Nao foi possivel aceitar este convite agora.";
+const INITIAL_ERROR = "Não foi possível aceitar este convite agora.";
 
 function readBoolean(value: FormDataEntryValue | null) {
   const normalized = String(value ?? "").trim().toLowerCase();
@@ -20,12 +20,12 @@ function readBoolean(value: FormDataEntryValue | null) {
 
 function mapAcceptReason(reason: string | null) {
   if (reason === "missing_display_name") return "Informe um nome operacional curto.";
-  if (reason === "invite_not_found") return "Codigo ou link nao encontrado. Confira e tente novamente.";
+  if (reason === "invite_not_found") return "Código ou link não encontrado. Confira e tente novamente.";
   if (reason === "invite_revoked") return "Esse convite foi revogado pelo admin.";
   if (reason === "invite_expired") return "Esse convite expirou. Peça um novo convite.";
-  if (reason === "invite_exhausted") return "Esse convite ja foi usado no limite.";
-  if (reason === "session_create_failed") return "Nao foi possivel criar sua sessao neste aparelho agora. Tente novamente em instantes.";
-  if (reason === "invite_claim_failed") return "Seu codigo foi reconhecido, mas a ativacao nao concluiu. Tente de novo para finalizar a sessao.";
+  if (reason === "invite_exhausted") return "Esse convite já foi usado no limite.";
+  if (reason === "session_create_failed") return "Não foi possível criar sua sessão neste aparelho agora. Tente novamente em instantes.";
+  if (reason === "invite_claim_failed") return "Seu código foi reconhecido, mas a ativação não concluiu. Tente de novo para finalizar a sessão.";
   return INITIAL_ERROR;
 }
 

@@ -65,7 +65,7 @@ function buildCoverageSignal(readout: TerritorialCoverageReadout): UnifiedSignal
     key: "coverage",
     label: "Cobertura territorial",
     status,
-    summary: `${readout.summary.emptyZones} bairros vazios · ${readout.summary.stationsWithoutPrice} postos sem preco recente`,
+    summary: `${readout.summary.emptyZones} bairros vazios · ${readout.summary.stationsWithoutPrice} postos sem preço recente`,
     recommendation: status === "problem"
       ? "Priorizar semeadura e curadoria nas zonas vazias"
       : status === "attention"

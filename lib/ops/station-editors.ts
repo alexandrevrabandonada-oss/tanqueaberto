@@ -183,7 +183,7 @@ export async function grantStationEditorRole(email: string) {
   const authUser = await findAuthUserByEmail(email);
 
   if (!authUser?.id || !authUser.email) {
-    throw new Error("E-mail nao encontrado no Auth.");
+    throw new Error("E-mail não encontrado no Auth.");
   }
 
   const normalizedEmail = normalizeEmail(authUser.email);
@@ -230,7 +230,7 @@ export async function revokeStationEditorRole(email: string) {
   }
 
   if (!data?.email) {
-    throw new Error("E-mail nao encontrado na allowlist.");
+    throw new Error("E-mail não encontrado na allowlist.");
   }
 
   return { userId: data.user_id, email: data.email };

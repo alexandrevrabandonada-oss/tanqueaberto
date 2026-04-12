@@ -82,7 +82,7 @@ export async function geocodeStationSeedAddressAction(formData: FormData): Promi
   if (!street || !city) {
     return {
       ok: false,
-      error: "Informe ao menos rua e cidade para buscar o endereco.",
+      error: "Informe ao menos rua e cidade para buscar o endereço.",
       lat: null,
       lng: null,
       confidence: null,
@@ -101,7 +101,7 @@ export async function geocodeStationSeedAddressAction(formData: FormData): Promi
   if (!geocoded) {
     return {
       ok: false,
-      error: "Nao foi possivel localizar esse endereco agora. Ajuste os dados e tente novamente.",
+      error: "Não foi possível localizar esse endereço agora. Ajuste os dados e tente novamente.",
       lat: null,
       lng: null,
       confidence: null,
@@ -148,11 +148,11 @@ export async function createStationSeedAction(_prevState: StationSeedState, form
   }
 
   if (locationMode === "address" && (!lat || !lng)) {
-    return { error: "Busque o endereco e confirme o ponto no mapa antes de salvar.", success: false, createdStationId: null };
+    return { error: "Busque o endereço e confirme o ponto no mapa antes de salvar.", success: false, createdStationId: null };
   }
 
   if (locationMode === "address" && !locationConfirmed) {
-    return { error: "Confirme o local no mapa para concluir o cadastro por endereco.", success: false, createdStationId: null };
+    return { error: "Confirme o local no mapa para concluir o cadastro por endereço.", success: false, createdStationId: null };
   }
 
   const hasCoords = lat !== null && lng !== null;
@@ -205,8 +205,8 @@ export async function createStationSeedAction(_prevState: StationSeedState, form
     curation_note: [
       proposalSignal.label,
       proposalSignal.reason,
-      locationMode === "address" ? `Endereco geocodificado${geocodeDisplayName ? `: ${geocodeDisplayName}` : ""}` : null,
-      reference ? `Referencia: ${reference}` : null,
+      locationMode === "address" ? `Endereço geocodificado${geocodeDisplayName ? `: ${geocodeDisplayName}` : ""}` : null,
+      reference ? `Referência: ${reference}` : null,
       duplicateHint ? `Parecido com ${duplicateHint}` : null
     ].filter(Boolean).join(" · ")
   };
@@ -250,7 +250,7 @@ export async function createStationSeedAction(_prevState: StationSeedState, form
       payload: { nickname, city, hasCoords, visibilityStatus, locationMode, geocodeConfidence }
     });
 
-    return { error: "Nao foi possivel salvar o posto agora.", success: false, createdStationId: null };
+    return { error: "Não foi possível salvar o posto agora.", success: false, createdStationId: null };
   }
 
   await supabase.from("station_seed_requests").insert({
@@ -319,7 +319,7 @@ export async function createStationSeedAction(_prevState: StationSeedState, form
     scopeId: data.id,
     actorId: editor.id,
     actorEmail: editor.email,
-    reason: hasStrongSignal ? "posto semeado com sinal forte" : "posto semeado para revisao",
+    reason: hasStrongSignal ? "posto semeado com sinal forte" : "posto semeado para revisão",
     payload: {
       nickname,
       brand,

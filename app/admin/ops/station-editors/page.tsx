@@ -36,14 +36,14 @@ function getBanner(searchParams: Record<string, string | string[] | undefined>) 
   if (notice === "role_revoked") return "Papel station_editor removido.";
   if (notice === "invite_created") return "Convite leve criado para station_editor.";
   if (notice === "invite_revoked") return "Convite leve revogado e sessoes vinculadas encerradas.";
-  if (error === "grant_failed") return "Nao foi possivel conceder o papel.";
-  if (error === "revoke_failed") return "Nao foi possivel remover o papel.";
-  if (error === "invite_schema_missing") return "Schema de convites ainda nao aplicado no banco de producao.";
+  if (error === "grant_failed") return "Não foi possível conceder o papel.";
+  if (error === "revoke_failed") return "Não foi possível remover o papel.";
+  if (error === "invite_schema_missing") return "Schema de convites ainda não aplicado no banco de produção.";
   if (error === "invite_schema_partial") return "Schema de convites aplicado parcialmente: faltam colunas ou indices esperados.";
   if (error === "invite_service_unavailable") return "Servico admin indisponivel: faltando SUPABASE_SERVICE_ROLE_KEY no deploy.";
   if (error === "invite_permission_denied") return "Permissao negada ao criar convite no banco. Verifique grants/policies e service role.";
-  if (error === "invite_create_failed") return "Nao foi possivel criar o convite agora.";
-  if (error === "invite_revoke_failed") return "Nao foi possivel revogar o convite agora.";
+  if (error === "invite_create_failed") return "Não foi possível criar o convite agora.";
+  if (error === "invite_revoke_failed") return "Não foi possível revogar o convite agora.";
   if (error === "invalid_request") return "Pedido invalido.";
 
   return null;
@@ -209,7 +209,7 @@ export default async function StationEditorsPage({ searchParams }: StationEditor
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-white/42">Convite leve</p>
-            <h2 className="mt-1 text-xl font-semibold text-white">Gerar acesso por link/codigo</h2>
+            <h2 className="mt-1 text-xl font-semibold text-white">Gerar acesso por link/código</h2>
             <p className="mt-1 text-sm text-white/58">Pensado para WhatsApp. Papel estreito, revogavel e com validade curta.</p>
           </div>
           <Badge variant="outline">mobile-first</Badge>
@@ -245,7 +245,7 @@ export default async function StationEditorsPage({ searchParams }: StationEditor
                   className="h-9 border-white/10 text-white"
                 />
                 <CopyTextButton value={latestCreatedInvite.inviteLink} label="Copiar link" className="h-9 border-white/10 text-white" />
-                <CopyTextButton value={latestCreatedInvite.inviteCode} label="Copiar codigo" className="h-9 border-white/10 text-white" />
+                <CopyTextButton value={latestCreatedInvite.inviteCode} label="Copiar código" className="h-9 border-white/10 text-white" />
               </div>
             </div>
             <div className="rounded-[14px] border border-white/10 bg-black/35 px-3 py-2 text-xs text-white/84 break-all">{latestCreatedInvite.inviteLink}</div>
@@ -291,7 +291,7 @@ export default async function StationEditorsPage({ searchParams }: StationEditor
                         className="h-8 border-white/10 text-white"
                       />
                       <CopyTextButton value={invite.inviteLink} label="Copiar link" className="h-8 border-white/10 text-white" />
-                      <CopyTextButton value={invite.inviteCode} label="Copiar codigo" className="h-8 border-white/10 text-white" />
+                      <CopyTextButton value={invite.inviteCode} label="Copiar código" className="h-8 border-white/10 text-white" />
                       {invite.effectiveStatus === "pendente" ? (
                         <form action={revokeStationEditorInviteAction}>
                           <input type="hidden" name="inviteId" value={invite.id} />

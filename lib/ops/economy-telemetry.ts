@@ -806,12 +806,12 @@ export async function getEconomyTelemetryReadout(windowDays = 14): Promise<Econo
     }),
     buildRateIndicator({
       key: "overall_update_price_rate",
-      label: "Taxa de atualizar preco",
-      description: "Quanto da frente gera vontade de contribuir com atualizacao.",
+      label: "Taxa de atualizar preço",
+      description: "Quanto da frente gera vontade de contribuir com atualização.",
       numerator: totals.updatePriceClicks,
       denominator: totals.surfaceViews,
       threshold: RATE_THRESHOLDS.updatePrice,
-      note: `${totals.updatePriceClicks} cliques em atualizar preco`,
+      note: `${totals.updatePriceClicks} cliques em atualizar preço`,
     }),
     buildRateIndicator({
       key: "overall_return_rate",
