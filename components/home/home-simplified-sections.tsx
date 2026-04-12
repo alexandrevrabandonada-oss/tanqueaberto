@@ -133,8 +133,16 @@ function buildRankedCandidate(candidate: Candidate, scopeAveragePrice: number, s
   const netSavings50 = Math.max(0, grossSavings50 - detourCost);
   const recencyScore = candidate.recencyTone === "fresh" ? 1 : candidate.recencyTone === "warning" ? 0.7 : 0.26;
   const valueScore = clamp(1 - priceGapToLowest / 0.65, 0, 1) * 0.22 + clamp(netSavings50 / 12, 0, 1) * 0.29 + scoreDistance(candidate.distance) * 0.18 + recencyScore * 0.17 + candidate.confidence.score * 0.14 - (candidate.distance !== null && candidate.distance > 4_000 && netSavings50 < 4 ? 0.08 : 0);
-  const decisionLabel: DecisionLabel = candidate.recencyTone === "stale" || candidate.confidence.score < 0.65 ? "barato, mas velho" : candidate.distance !== null && candidate.distance <= 1_800 && netSavings40 >= 1.2 ? "vale no caminho" : netSavings50 >= 5 || (candidate.distance !== null && candidate.distance <= 4_000 && netSavings40 >= 2.2) ? "vale pequeno desvio" : "barato, mas longe";
-  const rationale = decisionLabel === "barato, mas velho" ? "Preço interessante, mas a leitura já ficou velha ou fraca para sustentar o desvio." : decisionLabel === "vale no caminho" ? `Economia líquida segura: ${formatCurrencyBRL(netSavings40)} em 40L sem tirar você do trajeto.` : decisionLabel === "vale pequeno desvio" ? `A conta fecha para um desvio curto: sobra cerca de ${formatCurrencyBRL(netSavings50)} em 50L depois do deslocamento.` : "Preço bom, mas a distância come parte demais da vantagem real.";
+  const decisionLabel: DecisionLabel = candidate.recencyTone === "stale" ? "barato, mas velho" : candidate.distance !== null && candidate.distance <= 1_800 && netSavings40 >= 1.2 ? "vale no caminho" : netSavings50 >= 5 || (candidate.distance !== null && candidate.distance <= 4_000 && netSavings40 >= 2.2) ? "vale pequeno desvio" : "barato, mas longe";
+  const rationale = decisionLabel === "barato, mas velho"
+    ? "Preço interessante, mas a leitura já passou da janela de 3 semanas e pede atualização antes do desvio."
+    : candidate.confidence.score < 0.65
+      ? "Preço bom, mas a confiança do ponto ainda pede checagem antes de transformar isso em desvio."
+      : decisionLabel === "vale no caminho"
+        ? `Economia líquida segura: ${formatCurrencyBRL(netSavings40)} em 40L sem tirar você do trajeto.`
+        : decisionLabel === "vale pequeno desvio"
+          ? `A conta fecha para um desvio curto: sobra cerca de ${formatCurrencyBRL(netSavings50)} em 50L depois do deslocamento.`
+          : "Preço bom, mas a distância come parte demais da vantagem real.";
   return { ...candidate, scopeLowestPrice, grossSavings40, grossSavings50, netSavings40, netSavings50, detourCost, valueScore, decisionLabel, rationale, isRegionLowest: priceGapToLowest <= 0.001 };
 }
 

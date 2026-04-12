@@ -191,8 +191,12 @@ function getEconomyRecommendationMeta(candidate: any) {
     return { label: "To indo", variant: "default" as const };
   }
 
-  if (candidate.recencyTone === "stale" || candidate.confidence.score < 0.65) {
+  if (candidate.recencyTone === "stale") {
     return { label: "Checa depois", variant: "danger" as const };
+  }
+
+  if (candidate.confidence.score < 0.65) {
+    return { label: "Talvez", variant: "warning" as const };
   }
 
   return { label: "Talvez", variant: "warning" as const };
