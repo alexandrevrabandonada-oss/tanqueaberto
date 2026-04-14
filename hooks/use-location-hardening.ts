@@ -38,9 +38,23 @@ const sharedState: {
 };
 
 const MOVEMENT_UPDATE_THRESHOLD_METERS = 6;
+const GEOLOCATION_ERROR_COOLDOWN_MS = 15_000;
+const GEOFENCING_JUMP_COOLDOWN_MS = 10_000;
+const recentGeoTelemetryEvents = new Map<string, number>();
 
 function hasGeolocationSupport() {
   return typeof navigator !== "undefined" && Boolean(navigator.geolocation);
+}
+
+function shouldEmitGeoTelemetry(signature: string, cooldownMs: number) {
+  const now = Date.now();
+  const lastSentAt = recentGeoTelemetryEvents.get(signature) ?? 0;
+  if (now - lastSentAt < cooldownMs) {
+    return false;
+  }
+
+  recentGeoTelemetryEvents.set(signature, now);
+  return true;
 }
 
 function getTrustStatus(accuracy: number): LocationTrustStatus {
@@ -77,11 +91,25 @@ function shouldKeepPoint(next: HardenedLocation) {
   if (timeDiffSeconds > 0) {
     const jumpSpeedKmh = (movementMeters / timeDiffSeconds) * 3.6;
     if (jumpSpeedKmh > 150 && previous.trustStatus === "confiável") {
-      void trackProductEvent({
-        eventType: "geofencing_jump_discarded" as any,
-        pagePath: window.location.pathname,
-        payload: { jumpSpeedKmh, accuracy: next.accuracy, distMeters: movementMeters }
-      });
+      const roundedSpeedBucket = Math.round(jumpSpeedKmh / 25) * 25;
+      const roundedDistanceBucket = Math.round(movementMeters / 100) * 100;
+      const roundedAccuracyBucket = Math.round(next.accuracy / 10) * 10;
+      const pagePath = window.location.pathname;
+      const jumpSignature = [
+        "geofencing_jump_discarded",
+        pagePath,
+        roundedSpeedBucket,
+        roundedDistanceBucket,
+        roundedAccuracyBucket
+      ].join("::");
+
+      if (shouldEmitGeoTelemetry(jumpSignature, GEOFENCING_JUMP_COOLDOWN_MS)) {
+        void trackProductEvent({
+          eventType: "geofencing_jump_discarded" as any,
+          pagePath,
+          payload: { jumpSpeedKmh, accuracy: next.accuracy, distMeters: movementMeters }
+        });
+      }
       return false;
     }
   }
@@ -140,11 +168,15 @@ function handleError(err: GeolocationPositionError) {
     stopWatch();
   }
 
-  void trackProductEvent({
-    eventType: "geolocation_error",
-    pagePath: window.location.pathname,
-    payload: { code: err.code, message }
-  });
+  const pagePath = window.location.pathname;
+  const errorSignature = ["geolocation_error", pagePath, err.code, message].join("::");
+  if (shouldEmitGeoTelemetry(errorSignature, GEOLOCATION_ERROR_COOLDOWN_MS)) {
+    void trackProductEvent({
+      eventType: "geolocation_error",
+      pagePath,
+      payload: { code: err.code, message }
+    });
+  }
 }
 
 function startWatch() {

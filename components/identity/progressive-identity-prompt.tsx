@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Fingerprint, Sparkles } from "lucide-react";
 
 import { Button, ButtonLink } from "@/components/ui/button";
@@ -79,6 +79,7 @@ export function ProgressiveIdentityPrompt({ context, source, className }: Progre
   const [isVisible, setIsVisible] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
+  const hasTrackedShownRef = useRef(false);
 
   const trigger = identity.eligibleTriggers[0] ?? null;
   const copy = useMemo(() => getContextCopy(context, source), [context, source]);
@@ -111,23 +112,26 @@ export function ProgressiveIdentityPrompt({ context, source, className }: Progre
     }
 
     setIsVisible(true);
-    void trackProductEvent({
-      eventType: "identity_prompt_shown",
-      pagePath: window.location.pathname,
-      scopeType: "identity",
-      scopeId: `${context}:${trigger?.id ?? "none"}`,
-      payload: {
-        context,
-        source: source ?? null,
-        trigger: trigger?.id ?? null,
-        phase: identity.phase,
-        sessionMode: identity.localSignals.sessionMode,
-        hasDraftMemory: identity.localSignals.hasDraftMemory,
-        hasPendingQueue: identity.localSignals.hasPendingQueue,
-        hasTrust: Boolean(identity.trust),
-        trustScore: identity.trust?.score ?? null
-      }
-    });
+    if (!hasTrackedShownRef.current) {
+      hasTrackedShownRef.current = true;
+      void trackProductEvent({
+        eventType: "identity_prompt_shown",
+        pagePath: window.location.pathname,
+        scopeType: "identity",
+        scopeId: `${context}:${trigger?.id ?? "none"}`,
+        payload: {
+          context,
+          source: source ?? null,
+          trigger: trigger?.id ?? null,
+          phase: identity.phase,
+          sessionMode: identity.localSignals.sessionMode,
+          hasDraftMemory: identity.localSignals.hasDraftMemory,
+          hasPendingQueue: identity.localSignals.hasPendingQueue,
+          hasTrust: Boolean(identity.trust),
+          trustScore: identity.trust?.score ?? null
+        }
+      });
+    }
   }, [context, identity.localSignals.hasDraftMemory, identity.localSignals.hasPendingQueue, identity.localSignals.sessionMode, identity.phase, identity.trust, shouldOffer, source, trigger?.id]);
 
   useEffect(() => {

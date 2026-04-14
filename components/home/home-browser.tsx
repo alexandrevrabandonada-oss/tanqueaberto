@@ -94,6 +94,9 @@ const TopOrchestrator = dynamic(() => import("@/components/layout/top-orchestrat
 const SurfaceOrchestrator = dynamic(() => import("@/components/layout/surface-orchestrator").then((mod) => mod.SurfaceOrchestrator), { ssr: false, loading: () => null });
 const HomeSimplifiedSections = dynamic(() => import("@/components/home/home-simplified-sections").then((mod) => mod.HomeSimplifiedSections), { ssr: false, loading: () => null });
 
+const emittedHomeScrollDepthKeys = new Set<string>();
+const emittedHomePrimaryBlockViewKeys = new Set<string>();
+
 interface HomeBrowserProps {
   stations: StationWithReports[];
   feed: ReportWithStation[];
@@ -180,6 +183,11 @@ function getSendHref(stationId: string, returnToHref?: string, fuelFilter?: Fuel
 
 function isComparisonFuelType(value: string): value is FuelType {
   return COMPARISON_FUEL_OPTIONS.some((item) => item.value === value);
+}
+
+function getPrimaryRecorteKey(city: string) {
+  const normalized = city.trim().toUpperCase();
+  return normalized || null;
 }
 
 function readComparisonFuelPreference() {
@@ -289,6 +297,9 @@ export function HomeBrowser({
   const [isHydrated, setIsHydrated] = useState(false);
   const lastTrackedSearchRef = useRef(initialQuery);
   const lastTrackedHomeStateRef = useRef<string | null>(null);
+  const homeOpenedTrackedRef = useRef(false);
+  const territorialEntryTrackedRef = useRef(false);
+  const lastTrackedPrimaryRecorteRef = useRef<string | null>(null);
   const deferredQuery = useDeferredValue(query);
   const { location, loading: geoLoading, error: geoError, refresh: getLocation } = useLocationHardening();
   const coords = location ? { lat: location.lat, lng: location.lng } : null;
@@ -329,34 +340,21 @@ export function HomeBrowser({
       const missionBoost = missionActive ? 1 : 0;
       const collapseThreshold = isWideViewport ? 12 : 56;
       const microThreshold = isWideViewport ? 28 : 160;
-      const shouldCollapse = scrollY > (collapseThreshold - missionBoost * 12);
-      const shouldBeMicro = scrollY > (microThreshold - missionBoost * 20);
+      const collapseBuffer = isWideViewport ? 8 : 16;
+      const microBuffer = isWideViewport ? 12 : 24;
+      const collapseEnterThreshold = Math.max(0, collapseThreshold - missionBoost * 12 + collapseBuffer);
+      const collapseExitThreshold = Math.max(0, collapseThreshold - missionBoost * 12 - collapseBuffer);
+      const microEnterThreshold = Math.max(0, microThreshold - missionBoost * 20 + microBuffer);
+      const microExitThreshold = Math.max(0, microThreshold - missionBoost * 20 - microBuffer);
+      const shouldCollapse = isHeroCollapsed ? scrollY > collapseExitThreshold : scrollY > collapseEnterThreshold;
+      const shouldBeMicro = isMicroMode ? scrollY > microExitThreshold : scrollY > microEnterThreshold;
 
       if (shouldCollapse !== isHeroCollapsed) {
         setIsHeroCollapsed(shouldCollapse);
-        void trackProductEvent({
-           eventType: "header_state_change" as any,
-           pagePath: "/",
-           payload: { state: shouldCollapse ? "collapsed" : "expanded", scrollY }
-        });
       }
       
       if (shouldBeMicro !== isMicroMode) {
         setIsMicroMode(shouldBeMicro);
-        void trackProductEvent({
-           eventType: "header_state_change" as any,
-           pagePath: "/",
-           payload: { state: shouldBeMicro ? "micro" : "collapsed", scrollY }
-        });
-      }
-
-      // Track scroll depth under sticky for analytics
-      if (shouldCollapse && scrollY % 500 === 0) {
-         void trackProductEvent({
-            eventType: "scroll_depth_under_sticky" as any,
-            pagePath: "/",
-            payload: { depth: scrollY }
-         });
       }
     };
 
@@ -386,38 +384,49 @@ export function HomeBrowser({
         setNavHandoff(data);
       }
     };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        checkHandoff();
+      }
+    };
 
     // Check on mount
     checkHandoff();
 
     // Check on return
     window.addEventListener("focus", checkHandoff);
-    window.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") checkHandoff();
-    });
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
     return () => {
       window.removeEventListener("focus", checkHandoff);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, []);
 
   // Scroll Depth Telemetry
   useEffect(() => {
-    const thresholds = [25, 50, 75, 100];
+    const thresholds = [50, 100];
     const tracked = new Set<number>();
 
     const handleScroll = () => {
       const winHeight = window.innerHeight;
       const docHeight = document.documentElement.scrollHeight;
+      if (docHeight <= winHeight) {
+        return;
+      }
+
       const scrollTop = window.scrollY;
       const scrollPercent = Math.round((scrollTop / (docHeight - winHeight)) * 100);
+      const pagePath = window.location.pathname;
 
       thresholds.forEach(t => {
-        if (scrollPercent >= t && !tracked.has(t)) {
+        const thresholdKey = `${pagePath}::${t}`;
+        if (scrollPercent >= t && !tracked.has(t) && !emittedHomeScrollDepthKeys.has(thresholdKey)) {
           tracked.add(t);
+          emittedHomeScrollDepthKeys.add(thresholdKey);
           void trackProductEvent({
             eventType: "scroll_depth" as any,
-            pagePath: "/",
+            pagePath,
             payload: { depth: t }
           });
         }
@@ -445,20 +454,41 @@ export function HomeBrowser({
   };
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const ref = params.get("ref");
-    if (ref === "city_page" && initialCity) {
-      void trackProductEvent({
-        eventType: "territorial_entry_from_landing" as any,
-        pagePath: "/",
-        pageTitle: "Mapa vivo",
-        scopeType: "city",
-        scopeId: initialCity,
-        payload: { city: initialCity, source: "city_page" }
-      });
+    if (territorialEntryTrackedRef.current || typeof window === "undefined") {
+      return;
     }
-    void trackProductEvent({ eventType: "home_opened", pagePath: "/", pageTitle: "Mapa vivo", scopeType: "page", scopeId: "/", payload: { streetMode: isStreetMode } });
-  }, [isStreetMode, initialCity]);
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("ref") !== "city_page" || !initialCity) {
+      return;
+    }
+
+    territorialEntryTrackedRef.current = true;
+    void trackProductEvent({
+      eventType: "territorial_entry_from_landing" as any,
+      pagePath: "/",
+      pageTitle: "Mapa vivo",
+      scopeType: "city",
+      scopeId: initialCity,
+      payload: { city: initialCity, source: "city_page" }
+    });
+  }, [initialCity]);
+
+  useEffect(() => {
+    if (homeOpenedTrackedRef.current) {
+      return;
+    }
+
+    homeOpenedTrackedRef.current = true;
+    void trackProductEvent({
+      eventType: "home_opened",
+      pagePath: "/",
+      pageTitle: "Mapa vivo",
+      scopeType: "page",
+      scopeId: "/",
+      payload: { streetMode: isStreetMode }
+    });
+  }, []);
 
   // Auto-start mission from deep link
   useEffect(() => {
@@ -766,7 +796,8 @@ export function HomeBrowser({
       .slice(0, 3);
   }, [fuelFilter, isHydrated, orderedStations, submissions]);
 
-    const hasFilters = Boolean(query || selectedCity || fuelFilter !== "all" || recencyFilter !== "all" || presenceFilter !== "all" || listMode !== "normal");
+  const hasFilters = Boolean(query || selectedCity || fuelFilter !== "all" || recencyFilter !== "all" || presenceFilter !== "all" || listMode !== "normal");
+  const primaryRecorteKey = useMemo(() => getPrimaryRecorteKey(selectedCity), [selectedCity]);
   useEffect(() => {
     if (!isHydrated) {
       return;
@@ -776,20 +807,30 @@ export function HomeBrowser({
     if (hasUsefulCut) {
       persistHomeContext({ query, city: selectedCity, fuelFilter, recencyFilter, presenceFilter, densityMode: listMode, isStreetMode });
     }
-    
-    if (selectedCity && isHydrated) {
-      void trackProductEvent({
-        eventType: "territorial_recorte_selected" as any,
-        pagePath: "/",
-        pageTitle: "Mapa vivo",
-        city: selectedCity,
-        payload: {
-          status: selectedReadiness?.status || "unknown",
-          score: selectedReadiness?.score || 0
-        }
-      });
+  }, [fuelFilter, isHydrated, presenceFilter, query, recencyFilter, selectedCity, filteredFeed.length, filteredStations.length, hasFilters, isStreetMode, listMode]);
+
+  useEffect(() => {
+    if (!isHydrated || !primaryRecorteKey) {
+      return;
     }
-  }, [fuelFilter, isHydrated, presenceFilter, query, recencyFilter, selectedCity, selectedReadiness, filteredFeed.length, filteredStations.length, hasFilters, isStreetMode, listMode]);
+
+    // The primary recorte changes only when the selected city changes.
+    if (lastTrackedPrimaryRecorteRef.current === primaryRecorteKey) {
+      return;
+    }
+
+    lastTrackedPrimaryRecorteRef.current = primaryRecorteKey;
+    void trackProductEvent({
+      eventType: "territorial_recorte_selected" as any,
+      pagePath: "/",
+      pageTitle: "Mapa vivo",
+      city: selectedCity,
+      payload: {
+        status: selectedReadiness?.status || "unknown",
+        score: selectedReadiness?.score || 0
+      }
+    });
+  }, [isHydrated, primaryRecorteKey, selectedCity, selectedReadiness?.score, selectedReadiness?.status]);
 
 
   useEffect(() => {
@@ -833,6 +874,12 @@ export function HomeBrowser({
     }
 
     lastTrackedHomeStateRef.current = homeState.state;
+    const primaryBlockViewKey = `/${homeState.state}`;
+    if (emittedHomePrimaryBlockViewKeys.has(primaryBlockViewKey)) {
+      return;
+    }
+
+    emittedHomePrimaryBlockViewKeys.add(primaryBlockViewKey);
     void trackProductEvent({
       eventType: "home_primary_block_view" as any,
       pagePath: "/",

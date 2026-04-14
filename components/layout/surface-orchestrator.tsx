@@ -1,12 +1,15 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
+import { usePathname } from "next/navigation";
 import { type SurfaceType, SURFACE_PRIORITIES, getTopSurfaces } from "@/lib/ui/surface-orchestrator";
 import { trackProductEvent } from "@/lib/telemetry/client";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { type OperationalKillSwitches } from "@/lib/ops/kill-switches";
+
+const emittedSurfaceImpressionKeys = new Set<string>();
 
 export interface SurfaceItem {
   id: string;
@@ -24,6 +27,7 @@ interface SurfaceOrchestratorProps {
 
 export function SurfaceOrchestrator({ surfaces, onDismiss, killSwitches, maxPrimaryItems = 2 }: SurfaceOrchestratorProps) {
   const [minimized, setMinimized] = useState<Record<string, boolean>>({});
+  const pathname = usePathname();
   
   const filteredSurfaces = useMemo(() => surfaces.filter((s: SurfaceItem) => {
     if (killSwitches?.disable_heavy_territorial_widgets && s.type === "INFO_NOTICE") {
@@ -33,19 +37,35 @@ export function SurfaceOrchestrator({ surfaces, onDismiss, killSwitches, maxPrim
   }), [surfaces, killSwitches?.disable_heavy_territorial_widgets]);
 
   const topTypes = useMemo(() => getTopSurfaces(filteredSurfaces.map((s: SurfaceItem) => s.type), maxPrimaryItems), [filteredSurfaces, maxPrimaryItems]);
+  const topTypesSignature = useMemo(() => topTypes.join("|"), [topTypes]);
   
   // Track impressions
   useEffect(() => {
-    topTypes.forEach((type: SurfaceType) => {
+    if (!pathname || !topTypesSignature) {
+      return;
+    }
+
+    const impressionKey = `${pathname}::${topTypesSignature}`;
+    if (emittedSurfaceImpressionKeys.has(impressionKey)) {
+      return;
+    }
+
+    emittedSurfaceImpressionKeys.add(impressionKey);
+
+    topTypesSignature.split("|").forEach((type) => {
+      const surfaceType = type as SurfaceType;
       void trackProductEvent({
         eventType: "surface_orchestrated_view" as any,
-        pagePath: window.location.pathname,
+        pagePath: pathname,
         scopeType: "ui_surface",
-        scopeId: type,
-        payload: { priority: SURFACE_PRIORITIES[type] }
+        scopeId: surfaceType,
+        payload: {
+          priority: SURFACE_PRIORITIES[surfaceType],
+          combo: topTypesSignature
+        }
       });
     });
-  }, [topTypes]);
+  }, [pathname, topTypesSignature]);
 
   if (filteredSurfaces.length === 0) return null;
 

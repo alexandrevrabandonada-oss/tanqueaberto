@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSubmissionHistory } from "@/components/history/submission-history-context";
 import { useMissionContext } from "@/components/mission/mission-context";
 import { SubmissionStatus } from "./submission-status";
@@ -129,6 +129,7 @@ export function CollectorHub({ stations }: CollectorHubProps) {
   const [impact, setImpact] = useState<CollectorTerritorialImpact | null>(null);
   const { getLocation } = useGeolocation();
   const [isNarrowMobile, setIsNarrowMobile] = useState(false);
+  const hubOpenedTrackedRef = useRef(false);
 
   useEffect(() => {
     getLocation();
@@ -156,8 +157,9 @@ export function CollectorHub({ stations }: CollectorHubProps) {
     loadData();
   }, [identity.nickname, reporterNickname]);
   useEffect(() => {
-    if (!localLoaded) return;
+    if (!localLoaded || hubOpenedTrackedRef.current) return;
 
+    hubOpenedTrackedRef.current = true;
     void trackProductEvent({
       eventType: "hub_opened",
       pagePath: "/hub",

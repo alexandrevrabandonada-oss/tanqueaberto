@@ -30,6 +30,9 @@ export const TOP_BUDGETS = {
   }
 } as const;
 
+const STICKY_EVENT_COOLDOWN_MS = 1500;
+const STICKY_MIN_DWELL_MS = 900;
+
 interface TopOrchestratorProps {
   isWarm: boolean;
   isRefreshing: boolean;
@@ -182,6 +185,7 @@ export function TopOrchestrator({
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [isWideDesktop, setIsWideDesktop] = useState(false);
   const stickySinceRef = useRef<number | null>(null);
+  const lastStickyTelemetryAtRef = useRef(0);
   const stickyMode = isSticky || isMicro;
   const compactMode = !isWideDesktop || stickyMode;
   const budget = isMicro ? TOP_BUDGETS.micro : !isWideDesktop ? TOP_BUDGETS.compact : isSticky ? TOP_BUDGETS.sticky : TOP_BUDGETS.expanded;
@@ -205,21 +209,33 @@ export function TopOrchestrator({
   }, [advancedOpen, stickyMode]);
 
   useEffect(() => {
+    const now = Date.now();
+
     if (!isSticky) {
       if (stickySinceRef.current) {
-        const dwell = Date.now() - stickySinceRef.current;
+        const dwell = now - stickySinceRef.current;
+        stickySinceRef.current = null;
+        if (dwell < STICKY_MIN_DWELL_MS || now - lastStickyTelemetryAtRef.current < STICKY_EVENT_COOLDOWN_MS) {
+          return;
+        }
+
+        lastStickyTelemetryAtRef.current = now;
         void trackProductEvent({
           eventType: "top_sticky_exit" as any,
           pagePath: window.location.pathname,
           payload: { dwellMs: dwell, micro: isMicro, mission: isMissionActive }
         });
-        stickySinceRef.current = null;
       }
       return;
     }
 
     if (!stickySinceRef.current) {
-      stickySinceRef.current = Date.now();
+      stickySinceRef.current = now;
+      if (now - lastStickyTelemetryAtRef.current < STICKY_EVENT_COOLDOWN_MS) {
+        return;
+      }
+
+      lastStickyTelemetryAtRef.current = now;
       void trackProductEvent({
         eventType: "top_sticky_enter" as any,
         pagePath: window.location.pathname,
@@ -409,7 +425,6 @@ export function TopOrchestrator({
     </div>
   );
 }
-
 
 
 

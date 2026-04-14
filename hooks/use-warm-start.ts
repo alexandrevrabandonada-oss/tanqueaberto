@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { trackProductEvent } from "@/lib/telemetry/client";
 
+const emittedWarmStartTelemetryKeys = new Set<string>();
+
 export interface WarmSnapshot<T> {
   data: T;
   timestamp: string;
@@ -40,26 +42,36 @@ export function useWarmStart<T>({ key, version, onRefresh }: UseWarmStartOptions
         if (snapshot.version === version) {
           setData(snapshot.data);
           setIsWarm(true);
-          
-          void trackProductEvent({
-            eventType: "warm_start_hit" as any,
-            pagePath: window.location.pathname,
-            payload: {
-              key,
-              ageMs: Date.now() - new Date(snapshot.timestamp).getTime(),
-              ttfrMs: Date.now() - startTime
-            }
-          });
+
+          const pagePath = window.location.pathname;
+          const warmStartKey = `${pagePath}::${key}::${version}::warm`;
+          if (!emittedWarmStartTelemetryKeys.has(warmStartKey)) {
+            emittedWarmStartTelemetryKeys.add(warmStartKey);
+            void trackProductEvent({
+              eventType: "warm_start_hit" as any,
+              pagePath,
+              payload: {
+                key,
+                ageMs: Date.now() - new Date(snapshot.timestamp).getTime(),
+                ttfrMs: Date.now() - startTime
+              }
+            });
+          }
         }
       } catch (e) {
         console.error("Failed to parse warm start cache", e);
       }
     } else {
-      void trackProductEvent({
-        eventType: "cold_start" as any,
-        pagePath: window.location.pathname,
-        payload: { key }
-      });
+      const pagePath = window.location.pathname;
+      const coldStartKey = `${pagePath}::${key}::${version}::cold`;
+      if (!emittedWarmStartTelemetryKeys.has(coldStartKey)) {
+        emittedWarmStartTelemetryKeys.add(coldStartKey);
+        void trackProductEvent({
+          eventType: "cold_start" as any,
+          pagePath,
+          payload: { key }
+        });
+      }
     }
   }, [key, version, startTime]);
 

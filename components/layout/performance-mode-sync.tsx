@@ -5,9 +5,12 @@ import { useEffect, useRef } from "react";
 import { trackProductEvent } from "@/lib/telemetry/client";
 import { useNetworkHardening } from "@/hooks/use-network-hardening";
 
+const emittedPerformanceModeKeys = new Set<string>();
+
 export function PerformanceModeSync() {
   const status = useNetworkHardening();
   const hasTrackedLowPerf = useRef(false);
+  const reasonsSignature = status.reasons.join("|");
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -19,10 +22,18 @@ export function PerformanceModeSync() {
       return;
     }
 
+    const pagePath = window.location.pathname;
+    const performanceKey = `${pagePath}::${reasonsSignature || "low-perf"}`;
+    if (emittedPerformanceModeKeys.has(performanceKey)) {
+      hasTrackedLowPerf.current = true;
+      return;
+    }
+
     hasTrackedLowPerf.current = true;
+    emittedPerformanceModeKeys.add(performanceKey);
     void trackProductEvent({
       eventType: "performance_mode_detected",
-      pagePath: window.location.pathname,
+      pagePath,
       pageTitle: document.title,
       payload: {
         effectiveType: status.effectiveType,
@@ -34,7 +45,7 @@ export function PerformanceModeSync() {
         isLowPerf: status.isLowPerf
       }
     });
-  }, [status]);
+  }, [reasonsSignature, status.deviceMemory, status.effectiveType, status.hardwareConcurrency, status.isLowPerf, status.prefersReducedMotion, status.reasons, status.saveData]);
 
   return null;
 }

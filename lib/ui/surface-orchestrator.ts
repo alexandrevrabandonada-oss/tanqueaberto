@@ -20,7 +20,7 @@ export const SURFACE_PRIORITIES: Record<SurfaceType, number> = {
 };
 
 export function getTopSurfaces(activeSurfaces: SurfaceType[], limit = 2): SurfaceType[] {
-  return [...activeSurfaces]
+  return [...new Set(activeSurfaces)]
     .sort((a, b) => SURFACE_PRIORITIES[b] - SURFACE_PRIORITIES[a])
     .slice(0, limit);
 }

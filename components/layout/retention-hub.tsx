@@ -22,6 +22,8 @@ import { useInbox } from "@/hooks/use-inbox";
 import { CollectorInbox } from "@/components/user/collector-inbox";
 import { StreetSessionSummary } from "@/components/user/street-session-summary";
 
+const emittedRetentionViewKeys = new Set<string>();
+
 export interface RetentionSurfaceItem {
   id: string;
   type: SurfaceType;
@@ -107,18 +109,6 @@ export function useRetentionSurfaces() {
       )
     });
   }
-
-  const surfaceCount = surfaces.length;
-
-  useEffect(() => {
-    if (surfaceCount > 0) {
-      void trackProductEvent({
-        eventType: "hub_retention_view" as any,
-        pagePath: "/",
-        payload: { surfacesCount: surfaceCount, role }
-      });
-    }
-  }, [role, surfaceCount]);
 
   // 0. Utility Status (Main Hub Identity)
   surfaces.push({
@@ -369,6 +359,27 @@ if (lastSub) {
       )
     });
   }
+
+  const surfaceCount = surfaces.length;
+  const surfaceIdsSignature = surfaces.map((surface) => surface.id).join("|");
+
+  useEffect(() => {
+    if (surfaceCount === 0 || typeof window === "undefined") {
+      return;
+    }
+
+    const retentionViewKey = `${window.location.pathname}::${role ?? "anon"}::${surfaceIdsSignature}`;
+    if (emittedRetentionViewKeys.has(retentionViewKey)) {
+      return;
+    }
+
+    emittedRetentionViewKeys.add(retentionViewKey);
+    void trackProductEvent({
+      eventType: "hub_retention_view" as any,
+      pagePath: "/",
+      payload: { surfacesCount: surfaceCount, role }
+    });
+  }, [role, surfaceCount, surfaceIdsSignature]);
 
   return surfaces;
 }
