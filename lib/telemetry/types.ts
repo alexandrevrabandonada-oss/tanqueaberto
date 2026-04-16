@@ -1,5 +1,6 @@
 export type ProductTelemetryEventType =
   | "home_opened"
+  | "home_recommendation_decided"
   | "home_search_used"
   | "station_clicked"
   | "station_opened"

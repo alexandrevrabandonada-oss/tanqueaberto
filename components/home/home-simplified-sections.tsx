@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import type { Route } from "next";
 import { MapPinned, Navigation, Sparkles } from "lucide-react";
@@ -15,6 +15,7 @@ import { fuelLabels } from "@/lib/format/labels";
 import { formatRecencyLabel, getRecencyTone, recencyToneToBadgeVariant } from "@/lib/format/time";
 import { formatDistanceFromYou } from "@/lib/geo/distance";
 import type { FunctionalRegion } from "@/lib/geo/functional-regions";
+import { pickBestValueRecommendation, pickNearbyRecommendation } from "@/lib/navigation/nearby-recommendation";
 import { rememberStationVisit } from "@/lib/navigation/home-context";
 import { openExternalNavigation } from "@/lib/navigation/external-maps";
 import { getStationPublicName } from "@/lib/quality/stations";
@@ -25,6 +26,8 @@ const HomeMapSurface = dynamic(() => import("@/components/home/home-map-surface"
   ssr: false,
   loading: () => <div className="h-[220px] rounded-[22px] border border-white/8 bg-white/[0.04]" />
 });
+
+const emittedRecommendationDecisionKeys = new Set<string>();
 
 const DETOUR_COST_PER_KM = 0.5;
 type DecisionLabel = "vale no caminho" | "vale pequeno desvio" | "barato, mas longe" | "barato, mas velho";
@@ -198,21 +201,97 @@ export function HomeSimplifiedSections({
     return scopeCandidates.map((item) => buildRankedCandidate(item, average, lowest));
   }, [scopeCandidates]);
 
-  const regionTopThree = useMemo(() => [...rankedCandidates].sort(rankByPrice).slice(0, 3), [rankedCandidates]);
-  const bestForYou = useMemo(() => [...rankedCandidates].sort((left, right) => right.valueScore - left.valueScore || rankByPrice(left, right))[0] ?? null, [rankedCandidates]);
   const nearYou = useMemo(() => {
+    return pickNearbyRecommendation(rankedCandidates.map((item) => ({
+      ...item,
+      price: Number(item.report.price),
+      confidenceScore: item.confidence.score
+    })));
+  }, [rankedCandidates]);
+  const regionTopThree = useMemo(() => [...rankedCandidates].sort(rankByPrice).slice(0, 3), [rankedCandidates]);
+  const bestForYou = useMemo(() => {
+    return pickBestValueRecommendation(rankedCandidates.map((item) => ({
+      ...item,
+      id: item.station.id,
+      price: Number(item.report.price),
+      confidenceScore: item.confidence.score
+    })), nearYou ? {
+      ...nearYou,
+      id: nearYou.station.id,
+      price: Number(nearYou.report.price),
+      confidenceScore: nearYou.confidence.score
+    } : null);
+  }, [nearYou, rankedCandidates]);
+  const absoluteNearest = useMemo(() => {
     const pool = rankedCandidates.filter((item) => item.distance !== null);
     if (pool.length === 0) return null;
-    const preferred = pool.filter((item) => item.recencyTone !== "stale" && item.confidence.score >= 0.58);
-    return [...(preferred.length > 0 ? preferred : pool)].sort((left, right) => {
-      const distanceDiff = (left.distance ?? Infinity) - (right.distance ?? Infinity);
-      if (Math.abs(distanceDiff) > 80) return distanceDiff;
-      return rankByPrice(left, right);
-    })[0] ?? null;
+    return [...pool].sort((left, right) => (left.distance ?? Infinity) - (right.distance ?? Infinity) || rankByPrice(left, right))[0] ?? null;
   }, [rankedCandidates]);
+  const queryIgnored = Boolean((functionalRegion || decisionCity) && query.trim());
+  const recommendationDecisionKey = useMemo(() => {
+    if (!bestForYou || !nearYou) return null;
+    return [
+      primaryFuel,
+      nearYou.station.id,
+      bestForYou.station.id,
+      absoluteNearest?.station.id ?? "no-nearest",
+      nearYou.distance ?? "no-distance",
+      bestForYou.distance ?? "no-distance",
+      absoluteNearest?.distance ?? "no-distance",
+      Number(nearYou.report.price).toFixed(2),
+      Number(bestForYou.report.price).toFixed(2),
+      absoluteNearest ? Number(absoluteNearest.report.price).toFixed(2) : "no-price"
+    ].join("::");
+  }, [absoluteNearest, bestForYou, nearYou, primaryFuel]);
+
+  useEffect(() => {
+    if (!recommendationDecisionKey || !bestForYou || !nearYou) {
+      return;
+    }
+
+    if (emittedRecommendationDecisionKeys.has(recommendationDecisionKey)) {
+      return;
+    }
+
+    emittedRecommendationDecisionKeys.add(recommendationDecisionKey);
+
+    void trackProductEvent({
+      eventType: "home_recommendation_decided",
+      pagePath: "/",
+      pageTitle: "Home",
+      stationId: bestForYou.station.id,
+      city: decisionCity || bestForYou.station.city || nearYou.station.city || null,
+      fuelType: primaryFuel,
+      scopeType: "home_recommendation",
+      scopeId: "quick_decision",
+      payload: {
+        nearStationId: nearYou.station.id,
+        nearDistance: nearYou.distance,
+        nearPrice: Number(nearYou.report.price),
+        nearDecisionLabel: nearYou.decisionLabel,
+        bestStationId: bestForYou.station.id,
+        bestDistance: bestForYou.distance,
+        bestPrice: Number(bestForYou.report.price),
+        bestDecisionLabel: bestForYou.decisionLabel,
+        bestValueScore: Number(bestForYou.valueScore.toFixed(4)),
+        absoluteNearestStationId: absoluteNearest?.station.id ?? null,
+        absoluteNearestDistance: absoluteNearest?.distance ?? null,
+        absoluteNearestPrice: absoluteNearest ? Number(absoluteNearest.report.price) : null,
+        nearOverridesAbsoluteNearest: Boolean(absoluteNearest && absoluteNearest.station.id !== nearYou.station.id),
+        bestAlignedWithNear: bestForYou.station.id === nearYou.station.id,
+        nearVsBestDistanceGap: nearYou.distance !== null && bestForYou.distance !== null ? bestForYou.distance - nearYou.distance : null,
+        nearVsBestPriceGap: Number((Number(bestForYou.report.price) - Number(nearYou.report.price)).toFixed(2)),
+        nearVsBestScoreGap: Number((bestForYou.valueScore - nearYou.valueScore).toFixed(4)),
+        regionTopStationId: regionTopThree[0]?.station.id ?? null,
+        regionTopPrice: regionTopThree[0] ? Number(regionTopThree[0].report.price) : null,
+        candidateCount: rankedCandidates.length,
+        queryIgnored,
+        hasFunctionalRegion: Boolean(functionalRegion)
+      }
+    });
+  }, [absoluteNearest, bestForYou, decisionCity, functionalRegion, nearYou, primaryFuel, queryIgnored, rankedCandidates.length, recommendationDecisionKey, regionTopThree]);
 
   const regionLabel = decisionCity ? `Entorno de ${decisionCity}` : functionalRegion ? "Recorte regional agora" : "Recorte regional agora";
-  const queryIgnored = Boolean((functionalRegion || decisionCity) && query.trim());
   const regionScopeNote = functionalRegion ? `A leitura territorial abre um raio regional mais largo a partir de ${decisionCity || "sua posição"}, sem depender da fronteira administrativa de uma cidade só.` : decisionCity ? `O bloco bruto usa ${decisionCity} como âncora territorial a partir do GPS.` : "Sem cidade definida; a leitura segue o recorte aberto.";
   const coverageNote = noRecentStations.length > 0 ? `${noRecentStations.length} postos ainda pedem atualização para cobrir melhor o recorte.` : "A cobertura recente está estável neste recorte.";
 
@@ -257,7 +336,7 @@ export function HomeSimplifiedSections({
                   <Badge variant={recencyToneToBadgeVariant(nearYou.recencyTone)} className="text-[10px]">{formatRecencyLabel(nearYou.report.reportedAt)}</Badge>
                   {nearYou.distance !== null ? <Badge variant="outline" className="text-[10px]">{formatDistanceFromYou(nearYou.distance)}</Badge> : null}
                 </div>
-                <p className="mt-3 text-sm text-white/56">{nearYou.distance !== null ? `Leitura mais próxima agora. Se você só quer algo no trajeto, este é o primeiro filtro útil em ${formatDistanceFromYou(nearYou.distance)}.` : "Sem GPS forte agora, então a leitura de proximidade fica conservadora."}</p>
+                <p className="mt-3 text-sm text-white/56">{nearYou.distance !== null ? absoluteNearest && absoluteNearest.station.id !== nearYou.station.id ? `Aqui entram distância e preço juntos. Ele não é o mais colado no mapa, mas fecha melhor a conta perto de você agora em ${formatDistanceFromYou(nearYou.distance)}.` : `Aqui entram distância e preço juntos. Este é o melhor equilíbrio perto de você agora em ${formatDistanceFromYou(nearYou.distance)}.` : "Sem GPS forte agora, então a leitura de proximidade fica conservadora."}</p>
                 <div className="mt-4 grid gap-2 sm:grid-cols-2">
                   <ButtonLink href={getStationHref(nearYou.station.id, contextHref, primaryFuel)} variant="secondary" className="min-h-10 justify-center px-4 text-[10px] font-black uppercase tracking-[0.16em]" onClick={() => { rememberStationVisit({ id: nearYou.station.id, name: getStationPublicName(nearYou.station), city: nearYou.station.city }); trackAction(nearYou.station, primaryFuel, "near", "station", "home-nearby-view"); onStationTrack?.(`near-view-${nearYou.station.id}`); }}>Ver posto</ButtonLink>
                   <Button type="button" variant="ghost" disabled={!canNavigate(nearYou.station)} className="min-h-10 justify-center px-4 text-[10px] font-black uppercase tracking-[0.16em] text-white/78 disabled:text-white/28" onClick={() => { if (!canNavigate(nearYou.station)) return; rememberStationVisit({ id: nearYou.station.id, name: getStationPublicName(nearYou.station), city: nearYou.station.city }); onStationTrack?.(`near-route-${nearYou.station.id}`); openExternalNavigation({ lat: nearYou.station.lat, lng: nearYou.station.lng, stationId: nearYou.station.id, stationName: getStationPublicName(nearYou.station), source: "home_near_you" }); }}><Navigation className="h-4 w-4" />Traçar rota</Button>
@@ -312,7 +391,7 @@ export function HomeSimplifiedSections({
               <div className="min-w-0">
                 <p className="text-[10px] uppercase tracking-[0.2em] text-white/42">Vale mais a pena para você</p>
                 <h3 className="mt-1 text-base font-semibold text-white sm:text-lg">{bestForYou.decisionLabel}</h3>
-                <p className="mt-1 text-sm text-white/52">Preço, distância, recência, confiança, economia estimada e penalidade por desvio entram na conta.</p>
+                <p className="mt-1 text-sm text-white/52">Preço, distância, recência, confiança, economia estimada e penalidade por desvio entram na conta. Quando o ganho é parecido, o trajeto mais curto vence.</p>
               </div>
               <Badge variant="default" className="max-w-full self-start text-[10px]">{fuelLabels[primaryFuel]}</Badge>
             </div>
@@ -358,7 +437,7 @@ export function HomeSimplifiedSections({
 
         <div className="rounded-[20px] border border-white/8 bg-white/[0.04] px-4 py-3">
           <p className="text-[10px] uppercase tracking-[0.18em] text-white/34">Leitura do custo-benefício</p>
-          <p className="mt-1 text-sm text-white/52">O card da direita usa economia líquida por tanque como tradutor rápido: se o preço bruto é bom, mas o desvio come a vantagem, ele cai para “barato, mas longe” ou “barato, mas velho”.</p>
+          <p className="mt-1 text-sm text-white/52">O card da esquerda já não sobe só o posto mais perto: ele compara preço e deslocamento curto. O card da direita segue olhando a conta completa por tanque para achar o melhor custo-benefício geral.</p>
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row">

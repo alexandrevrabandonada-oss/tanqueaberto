@@ -53,11 +53,13 @@ import { ProgressiveTrustRolloutPanel } from "./components/progressive-trust-rol
 import { ProgressiveTrustOperationsPanel } from "./components/progressive-trust-operations-panel";
 import { getProgressiveTrustRollout } from "@/lib/ops/progressive-trust";
 import { getEconomyTelemetryReadout } from "@/lib/ops/economy-telemetry";
+import { getHomeRecommendationTelemetryReadout } from "@/lib/ops/home-recommendation-telemetry";
 import { getTerritorialCoverageReadout } from "@/lib/ops/territorial-coverage";
 import { getTerritorialSeedingImpactReadout } from "@/lib/ops/territorial-seeding-impact";
 import { getTerritoryWorkflowQueueReadout } from "@/lib/ops/territory-workflow";
 import { UnifiedOperationalSummaryPanel } from "./components/unified-operational-summary-panel";
 import { OperationalPlaybookPanel } from "./components/operational-playbook-panel";
+import { HomeRecommendationOpsPanel } from "./components/home-recommendation-ops-panel";
 
 export default async function OpsDashboardPage() {
   const supabase = await createSupabaseServerClient();
@@ -66,7 +68,7 @@ export default async function OpsDashboardPage() {
     .select('*')
     .order('created_at', { ascending: false })
     .limit(10);
-  const [killSwitches, groups, alerts, history, collectors, territorialHistory, synthesis, territoryWorkflow, progressiveTrustReadout, progressiveTrustRollout, economyTelemetryReadout, coverageReadout, seedingReadout, territorialQueueReadout, qualityMetrics] = await Promise.all([
+  const [killSwitches, groups, alerts, history, collectors, territorialHistory, synthesis, territoryWorkflow, progressiveTrustReadout, progressiveTrustRollout, economyTelemetryReadout, homeRecommendationReadout, coverageReadout, seedingReadout, territorialQueueReadout, qualityMetrics] = await Promise.all([
     getKillSwitches(),
     getAuditGroups(),
     detectActiveAlerts(),
@@ -78,6 +80,7 @@ export default async function OpsDashboardPage() {
     getProgressiveTrustOperationalReadout(14),
     getProgressiveTrustRollout(),
     getEconomyTelemetryReadout(14),
+    getHomeRecommendationTelemetryReadout(14),
     getTerritorialCoverageReadout(30),
     getTerritorialSeedingImpactReadout(30),
     getTerritoryWorkflowQueueReadout(120),
@@ -122,6 +125,10 @@ export default async function OpsDashboardPage() {
           coverageReadout={coverageReadout}
           qualityMetrics={qualityMetrics}
         />
+      </div>
+
+      <div className="mb-8">
+        <HomeRecommendationOpsPanel readout={homeRecommendationReadout} />
       </div>
 
       <div className="mb-8">

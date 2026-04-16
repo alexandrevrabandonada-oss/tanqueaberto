@@ -19,6 +19,7 @@
     "audit:refresh": "tsx scripts/refresh-audit-analytics.ts",
     "audit:dossiers": "tsx scripts/generate-audit-dossiers.ts",
     "ops:seed-groups": "tsx scripts/seed-audit-groups.ts",
+    "test:home-recommendation": "node --import tsx --test tests/home-recommendation.test.ts",
     "test:smoke": "playwright test",
     "launch-gate": "tsx scripts/launch-gate.ts",
     "release:visual": "node scripts/release-hardening-visual.cjs",
